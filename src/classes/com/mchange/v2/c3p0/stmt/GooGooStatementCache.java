@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -144,7 +144,14 @@ public final class GooGooStatementCache
 			System.err.println("Problem with checked-in Statement, discarding.");
 			e.printStackTrace();
 		    }
-		removeStatement( pstmt, true );
+		
+		// swaldman -- 2004-01-31: readd problem statement to checkedOut for consistency
+		// the statement is not yet checked-in, but it is removed from checked out, and this
+		// violates the consistency assumption of removeStatement(). Thanks to Zach Scott for
+		// calling attention to this issue.
+		checkedOut.add( pstmt );
+
+		removeStatement( pstmt, true ); //force destruction of the statement even though it appears checked-out
 		return;
 	    }
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -34,7 +34,7 @@ import com.mchange.v2.debug.DebugConstants;
 final class Debug implements DebugConstants
 {
 	final static boolean DEBUG = true;
-	final static int     TRACE = TRACE_MAX;
+	final static int     TRACE = TRACE_MED;
 
 	private Debug()
 	{}

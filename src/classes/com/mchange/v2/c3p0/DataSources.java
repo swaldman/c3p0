@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -67,7 +67,7 @@ public final class DataSources
     /**
      * Defines an unpooled DataSource on the specified JDBC URL.
      *
-     *  @param properties the usual DriverManager properties for your JDBC driver
+     *  @param driverProps the usual DriverManager properties for your JDBC driver
      *         (e.g. "user" and "password" for all drivers that support
      *         authentication)
      * 
@@ -96,6 +96,7 @@ public final class DataSources
      * <p>Creates a pooled version of an unpooled DataSource using default configuration information 
      *    and the specified startement cache size.
      *    Use a value greater than zero to turn statement caching on.</p>
+     *
      *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource, int statement_cache_size ) throws SQLException
@@ -176,15 +177,40 @@ public final class DataSources
      *  @see com.mchange.v2.c3p0.PoolConfig
      */
     public static void destroy( DataSource pooledDataSource ) throws SQLException
+    { destroy( pooledDataSource, false ); }
+
+
+    /**
+     * <p>Should be used only with great caution. Immediately destroys any pool and cleans up all resources
+     *    this DataSource may be using, <u><i>even if other DataSources are sharing that
+     *    pool!</i></u> In general, it is difficult to know whether a pool is being shared by
+     *    multiple DataSources. It may depend upon whether or not a JNDI implementation returns
+     *    a single instance or multiple copies upon lookup (which is undefined by the JNDI spec).</p>
+     *
+     * <p>In general, this method should be used only when you wish to wind down all c3p0 pools
+     *    in a ClassLoader. For example, when shutting down and restarting a web application
+     *    that uses c3p0, you may wish to kill all threads making use of classes loaded by a 
+     *    web-app specific ClassLoader, so that the ClassLoader can be cleanly garbage collected.
+     *    In this case, you may wish to use force destroy. Otherwise, it is much safer to use
+     *    the simple destroy() method, which will not shut down pools that may still be in use.</p>
+     *
+     * <p><b>To close a pool normally, use the simple destroy method instead of forceDestroy.</b></p>
+     *
+     *   @see #destroy
+     */
+    public static void forceDestroy( DataSource pooledDataSource ) throws SQLException
+    { destroy( pooledDataSource, true ); }
+
+    private static void destroy( DataSource pooledDataSource, boolean force ) throws SQLException
     {
 	if ( pooledDataSource instanceof PoolBackedDataSource)
 	    {
 		ConnectionPoolDataSource cpds = ((PoolBackedDataSource) pooledDataSource).getConnectionPoolDataSource();
 		if (cpds instanceof WrapperConnectionPoolDataSource)
-		    destroy( ((WrapperConnectionPoolDataSource) cpds).getNestedDataSource() );
+		    destroy( ((WrapperConnectionPoolDataSource) cpds).getNestedDataSource(), force );
 	    }
 	if ( pooledDataSource instanceof PooledDataSource )
-	    ((PooledDataSource) pooledDataSource).close();
+	    ((PooledDataSource) pooledDataSource).close( force );
     }
 
     private DataSources()

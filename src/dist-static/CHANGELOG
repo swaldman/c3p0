@@ -1,3 +1,19 @@
+c3p0-0.8.4.1
+	-- Added (hopefully not too annoying) dump of DataSource configuration
+	   on pool initialization to assist user debugging.
+	-- Added methods to force destroy all resources used by a PooledDataSource,
+	   even if other DataSource instances are sharing those resources. This is
+	   intended primarily for applications that wish to discard the ClassLoader that
+	   loaded c3p0, regardless of whatever's currently going on.
+	-- Turned off annoying trace messages when a C3P0PooledConnection closes.
+	-- Fixed issue in statement cache whereby statements that fail to check-in
+	   properly (that throw an exception in "clearParameters") cause an exception
+	   in removeStatement, because removeStatement sees a statement that appears
+	   neither to be checked-out, nor in the deathmarch for checked-in statements.
+	   Resolved by re-adding truculent statement to the checkedOut set, and then
+	   destroying using removeStatement's codepath for removing and (force-)destroying
+	   checked-out statements. Thanks to Zach Scott for calling attention to
+	   this issue.
 c3p0-0.8.4
 	-- Updated and HTML-ized documentation, updated READMEs. 
 c3p0-0.8.4-test5

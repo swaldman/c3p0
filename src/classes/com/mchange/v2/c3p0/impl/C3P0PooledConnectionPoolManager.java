@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -324,6 +324,15 @@ public final class C3P0PooledConnectionPoolManager
 	    this.close();
 
 	// System.err.println("active clients after -- " + activeClients);
+    }
+
+    public synchronized void forceDestroy()
+    {
+	if (activeClients.size() > 0)
+	    {
+		activeClients.clear();
+		this.close();
+	    }
     }
 }
 

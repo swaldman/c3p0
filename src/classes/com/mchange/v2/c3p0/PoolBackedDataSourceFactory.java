@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -388,10 +388,6 @@ public final class PoolBackedDataSourceFactory
      *  @param maxStatements the maximum number of PreparedStatements that should 
      *         be cached by this pool. A value of 0 means that Statement caching
      *         should be disabled.
-     *  @param factoryLocation a codebase url where JNDI clients can find the  
-     *         c3p0 libraries. Use null if clients will be expected to have the
-     *         libraries available locally. Used only if the JNDI service prefers
-     *         References to Serialized Objects when Objects are bound.
      */
     public static DataSource create( DataSource unpooledDataSource,
 				     int minPoolSize,

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -100,9 +100,17 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
     { return getPoolManager().getNumConnectionsAllAuths(); }
 
     public void close()
+    { close( false ); }
+
+    public void close(boolean force_destroy)
     { 
+	C3P0PooledConnectionPoolManager forceDestroyMe = (force_destroy ? poolManager : null );
+
 	resetPoolManager(); 
 	is_closed = true;
+
+	if ( force_destroy )
+	    forceDestroyMe.forceDestroy();
     }
 
     //other code
@@ -132,6 +140,8 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 	    {
 		poolManager = C3P0PooledConnectionPoolManager.find(assertCpds(), this.getNumHelperThreads());
 		poolManager.registerActiveClient( this );
+		if (Debug.DEBUG && Debug.TRACE > Debug.TRACE_NONE)
+		    System.err.println("Initializing c3p0 pool... " + this.toString());
 	    }
         return poolManager;	    
      }

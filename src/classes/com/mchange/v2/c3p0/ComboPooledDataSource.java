@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -298,5 +298,8 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 
     public void close()
     { pbds.close(); }
+
+    public void close( boolean force_destroy )
+    { pbds.close( force_destroy ); }
 }
 

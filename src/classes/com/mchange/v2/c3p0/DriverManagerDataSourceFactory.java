@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4
+ * Distributed as part of c3p0 v.0.8.4.1
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -44,11 +44,11 @@ public final class DriverManagerDataSourceFactory
      *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
      *  behind the scenes to acquire Connections.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
-     *  @param user a username (may be null) for authentication to the RDBMS
-     *  @param password a password (may be null) for authentication to the RDBMS
-     *  @param refFactoryLocation a codebase url where JNDI clients can find the  
+     *  @param dfltUser a username (may be null) for authentication to the RDBMS
+     *  @param dfltPassword a password (may be null) for authentication to the RDBMS
+     *  @param refFactoryLoc a codebase url where JNDI clients can find the  
      *         c3p0 libraries. Use null if clients will be expected to have the
      *         libraries available locally.
      */
@@ -81,10 +81,10 @@ public final class DriverManagerDataSourceFactory
      *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
      *  behind the scenes to acquire Connections.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param props propertis object that should be passed to DriverManager.getConnection()
-     *  @param refFactoryLocation a codebase url where JNDI clients can find the  
+     *  @param refFactoryLoc a codebase url where JNDI clients can find the  
      *         c3p0 libraries. Use null if clients will be expected to have the
      *         libraries available locally.
      */
@@ -115,10 +115,10 @@ public final class DriverManagerDataSourceFactory
      *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
      *  behind the scenes to acquire Connections.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
-     *  @param user a username (may be null) for authentication to the RDBMS
-     *  @param password a password (may be null) for authentication to the RDBMS
+     *  @param dfltUser a username (may be null) for authentication to the RDBMS
+     *  @param dfltPassword a password (may be null) for authentication to the RDBMS
      */
     public static DataSource create(String driverClass,
 				    String jdbcUrl, 
@@ -131,7 +131,7 @@ public final class DriverManagerDataSourceFactory
      *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
      *  behind the scenes to acquire Connections.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      */
     public static DataSource create(String driverClass, String jdbcUrl)
@@ -147,8 +147,8 @@ public final class DriverManagerDataSourceFactory
      *  know the driver class and make sure themselves that it is preloaded!!!
      *
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
-     *  @param user a username (may be null) for authentication to the RDBMS
-     *  @param password a password (may be null) for authentication to the RDBMS
+     *  @param dfltUser a username (may be null) for authentication to the RDBMS
+     *  @param dfltPassword a password (may be null) for authentication to the RDBMS
      */
     public static DataSource create(String jdbcUrl, String dfltUser, String dfltPassword)
 	throws SQLException
