@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -88,26 +88,27 @@ public final class C3P0BenchmarkApp
 //      							 100 );
 
 		ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
-		ds_pooled = DataSources.pooledDataSource( ds_unpooled );
+		//ds_pooled = DataSources.pooledDataSource( ds_unpooled );
 
    		//DataSource ds_unpooled_screwy = C3P0TestUtils.unreliableCommitDataSource( ds_unpooled );
    		//ds_pooled = DataSources.pooledDataSource( ds_unpooled_screwy );
 
-		//PoolConfig pc = new PoolConfig();
-		//pc.setMaxStatements(200);
-		//ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
+		PoolConfig pc = new PoolConfig();
+// 		pc.setMaxStatements(200);
+// 		pc.setCheckoutTimeout(500);
+		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
 
  		create(ds_pooled);
 
 		System.out.println("Please wait. Tests can be very slow.");
 		List l = new ArrayList();
-   		l.add( new ConnectionAcquisitionTest() );
-      		l.add( new StatementCreateTest() );
-      		l.add( new StatementEmptyTableSelectTest() );
-		l.add( new DataBaseMetaDataListNonexistentTablesTest() );
-      		l.add( new PreparedStatementEmptyTableSelectTest() );
-    		l.add( new PreparedStatementAcquireTest() );
-    		l.add( new ResultSetReadTest() );
+    		l.add( new ConnectionAcquisitionTest() );
+       		l.add( new StatementCreateTest() );
+       		l.add( new StatementEmptyTableSelectTest() );
+ 		l.add( new DataBaseMetaDataListNonexistentTablesTest() );
+       		l.add( new PreparedStatementEmptyTableSelectTest() );
+     		l.add( new PreparedStatementAcquireTest() );
+     		l.add( new ResultSetReadTest() );
    		l.add( new FiveThreadPSQueryTestTest() );
 		for (int i = 0, len = l.size(); i < len; ++i)
 		    ((Test) l.get(i)).perform( ds_unpooled, ds_pooled, NUM_ITERATIONS );
@@ -533,7 +534,14 @@ public final class C3P0BenchmarkApp
 			    try
 				{
 				    con = ds.getConnection();
+
+// 				    System.err.println("before txn isolation set: " + con.getTransactionIsolation());
+// 				    con.setTransactionIsolation( Connection.TRANSACTION_SERIALIZABLE );
+// 				    //con.setTransactionIsolation( Connection.TRANSACTION_READ_UNCOMMITTED );
+// 				    System.err.println("after txn isolation set: " + con.getTransactionIsolation());
+
 				    con.setAutoCommit( false );
+
 				    pstmt = con.prepareStatement( EMPTY_TABLE_CONDITIONAL_SELECT );
 				    pstmt.setString(1, "boo");
 				    rs = pstmt.executeQuery();

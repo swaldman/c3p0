@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -33,7 +33,7 @@ import javax.sql.PooledConnection;
 
 import com.mchange.v1.db.sql.ConnectionUtils;
 import com.mchange.v2.c3p0.ConnectionTester;
-import com.mchange.v2.c3p0.advanced.QueryConnectionTester;
+import com.mchange.v2.c3p0.QueryConnectionTester;
 import com.mchange.v2.c3p0.stmt.GooGooStatementCache;
 import com.mchange.v2.resourcepool.ResourcePool;
 import com.mchange.v2.resourcepool.ResourcePoolException;

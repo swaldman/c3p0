@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -25,8 +25,9 @@ package com.mchange.v2.c3p0.test;
 
 import java.lang.reflect.Method;
 
-import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.mchange.v2.c3p0.C3P0ProxyConnection;
+import com.mchange.v2.c3p0.C3P0ProxyStatement;
 import com.mchange.v2.c3p0.util.TestUtils;
 
 public final class RawConnectionOpTest
@@ -71,6 +72,12 @@ public final class RawConnectionOpTest
 				   conn.rawConnectionOperation(toStringMethod, C3P0ProxyConnection.RAW_CONNECTION, new Object[]{}));
 		Integer ihc = (Integer) conn.rawConnectionOperation(identityHashCodeMethod, null, new Object[]{C3P0ProxyConnection.RAW_CONNECTION});
 		System.out.println("System.identityHashCode( rawConnection ) -> " + Integer.toHexString( ihc.intValue() ));
+
+		C3P0ProxyStatement stmt = (C3P0ProxyStatement) conn.createStatement();
+		System.out.println("rawStatement.toString() -> " + 
+				   stmt.rawStatementOperation(toStringMethod, C3P0ProxyStatement.RAW_STATEMENT, new Object[]{}));
+		Integer ihc2 = (Integer) stmt.rawStatementOperation(identityHashCodeMethod, null, new Object[]{C3P0ProxyStatement.RAW_STATEMENT});
+		System.out.println("System.identityHashCode( rawStatement ) -> " + Integer.toHexString( ihc2.intValue() ));
 
 		conn.close();	
 

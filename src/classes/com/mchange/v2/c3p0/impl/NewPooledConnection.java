@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -40,6 +40,7 @@ public final class NewPooledConnection implements PooledConnection
     final ConnectionTester       connectionTester;
     final boolean                autoCommitOnClose;
     final boolean                forceIgnoreUnresolvedTransactions;
+    final int                    dflt_txn_isolation;
     final ConnectionEventSupport ces;
 
     //MT:  protected by this' lock
@@ -54,17 +55,19 @@ public final class NewPooledConnection implements PooledConnection
 
     //MT: thread-safe, volatile
     volatile NewProxyConnection exposedProxy = null;
+    volatile boolean isolation_lvl_nondefault = false; 
 
     // public API
     public NewPooledConnection(Connection con, 
 			       ConnectionTester connectionTester,
 			       boolean autoCommitOnClose, 
-			       boolean forceIgnoreUnresolvedTransactions)
+			       boolean forceIgnoreUnresolvedTransactions) throws SQLException
     { 
 	this.physicalConnection                = con; 
 	this.connectionTester                  = connectionTester;
 	this.autoCommitOnClose                 = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
+	this.dflt_txn_isolation                = con.getTransactionIsolation();
 	this.ces                               = new ConnectionEventSupport(this);
     }
 
@@ -125,6 +128,12 @@ public final class NewPooledConnection implements PooledConnection
     { return scache; }
 
     //api for NewProxyConnections
+    void markNewTxnIsolation( int lvl ) //intentionally unsync'd -- isolation_lvl_nondefault is marked volatile
+    { 
+	this.isolation_lvl_nondefault = (lvl != dflt_txn_isolation); 
+	//System.err.println("isolation_lvl_nondefault: " + isolation_lvl_nondefault);
+    }
+
     synchronized Object checkoutStatement( Method stmtProducingMethod, Object[] args ) throws SQLException
     { return scache.checkoutStatement( physicalConnection, stmtProducingMethod, args ); }
 
@@ -209,6 +218,13 @@ public final class NewPooledConnection implements PooledConnection
     private void reset( boolean txn_known_resolved ) throws SQLException
     {
 	C3P0ImplUtils.resetTxnState( physicalConnection, forceIgnoreUnresolvedTransactions, autoCommitOnClose, txn_known_resolved );
+	physicalConnection.setTransactionIsolation( dflt_txn_isolation );
+	if (isolation_lvl_nondefault)
+	    {
+		physicalConnection.setTransactionIsolation( dflt_txn_isolation );
+		isolation_lvl_nondefault = false; 
+		//System.err.println("reset txn isolation: " + dflt_txn_isolation);
+	    }
     }
 
     synchronized boolean isStatementCaching()

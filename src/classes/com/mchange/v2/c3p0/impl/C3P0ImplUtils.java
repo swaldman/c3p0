@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -92,7 +92,7 @@ public final class C3P0ImplUtils
 	    {
 		if (! autoCommitOnClose && ! txnKnownResolved)
 		    {
-			System.err.println("Rolling back potentially unresolved txn...");
+			//System.err.println("Rolling back potentially unresolved txn...");
 			pCon.rollback();
 		    }	
 		pCon.setAutoCommit( true ); //implies commit if not already rolled back.

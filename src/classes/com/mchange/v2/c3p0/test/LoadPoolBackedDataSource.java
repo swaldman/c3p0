@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -146,10 +146,10 @@ public final class LoadPoolBackedDataSource
 				    else
 					executeInsert( con );
 				    PooledDataSource pds = (PooledDataSource) ds;
-				    System.out.println( pds.getNumConnections() );
-				    System.out.println( pds.getNumIdleConnections() );
-				    System.out.println( pds.getNumBusyConnections() );
-				    System.out.println( pds.getNumConnectionsAllAuths() );
+				    System.out.println( pds.getNumConnectionsDefaultUser() );
+				    System.out.println( pds.getNumIdleConnectionsDefaultUser() );
+				    System.out.println( pds.getNumBusyConnectionsDefaultUser() );
+				    System.out.println( pds.getNumConnectionsAllUsers() );
 				}
 			    finally
 				{ ConnectionUtils.attemptClose( con ); }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -96,7 +96,19 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
     public int getNumUnclosedOrphanedConnections() throws SQLException
     { return getPoolManager().getPool().getNumUnclosedOrphanedConnections(); }
 
-    public void softReset() throws SQLException
+    public int getNumConnectionsDefaultUser() throws SQLException
+    { return getNumConnections();}
+
+    public int getNumIdleConnectionsDefaultUser() throws SQLException
+    { return getNumIdleConnections();}
+
+    public int getNumBusyConnectionsDefaultUser() throws SQLException
+    { return getNumBusyConnections();}
+
+    public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException
+    { return getNumUnclosedOrphanedConnections();}
+
+    public void softResetDefaultUser() throws SQLException
     { getPoolManager().getPool().reset(); }
 
     public int getNumConnections(String username, String password) throws SQLException
@@ -114,22 +126,22 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
     public void softReset(String username, String password) throws SQLException
     { getPoolManager().getPool(username, password).reset(); }
 
-    public int getNumBusyConnectionsAllAuths() throws SQLException
+    public int getNumBusyConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumBusyConnectionsAllAuths(); }
 
-    public int getNumIdleConnectionsAllAuths() throws SQLException
+    public int getNumIdleConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumIdleConnectionsAllAuths(); }
 
-    public int getNumConnectionsAllAuths() throws SQLException
+    public int getNumConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumConnectionsAllAuths(); }
 
-    public int getNumUnclosedOrphanedConnectionsAllAuths() throws SQLException
+    public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumUnclosedOrphanedConnectionsAllAuths(); }
 
-    public void softResetAllAuths() throws SQLException
+    public void softResetAllUsers() throws SQLException
     { getPoolManager().softResetAllAuths(); }
 
-    public int getNumManagedAuths() throws SQLException
+    public int getNumUserPools() throws SQLException
     { return getPoolManager().getNumManagedAuths(); }
 
 //

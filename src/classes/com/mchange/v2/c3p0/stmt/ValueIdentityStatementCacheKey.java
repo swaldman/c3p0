@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -192,6 +192,10 @@ final class ValueIdentityStatementCacheKey extends StatementCacheKey
 
     // extra instance varieable
     int cached_hash;
+
+    // Note that we DON'T override equals() or hashCode() here -- each instance let the coalescer guarantee a
+    // single instance exists that would equals() it (that is, itself), and we rely on Object's default equals() and
+    // hashCode methods do their thangs.
 }
 
 

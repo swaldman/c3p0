@@ -117,7 +117,7 @@
 	  <li><a href="#querying">Querying Pool Status</a></li>
 	  <li><a href="#cleaning">Cleaning Up Pool Resources</a></li>
 	  <li><a href="#build_your_own">Advanced: Building Your Own PoolBackedDataSource</a></li>
-	  <li><a href="#raw_connection_ops">Advanced: Raw Connection Operations</a></li>
+	  <li><a href="#raw_connection_ops">Advanced: Raw Connection and Statement Operations</a></li>
 	</ol>
       </li>
       <li>
@@ -467,17 +467,17 @@ static void cleanup(DataSource ds) throws SQLException
 	vendor-supplied <tt>DataSource</tt> as the <tt>nestedDataSource</tt> for a <tt>WrapperConnectionPoolDataSource</tt>.
       </p>
       <a name="raw_connection_ops">
-	<h3>Advanced: Raw Connection Operations</h3>
+	<h3>Advanced: Raw Connection and Statement Operations</h3>
       </a>
       <p>
-	JDBC drivers sometimes define vendor-specific, non-standard API on Connection implementations. C3P0 wraps
-	Connections behind a proxy, so you cannot cast C3P0-returned Connections to the vendor-specific implementation
-	class. C3P0 does not provide any means of accessing the raw Connection directly, because C3P0 needs to keep
-	track of Statements and ResultSets returned by the Connection in order to prevent resource leaks and pool
+	JDBC drivers sometimes define vendor-specific, non-standard API on Connection and Statement implementations. C3P0 wraps
+	these Objects behind a proxies, so you cannot cast C3P0-returned Connections or Statements to the vendor-specific implementation
+	classes. C3P0 does not provide any means of accessing the raw Connections and Statements directly, because C3P0 needs to keep
+	track of Statements and ResultSets created in order to prevent resource leaks and pool
 	corruption.
       </p>
       <p>
-	C3P0 does provide an API that allows you to invoke non-standard methods reflectively on the underlying
+	C3P0 does provide an API that allows you to invoke non-standard methods reflectively on an underlying
 	Connection. To use it, first cast the returned Connection to a 
 	<a href="apidocs/com/mchange/v2/c3p0/C3P0ProxyConnection.html"><tt>C3P0ProxyConnection</tt></a>. Then call
 	the method <tt>rawConnectionOperation</tt>, supplying the <tt>java.lang.reflect.Method</tt> object for
@@ -488,7 +488,11 @@ static void cleanup(DataSource ds) throws SQLException
 	the underlying vendor-specific <tt>Connection</tt> object before the <tt>Method</tt> is invoked.
       </p>
       <p>
-	Any Statements (including Prepared and CallableStatements) and ResultSets returned by the operation
+	<a href="apidocs/com/mchange/v2/c3p0/C3P0ProxyStatement.html"><tt>C3P0ProxyStatement</tt></a> offers
+	and exactly analogous API.
+      </p>
+      <p>
+	Any Statements (including Prepared and CallableStatements) and ResultSets returned by raw operations
 	will be c3p0-managed, and will be properly cleaned-up on <tt>close()</tt> of the parent proxy Connection.
 	Users must take care to clean up any non-standard resources returned by a vendor-specific method.
       </p>
@@ -686,11 +690,11 @@ c3p0.maxIdleTime=1800
 	Enhanced performance is the purpose of <tt>Connection</tt> and <tt>Statement</tt> pooling, and a
 	major goal of the c3p0 library. For most applications, <tt>Connection</tt> pooling
 	will provide a significant performance gain, especially if you are acquiring
-	an unpooled <tt>Connection</tt> for each client <tt>Thread</tt>. If you are letting a single,
+	an unpooled <tt>Connection</tt> for each client access. If you are letting a single,
 	shared <tt>Connection</tt> serve many clients to avoid <tt>Connection</tt> acquisition overhead, 
 	you may suffer performance issues and problems managing transactions when 
 	your <tt>Connection</tt> is under concurrent load; <tt>Connection</tt> pooling will enable you 
-	to switch to a one <tt>Connection</tt>-per-client-thread model with little or no cost. 
+	to switch to a one <tt>Connection</tt>-per-client model with little or no cost. 
 	If you are writing Enterprise Java Beans, you may be tempted to acquire a 
 	<tt>Connection</tt> once and not return it until the bean is about to be destroyed or
 	passivated. But this can be resource-costly, as dormant pooled 
@@ -737,7 +741,8 @@ c3p0.maxIdleTime=1800
 	    turned off by default. If your driver does preprocess <tt>PreparedStatements</tt>,
 	    especially if it does so via IPC with the RDBMS, you will probably
 	    see a significant performance gain by turning <tt>Statement</tt> pooling on. (Do this by
-	    defining a value for the configuration property <tt>maxStatements</tt> greater than zero.).
+	    setting the configuration property <tt>maxStatements</tt> or <tt>maxStatementsPerConnection</tt>
+	    to a value greater than zero.).
 	  </p>
 	</li>
       </ul>

@@ -23,61 +23,62 @@
 
 package com.mchange.v2.c3p0;
 
-import java.sql.Connection;
+import java.sql.Statement;
 import java.sql.SQLException;
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- *  <p><b>Most clients need never use or know about this interface -- c3p0-provided Connections
- *  can be treated like any other Connection.</b></p>
+ *  <p><b>Most clients need never use or know about this interface -- c3p0-provided Statements
+ *  can be treated like any other Statement.</b></p>
  *
  *  <p>An interface implemented by proxy Connections returned
  *  by c3p0 PooledDataSources. It provides protected access to the underlying
  *  dbms-vendor specific Connection, which may be useful if you want to
  *  access non-standard API offered by your jdbc driver.
  */
-public interface C3P0ProxyConnection extends Connection
+public interface C3P0ProxyStatement extends Statement
 {
     /**
      *  A token representing an unwrapped, unproxied jdbc Connection
-     *  for use in {@link #rawConnectionOperation}
+     *  for use in {@link #rawStatementOperation}
      */
-    public final static Object RAW_CONNECTION = new Object();
+    public final static Object RAW_STATEMENT = new Object();
     
     /**
-     *  <p>Allows one to work with the unproxied, raw Connection. Some 
+     *  <p>Allows one to work with the unproxied, raw vendor-provided Statement . Some 
      *  database companies never got over the "common interfaces mean
      *  no more vendor lock-in!" thing, and offer non-standard API
-     *  on their Connections. This method permits you to "pierce" the
+     *  on their Statements. This method permits you to "pierce" the
      *  connection-pooling layer to call non-standard methods on the
-     *  original Connection, or to pass the original Connections to 
+     *  original Statement, or to pass the original Statement to 
      *  functions that are not implementation neutral.</p>
      *
-     *  <p>To use this functionality, you'll need to cast a Connection
-     *  retrieved from a c3p0 PooledDataSource to a 
-     *  C3P0ProxyConnection.</p>
+     *  <p>To use this functionality, you'll need to cast a Statement
+     *  retrieved from a c3p0-provided Connection to a 
+     *  C3P0ProxyStatement.</p>
      *
      *  <p>This method works by making a reflective call of method <tt>m</tt> on
      *  Object <tt>target</tt> (which may be null for static methods), passing
      *  and argument list <tt>args</tt>. For the method target, or for any argument,
-     *  you may substitute the special token <tt>C3P0ProxyConnection.RAW_CONNECTION</tt></p>
+     *  you may substitute the special token <tt>C3P0ProxyStatement.RAW_STATEMENT</tt></p>
      *
-     *  <p>Any Statements or ResultSets returned by the operation will be proxied
+     *  <p>Any ResultSets returned by the operation will be proxied
      *  and c3p0-managed, meaning that these resources will be automatically closed 
-     *  if the user does not close them first when this Connection is checked back
-     *  into the pool. <b>Any other resources returned by the operation are the user's
+     *  if the user does not close them first when this Statement is closed or checked
+     *  into the statement cache. <b>Any other resources returned by the operation are the user's
      *  responsibility to clean up!</b></p>
      *
-     *  <p>Incautious use of this method can corrupt the Connection pool, by breaking the invariant
-     *  that all checked-in Connections should be equivalent. If your vendor supplies API
-     *  that allows you to modify the state or configuration of a Connection in some nonstandard way,
-     *  you might use this method to do so, and then check the Connection back into the pool.
-     *  When you fetch another Connection from the PooledDataSource, it will be undefined
-     *  whether the Connection returned will have your altered configuration, or the default
-     *  configuration of a "fresh" Connection. Thus, it is inadvisable to use this method to call
-     *  nonstandard mutators. 
+     *  <p>If you have turned statement pooling on, incautious use of this method can corrupt the 
+     *  PreparedStatement cache, by breaking the invariant
+     *  that all cached PreparedStatements should be equivalent to a PreparedStatement newly created
+     *  with the same arguments to prepareStatement(...) or prepareCall(...). If your vendor supplies API
+     *  that allows you to modify the state or configuration of a Statement in some nonstandard way,
+     *  and you do not undo this modification prior to closing the Statement or the Connection that
+     *  prepared it, future preparers of the same Statement may or may not see your modification,
+     *  depending on your use of the cache. Thus, it is inadvisable to use this method to call
+     *  nonstandard mutators on PreparedStatements if statement pooling is turned on.. 
      */
-    public Object rawConnectionOperation(Method m, Object target, Object[] args)
+    public Object rawStatementOperation(Method m, Object target, Object[] args)
 	throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SQLException;
 }

@@ -1,3 +1,27 @@
+c3p0-0.8.5-pre8
+	-- Added C3P0ProxyStatement and rawStatementOperations for accessing vendor-specific
+	   Statement API.
+	-- Fixed bug whereby recently added properties could not be configured properly
+	   via a PoolConfig Object passed to the DataSources factory method. [Thanks to
+	   Julian Legeny for finding this bug.]
+	-- Undid new behavior whereby c3p0 warns when it detects that a transaction
+	   has not been comitted or rolled-back prior to close and must be automatically
+	   rolled-back. Because c3p0 autorollsback conservatively, whenever it is possible
+	   that there may be any transactional resources held by the Connection being
+	   checked in, users who make read-only queries, then close without commit or
+	   rollback, saw the warning, and became annoyed. Warning when it's "right" is hard,
+	   and would involve paying attention to the substance of user-queries, as well
+	   as the transaction's isolation level. In the future, when c3p0 offers better
+	   control over logging, we'll make the warning optional. Note that this release
+	   only undoes the warning -- the new logic that detects potential transactional work
+	   and only rollsback when there has been some remains. [Thanks to David Graham for
+	   calling attention to this issue.]
+	-- Synchronized StatementCacheKey.find( ... ) method. Subclasses of StatementCacheKey
+           have always explicitly relied upon this method being synchronized in the parent class, 
+           but somehow it was not... [Thanks to Manfred Hutt for reporting this bug.]
+	-- Modified both PooledConnection implementations to reset the transaction
+	   isolation level on PooledConnection.reset()
+	-- Finalized PooledDataSource api for pool stats and resets.
 c3p0-0.8.5-pre7a
 	-- Fixed some bugs in new Proxy classes relating to close(), methods,
 	   especially NullPointerExceptions on duplicate close() operations.

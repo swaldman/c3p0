@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -43,7 +43,7 @@ import java.util.Collection;
  *  that the methods of this interface will primarily be of use to administrators managing c3p0
  *  PooledDataSources via JMX MBeans.</p>
  *
- *  <a name="perauthpools"><h3>Method Names & Per-Auth Pools</h3></a>
+ *  <a name="peruserpools"><h3>Method Names & Per-User Pools</h3></a>
  *
  *  <p>To understand this interface, you need to realize that a c3p0 PooledDataSource may represent
  *  not just one pool of Connections, but many, if users call the method
@@ -53,11 +53,11 @@ import java.util.Collection;
  *
  *  <p>Many methods in this interface have three variants:</p>
  *  <ol>
- *    <li><tt><i>&lt;method-name&gt;</i>()</tt></li>
+ *    <li><tt><i>&lt;method-name&gt;</i>DefaultUser()</tt></li>
  *    <li><tt><i>&lt;method-name&gt;</i>(String username, String password)</tt></li>
- *    <li><tt><i>&lt;method-name&gt;</i>AllAuths()</tt></li>
+ *    <li><tt><i>&lt;method-name&gt;</i>AllUsers()</tt></li>
  *  </ol>
- *  <p>The first variant makes use of the pool maintained for the "default auth" --
+ *  <p>The first variant makes use of the pool maintained for the default user --
  *  Connections created by calls to the no argument <tt>getConnection()</tt>,
  *  the second variant lets you keeps track of pools created by calling 
  *  <tt>getConnection( <i>username</i>, <i>password</i> )</tt>, and the third variant
@@ -83,21 +83,21 @@ import java.util.Collection;
  *    a Connection and timing out) and use this method clean-up all Connections and start over. But calling
  *    this method risks breaking Connections in current use by valid applications.<br/><br/></li>
  *
- *    <li><b><tt>softReset()</tt></b>, <b><tt>softReset( <i>username</i>, <i>password</i> )</tt></b> and
- *    <b><tt>softResetAllAuths()</tt></b> asks the DataSource to flush its current pool of Connections and
+ *    <li><b><tt>softResetDefaultUser()</tt></b>, <b><tt>softReset( <i>username</i>, <i>password</i> )</tt></b> and
+ *    <b><tt>softResetAllUsers()</tt></b> asks the DataSource to flush its current pool of Connections and
  *    reacquire <i>without</i> invalidating currently checked-out Connections. Currently checked out Connections
  *    are logically removed from the pool, but their destruction is deferred until a client attempts to close() / check-in
  *    the Connection. Administrators who suspect that some Connections in the pool may be invalid, but who do not
  *    wish to rely upon c3p0's automatic testing and detection mechanisms to resolve the problem, may call these
  *    methods to force a refresh without disrupting current clients. Administrators who suspect that clients may be
  *    leaking Connections may minimize disruptive hardReset() calls by using softReset() until the number of unclosed
- *    orphaned connections reaches an unacceptable level. (See <a href="#perauthpools">above</a> to understand
+ *    orphaned connections reaches an unacceptable level. (See <a href="#peruserpools">above</a> to understand
  *    why there are three variants of this method.)</li> 
  *  </ol>
  *
  *  <h3>Understanding Connection Counts</h3>
  *
- *  <p>For each <a href="#perauthpools">per-auth pool</a>, four different statistics are available:</p>
+ *  <p>For each <a href="#peruserpools">per-user pool</a>, four different statistics are available:</p>
  *
  *  <ol>
  *    <li><tt>numConnections</tt> represents the total number of Connections in the pool.<br/><br/></li>
@@ -111,10 +111,22 @@ import java.util.Collection;
  */
 public interface PooledDataSource extends DataSource
 {
+    /** @deprecated use getNumConnectionsDefaultUser() */
     public int getNumConnections() throws SQLException;
+
+    /** @deprecated use getNumIdleConnectionsDefaultUser() */
     public int getNumIdleConnections() throws SQLException;
+
+    /** @deprecated use getNumBusyConnectionsDefaultUser() */
     public int getNumBusyConnections() throws SQLException;
+
+    /** @deprecated use getNumUnclosedOrphanedConnectionsDefaultUser() */
     public int getNumUnclosedOrphanedConnections() throws SQLException;
+
+    public int getNumConnectionsDefaultUser() throws SQLException;
+    public int getNumIdleConnectionsDefaultUser() throws SQLException;
+    public int getNumBusyConnectionsDefaultUser() throws SQLException;
+    public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource's default-authentication pool
@@ -124,7 +136,7 @@ public interface PooledDataSource extends DataSource
      * PooledDataSource (so the PooledDataSource can destroy 
      * them).
      */
-    public void softReset() throws SQLException;
+    public void softResetDefaultUser() throws SQLException;
 
     public int getNumConnections(String username, String password) throws SQLException;
     public int getNumIdleConnections(String username, String password) throws SQLException;
@@ -141,10 +153,10 @@ public interface PooledDataSource extends DataSource
      */
     public void softReset(String username, String password) throws SQLException;
 
-    public int getNumBusyConnectionsAllAuths() throws SQLException;
-    public int getNumIdleConnectionsAllAuths() throws SQLException;
-    public int getNumConnectionsAllAuths() throws SQLException;
-    public int getNumUnclosedOrphanedConnectionsAllAuths() throws SQLException;
+    public int getNumBusyConnectionsAllUsers() throws SQLException;
+    public int getNumIdleConnectionsAllUsers() throws SQLException;
+    public int getNumConnectionsAllUsers() throws SQLException;
+    public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource
@@ -154,9 +166,9 @@ public interface PooledDataSource extends DataSource
      * PooledDataSource (so the PooledDataSource can destroy 
      * them).
      */
-    public void softResetAllAuths() throws SQLException;
+    public void softResetAllUsers() throws SQLException;
 
-    public int getNumManagedAuths() throws SQLException;
+    public int getNumUserPools() throws SQLException;
 
 // leaving getAllUsers() unimplemented for the moment out of security considerations
 //

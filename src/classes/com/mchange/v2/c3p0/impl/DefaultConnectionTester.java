@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -25,7 +25,7 @@ package com.mchange.v2.c3p0.impl;
 
 import java.sql.*;
 import java.util.*;
-import com.mchange.v2.c3p0.advanced.QueryConnectionTester;
+import com.mchange.v2.c3p0.QueryConnectionTester;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 

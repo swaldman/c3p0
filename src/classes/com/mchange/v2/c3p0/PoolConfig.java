@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -48,139 +48,8 @@ import com.mchange.v1.io.InputStreamUtils;
  *    <li>Any property not set in any of the above ways will be defined according c3p0's built-in defaults.</li>
  *  </ol>
  *
- *  <style type="text/css">
- *     table.propsdoc th { text-align: left; vertical-align: top; }
- *     table.propsdoc td { text-align: left; vertical-align: top; }
- *  </style>
+ *  <p><i>Please see c3p0's main documentation for a description of all available parameters.</i></p>
  *
- *  <table class="propsdoc" border="1">
- *  <tr><th>Property Name</th><th>Built-In Default</th><th>Comments</th></tr>
- *  <tr><td><tt>c3p0.initialPoolSize</td><td>3</td><td>&nbsp;</td></tr>
- *  <tr><td><tt>c3p0.minPoolSize</tt></td><td>3</td><td>&nbsp;</td></tr>
- *  <tr><td><tt>c3p0.maxPoolSize</tt></td><td>15</td><td>&nbsp;</td></tr>
- *  <tr>
- *    <td><tt>c3p0.idleConnectionTestPeriod</tt></td>
- *    <td>0</td>
- *    <td>If this is a number greater than 0, c3p0 will test all idle, pooled but unchecked-out connections, every this number of seconds.</td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.maxIdleTime</tt></td>
- *    <td>0</td>
- *    <td>Seconds a Connection can remain pooled but unused before being discarded. Zero means idle connections never expire.</td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.maxStatements</tt></td>
- *    <td>0</td>
- *    <td>The size of c3p0's PreparedStatement cache. Zero means statement cahing is turned off.</td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.propertyCycle</tt></td>
- *    <td>300</td>
- *    <td>Maximum time in seconds before user configuration constraints are enforced.
- *        c3p0 enforces configuration constraints continually, and ignores this parameter.
- *        It is included for JDBC 3 completeness.
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.acquireIncrement</tt></td>
- *    <td>3</td>
- *    <td>Determines how many connections at a time c3p0 will try to acquire when the pool is exhausted.</td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.acquireRetryAttempts</tt></td>
- *    <td>30</td>
- *    <td>Defines how many times c3p0 will try to acquire a new Connection from the database before giving up. If
- *        this value is less than or equal to zero, c3p0 will keep trying to fetch a Connection indefinitely.
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.acquireRetryDelay</tt></td>
- *    <td>1000</td>
- *    <td>Milliseconds, time c3p0 will wait between acquire attempts.</td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.breakAfterAcquireFailure</tt></td>
- *    <td>false</td>
- *    <td>If true, a pooled DataSource will declare itself broken and be permanently closeed if
- *    a Connection cannot be obtained from the database after making <tt>acquireRetryAttempts</tt> to acquire one.
- *    If false, failure to obtain a Connection will cause all Threads waiting for the pool to acquire a Connection
- *    to throw an Exception, but the DataSource will remain valid, and will attempt to acquire again following
- *    a call to <tt>getConnection()</tt>.
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.testConnectionOnCheckout</tt></td>
- *    <td>false</td>
- *    <td><b><i>Use only if necessary. Very expensive.</i></b>
- *        If true, an operation will be performed at every connection checkout to verify that the connection is valid.
- *        <b>Better choice:</b> verify connections periodically using c3p0.idleConnectionTestPeriod
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.autoCommitOnClose</tt></td>
- *    <td>false</td>
- *    <td>The JDBC spec is unforgivably silent on what should happen to unresolved, pending
- *        transactions on Connection close. C3P0's default policy is to rollback any uncommitted, pending
- *        work. (I think this is absolutely, undeniably the right policy, but there is no consensus among JDBC driver vendors.) 
- *        Setting <tt>autoCommitOnClose</tt> to true causes uncommitted pending work to be committed, rather than rolled
- *        back on Connection close. [<i>Note: Since the spec is absurdly unclear on this question, application authors who wish
- *        to avoid bugs and inconsistent behavior should ensure that all transactions are explicitly either committed or
- *        rolled-back before close is called.</i>]
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.forceIgnoreUnresolvedTransactions</tt></td>
- *    <td>false</td>
- *    <td><b><i>Strongly disrecommended. Setting this to <tt>true</tt> may lead to subtle and bizarre bugs.</i></b>
- *        This is a terrible setting, leave it alone unless absolutely necessary. It is here to workaround
- *        broken databases / JDBC drivers that do not properly support transactions, but that allow Connections'
- *        <tt>autoCommit</tt> flags to go to false regardless. If you are using a database that supports transactions
- *        "partially" (this is oxymoronic, as the whole point of transactions is to perform operations reliably and
- *        completely, but nonetheless such databases are out there), if you feel comfortable ignoring the fact that Connections
- *        with <tt>autoCommit == false</tt> may be in the middle of transactions and may hold locks and other resources,
- *        you may turn off c3p0's wise default behavior, which is to protect itself, as well as the usability and consistency
- *        of the database, by either rolling back (default) or committing (see <tt>c3p0.autoCommitOnClose</tt> <i>above</i>)
- *        unresolved transactions. <b>This should only be set to true when you are sure you are using a database that
- *        allows Connections' autoCommit flag to go to false, but offers no other meaningful support of transactions. Otherwise
- *        setting this to true is just a bad idea.</b>
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.connectionTesterClassName</tt></td>
- *    <td><small>com.mchange. v2.c3p0.impl. DefaultConnectionTester</small></td>
- *    <td>See {@link com.mchange.v2.c3p0.ConnectionTester}</td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.numHelperThreads</tt></td>
- *    <td>3</td>
- *    <td>c3p0 is very asynchronous. Slow JDBC operations are generally 
- *        performed by helper threads that don't hold contended locks. Spreading
- *        these operations over multiple threads can significantly improve performance
- *        by allowing multiple operations to be performed simultaneously.
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.usesTraditionalReflectiveProxies</tt></td>
- *    <td>false</td>
- *    <td>As of c3p0-0.8.5, the reflective "dynamic proxy"-based implementations
- *        of proxy Connections, Statements, and ResultSets have been replaced by
- *        non-reflective codegenerated objects. As the original codebase had a lot
- *        of use and testing, this option is provided to allow users to revert
- *        should they encounter problems with the new implementation. (This option
- *        will hopefully become irrelevant as the new codebase matures, and may
- *        eventually be removed.
- *    </td>
- *  </tr>
- *  <tr>
- *    <td><tt>c3p0.factoryClassLocation</tt></td>
- *    <td>null</td>
- *    <td>DataSources that will be bound by JNDI and use that API's Referenceable interface
- *        to store themselves may specify a URL from which the class capable of dereferencing 
- *        a them may be loaded. If (as is usually the case) the c3p0 libraries will be locally
- *        available to the JNDI service, leave this set as null.
- *    </td>
- *  </tr>
- *  </table>
  *
  */
 public final class PoolConfig
@@ -458,11 +327,6 @@ public final class PoolConfig
     public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies )
     { this.usesTraditionalReflectiveProxies = usesTraditionalReflectiveProxies; }
     
-    /**
-     * @deprecated you really shouldn't use testConnectionOnCheckout, it's a performance
-     *             nightmare. let it default to false, and if you want Connections to be
-     *             tested, set a reasonable value for idleConnectionTestPeriod.
-     */
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { this.testConnectionOnCheckout = testConnectionOnCheckout; }
     

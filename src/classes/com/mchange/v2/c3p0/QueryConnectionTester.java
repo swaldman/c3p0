@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -21,34 +21,14 @@
  */
 
 
-package com.mchange.v2.c3p0.impl;
+package com.mchange.v2.c3p0;
 
-import java.sql.*;
-import javax.sql.*;
 import com.mchange.v2.c3p0.*;
+import java.io.Serializable;
+import java.sql.Connection;
 
-public final class PooledConnectionFactory
+public interface QueryConnectionTester extends ConnectionTester
 {
-    final static boolean USE_OLDSTYLE_POOLED_CONNECTIONS = false;
-
-    public static PooledConnection create(Connection con, 
-					  ConnectionTester connectionTester,
-					  boolean autoCommitOnClose, 
-					  boolean forceIgnoreUnresolvedTransactions)
-    {
-	if ( USE_OLDSTYLE_POOLED_CONNECTIONS )
-	    return new C3P0PooledConnection( con, 
-					     connectionTester,
-					     autoCommitOnClose, 
-					     forceIgnoreUnresolvedTransactions);
-	else
-	    return new NewPooledConnection( con, 
-					    connectionTester,
-					    autoCommitOnClose, 
-					    forceIgnoreUnresolvedTransactions);
-
-    }
-
-    private PooledConnectionFactory()
-    {}
+    public int activeCheckConnection(Connection c, String preferredTestQuery);
 }
+

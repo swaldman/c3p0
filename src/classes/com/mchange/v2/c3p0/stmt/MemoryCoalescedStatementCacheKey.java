@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -30,8 +30,9 @@ import com.mchange.v2.coalesce.*;
 
 final class MemoryCoalescedStatementCacheKey extends StatementCacheKey
 {
-    //MT: thread-safe, sync'ed on its own lock
-    final static Coalescer keyCoalescer = CoalescerFactory.createCoalescer( true, true );
+    //MT: not thread-safe, but protected within the find() method
+    //    by StatementCacheKey.class lock
+    final static Coalescer keyCoalescer = CoalescerFactory.createCoalescer( true, false );
 
     static StatementCacheKey _find( Connection pcon, Method stmtProducingMethod, Object[] args )
     {

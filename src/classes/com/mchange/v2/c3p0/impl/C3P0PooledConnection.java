@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -32,6 +32,7 @@ import com.mchange.v2.sql.filter.*;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v1.util.ClosableResource;
+import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.util.ConnectionEventSupport;
 
 public final class C3P0PooledConnection implements PooledConnection, ClosableResource
@@ -84,6 +85,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     final ConnectionTester connectionTester;
     final boolean autoCommitOnClose;
     final boolean forceIgnoreUnresolvedTransactions;
+    final int dflt_txn_isolation;
 
     //MT: thread-safe
     final ConnectionEventSupport ces = new ConnectionEventSupport(this);
@@ -109,16 +111,18 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 
     //MT: Thread-safe, assigned
     volatile GooGooStatementCache scache;
+    volatile boolean isolation_lvl_nondefault = false;
 
     public C3P0PooledConnection(Connection con, 
 				ConnectionTester connectionTester,
 				boolean autoCommitOnClose, 
-				boolean forceIgnoreUnresolvedTransactions)
+				boolean forceIgnoreUnresolvedTransactions) throws SQLException
     { 
 	this.physicalConnection = con; 
 	this.connectionTester = connectionTester;
 	this.autoCommitOnClose = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
+	this.dflt_txn_isolation = con.getTransactionIsolation();
     }
 
     Connection getPhysicalConnection()
@@ -301,20 +305,12 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     private void reset( boolean known_resolved_txn ) throws SQLException
     {
 	ensureOkay();
-	
-	//System.err.println("autoCommitOnClose: " + autoCommitOnClose);
-	//System.err.println("forceIgnoreUnresolvedTransactions: " + forceIgnoreUnresolvedTransactions);
-	
 	C3P0ImplUtils.resetTxnState( physicalConnection, forceIgnoreUnresolvedTransactions, autoCommitOnClose, known_resolved_txn );
-// 	if ( !forceIgnoreUnresolvedTransactions && !physicalConnection.getAutoCommit() )
-// 	    {
-// 		if ( autoCommitOnClose )
-// 		    physicalConnection.commit();
-// 		else
-// 		    physicalConnection.rollback();
-	
-// 		physicalConnection.setAutoCommit( true );
-// 	    }
+	if (isolation_lvl_nondefault)
+	    {
+		physicalConnection.setTransactionIsolation( dflt_txn_isolation );
+		isolation_lvl_nondefault = false; 
+	    }
     }
 
     boolean closeAndRemoveResultSets(Set rsSet)
@@ -476,13 +472,16 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 
 	class WrapperStatementHelper
 	{
-	    Statement wrappedStmt;
+	    Statement wrapperStmt;
+	    Statement nakedInner;
 
-	    public WrapperStatementHelper(Statement wrappedStmt)
+	    public WrapperStatementHelper(Statement wrapperStmt, Statement nakedInner)
 	    {
-		this.wrappedStmt = wrappedStmt;
+		this.wrapperStmt = wrapperStmt;
+		this.nakedInner = nakedInner;
+
 		if (! inner_is_cached)
-		    uncachedActiveStatements.add( wrappedStmt );
+		    uncachedActiveStatements.add( wrapperStmt );
 	    }
 
 	    private boolean closeAndRemoveActiveResultSets()
@@ -493,15 +492,16 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		if (mainResultSet.getInner() == null)
 		    {
 			mainResultSet.setInner(rs);
-			mainResultSet.setProxyStatement( wrappedStmt );
+			mainResultSet.setProxyStatement( wrapperStmt );
 			return mainResultSet;
 		    }
 		else
 		    {
+			//for the case of multiple open ResultSets
 			StatementProxyingSetManagedResultSet out 
 			    = new StatementProxyingSetManagedResultSet( activeResultSets );
 			out.setInner( rs );
-			out.setProxyStatement( wrappedStmt );
+			out.setProxyStatement( wrapperStmt );
 			return out;
 		    }
 	    }
@@ -516,19 +516,42 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		else
 		    {
 			innerStmt.close();
-			uncachedActiveStatements.remove( wrappedStmt ); 
+			uncachedActiveStatements.remove( wrapperStmt ); 
 		    }
 
 		if (!okay)
 		    throw new SQLException("Failed to close an orphaned ResultSet properly.");
 	    }
+
+	    public Object doRawStatementOperation(Method m, Object target, Object[] args) 
+		throws IllegalAccessException, InvocationTargetException, SQLException
+	    {
+		if (target == C3P0ProxyStatement.RAW_STATEMENT)
+		    target = nakedInner;
+		for (int i = 0, len = args.length; i < len; ++i)
+		    if (args[i] == C3P0ProxyStatement.RAW_STATEMENT)
+			args[i] = nakedInner;
+		
+		Object out = m.invoke(target, args);
+		
+		if (out instanceof ResultSet)
+		    out = wrap( (ResultSet) out );
+
+		return out;
+	    }
 	}
 
 	if (innerStmt instanceof CallableStatement)
 	    {
-		return new FilterCallableStatement((CallableStatement) innerStmt )
+		class ProxyCallableStatement extends FilterCallableStatement implements C3P0ProxyStatement
 		    {
-			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
+			WrapperStatementHelper wsh;
+
+			ProxyCallableStatement(CallableStatement is)
+			{ 
+			    super( is ); 
+			    this.wsh = new WrapperStatementHelper(this, is);
+			}
 
 			public Connection getConnection()
 			{ return parentConnection; }
@@ -545,15 +568,27 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 			public ResultSet executeQuery() throws SQLException
 			{ return wsh.wrap( super.executeQuery() ); }
 			
+			public Object rawStatementOperation(Method m, Object target, Object[] args) 
+			    throws IllegalAccessException, InvocationTargetException, SQLException
+			{ return wsh.doRawStatementOperation( m, target, args); }
+
 			public void close() throws SQLException
 			{ wsh.doClose(); }
-		    };
+		    }
+
+		return new ProxyCallableStatement((CallableStatement) innerStmt );
 	    }
 	else if (innerStmt instanceof PreparedStatement)
 	    {
-		return new FilterPreparedStatement((PreparedStatement) innerStmt )
+		class ProxyPreparedStatement extends FilterPreparedStatement implements C3P0ProxyStatement
 		    {
-			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
+			WrapperStatementHelper wsh;
+
+			ProxyPreparedStatement(PreparedStatement ps)
+			{ 
+			    super( ps ); 
+			    this.wsh = new WrapperStatementHelper(this, ps);
+			}
 
 			public Connection getConnection()
 			{ return parentConnection; }
@@ -570,15 +605,27 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 			public ResultSet executeQuery() throws SQLException
 			{ return wsh.wrap( super.executeQuery() ); }
 			
+			public Object rawStatementOperation(Method m, Object target, Object[] args) 
+			    throws IllegalAccessException, InvocationTargetException, SQLException
+			{ return wsh.doRawStatementOperation( m, target, args); }
+
 			public void close() throws SQLException
 			{ wsh.doClose(); }
-		    };
+		    }
+
+		return new ProxyPreparedStatement((PreparedStatement) innerStmt );
 	    }
 	else
 	    {
-		return new FilterStatement( innerStmt )
+		class ProxyStatement extends FilterStatement implements C3P0ProxyStatement
 		    {
-			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
+			WrapperStatementHelper wsh;
+
+			ProxyStatement(Statement s)
+			{ 
+			    super( s ); 
+			    this.wsh = new WrapperStatementHelper(this, s);
+			}
 
 			public Connection getConnection()
 			{ return parentConnection; }
@@ -592,9 +639,15 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 			public ResultSet executeQuery(String sql) throws SQLException
 			{ return wsh.wrap( super.executeQuery(sql) ); }
 			
+			public Object rawStatementOperation(Method m, Object target, Object[] args) 
+			    throws IllegalAccessException, InvocationTargetException, SQLException
+			{ return wsh.doRawStatementOperation( m, target, args); }
+
 			public void close() throws SQLException
 			{ wsh.doClose(); }
-		    };
+		    }
+
+		return new ProxyStatement( innerStmt );
 	    }
     }
 
@@ -665,6 +718,21 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				    txn_known_resolved = false;
 
 				    return doRawConnectionOperation((Method) args[0], args[1], (Object[]) args[2]);    
+				}
+			    else if (mname.equals("setTransactionIsolation"))
+				{
+				    ensureOkay();
+
+				    //don't modify txn_known_resolved
+
+				    m.invoke( activeConnection, args );
+
+				    int lvl = ((Integer) args[0]).intValue();
+				    isolation_lvl_nondefault = (lvl != dflt_txn_isolation);
+
+				    //System.err.println("updated txn isolation to " + lvl + ", nondefault level? " + isolation_lvl_nondefault);
+
+				    return null;
 				}
 			    else if (mname.equals("createStatement"))
 				{

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -25,11 +25,16 @@ package com.mchange.v2.c3p0;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 import java.sql.SQLException;
 import javax.sql.DataSource;
 import javax.sql.ConnectionPoolDataSource;
 import com.mchange.v2.sql.SqlUtils;
+import com.mchange.v2.beans.BeansUtils;
 
 /**
  *  <p>A simple factory class for creating DataSources. Generally, users will call <tt>DataSources.unpooledDataSource()</tt> to get
@@ -47,6 +52,48 @@ import com.mchange.v2.sql.SqlUtils;
  */
 public final class DataSources
 {
+    final static Set WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS; //22 -- includes factory class location
+    final static Set POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS; //2 -- includes factory class location, excludes pool-owner id token
+
+    static
+    {
+	String[] props = new String[]
+	{
+	    "checkoutTimeout", //1 
+	    "acquireIncrement",  //2
+	    "acquireRetryAttempts", //3
+	    "acquireRetryDelay", //4
+	    "autoCommitOnClose", //5
+	    "connectionTesterClassName", //6
+	    "forceIgnoreUnresolvedTransactions", //7
+	    "idleConnectionTestPeriod", //8
+	    "initialPoolSize", //9
+	    "maxIdleTime", //10
+	    "maxPoolSize", //11
+	    "maxStatements", //12
+	    "maxStatementsPerConnection", //13
+	    "minPoolSize", //14
+	    "propertyCycle", //15
+	    "breakAfterAcquireFailure", //16
+	    "testConnectionOnCheckout", //17
+	    "testConnectionOnCheckin", //18
+	    "usesTraditionalReflectiveProxies", //19
+	    "preferredTestQuery", //20
+	    "automaticTestTable", //21
+	    "factoryClassLocation" //22
+	};
+
+	WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS = Collections.unmodifiableSet( new HashSet( Arrays.asList( props ) ) );
+
+	props = new String[]
+	{
+	    "numHelperThreads",
+	    "factoryClassLocation"
+	};
+
+	POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS = Collections.unmodifiableSet( new HashSet( Arrays.asList( props ) ) );
+    }
+
     /**
      * Defines an unpooled DataSource on the specified JDBC URL.
      */
@@ -118,34 +165,47 @@ public final class DataSources
 		WrapperConnectionPoolDataSource wcpds = new WrapperConnectionPoolDataSource();
 		wcpds.setNestedDataSource( unpooledDataSource );
 		
-		// set PoolConfig info
-		wcpds.setMaxStatements( pcfg.getMaxStatements() );
-		wcpds.setInitialPoolSize( pcfg.getInitialPoolSize() );
-		wcpds.setMinPoolSize( pcfg.getMinPoolSize() );
-		wcpds.setMaxPoolSize( pcfg.getMaxPoolSize() );
-		wcpds.setIdleConnectionTestPeriod( pcfg.getIdleConnectionTestPeriod() );
-		wcpds.setMaxIdleTime( pcfg.getMaxIdleTime() );
-		wcpds.setPropertyCycle( pcfg.getPropertyCycle() );
-		wcpds.setAcquireIncrement( pcfg.getAcquireIncrement() );
-		wcpds.setConnectionTesterClassName( pcfg.getConnectionTesterClassName() );
-		wcpds.setTestConnectionOnCheckout( pcfg.isTestConnectionOnCheckout() );
-		wcpds.setAutoCommitOnClose( pcfg.isAutoCommitOnClose() );
-		wcpds.setForceIgnoreUnresolvedTransactions( pcfg.isForceIgnoreUnresolvedTransactions() );
-		wcpds.setFactoryClassLocation( pcfg.getFactoryClassLocation() );
+		// set PoolConfig info -- WrapperConnectionPoolDataSource properties 
+		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, wcpds, WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS );
+		
+		
+// 		wcpds.setMaxStatements( pcfg.getMaxStatements() );
+// 		wcpds.setInitialPoolSize( pcfg.getInitialPoolSize() );
+// 		wcpds.setMinPoolSize( pcfg.getMinPoolSize() );
+// 		wcpds.setMaxPoolSize( pcfg.getMaxPoolSize() );
+// 		wcpds.setIdleConnectionTestPeriod( pcfg.getIdleConnectionTestPeriod() );
+// 		wcpds.setMaxIdleTime( pcfg.getMaxIdleTime() );
+// 		wcpds.setPropertyCycle( pcfg.getPropertyCycle() );
+// 		wcpds.setAcquireIncrement( pcfg.getAcquireIncrement() );
+// 		wcpds.setConnectionTesterClassName( pcfg.getConnectionTesterClassName() );
+// 		wcpds.setTestConnectionOnCheckout( pcfg.isTestConnectionOnCheckout() );
+// 		wcpds.setAutoCommitOnClose( pcfg.isAutoCommitOnClose() );
+// 		wcpds.setCheckoutTimeout( pcfg.getCheckoutTimeout() );
+// 		wcpds.setAcquireRetryAttempts( pcfg.getAcquireRetryAttempts() );
+// 		wcpds.setAcquireRetryDelay( pcfg.getAcquireRetryAttempts() );
+// 		wcpds.setForceIgnoreUnresolvedTransactions( pcfg.isForceIgnoreUnresolvedTransactions() );
+// 		wcpds.setFactoryClassLocation( pcfg.getFactoryClassLocation() );
 		
 		PoolBackedDataSource nascent_pbds = new PoolBackedDataSource();
 		nascent_pbds.setConnectionPoolDataSource( wcpds );
-		nascent_pbds.setNumHelperThreads( pcfg.getNumHelperThreads() );
-		nascent_pbds.setFactoryClassLocation( pcfg.getFactoryClassLocation() );
+		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, nascent_pbds, POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS );
+
+// 		nascent_pbds.setNumHelperThreads( pcfg.getNumHelperThreads() );
+// 		nascent_pbds.setFactoryClassLocation( pcfg.getFactoryClassLocation() );
 		
 		return nascent_pbds;
 	    }
-	catch ( PropertyVetoException e )
-	    {
-		e.printStackTrace();
-		PropertyChangeEvent evt = e.getPropertyChangeEvent();
-		throw new SQLException("Illegal value attempted for property " + evt.getPropertyName() + ": " + evt.getNewValue());
-	    }
+// 	catch ( PropertyVetoException e )
+// 	    {
+// 		e.printStackTrace();
+// 		PropertyChangeEvent evt = e.getPropertyChangeEvent();
+// 		throw new SQLException("Illegal value attempted for property " + evt.getPropertyName() + ": " + evt.getNewValue());
+// 	    }
+ 	catch ( Exception e )
+ 	    {
+ 		e.printStackTrace();
+ 		throw new SQLException("Exception configuring pool-backed DataSource: " + e);
+ 	    }
     }
 
     /**

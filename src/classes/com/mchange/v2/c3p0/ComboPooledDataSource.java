@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -30,7 +30,7 @@ import java.util.*;
 import javax.naming.*;
 import com.mchange.v2.naming.*;
 
-// WrapperConnectionPoolDataSource properties -- count: 20
+// WrapperConnectionPoolDataSource properties -- count: 21
 //
 // 	("checkoutTimeout");
 // 	("acquireIncrement");
@@ -52,6 +52,7 @@ import com.mchange.v2.naming.*;
 // 	("testConnectionOnCheckin");
 // 	("usesTraditionalReflectiveProxies");
 // 	("preferredTestQuery");
+// 	("automaticTestTable");
 
 
 /**
@@ -490,8 +491,20 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     public int getNumUnclosedOrphanedConnections() throws SQLException
     { return pbds.getNumUnclosedOrphanedConnections(); }
 
-    public void softReset() throws SQLException
-    { pbds.softReset();}
+    public int getNumConnectionsDefaultUser() throws SQLException
+    { return pbds.getNumConnectionsDefaultUser(); }
+
+    public int getNumIdleConnectionsDefaultUser() throws SQLException
+    { return pbds.getNumIdleConnectionsDefaultUser(); }
+
+    public int getNumBusyConnectionsDefaultUser() throws SQLException
+    { return pbds.getNumBusyConnectionsDefaultUser(); }
+
+    public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException
+    { return pbds.getNumUnclosedOrphanedConnectionsDefaultUser(); }
+
+    public void softResetDefaultUser() throws SQLException
+    { pbds.softResetDefaultUser();}
 
     public int getNumConnections(String username, String password) throws SQLException
     { return pbds.getNumConnections( username, password ); }
@@ -508,23 +521,23 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     public void softReset(String username, String password) throws SQLException
     { pbds.softReset( username, password );}
 
-    public int getNumBusyConnectionsAllAuths() throws SQLException
-    { return pbds.getNumBusyConnectionsAllAuths(); }
+    public int getNumBusyConnectionsAllUsers() throws SQLException
+    { return pbds.getNumBusyConnectionsAllUsers(); }
 
-    public int getNumIdleConnectionsAllAuths() throws SQLException
-    { return pbds.getNumIdleConnectionsAllAuths(); }
+    public int getNumIdleConnectionsAllUsers() throws SQLException
+    { return pbds.getNumIdleConnectionsAllUsers(); }
 
-    public int getNumConnectionsAllAuths() throws SQLException
-    { return pbds.getNumConnectionsAllAuths(); }
+    public int getNumConnectionsAllUsers() throws SQLException
+    { return pbds.getNumConnectionsAllUsers(); }
 
-    public int getNumUnclosedOrphanedConnectionsAllAuths() throws SQLException
-    { return pbds.getNumUnclosedOrphanedConnectionsAllAuths(); }
+    public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException
+    { return pbds.getNumUnclosedOrphanedConnectionsAllUsers(); }
 
-    public void softResetAllAuths() throws SQLException
-    { pbds.softResetAllAuths();}
+    public void softResetAllUsers() throws SQLException
+    { pbds.softResetAllUsers();}
 
-    public int getNumManagedAuths() throws SQLException
-    { return pbds.getNumManagedAuths(); }
+    public int getNumUserPools() throws SQLException
+    { return pbds.getNumUserPools(); }
 
 
     //     Not implemented due to security concerns

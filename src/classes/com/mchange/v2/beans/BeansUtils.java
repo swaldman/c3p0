@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -201,6 +201,81 @@ public final class BeansUtils
 	    {
 		e.printStackTrace();
 		throw new IntrospectionException( e.toString() + (propName == null ? "" : " [" + propName + ']') );
+	    }
+    }
+
+    private static void overwriteProperty( String propName, Object value, Method putativeSetter, Object target )
+	throws Exception
+    {
+	if ( putativeSetter.getDeclaringClass().isAssignableFrom( target.getClass() ) )
+	    putativeSetter.invoke( target, new Object[] { value } );
+	else
+	    {
+		BeanInfo beanInfo = Introspector.getBeanInfo( target.getClass(), Object.class );
+		PropertyDescriptor pd = null;
+
+		PropertyDescriptor[] pds = beanInfo.getPropertyDescriptors();
+		for( int i = 0, len = pds.length; i < len; ++i)
+		    if (propName.equals( pds[i].getName() ))
+			{
+			    pd = pds[i];
+			    break;
+			}
+
+		Method targetSetter = pd.getWriteMethod();
+		targetSetter.invoke( target, new Object[] { value } );
+	    }
+    }
+
+
+    public static void overwriteSpecificAccessibleProperties( Object sourceBean, Object destBean, Collection props )
+	throws IntrospectionException
+    {
+	try
+	    {
+		Set _props = new HashSet(props);
+
+		BeanInfo beanInfo = Introspector.getBeanInfo( sourceBean.getClass(), Object.class ); //so we don't see message about getClass()
+		PropertyDescriptor[] pds = beanInfo.getPropertyDescriptors();
+		for( int i = 0, len = pds.length; i < len; ++i)
+		    {
+			PropertyDescriptor pd = pds[i];
+			String name = pd.getName();
+			if (! _props.remove( name ) )
+			    continue;
+
+			Method getter = pd.getReadMethod();
+			Method setter = pd.getWriteMethod();
+
+			if ( getter == null || setter == null )
+			    {
+				if ( pd instanceof IndexedPropertyDescriptor )
+				    {
+					System.err.println("WARNING: BeansUtils.overwriteAccessibleProperties() does not");
+					System.err.println("support indexed properties that do not provide single-valued");
+					System.err.println("array getters and setters! [The indexed methods provide no means");
+					System.err.println("of modifying the size of the array in the destination bean if");
+					System.err.println("it does not match the source.]");
+				    }
+
+				System.err.println("Property inaccessible for overwriting: " + pd.getName());
+			    }
+			else
+			    {
+				Object value = getter.invoke( sourceBean, EMPTY_ARGS );
+				overwriteProperty( name, value, setter, destBean );
+				//setter.invoke( destBean, new Object[] { value } );
+			    }
+		    }
+		for (Iterator ii = _props.iterator(); ii.hasNext(); )
+		    System.err.println("failed to find expected property: " + ii.next());
+	    }
+	catch ( IntrospectionException e )
+	    { throw e; }
+	catch ( Exception e )
+	    {
+		e.printStackTrace();
+		throw new IntrospectionException( e.getMessage() );
 	    }
     }
 

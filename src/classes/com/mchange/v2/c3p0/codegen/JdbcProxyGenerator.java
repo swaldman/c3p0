@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -29,6 +29,7 @@ import java.sql.*;
 import com.mchange.v2.codegen.*;
 import com.mchange.v2.codegen.intfc.*;
 import com.mchange.v2.c3p0.C3P0ProxyConnection;
+import com.mchange.v2.c3p0.C3P0ProxyStatement;
 
 public class JdbcProxyGenerator extends DelegatorGenerator
 {
@@ -166,6 +167,10 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 
     static final class NewProxyAnyStatementGenerator extends JdbcProxyGenerator
     {
+	{
+	    this.setExtraInterfaces( new Class[] { C3P0ProxyStatement.class } );
+	}
+
 	protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
 	    String mname   = method.getName();
@@ -228,6 +233,35 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println("this.creatorProxy = cProxy;");
 	    iw.downIndent();
 	    iw.println("}");
+	    iw.println();
+	    iw.println("public Object rawStatementOperation(Method m, Object target, Object[] args) " +
+		       "throws IllegalAccessException, InvocationTargetException, SQLException");
+	    iw.println("{");
+	    iw.upIndent();
+	    iw.println("if (target == C3P0ProxyStatement.RAW_STATEMENT) target = inner;");
+	    iw.println("for (int i = 0, len = args.length; i < len; ++i)");
+	    iw.upIndent();
+	    iw.println("if (args[i] == C3P0ProxyStatement.RAW_STATEMENT) args[i] = inner;");
+	    iw.downIndent();
+	    iw.println("Object out = m.invoke(target, args);");
+	    iw.println("if (out instanceof ResultSet)");
+	    iw.println("{");
+	    iw.upIndent();
+	    iw.println("ResultSet innerResultSet = (ResultSet) out;");
+	    iw.println("parentPooledConnection.markActiveResultSetForStatement( inner, innerResultSet );");
+	    iw.println("out = new NewProxyResultSet( innerResultSet, parentPooledConnection, inner, this );"); 
+	    iw.downIndent();
+	    iw.println("}");
+	    iw.println();
+	    iw.println("return out;");
+	    iw.downIndent();
+	    iw.println("}");
+	}
+
+	protected void generateExtraImports( IndentedWriter iw ) throws IOException
+	{
+	    super.generateExtraImports( iw );
+	    iw.println("import java.lang.reflect.InvocationTargetException;");
 	}
     }
 
@@ -333,6 +367,16 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.downIndent();
 		    iw.println("}");
 		    iw.println("return this.metaData;");
+		}
+	    else if ( mname.equals("setTransactionIsolation") )
+		{
+		    //do nothing with txn_known_resolved
+
+		    //iw.println("System.err.println(\042setTransactionIsolation( \042 + " + CodegenUtils.generatedArgumentName( 0 ) + " + \042 )\042);");
+		    //iw.println();
+
+		    super.generateDelegateCode( intfcl, genclass, method, iw );
+		    iw.println( "parentPooledConnection.markNewTxnIsolation( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
 		}
 	    else if ( mname.equals("close") )
 		{

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre7a
+ * Distributed as part of c3p0 v.0.8.5-pre8
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -36,7 +36,8 @@ abstract class StatementCacheKey
     static final int MEMORY_COALESCED = 1;
     static final int VALUE_IDENTITY   = 2;
 
-    public static StatementCacheKey find( Connection pcon, Method stmtProducingMethod, Object[] args )
+    //NOTE: subclasses rely upon their _find logic being protected by StatementCacheKey.class' lock!
+    public synchronized static StatementCacheKey find( Connection pcon, Method stmtProducingMethod, Object[] args )
     {
 	switch ( VALUE_IDENTITY )
 	    {
@@ -118,6 +119,8 @@ abstract class StatementCacheKey
     
     static boolean equals(StatementCacheKey _this, Object o)
     {
+	//TODO: assert( _this != null )
+
 	if ( _this == o )
 	    return true;
 	if (o instanceof StatementCacheKey)
