@@ -12,6 +12,7 @@
    <property name="src.dir" value="src" />
    <property name="java.src.dir" value="src/classes" />
    <property name="codegen.src.dir" value="src/codegen" />
+   <property name="doc.src.dir" value="src/doc" />
    <property name="static.dist.src" value="${src.dir}/dist-static" />
    <property name="test.props.dir" value="test-properties" />
    <property name="build.dir" value="build" />
@@ -23,6 +24,7 @@
    <property name="license.header.file" value="src/legal.prepend" />
    <property name="build.jar.file" value="build/${c3p0.name}.jar" />
    <property name="open.dist" value="${dist.dir}/${bindist.name}" />
+   <property name="open.dist.doc.dir" value="${open.dist}/doc" />
 
    <path id="codegen-classpath">
        <pathelement location="${build.classes.dir}" />
@@ -208,9 +210,15 @@
          <fileset dir="${static.dist.src}">
            <exclude name="*~" />
            <exclude name="examples/*.class" />
+           <exclude name="**/old/**" />
+           <exclude name="**/bad/**" />
          </fileset>
       </copy>
-      <copy toDir="${open.dist}/apidocs">
+      <mkdir dir="${open.dist.doc.dir}/apidocs" />
+      <copy toDir="${open.dist.doc.dir}">
+         <fileset dir="${doc.src.dir}" />
+      </copy>
+      <copy toDir="${open.dist.doc.dir}/apidocs">
          <fileset dir="${build.apidocs.dir}" />
       </copy>
       <copy file="${build.jar.file}" toDir="${open.dist}/lib" />

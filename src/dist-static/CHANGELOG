@@ -1,3 +1,5 @@
+c3p0-0.8.4
+	-- Updated and HTML-ized documentation, updated READMEs. 
 c3p0-0.8.4-test5
 	-- Includes, but does not yet use, cleaner, nonreflective
 	   reimplementation of C3P0PooledConnection and all of the

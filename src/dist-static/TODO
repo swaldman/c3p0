@@ -1,6 +1,8 @@
+Integrate new non-reflective codegenerated proxy classes.
+
 Support XADataSources.
 
-Support JDBC3 extensions to Connection, Statement, and ResultSet.
+Support JDBC3 extensions to Connection.prepareStatement() and Connection.prepareCall()
 
 Get rid of some of the complexity of default setting -- merge C3P0Defaults
 with PoolConfig.

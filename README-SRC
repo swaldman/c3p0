@@ -3,15 +3,13 @@ Hi.
 Building c3p0 should be as easy as editing build.properties and typing ant.
 Please send any feedback / questions to Steve Waldman <swaldman@mchange.com>
 
-NOTE! C3P0 currently builds only under Java 1.3.x. It runs fine under Java 1.4.x,
-although it does not yest support the full JDBC3 api. 1.4 builds & jdbc3 support
-are coming very soon.
-
 All of the test related properties are very optional. There are various
 test tasks in the build file, but they are ad-hoc and unsupported. Someday
 I plan to get with jUnit and do real testing, but that day has not yet come. 
 Until then, you, my dear user, are my primary testing engine. Sorry.
 
+      Steve Waldman <swaldman@mchange.com>
+      Machinery For Change, Inc.
 
 
 

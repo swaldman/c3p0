@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test5
+ * Distributed as part of c3p0 v.0.8.4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -75,6 +75,7 @@ public final class StatsTest
 		System.err.println("Closing data source, \"forcing\" garbage collection, and sleeping for 5 seconds...");
 		cpds.close();
 		System.gc();
+		System.err.println("Main Thread: Sleeping for five seconds!");
 		Thread.sleep(5000);
 // 		System.gc();
 // 		Thread.sleep(5000);
