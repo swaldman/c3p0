@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -27,6 +27,10 @@ import java.util.*;
 import java.io.IOException;
 import com.mchange.v2.codegen.IndentedWriter;
 
+/**
+ * By the time generate(...) is called, all extra interfaces and imports from all
+ * GeneratorExtensions should be incorporated into the passed-in ClassInfo object.
+ */
 public interface GeneratorExtension
 {
     public Collection extraGeneralImports();

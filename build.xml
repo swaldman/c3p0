@@ -10,21 +10,30 @@
    <property name="bindist.name" value="${c3p0.name}.bin" />
    <property name="srcdist.name" value="${c3p0.name}.src" />
    <property name="src.dir" value="src" />
-   <property name="java.src.dir" value="src/classes" />
-   <property name="codegen.src.dir" value="src/codegen" />
-   <property name="doc.src.dir" value="src/doc" />
+   <property name="java.src.dir" value="${src.dir}/classes" />
+   <property name="codegen.src.dir" value="${src.dir}/codegen" />
+   <property name="doc.src.dir" value="${src.dir}/doc" />
    <property name="static.dist.src" value="${src.dir}/dist-static" />
    <property name="test.props.dir" value="test-properties" />
    <property name="build.dir" value="build" />
    <property name="build.codegen.dir" value="${build.dir}/codegen" />
    <property name="build.classes.dir" value="${build.dir}/classes" />
    <property name="build.apidocs.dir" value="${build.dir}/apidocs" />
+   <property name="dbms.dir" value="dbms" />
+   <property name="dbms.oracle.thin.antproj.dir" value="${dbms.dir}/oracle-thin" />
+   <property name="dbms.oracle.thin.antproj.dist.dir" value="${dbms.oracle.thin.antproj.dir}/dist" />
    <property name="test.classes.dir" value="${build.dir}/testclasses" />
    <property name="dist.dir" value="dist" />
    <property name="license.header.file" value="src/legal.prepend" />
    <property name="build.jar.file" value="build/${c3p0.name}.jar" />
    <property name="open.dist" value="${dist.dir}/${bindist.name}" />
    <property name="open.dist.doc.dir" value="${open.dist}/doc" />
+   <property name="open.dist.lib.dir" value="${open.dist}/lib" />
+
+   <!-- j2ee.jar.base.dir should be set externally if desired  -->
+   <!-- we set thr property here only to keep classpaths valid -->
+   <!-- when users do not set the path                         -->
+   <property name="j2ee.jar.base.dir" value="" />
 
    <path id="codegen-classpath">
        <pathelement location="${build.classes.dir}" />
@@ -71,7 +80,7 @@
       <mkdir dir="${dist.dir}" />
    </target>
 
-   <target name="clean">
+   <target name="clean" depends="dbms-oracle-thin-clean">
       <delete dir="${build.dir}" />
       <delete dir="${dist.dir}" />
    </target>
@@ -133,6 +142,27 @@
           <patternset refid="dist-jar-classes"/>
         </fileset>
       </jar>
+   </target>
+
+   <target name="dbms-oracle-thin-ant">
+      <ant dir="${dbms.oracle.thin.antproj.dir}" target="${subproject.target}" inheritAll="false">
+	<property name="c3p0.version" value="${c3p0.version}" />
+	<property name="c3p0.jar.file" location="${build.jar.file}" />
+	<property name="oracle-thin.jdbc.jar.file" value="${oracle-thin.jdbc.jar.file}" />
+      </ant>
+   </target>
+
+   <target name="dbms-oracle-thin-clean">
+       <antcall target="dbms-oracle-thin-ant"> 
+          <param name="subproject.target" value="clean" />
+       </antcall>
+   </target>
+
+   <target name="dbms-oracle-thin" depends="jar" if="oracle-thin.jdbc.jar.file">
+       <echo message="oracle-thin.jdbc.jar.file: ${oracle-thin.jdbc.jar.file}" />
+       <antcall target="dbms-oracle-thin-ant"> 
+          <param name="subproject.target" value="dist" />
+       </antcall>
    </target>
 
    <target name="test-init" depends="jar">
@@ -257,7 +287,7 @@
       />
    </target>
 
-   <target name="open-dist" depends="jar, javadocs">
+   <target name="basic-open-dist" depends="jar, javadocs">
       <copy toDir="${open.dist}">
          <fileset dir="${static.dist.src}">
            <exclude name="*~" />
@@ -279,8 +309,16 @@
       <copy toDir="${open.dist.doc.dir}/apidocs">
          <fileset dir="${build.apidocs.dir}" />
       </copy>
-      <copy file="${build.jar.file}" toDir="${open.dist}/lib" />
+      <copy file="${build.jar.file}" toDir="${open.dist.lib.dir}" />
    </target>
+
+   <target name="oracle-thin-open-dist" depends="basic-open-dist, dbms-oracle-thin"  if="oracle-thin.jdbc.jar.file">
+      <copy toDir="${open.dist}">
+         <fileset dir="${dbms.oracle.thin.antproj.dist.dir}" />
+      </copy>
+   </target>
+
+   <target name="open-dist" depends="basic-open-dist, oracle-thin-open-dist" />
 
    <target name="zip-dist" depends="open-dist">
       <zip destfile="${dist.dir}/${bindist.name}.zip">

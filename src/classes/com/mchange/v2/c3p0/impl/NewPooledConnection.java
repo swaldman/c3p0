@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -193,6 +193,7 @@ public final class NewPooledConnection implements PooledConnection
 			t.printStackTrace();
 		    }
 	    }
+	fireConnectionClosed();
     }
 
     synchronized boolean isStatementCaching()
@@ -418,7 +419,7 @@ public final class NewPooledConnection implements PooledConnection
 		System.err.println("[c3p0] A PooledConnection died due to the following error!");
 		cause.printStackTrace();
 	    }
-	if ( exceptions != null )
+	if ( exceptions != null && exceptions.size() > 0)
 	    {
 		if ( cause == null )
 		    System.err.println("[c3p0] The following Exceptions occurred while trying to close a PooledConnection's resources normally.");

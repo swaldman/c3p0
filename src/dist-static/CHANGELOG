@@ -1,3 +1,19 @@
+c3p0-0.8.5-pre5
+	-- added utility class for Oracle users who wish to access vendor specific
+	   Connection API relating to BLOBs and CLOBs. [Thanks to Dave Smith for calling
+	   attention to this issue.]
+	-- modified ThreadPoolAsynchronousRunner to provide more information should an 
+	   "apparent deadlock" occur, and fixed that class' recovery strategy from such
+	   an event. [Thanks to Damien Evans for calling attention to this issue.]
+c3p0-0.8.5-pre4
+	-- added config parameter usesTraditionalReflectiveProxies, which defaults to false,
+	   and stitched in the 'new' codegenerated, non-reflective proxy implementation for
+	   the default case.
+c3p0-0.8.5-pre3
+	-- Added new config parameters breakAfterAcquireFailure, acquireRetryAttempts, and 
+	   acquireRetryDelay to ComboPoolBackedDataSource (forget to modify this class when 
+	   I added the params earlier.)
+	-- Added description of raw connection operations to docs.
 c3p0-0.8.5-pre2
 	-- Defined AuthMaskedProperties object, and used this to prevent usernames
 	   and passwords from being dumped to logs (a security issue). [Thanks to Zac Jacobson

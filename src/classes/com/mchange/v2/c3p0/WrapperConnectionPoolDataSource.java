@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -62,21 +62,43 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     public PooledConnection getPooledConnection()
 	throws SQLException
     { 
-	//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( getNestedDataSource().getConnection() ), 
-	return new C3P0PooledConnection( getNestedDataSource().getConnection(), 
-					 connectionTester,
-					 this.isAutoCommitOnClose(), 
-					 this.isForceIgnoreUnresolvedTransactions() ); 
+	Connection conn = getNestedDataSource().getConnection();
+	if ( this.isUsesTraditionalReflectiveProxies() )
+	    {
+		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
+		return new C3P0PooledConnection( conn, 
+						 connectionTester,
+						 this.isAutoCommitOnClose(), 
+						 this.isForceIgnoreUnresolvedTransactions() ); 
+	    }
+	else
+	    {
+		return new NewPooledConnection( conn, 
+						connectionTester,
+						this.isAutoCommitOnClose(), 
+						this.isForceIgnoreUnresolvedTransactions() ); 
+	    }
     } 
  
     public PooledConnection getPooledConnection(String user, String password)
 	throws SQLException
     { 
-	//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( getNestedDataSource().getConnection(user, password) ), 
-	return new C3P0PooledConnection( getNestedDataSource().getConnection(user, password), 
-					 connectionTester,
-					 this.isAutoCommitOnClose(), 
-					 this.isForceIgnoreUnresolvedTransactions() ); 
+	Connection conn = getNestedDataSource().getConnection(user, password);
+	if ( this.isUsesTraditionalReflectiveProxies() )
+	    {
+		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
+		return new C3P0PooledConnection( conn,
+						 connectionTester,
+						 this.isAutoCommitOnClose(), 
+						 this.isForceIgnoreUnresolvedTransactions() ); 
+	    }
+	else
+	    {
+		return new NewPooledConnection( conn, 
+						connectionTester,
+						this.isAutoCommitOnClose(), 
+						this.isForceIgnoreUnresolvedTransactions() ); 
+	    }
     }
  
     public PrintWriter getLogWriter()

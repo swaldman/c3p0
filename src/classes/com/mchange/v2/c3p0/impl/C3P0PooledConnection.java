@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -141,8 +141,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	if ( exposedProxy != null)
 	    {
 		//DEBUG
-		//System.err.println("XXXXXX!!!!! double getting a Connection from " + this );
-		//new Exception("Double-Get Stack Trace").printStackTrace();
+		//System.err.println("[DOUBLE_GET_TESTER] -- double getting a Connection from " + this );
+		//new Exception("[DOUBLE_GET_TESTER] -- Double-Get Stack Trace").printStackTrace();
 		//origGet.printStackTrace();
 
 		System.err.println("c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
@@ -162,7 +162,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	try
 	    {
 		//DEBUG
-		//origGet = new Exception("Orig Get");
+		//origGet = new Exception("[DOUBLE_GET_TESTER] -- Orig Get");
 		
 		ensureOkay();
 		/*
@@ -781,6 +781,10 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 					    //DEBUG
 					    //origGet = null;
 					}
+				    else //else case -- DEBUG only
+					System.err.println("[DEBUG] WARNING: doSilentClose( ... ) called on a proxyConnection " +
+							   "other than the current exposed proxy for its PooledConnection. [exposedProxy: " +
+							   exposedProxy + ", proxyConnection: " + proxyConnection);
 				}
 			    
 			    Exception out = null;

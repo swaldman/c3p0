@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -235,11 +235,21 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 	    }
 	writeInternalUtilityFunctions();
 
+	String[] completed_intfc_names = (String[]) interfaceNames.toArray( new String[ interfaceNames.size() ] );
+	String[] completed_gen_imports = (String[]) generalImports.toArray( new String[ generalImports.size() ] );
+	String[] completed_spc_imports = (String[]) specificImports.toArray( new String[ specificImports.size() ] );
+	ClassInfo completedClassInfo = new SimpleClassInfo( info.getPackageName(),
+							    info.getModifiers(),
+							    info.getClassName(),
+							    info.getSuperclassName(),
+							    completed_intfc_names,
+							    completed_gen_imports,
+							    completed_spc_imports );
 	for (Iterator ii = generatorExtensions.iterator(); ii.hasNext(); )
 	    {
 		GeneratorExtension ext = (GeneratorExtension) ii.next();
 		iw.println();
-		ext.generate( info, superclassType, props, propertyTypes, iw );
+		ext.generate( completedClassInfo, superclassType, props, propertyTypes, iw );
 	    }
     }
 
@@ -282,8 +292,16 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 	iw.println("{ pcs.addPropertyChangeListener( pcl ); }");
 	iw.println();
 	
+	iw.println("public void addPropertyChangeListener( String propName, PropertyChangeListener pcl )");
+	iw.println("{ pcs.addPropertyChangeListener( propName, pcl ); }");
+	iw.println();
+	
 	iw.println("public void removePropertyChangeListener( PropertyChangeListener pcl )");
 	iw.println("{ pcs.removePropertyChangeListener( pcl ); }");
+	iw.println();
+
+	iw.println("public void removePropertyChangeListener( String propName, PropertyChangeListener pcl )");
+	iw.println("{ pcs.removePropertyChangeListener( propName, pcl ); }");
 	iw.println();
 
 	if (java_version >= 140)
@@ -296,9 +314,20 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
     protected void writeJavaBeansChangeSupport() throws IOException
     {
 	if ( boundProperties() )
-	    iw.println("protected PropertyChangeSupport pcs = new PropertyChangeSupport( this );");
+	    {
+		iw.println("protected PropertyChangeSupport pcs = new PropertyChangeSupport( this );");
+		iw.println();
+		iw.println("protected PropertyChangeSupport getPropertyChangeSupport()");
+		iw.println("{ return pcs; }");
+		
+	    }
 	if ( constrainedProperties() )
-	    iw.println("protected VetoableChangeSupport vcs = new VetoableChangeSupport( this );");
+	    {
+		iw.println("protected VetoableChangeSupport vcs = new VetoableChangeSupport( this );");
+		iw.println();
+		iw.println("protected VetoableChangeSupport getVetoableChangeSupport()");
+		iw.println("{ return vcs; }");
+	    }
     }
 
     protected void writePropertyMembers() throws IOException
@@ -309,12 +338,13 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 
     protected void writePropertyMember( Property prop ) throws IOException
     {
-	iw.print( CodegenUtils.getModifierString( prop.getVariableModifiers() ) );
-	iw.print( ' ' + prop.getSimpleTypeName() + ' ' + prop.getName());
-	String dflt = prop.getDefaultValueExpression();
-	if (dflt != null)
-	    iw.print( " = " + dflt );
-	iw.println(';');
+	BeangenUtils.writePropertyMember( prop, iw );
+// 	iw.print( CodegenUtils.getModifierString( prop.getVariableModifiers() ) );
+// 	iw.print( ' ' + prop.getSimpleTypeName() + ' ' + prop.getName());
+// 	String dflt = prop.getDefaultValueExpression();
+// 	if (dflt != null)
+// 	    iw.print( " = " + dflt );
+// 	iw.println(';');
     }
 
     protected void writeGetterSetterPairs() throws IOException
@@ -338,98 +368,102 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
     }
 
     protected void writePropertyGetter( Property prop, Class propType ) throws IOException
-    {
-	String pfx = ("boolean".equals( prop.getSimpleTypeName() ) ? "is" : "get" );
-	iw.print( CodegenUtils.getModifierString( prop.getGetterModifiers() ) );
-	iw.println(' ' + prop.getSimpleTypeName() + ' ' + pfx + BeangenUtils.capitalize( prop.getName() ) + "()");
-	String retVal = getGetterDefensiveCopyExpression( prop, propType );
-	if (retVal == null) retVal = prop.getName();
-	iw.println("{ return " + retVal + "; }");
+    { 
+	BeangenUtils.writePropertyGetter( prop, this.getGetterDefensiveCopyExpression( prop, propType ), iw );
+
+// 	String pfx = ("boolean".equals( prop.getSimpleTypeName() ) ? "is" : "get" );
+// 	iw.print( CodegenUtils.getModifierString( prop.getGetterModifiers() ) );
+// 	iw.println(' ' + prop.getSimpleTypeName() + ' ' + pfx + BeangenUtils.capitalize( prop.getName() ) + "()");
+// 	String retVal = getGetterDefensiveCopyExpression( prop, propType );
+// 	if (retVal == null) retVal = prop.getName();
+// 	iw.println("{ return " + retVal + "; }");
     }
 
 
-    boolean changeMarked( Property prop )
-    { return prop.isBound() || prop.isConstrained(); }
+//     boolean changeMarked( Property prop )
+//     { return prop.isBound() || prop.isConstrained(); }
 
     protected void writePropertySetter( Property prop, Class propType ) throws IOException
     {
-	iw.print( CodegenUtils.getModifierString( prop.getSetterModifiers() ) );
-	iw.print(" void set" + BeangenUtils.capitalize( prop.getName() ) + "( " + prop.getSimpleTypeName() + ' ' + prop.getName() + " )");
-	if ( prop.isConstrained() )
-	    iw.println(" throws PropertyVetoException");
-	else
-	    iw.println();
-	String setVal = getSetterDefensiveCopyExpression( prop, propType );
-	if (setVal == null) setVal = prop.getName();
-	iw.println('{');
-	iw.upIndent();
+	BeangenUtils.writePropertySetter( prop, this.getSetterDefensiveCopyExpression( prop, propType ), iw );
+
+// 	iw.print( CodegenUtils.getModifierString( prop.getSetterModifiers() ) );
+// 	iw.print(" void set" + BeangenUtils.capitalize( prop.getName() ) + "( " + prop.getSimpleTypeName() + ' ' + prop.getName() + " )");
+// 	if ( prop.isConstrained() )
+// 	    iw.println(" throws PropertyVetoException");
+// 	else
+// 	    iw.println();
+// 	String setVal = getSetterDefensiveCopyExpression( prop, propType );
+// 	if (setVal == null) setVal = prop.getName();
+// 	iw.println('{');
+// 	iw.upIndent();
 
 
-	if ( changeMarked( prop ) )
-	    {
-		iw.println( prop.getSimpleTypeName() + " oldVal = this." + prop.getName() + ';');
+// 	if ( changeMarked( prop ) )
+// 	    {
+// 		iw.println( prop.getSimpleTypeName() + " oldVal = this." + prop.getName() + ';');
 
-		String oldValExpr = "oldVal";
-		String newValExpr = prop.getName();
-		String changeCheck;
-		if ( propType.isPrimitive() )
-		    {
-			// PropertyChange support already has overrides
-			// for boolean and int 
-			if (propType == byte.class)
-			    {
-				oldValExpr  = "new Byte( "+ oldValExpr +" )";
-				newValExpr  = "new Byte( "+ newValExpr +" )";
-			    }
-			else if (propType == char.class)
-			    {
-				oldValExpr  = "new Character( "+ oldValExpr +" )";
-				newValExpr  = "new Character( "+ newValExpr +" )";
-			    }
-			else if (propType == short.class)
-			    {
-				oldValExpr  = "new Short( "+ oldValExpr +" )";
-				newValExpr  = "new Short( "+ newValExpr +" )";
-			    }
-			else if (propType == float.class)
-			    {
-				oldValExpr  = "new Float( "+ oldValExpr +" )";
-				newValExpr  = "new Float( "+ newValExpr +" )";
-			    }
-			else if (propType == double.class)
-			    {
-				oldValExpr  = "new Double( "+ oldValExpr +" )";
-				newValExpr  = "new Double( "+ newValExpr +" )";
-			    }
+// 		String oldValExpr = "oldVal";
+// 		String newValExpr = prop.getName();
+// 		String changeCheck;
+// 		if ( propType != null && propType.isPrimitive() ) //sometimes the type can't be resolved. if so, it ain't primitive.
+// 		    {
+// 			// PropertyChange support already has overrides
+// 			// for boolean and int 
+// 			if (propType == byte.class)
+// 			    {
+// 				oldValExpr  = "new Byte( "+ oldValExpr +" )";
+// 				newValExpr  = "new Byte( "+ newValExpr +" )";
+// 			    }
+// 			else if (propType == char.class)
+// 			    {
+// 				oldValExpr  = "new Character( "+ oldValExpr +" )";
+// 				newValExpr  = "new Character( "+ newValExpr +" )";
+// 			    }
+// 			else if (propType == short.class)
+// 			    {
+// 				oldValExpr  = "new Short( "+ oldValExpr +" )";
+// 				newValExpr  = "new Short( "+ newValExpr +" )";
+// 			    }
+// 			else if (propType == float.class)
+// 			    {
+// 				oldValExpr  = "new Float( "+ oldValExpr +" )";
+// 				newValExpr  = "new Float( "+ newValExpr +" )";
+// 			    }
+// 			else if (propType == double.class)
+// 			    {
+// 				oldValExpr  = "new Double( "+ oldValExpr +" )";
+// 				newValExpr  = "new Double( "+ newValExpr +" )";
+// 			    }
 
-			changeCheck = "oldVal != " + prop.getName();
-		    }
-		else
-		    changeCheck = "! eqOrBothNull( oldVal, " + prop.getName() + " )";
+// 			changeCheck = "oldVal != " + prop.getName();
+// 		    }
+// 		else
+// 		    changeCheck = "! eqOrBothNull( oldVal, " + prop.getName() + " )";
 			
-		if ( prop.isConstrained() )
-		    {
-			iw.println("if ( " + changeCheck + " )");
-			iw.upIndent();
-			iw.println("vcs.fireVetoableChange( \"" + prop.getName() + "\", " + oldValExpr + ", " + newValExpr + " );");
-			iw.downIndent();
-		    }
+// 		if ( prop.isConstrained() )
+// 		    {
+// 			iw.println("if ( " + changeCheck + " )");
+// 			iw.upIndent();
+// 			iw.println("vcs.fireVetoableChange( \"" + prop.getName() + "\", " + oldValExpr + ", " + newValExpr + " );");
+// 			iw.downIndent();
+// 		    }
 
-		iw.println("this." + prop.getName() + " = " + setVal + ';');
+// 		iw.println("this." + prop.getName() + " = " + setVal + ';');
 				
-		if ( prop.isBound() )
-		    {
-			iw.println("if ( " + changeCheck + " )");
-			iw.upIndent();
-			iw.println("pcs.firePropertyChange( \"" + prop.getName() + "\", " + oldValExpr + ", " + newValExpr + " );");
-			iw.downIndent();
-		    }
-	    }
-	else
-	    	iw.println("this." + prop.getName() + " = " + setVal + ';');
+// 		if ( prop.isBound() )
+// 		    {
+// 			iw.println("if ( " + changeCheck + " )");
+// 			iw.upIndent();
+// 			iw.println("pcs.firePropertyChange( \"" + prop.getName() + "\", " + oldValExpr + ", " + newValExpr + " );");
+// 			iw.downIndent();
+// 		    }
+// 	    }
+// 	else
+// 	    	iw.println("this." + prop.getName() + " = " + setVal + ';');
 
-	iw.downIndent();
-	iw.println('}');
+// 	iw.downIndent();
+// 	iw.println('}');
     }
 
     protected String getGetterDefensiveCopyExpression( Property prop, Class propType )

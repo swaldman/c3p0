@@ -96,6 +96,11 @@
        <default-value>PoolConfig.defaultBreakAfterAcquireFailure()</default-value>
     </property>
     <property>
+       <type>boolean</type>
+       <name>usesTraditionalReflectiveProxies</name>
+       <default-value>PoolConfig.defaultUsesTraditionalReflectiveProxies()</default-value>
+    </property>
+    <property>
        <type>String</type>
        <name>factoryClassLocation</name>
        <default-value>PoolConfig.defaultFactoryClassLocation()</default-value>

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -62,7 +62,6 @@ public class BeangenDataSourceGenerator
 		Writer w = new BufferedWriter( new FileWriter( outFile ) );
 
 		SimplePropertyBeanGenerator gen = new SimplePropertyBeanGenerator();
-		gen.setGeneratorName( BeangenDataSourceGenerator.class.getName() );
 		gen.setGeneratorName( BeangenDataSourceGenerator.class.getName() );
 		gen.addExtension( new IndirectingSerializableExtension("com.mchange.v2.naming.ReferenceIndirector") );
 		gen.addExtension( new PropsToStringGeneratorExtension() );

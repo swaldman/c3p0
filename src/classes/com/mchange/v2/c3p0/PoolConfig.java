@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -160,6 +160,18 @@ import com.mchange.v1.io.InputStreamUtils;
  *    </td>
  *  </tr>
  *  <tr>
+ *    <td><tt>c3p0.usesTraditionalReflectiveProxies</tt></td>
+ *    <td>false</td>
+ *    <td>As of c3p0-0.8.5, the reflective "dynamic proxy"-based implementations
+ *        of proxy Connections, Statements, and ResultSets have been replaced by
+ *        non-reflective codegenerated objects. As the original codebase had a lot
+ *        of use and testing, this option is provided to allow users to revert
+ *        should they encounter problems with the new implementation. (This option
+ *        will hopefully become irrelevant as the new codebase matures, and may
+ *        eventually be removed.
+ *    </td>
+ *  </tr>
+ *  <tr>
  *    <td><tt>c3p0.factoryClassLocation</tt></td>
  *    <td>null</td>
  *    <td>DataSources that will be bound by JNDI and use that API's Referenceable interface
@@ -184,6 +196,7 @@ public final class PoolConfig
     public final static String ACQUIRE_RETRY_ATTEMPTS               = "c3p0.acquireRetryAttempts";
     public final static String ACQUIRE_RETRY_DELAY                  = "c3p0.acquireRetryDelay";
     public final static String BREAK_AFTER_ACQUIRE_FAILURE          = "c3p0.breakAfterAcquireFailure";
+    public final static String USES_TRADITIONAL_REFLECTIVE_PROXIES  = "c3p0.usesTraditionalReflectiveProxies";
     public final static String TEST_CONNECTION_ON_CHECKOUT          = "c3p0.testConnectionOnCheckout";
     public final static String CONNECTION_TESTER_CLASS_NAME         = "c3p0.connectionTesterClassName";
     public final static String AUTO_COMMIT_ON_CLOSE                 = "c3p0.autoCommitOnClose";
@@ -253,6 +266,9 @@ public final class PoolConfig
     public static boolean defaultForceIgnoreUnresolvedTransactions()
     { return DEFAULTS.isAutoCommitOnClose(); }
 
+    public static boolean defaultUsesTraditionalReflectiveProxies()
+    { return DEFAULTS.isUsesTraditionalReflectiveProxies(); }
+
 
     int     maxStatements;
     int     initialPoolSize;
@@ -268,6 +284,7 @@ public final class PoolConfig
     boolean testConnectionOnCheckout;
     boolean autoCommitOnClose;
     boolean forceIgnoreUnresolvedTransactions;
+    boolean usesTraditionalReflectiveProxies;
     String  connectionTesterClassName;
     int     numHelperThreads;
     String  factoryClassLocation;
@@ -322,6 +339,9 @@ public final class PoolConfig
     
     public boolean isBreakAfterAcquireFailure()
     { return this.breakAfterAcquireFailure;	}
+
+    public boolean isUsesTraditionalReflectiveProxies()
+    { return this.usesTraditionalReflectiveProxies; }
 
     public String getConnectionTesterClassName()
     { return connectionTesterClassName; }
@@ -383,6 +403,9 @@ public final class PoolConfig
     public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
     { this.breakAfterAcquireFailure = breakAfterAcquireFailure; }
     
+    public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies )
+    { this.usesTraditionalReflectiveProxies = usesTraditionalReflectiveProxies; }
+    
     /**
      * @deprecated you really shouldn't use testConnectionOnCheckout, it's a performance
      *             nightmare. let it default to false, and if you want Connections to be
@@ -417,6 +440,7 @@ public final class PoolConfig
 	String acquireRetryAttemptsStr              = null;
 	String acquireRetryDelayStr                 = null;
 	String breakAfterAcquireFailureStr          = null;
+	String usesTraditionalReflectiveProxiesStr  = null;
 	String testConnectionOnCheckoutStr          = null;
 	String autoCommitOnCloseStr                 = null;
 	String forceIgnoreUnresolvedTransactionsStr = null;
@@ -437,6 +461,7 @@ public final class PoolConfig
 		acquireRetryAttemptsStr = props.getProperty(ACQUIRE_RETRY_ATTEMPTS);
 		acquireRetryDelayStr = props.getProperty(ACQUIRE_RETRY_DELAY);
 		breakAfterAcquireFailureStr = props.getProperty(BREAK_AFTER_ACQUIRE_FAILURE);
+		usesTraditionalReflectiveProxiesStr = props.getProperty(USES_TRADITIONAL_REFLECTIVE_PROXIES);
 		testConnectionOnCheckoutStr = props.getProperty(TEST_CONNECTION_ON_CHECKOUT);
 		autoCommitOnCloseStr = props.getProperty(AUTO_COMMIT_ON_CLOSE);
 		forceIgnoreUnresolvedTransactionsStr = props.getProperty(FORCE_IGNORE_UNRESOLVED_TRANSACTIONS);
@@ -532,6 +557,14 @@ public final class PoolConfig
 	    pcfg.setBreakAfterAcquireFailure( defaults.isBreakAfterAcquireFailure() );
 	else
 	    pcfg.setBreakAfterAcquireFailure( C3P0Defaults.breakAfterAcquireFailure() );
+
+	// usesTraditionalReflectiveProxies
+	if ( usesTraditionalReflectiveProxiesStr != null )
+	    pcfg.setUsesTraditionalReflectiveProxies( Boolean.valueOf(usesTraditionalReflectiveProxiesStr).booleanValue() );
+	else if (defaults != null)
+	    pcfg.setUsesTraditionalReflectiveProxies( defaults.isUsesTraditionalReflectiveProxies() );
+	else
+	    pcfg.setUsesTraditionalReflectiveProxies( C3P0Defaults.usesTraditionalReflectiveProxies() );
 
 	// testConnectionOnCheckout
 	if ( testConnectionOnCheckoutStr != null )

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -648,7 +648,8 @@ class BasicResourcePool implements ResourcePool
 	if (! broken ) //ignore repeated calls to close
 	    {
 		//DEBUG
-		//firstClose = new Exception("First Close");
+		//firstClose = new Exception("First close() -- debug stack trace [CRAIG]");
+		//firstClose.printStackTrace();
 		
 		this.broken = true;
 		Collection cleanupResources = ( close_checked_out_resources ? (Collection) cloneOfManaged().keySet() : (Collection) cloneOfUnused() );
@@ -677,7 +678,7 @@ class BasicResourcePool implements ResourcePool
 
 		//DEBUG
 		//firstClose.printStackTrace();
-		//new Exception("Repeat close()").printStackTrace();
+		//new Exception("Repeat close() [CRAIG]").printStackTrace();
 	    }
     }
 

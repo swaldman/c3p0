@@ -84,7 +84,7 @@
     </h1>
     <div class="top_boilerplate">
       <p>by Steve Waldman &lt;<a href="mailto:swaldman@mchange.com">swaldman@mchange.com</a>&gt;</p>
-      <p>&copy; 2003 Machinery For Change, Inc.</p>
+      <p>&copy; 2004 Machinery For Change, Inc.</p>
       <p><i>
 	  This software is made available for use, modification, and redistribution,
 	  under the terms of the <a href="../LICENSE">Lesser GNU Public License (LGPL)</a>, which you should
@@ -108,6 +108,7 @@
 	  <li><a href="#querying">Querying Pool Status</a></li>
 	  <li><a href="#cleaning">Cleaning Up Pool Resources</a></li>
 	  <li><a href="#build_your_own">Advanced: Building Your Own PoolBackedDataSource</a></li>
+	  <li><a href="#raw_connection_ops">Advanced: Raw Connection Operations</a></li>
 	</ol>
       </li>
       <li>
@@ -122,8 +123,9 @@
       <li><a href="#feedback_and_support">Feedback and support</a></li>
       <li><a href="#appendix_a">Appendix A: Configuration Properties</a></li>
       <li><a href="#appendix_b">Appendix B: Configuring c3p0 pooled DataSources for Apache Tomcat</a></li>
-      <li><a href="apidocs/index.html">API Documentation</a></li>
+      <li><a href="#appendix_c">Appendix C: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a></li>
     </ol>
+      (See also the API Documentation <a href="apidocs/index.html">here</a>)
     <hr/>
     <h2><a name="quickstart">Quickstart</a></h2>
     <div class="sectiontext">
@@ -452,6 +454,42 @@ static void cleanup(DataSource ds) throws SQLException
 	like c3p0 to use that. Rather than using c3p0's <tt>DriverManagerDataSource</tt> implementation, you can substitute your
 	vendor-supplied <tt>DataSource</tt> as the <tt>nestedDataSource</tt> for a <tt>WrapperConnectionPoolDataSource</tt>.
       </p>
+      <a name="raw_connection_ops">
+	<h3>Advanced: Raw Connection Operations</h3>
+      </a>
+      <p>
+	JDBC drivers sometimes define vendor-specific, non-standard API on Connection implementations. C3P0 wraps
+	Connections behind a proxy, so you cannot cast C3P0-returned Connections to the vendor-specific implementation
+	class. C3P0 does not provide any means of accessing the raw Connection directly, because C3P0 needs to keep
+	track of Statements and ResultSets returned by the Connection in order to prevent resource leaks and pool
+	corruption.
+      </p>
+      <p>
+	C3P0 does provide an API that allows you to invoke non-standard methods reflectively on the underlying
+	Connection. To use it, first cast the returned Connection to a 
+	<a href="apidocs/com/mchange/v2/c3p0/C3P0ProxyConnection.html"><tt>C3P0ProxyConnection</tt></a>. Then call
+	the method <tt>rawConnectionOperation</tt>, supplying the <tt>java.lang.reflect.Method</tt> object for
+	the non-standard method you wish to call as an argument. The <tt>Method</tt> you supply will be invoked
+	on the target you provide on the second argument (null for static methods), and using the arguments you
+	supply in the third argument to that function. For the target, and for any of the method arguments, you
+	can supply the special token <tt>C3P0ProxyConnection.RAW_CONNECTION</tt>, which will be replaced with
+	the underlying vendor-specific <tt>Connection</tt> object before the <tt>Method</tt> is invoked.
+      </p>
+      <p>
+	Any Statements (including Prepared and CallableStatements) and ResultSets returned by the operation
+	will be c3p0-managed, and will be properly cleaned-up on <tt>close()</tt> of the parent proxy Connection.
+	Users must take care to clean up any non-standard resources returned by a vendor-specific method.
+      </p>
+      <p>
+	Here's an example of using Oracle-specific API to call a static method on a raw Connection:
+      </p>
+      <div class="example">
+
+C3P0ProxyConnection castCon = (C3P0ProxyConnection) c3p0DataSource.getConnection();
+Method m = CLOB.class.getMethod("createTemporary", new Class[]{Connection.class, boolean.class, int.class});
+Object[] args = new Object[] {C3P0ProxyConnection.RAW_CONNECTION, Boolean.valueOf( true ), new Integer( 10 )};
+CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);			
+      </div>
       <h2><a name="configuration">Configuration</a></h2>
       <p>
 	While c3p0 does not <i>require</i> very much configuration, it is very tweakable. All the interesting
@@ -726,6 +764,16 @@ c3p0.maxIdleTime=1800
             by allowing multiple operations to be performed simultaneously.	
 	  </div>
 	</dd>
+	<dt>usesTraditionalReflectiveProxies</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    c3p0 is very asynchronous. Slow JDBC operations are generally 
+            performed by helper threads that don't hold contended locks. Spreading
+            these operations over multiple threads can significantly improve performance
+            by allowing multiple operations to be performed simultaneously.
+ 	  </div>
+	</dd>
 	<dt>factoryClassLocation</dt>
 	<dd>
 	  <div class="default">Default: null</div>
@@ -803,6 +851,19 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
       </div>
       <p>
 	That's it!
+      </p>
+    </div>
+    <hr/>
+    <h2><a name="appendix_c">Appendix C: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a></h2>
+    <div class="sectiontext">
+      <p>
+	The Oracle thin JDBC driver provides a non-standard API for creating temporary BLOBs and CLOBs that
+	requires users to call methods on the raw, Oracle-specific Connection implementation. Advanced users
+	might use the <a href="#raw_connection_ops">raw connection operations</a> described above to access this
+	functionality, but a convenience class is available in a separate jar file (<tt>c3p0-oracle-thin-extras-@c3p0.version@.jar</tt>)
+	for easier access to this functionality. Please see the 
+	<a href="apidocs-oracle-thin/index.html">API docs for <tt>com.mchange.v2.c3p0.dbms.OracleUtils</tt></a>
+	for details.
       </p>
     </div>
     <hr/>

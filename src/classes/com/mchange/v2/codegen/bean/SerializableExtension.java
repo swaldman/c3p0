@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -27,13 +27,34 @@ import java.util.*;
 import java.io.IOException;
 import com.mchange.v2.codegen.IndentedWriter;
 
+
+/**
+ *  Note: this class pays no attention to whether users have marked any property variables as transient.
+ *  In fact, it will work most efficiently if users mark ALL variables as transient... to define transient
+ *  properties for this class, use the constructor which allows a user-specified set of transients.
+ */
 public class SerializableExtension implements GeneratorExtension
 {
-    public Collection extraGeneralImports()
+    Set transientProperties;
+    Map transientPropertyInitializers;
+
+    /**
+     *  @param transientProperties a set of Strings, the names of all properties that should be considered transient and not serialized
+     *  @param transientPropertyInitializers an optional Map of a subset of the transient property names to non-default initialization
+     *                                       expressions, which should be unterminated expressions, and which will be used verbatim in 
+     *                                       the generated code.
+     */
+    public SerializableExtension(Set transientProperties, Map transientPropertyInitializers)
     { 
-	Set set = new HashSet();
-	return set;
+	this.transientProperties = transientProperties; 
     }
+
+    public SerializableExtension()
+    { this ( Collections.EMPTY_SET, null ); }
+
+
+    public Collection extraGeneralImports()
+    { return Collections.EMPTY_SET; }
 
     public Collection extraSpecificImports()
     {
@@ -63,31 +84,35 @@ public class SerializableExtension implements GeneratorExtension
 	iw.upIndent();
 	
 	iw.println( "oos.writeShort( VERSION );" );
+
 	for( int i = 0, len = props.length; i < len; ++i )
 	    {
 		Property prop = props[i];
-		Class propType = propTypes[i];
-		if (propType.isPrimitive())
+		if (! transientProperties.contains( prop.getName() ) )
 		    {
-			if (propType == byte.class)
-			    iw.println("oos.writeByte(" + prop.getName() + ");");
-			else if (propType == char.class)
-			    iw.println("oos.writeChar(" + prop.getName() + ");");
-			else if (propType == short.class)
-			    iw.println("oos.writeShort(" + prop.getName() + ");");
-			else if (propType == int.class)
-			    iw.println("oos.writeInt(" + prop.getName() + ");");
-			else if (propType == boolean.class)
-			    iw.println("oos.writeBoolean(" + prop.getName() + ");");
-			else if (propType == long.class)
-			    iw.println("oos.writeLong(" + prop.getName() + ");");
-			else if (propType == float.class)
-			    iw.println("oos.writeFloat(" + prop.getName() + ");");
-			else if (propType == double.class)
-			    iw.println("oos.writeDouble(" + prop.getName() + ");");
+			Class propType = propTypes[i];
+			if (propType.isPrimitive())
+			    {
+				if (propType == byte.class)
+				    iw.println("oos.writeByte(" + prop.getName() + ");");
+				else if (propType == char.class)
+				    iw.println("oos.writeChar(" + prop.getName() + ");");
+				else if (propType == short.class)
+				    iw.println("oos.writeShort(" + prop.getName() + ");");
+				else if (propType == int.class)
+				    iw.println("oos.writeInt(" + prop.getName() + ");");
+				else if (propType == boolean.class)
+				    iw.println("oos.writeBoolean(" + prop.getName() + ");");
+				else if (propType == long.class)
+				    iw.println("oos.writeLong(" + prop.getName() + ");");
+				else if (propType == float.class)
+				    iw.println("oos.writeFloat(" + prop.getName() + ");");
+				else if (propType == double.class)
+				    iw.println("oos.writeDouble(" + prop.getName() + ");");
+			    }
+			else
+			    writeStoreObject( prop, propType, iw );
 		    }
-		else
-		    writeStoreObject( prop, propType, iw );
 	    }
 	iw.downIndent();
 	iw.println("}");
@@ -106,28 +131,37 @@ public class SerializableExtension implements GeneratorExtension
 	for( int i = 0, len = props.length; i < len; ++i )
 	    {
 		Property prop = props[i];
-		Class propType = propTypes[i];
-		if (propType.isPrimitive())
+		if (! transientProperties.contains( prop.getName() ) )
 		    {
-			if (propType == byte.class)
-			    iw.println("this." + prop.getName() + " = ois.readByte();");
-			else if (propType == char.class)
-			    iw.println("this." + prop.getName() + " = ois.readChar();");
-			else if (propType == short.class)
-			    iw.println("this." + prop.getName() + " = ois.readShort();");
-			else if (propType == int.class)
-			    iw.println("this." + prop.getName() + " = ois.readInt();");
-			else if (propType == boolean.class)
-			    iw.println("this." + prop.getName() + " = ois.readBoolean();");
-			else if (propType == long.class)
-			    iw.println("this." + prop.getName() + " = ois.readLong();");
-			else if (propType == float.class)
-			    iw.println("this." + prop.getName() + " = ois.readFloat();");
-			else if (propType == double.class)
-			    iw.println("this." + prop.getName() + " = ois.readDouble();");
+			Class propType = propTypes[i];
+			if (propType.isPrimitive())
+			    {
+				if (propType == byte.class)
+				    iw.println("this." + prop.getName() + " = ois.readByte();");
+				else if (propType == char.class)
+				    iw.println("this." + prop.getName() + " = ois.readChar();");
+				else if (propType == short.class)
+				    iw.println("this." + prop.getName() + " = ois.readShort();");
+				else if (propType == int.class)
+				    iw.println("this." + prop.getName() + " = ois.readInt();");
+				else if (propType == boolean.class)
+				    iw.println("this." + prop.getName() + " = ois.readBoolean();");
+				else if (propType == long.class)
+				    iw.println("this." + prop.getName() + " = ois.readLong();");
+				else if (propType == float.class)
+				    iw.println("this." + prop.getName() + " = ois.readFloat();");
+				else if (propType == double.class)
+				    iw.println("this." + prop.getName() + " = ois.readDouble();");
+			    }
+			else
+			    writeUnstoreObject( prop, propType, iw );
 		    }
 		else
-		    writeUnstoreObject( prop, propType, iw );
+		    {
+			String initializer = (String) transientPropertyInitializers.get( prop.getName() );
+			if (initializer != null)
+			    iw.println("this." + prop.getName() + " = " + initializer +';');
+		    }
 	    }
 	iw.println("break;");
 	iw.downIndent();

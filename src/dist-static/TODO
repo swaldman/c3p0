@@ -2,14 +2,17 @@ Better pool stats API.
 
 Allow user-defined Connection-test queries.
 
-Allow customizable Connection acquisition behavior.
-
-Integrate new non-reflective codegenerated proxy classes.
-
-Get rid of some of the complexity of default setting -- merge C3P0Defaults
-with PoolConfig.
-
 JBoss integration.
+
+Create a dbms-dir level build.xml file, rather than having top-level
+manage subdirectories.
+
+	things to complete:
+	   preferredTestQuery
+	   testConnectionsOnCheckin	
+
+
+
 
 
 

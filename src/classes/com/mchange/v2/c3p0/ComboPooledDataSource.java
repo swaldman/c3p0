@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -96,6 +96,24 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	pbds.resetPoolManager();
     }
 	
+    public int getAcquireRetryAttempts()
+    { return wcpds.getAcquireRetryAttempts(); }
+	
+    public void setAcquireRetryAttempts( int acquireRetryAttempts )
+    { 
+	wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
+	pbds.resetPoolManager();
+    }
+	
+    public int getAcquireRetryDelay()
+    { return wcpds.getAcquireRetryDelay(); }
+	
+    public void setAcquireRetryDelay( int acquireRetryDelay )
+    { 
+	wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
+	pbds.resetPoolManager();
+    }
+	
     public boolean isAutoCommitOnClose()
     { return wcpds.isAutoCommitOnClose(); }
 
@@ -120,6 +138,15 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     public void setForceIgnoreUnresolvedTransactions( boolean forceIgnoreUnresolvedTransactions )
     { 
 	wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
+	pbds.resetPoolManager();
+    }
+	
+    public boolean isBreakAfterAcquireFailure()
+    { return wcpds.isBreakAfterAcquireFailure(); }
+	
+    public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
+    { 
+	wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
 	pbds.resetPoolManager();
     }
 	

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -28,29 +28,105 @@ import com.mchange.v2.util.ResourceClosedException;
 
 public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 {
-    final static int POLL_FOR_STOP_INTERVAL     = 5000; //milliseconds
-    final static int DEADLOCK_DETECTOR_INTERVAL = 10000; //milliseconds
+    final static int POLL_FOR_STOP_INTERVAL                       = 5000; //milliseconds
 
-    Timer      deadlockDetectorTimer;
-    HashSet    managed = new HashSet();
-    HashSet    available = new HashSet();
-    LinkedList pendingTasks = new LinkedList();
+    final static int DFLT_DEADLOCK_DETECTOR_INTERVAL              = 10000; //milliseconds
+    final static int DFLT_INTERRUPT_DELAY_AFTER_APPARENT_DEADLOCK = 60000; //milliseconds
+    final static int DFLT_MAX_INDIVIDUAL_TASK_TIME                = 0;     //milliseconds, <= 0 means don't enforce a max task time
 
-    public ThreadPoolAsynchronousRunner( int num_threads, boolean daemon, Timer deadlockDetectorTimer )
+    int deadlock_detector_interval;
+    int interrupt_delay_after_apparent_deadlock;
+    int max_individual_task_time;
+
+    int        num_threads;
+    boolean    daemon;
+    HashSet    managed;
+    HashSet    available;
+    LinkedList pendingTasks;
+
+    Timer myTimer;
+    boolean should_cancel_timer;
+
+    TimerTask deadlockDetector = new DeadlockDetector();
+    TimerTask replacedThreadInterruptor = new ReplacedThreadInterruptor();
+
+    Map stoppedThreadsToStopDates = new HashMap();
+
+    private ThreadPoolAsynchronousRunner( int num_threads, 
+					  boolean daemon, 
+					  int max_individual_task_time,
+					  int deadlock_detector_interval, 
+					  int interrupt_delay_after_apparent_deadlock,
+					  Timer myTimer,
+					  boolean should_cancel_timer )
     {
-	this.deadlockDetectorTimer = deadlockDetectorTimer;
-	for (int i = 0; i < num_threads; ++i)
-	    {
-		Thread t = new PoolThread(i, daemon);
-		managed.add( t );
-		available.add( t );
-		t.start();
-	    }
-	deadlockDetectorTimer.schedule( new DeadlockDetector(), DEADLOCK_DETECTOR_INTERVAL, DEADLOCK_DETECTOR_INTERVAL );
+	this.num_threads = num_threads;
+	this.daemon = daemon;
+	this.max_individual_task_time = max_individual_task_time;
+	this.deadlock_detector_interval = deadlock_detector_interval;
+	this.interrupt_delay_after_apparent_deadlock = interrupt_delay_after_apparent_deadlock;
+	this.myTimer = myTimer;
+	this.should_cancel_timer = should_cancel_timer;
+
+	recreateThreadsAndTasks();
+
+	myTimer.schedule( deadlockDetector, deadlock_detector_interval, deadlock_detector_interval );
+
+	int replacedThreadProcessDelay = interrupt_delay_after_apparent_deadlock / 4;
+	myTimer.schedule( replacedThreadInterruptor, replacedThreadProcessDelay, replacedThreadProcessDelay );
+    }
+
+    public ThreadPoolAsynchronousRunner( int num_threads, 
+					 boolean daemon, 
+					 int max_individual_task_time,
+					 int deadlock_detector_interval, 
+					 int interrupt_delay_after_apparent_deadlock,
+					 Timer myTimer )
+    {
+	this( num_threads, 
+	      daemon, 
+	      max_individual_task_time,
+	      deadlock_detector_interval, 
+	      interrupt_delay_after_apparent_deadlock,
+	      myTimer, 
+	      false );
+    }
+
+    public ThreadPoolAsynchronousRunner( int num_threads, 
+					 boolean daemon, 
+					 int max_individual_task_time,
+					 int deadlock_detector_interval, 
+					 int interrupt_delay_after_apparent_deadlock )
+    {
+	this( num_threads, 
+	      daemon, 
+	      max_individual_task_time,
+	      deadlock_detector_interval, 
+	      interrupt_delay_after_apparent_deadlock,
+	      new Timer( true ), 
+	      true );
+    }
+
+    public ThreadPoolAsynchronousRunner( int num_threads, boolean daemon, Timer sharedTimer )
+    { 
+	this( num_threads, 
+	      daemon, 
+	      DFLT_MAX_INDIVIDUAL_TASK_TIME, 
+	      DFLT_DEADLOCK_DETECTOR_INTERVAL, 
+	      DFLT_INTERRUPT_DELAY_AFTER_APPARENT_DEADLOCK, 
+	      sharedTimer, 
+	      false ); 
     }
 
     public ThreadPoolAsynchronousRunner( int num_threads, boolean daemon )
-    { this( num_threads, daemon, new Timer() ); }
+    { 
+	this( num_threads, 
+	      daemon, 
+	      DFLT_MAX_INDIVIDUAL_TASK_TIME, 
+	      DFLT_DEADLOCK_DETECTOR_INTERVAL, 
+	      DFLT_INTERRUPT_DELAY_AFTER_APPARENT_DEADLOCK, 
+	      new Timer( true ), 
+	      true ); }
 
     public synchronized void postRunnable(Runnable r)
     {
@@ -68,31 +144,23 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 
     public void close( boolean skip_remaining_tasks )
     {
-	// we PoolThreads acquire locks as PoolThread.this -> ThreadPoolAsynchronousRunner.this
-	// we therefore avoid acquiring in order ThreadPoolAsynchronousRunner.this -> PoolThread.this
-	// by copying managed in a block sync'ed on this, but calling gentleStop() on the Threads
-	// outside of that block.
-
-	HashSet managedCopy;
 	synchronized ( this )
 	    {
 		if (managed == null) return;
-		managedCopy = (HashSet) managed.clone(); 
+		deadlockDetector.cancel();
+		replacedThreadInterruptor.cancel();
+		if (should_cancel_timer)
+		    myTimer.cancel();
+		myTimer = null;
+		for (Iterator ii = managed.iterator(); ii.hasNext(); )
+		    { 
+			PoolThread stopMe = (PoolThread) ii.next();
+			stopMe.gentleStop();
+			if (skip_remaining_tasks)
+			    stopMe.interrupt();
+		    }
 		managed = null;
-		deadlockDetectorTimer.cancel();
-		deadlockDetectorTimer = null;
-	    }
-
-	for (Iterator ii = managedCopy.iterator(); ii.hasNext(); )
-	    { 
-		PoolThread stopMe = (PoolThread) ii.next();
-		stopMe.gentleStop();
-		if (skip_remaining_tasks)
-		    stopMe.interrupt();
-	    }
-
-	synchronized( this )
-	    {
+		
 		if (!skip_remaining_tasks)
 		    {
 			for (Iterator ii = pendingTasks.iterator(); ii.hasNext(); )
@@ -110,42 +178,181 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
     public void close()
     { close( true ); }
 
+    public synchronized String getStatus()
+    { 
+	StringBuffer sb = new StringBuffer( 512 );
+	sb.append( this.toString() );
+	sb.append( ' ' );
+	appendStatusString( sb );
+	return sb.toString();
+    }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+    private void appendStatusString( StringBuffer sb )
+    {
+	if (managed == null)
+	    sb.append( "[closed]" );
+	else
+	    {
+		HashSet active = (HashSet) managed.clone();
+		active.removeAll( available );
+		sb.append("[num_managed_threads: ");
+		sb.append( managed.size() );
+		sb.append(", num_active: ");
+		sb.append( active.size() );
+		sb.append("; activeTasks: ");
+		boolean first = false;
+		for (Iterator ii = active.iterator(); ii.hasNext(); )
+		    {
+			if (first)
+			    first = false;
+			else
+			    sb.append(", ");
+			PoolThread pt = (PoolThread) ii.next();
+			sb.append( pt.getCurrentTask() );
+			sb.append( " (");
+			sb.append( pt.getName() );
+			sb.append(')');
+		    }
+		sb.append("; pendingTasks:");
+		for (int i = 0, len = pendingTasks.size(); i < len; ++i)
+		    {
+			if (i != 0) System.err.print(", ");
+			sb.append( pendingTasks.get( i ) );
+		    }
+		sb.append(']');
+	    }
+    }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock (or is ctor)
+    private void recreateThreadsAndTasks()
+    {
+	if ( this.managed != null)
+	    {
+		Date aboutNow = new Date();
+		for (Iterator ii = managed.iterator(); ii.hasNext(); )
+		    {
+			PoolThread pt = (PoolThread) ii.next();
+			pt.gentleStop();
+			stoppedThreadsToStopDates.put( pt, aboutNow );
+		    }
+	    }
+
+	this.managed = new HashSet();
+	this.available = new HashSet();
+	this.pendingTasks = new LinkedList();
+	for (int i = 0; i < num_threads; ++i)
+	    {
+		Thread t = new PoolThread(i, daemon);
+		managed.add( t );
+		available.add( t );
+		t.start();
+	    }
+    }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+    private void processReplacedThreads()
+    {
+	long about_now = System.currentTimeMillis();
+	for (Iterator ii = stoppedThreadsToStopDates.keySet().iterator(); ii.hasNext(); )
+	    {
+		PoolThread pt = (PoolThread) ii.next();
+		if (! pt.isAlive())
+		    ii.remove();
+		else
+		    {
+			Date d = (Date) stoppedThreadsToStopDates.get( pt );
+			if ((about_now - d.getTime()) > interrupt_delay_after_apparent_deadlock)
+			    {
+				pt.interrupt();
+				ii.remove();
+			    }
+			//else keep waiting...
+		    }
+	    }
+    }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+    private void shuttingDown( PoolThread pt )
+    {
+	if (managed != null && managed.contains( pt )) //we are not closed, and this was a thread in the current pool, not a replaced thread
+	    {
+		managed.remove( pt );
+		available.remove( pt );
+		PoolThread replacement = new PoolThread( pt.getIndex(), daemon );
+		managed.add( replacement );
+		available.add( replacement );
+		replacement.start();
+	    }
+    }
+
     class PoolThread extends Thread
     {
+	// protected by ThreadPoolAsynchronousRunner.this' lock
+	Runnable currentTask;
+
+	// protected by ThreadPoolAsynchronousRunner.this' lock
 	boolean should_stop;
+
+	// post ctor immutable
+	int index;
+
+	// post ctor immutable
+	TimerTask maxIndividualTaskTimeEnforcer;
 
 	PoolThread(int index, boolean daemon)
 	{
 	    this.setName( this.getClass().getName() + "-#" + index);
 	    this.setDaemon( daemon );
+	    this.index = index;
+
+	    if (max_individual_task_time > 0)
+		this.maxIndividualTaskTimeEnforcer = new TimerTask() { public void run() { interrupt(); } };
 	}
 
-	private synchronized boolean shouldStop()
-	{ return should_stop; }
+	public int getIndex()
+	{ return index; }
 
-	private synchronized void gentleStop()
+	// protected by ThreadPoolAsynchronousRunner.this' lock
+	// BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+	void gentleStop()
 	{ should_stop = true; }
+
+	// protected by ThreadPoolAsynchronousRunner.this' lock
+	// BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+	Runnable getCurrentTask()
+	{ return currentTask; }
 
 	public void run()
 	{
 	    try
 		{
+		    thread_loop:
 		    while (true)
 			{
 			    Runnable myTask;
 			    synchronized ( ThreadPoolAsynchronousRunner.this )
 				{
-				    boolean stop;
-				    while ( !(stop = shouldStop()) && pendingTasks.size() == 0 )
+				    while ( !should_stop && pendingTasks.size() == 0 )
 					ThreadPoolAsynchronousRunner.this.wait( POLL_FOR_STOP_INTERVAL );
-				    if (stop) return;
+				    if (should_stop) 
+					break thread_loop;
 
 				    if (! available.remove( this ) )
 					throw new InternalError("An unavailable PoolThread tried to check itself out!!!");
 				    myTask = (Runnable) pendingTasks.remove(0);
+				    currentTask = myTask;
 				}
 			    try
-				{ myTask.run(); }
+				{ 
+				    if ( maxIndividualTaskTimeEnforcer != null )
+					myTimer.schedule( maxIndividualTaskTimeEnforcer, max_individual_task_time );
+				    myTask.run(); 
+				}
 			    catch ( RuntimeException e )
 				{
 				    System.err.println(this + " -- caught unexpected Exception while executing posted task.");
@@ -153,10 +360,17 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 				}
 			    finally
 				{
+				    if ( maxIndividualTaskTimeEnforcer != null )
+					maxIndividualTaskTimeEnforcer.cancel();
+
 				    synchronized ( ThreadPoolAsynchronousRunner.this )
 					{
+					    if (should_stop)
+						break thread_loop;
+					    
 					    if ( available != null && ! available.add( this ) )
 						throw new InternalError("An apparently available PoolThread tried to check itself in!!!");
+					    currentTask = null;
 					}
 				}
 			}
@@ -166,6 +380,9 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 		    if ( Debug.TRACE > Debug.TRACE_NONE )
 			System.err.println(this + " interrupted. Shutting down.");
 		}
+
+	    synchronized ( ThreadPoolAsynchronousRunner.this )
+		{ ThreadPoolAsynchronousRunner.this.shuttingDown( this ); }
 	}
     }
 
@@ -176,7 +393,7 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 
 	public void run()
 	{
-	    boolean run_tasks = false;
+	    boolean run_stray_tasks = false;
 	    synchronized ( ThreadPoolAsynchronousRunner.this )
 		{ 
 		    if (pendingTasks.size() == 0)
@@ -189,11 +406,16 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 		    if ( current.equals( last ) )
 			{
 			    System.err.println(this + " -- APPARENT DEADLOCK!!! Creating emergency threads for unassigned pending tasks!");
-			    pendingTasks.clear();
-			    run_tasks = true;
+			    StringBuffer sb = new StringBuffer( 512 );
+			    sb.append( this );
+			    sb.append( " -- APPARENT DEADLOCK!!! Complete Status: ");
+			    appendStatusString( sb );
+			    System.err.println( sb.toString() );
+			    recreateThreadsAndTasks();
+			    run_stray_tasks = true;
 			}
 		}
-	    if (run_tasks)
+	    if (run_stray_tasks)
 		{
 		    for ( Iterator ii = current.iterator(); ii.hasNext(); )
 			new Thread( (Runnable) ii.next() ).start();
@@ -201,6 +423,15 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 		}
 	    else
 		last = current;
+	}
+    }
+
+    class ReplacedThreadInterruptor extends TimerTask
+    {
+	public void run()
+	{
+	    synchronized (ThreadPoolAsynchronousRunner.this)
+		{ processReplacedThreads(); }
 	}
     }
 }

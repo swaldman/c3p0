@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -27,6 +27,7 @@ import java.sql.*;
 import java.util.*;
 import com.mchange.v2.c3p0.ConnectionTester;
 import com.mchange.v1.db.sql.ResultSetUtils;
+import com.mchange.v1.db.sql.StatementUtils;
 
 public class DefaultConnectionTester implements ConnectionTester
 {
@@ -83,6 +84,31 @@ public class DefaultConnectionTester implements ConnectionTester
 	    }
 	finally
 	    { ResultSetUtils.attemptClose( rs ); }
+    }
+
+    public int activeCheckConnection(Connection c, String query)
+    {
+	Statement stmt = null;
+	ResultSet rs   = null;
+	try
+	    { 
+		stmt = c.createStatement();
+		rs = stmt.executeQuery( query );
+		return CONNECTION_IS_OKAY;
+	    }
+	catch (SQLException e)
+	    { 
+		String state = e.getSQLState();
+		if ( INVALID_DB_STATES.contains( state ) )
+		    return DATABASE_IS_INVALID;
+		else
+		    return CONNECTION_IS_INVALID; 
+	    }
+	finally
+	    { 
+		ResultSetUtils.attemptClose( rs ); 
+		StatementUtils.attemptClose( stmt );
+	    }
     }
 
     public boolean equals( Object o )

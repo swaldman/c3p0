@@ -1,0 +1,68 @@
+<project name="c3p0-oracle-thin" default="dist">
+
+   <!-- ignore the CLASSPATH environment variable. force builds to specify classpaths -->
+   <property name="build.sysclasspath" value="ignore" />
+
+   <property file="build.properties" />
+
+   <property name="c3p0-oracle-thin.name" value="c3p0-oracle-thin-extras-${c3p0.version}" />
+   <property name="src.dir" value="src" />
+   <property name="java.src.dir" value="${src.dir}/classes" />
+   <property name="build.dir" value="build" />
+   <property name="build.classes.dir" value="${build.dir}/classes" />
+   <property name="build.apidocs.dir" value="${build.dir}/apidocs" />
+   <property name="dist.dir" value="dist" />
+   <property name="dist.lib.dir" value="${dist.dir}/lib" />
+   <property name="dist.apidocs.dir" value="${dist.dir}/doc/apidocs-oracle-thin" />
+   <property name="lib.jar.file" value="${dist.lib.dir}/${c3p0-oracle-thin.name}.jar" />
+
+   <path id="build-class-path">
+       <pathelement location="${c3p0.jar.file}" />
+       <pathelement location="${oracle-thin.jdbc.jar.file}" />
+   </path>
+
+   <target name="init">
+      <mkdir dir="${build.dir}" />
+      <mkdir dir="${dist.lib.dir}" />
+   </target>
+
+   <target name="clean">
+      <delete dir="${build.dir}" />
+      <delete dir="${dist.dir}" />
+   </target>
+
+   <target name="compile" depends="init">
+      <echo message="${c3p0.jar.file}" />
+      <echo message="${oracle-thin.jdbc.jar.file}" />
+      <mkdir dir="${build.classes.dir}" />
+      <javac srcdir="${java.src.dir}" 
+             destdir="${build.classes.dir}" 
+             classpathref="build-class-path" 
+             debug="on" />
+   </target>
+
+   <target name="javadocs" depends="init">
+      <mkdir dir="${build.apidocs.dir}" />
+      <javadoc packagenames="com.mchange.v2.c3p0.dbms"
+               sourcepath="${java.src.dir}"
+               destdir="${build.apidocs.dir}" 
+               classpathref="build-class-path" 
+               windowtitle="${c3p0-oracle-thin.name} API Documentation"
+      />
+   </target>
+
+   <target name="lib-jar" depends="compile">
+      <jar destfile="${lib.jar.file}">
+          <fileset dir="${build.classes.dir}" />
+      </jar>
+   </target>
+
+   <target name="dist" depends="lib-jar,javadocs">
+      <mkdir dir="${dist.apidocs.dir}" />
+      <copy toDir="${dist.apidocs.dir}">
+	<fileset dir="${build.apidocs.dir}" />
+      </copy>
+   </target>
+
+</project>
+

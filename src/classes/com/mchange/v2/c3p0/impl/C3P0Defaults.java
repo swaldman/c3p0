@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -39,10 +39,11 @@ public final class C3P0Defaults
     private final static int ACQUIRE_RETRY_DELAY         = 1000; //milliseconds!
 
 
-    private final static boolean BREAK_AFTER_ACQUIRE_FAILURE  = false;
-    private final static boolean TEST_CONNECTION_ON_CHECKOUT  = false;
-    private final static boolean AUTO_COMMIT_ON_CLOSE         = false;
-    private final static boolean FORCE_IGNORE_UNRESOLVED_TXNS = false;
+    private final static boolean BREAK_AFTER_ACQUIRE_FAILURE         = false;
+    private final static boolean TEST_CONNECTION_ON_CHECKOUT         = false;
+    private final static boolean AUTO_COMMIT_ON_CLOSE                = false;
+    private final static boolean FORCE_IGNORE_UNRESOLVED_TXNS        = false;
+    private final static boolean USES_TRADITIONAL_REFLECTIVE_PROXIES = false;
 
     private final static ConnectionTester CONNECTION_TESTER = new DefaultConnectionTester();
 
@@ -100,6 +101,9 @@ public final class C3P0Defaults
 
     public static boolean forceIgnoreUnresolvedTransactions()
     { return FORCE_IGNORE_UNRESOLVED_TXNS; }
+
+    public static boolean usesTraditionalReflectiveProxies()
+    { return USES_TRADITIONAL_REFLECTIVE_PROXIES; }
 
     public static String factoryClassLocation()
     { return FACTORY_CLASS_LOCATION; }

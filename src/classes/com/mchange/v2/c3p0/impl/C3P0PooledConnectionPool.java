@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre2
+ * Distributed as part of c3p0 v.0.8.5pre4
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -79,6 +79,8 @@ public final class C3P0PooledConnectionPool
 				{
 				    if (out instanceof C3P0PooledConnection)
 					((C3P0PooledConnection) out).initStatementCache(scache);
+				    else if (out instanceof NewPooledConnection)
+					((NewPooledConnection) out).initStatementCache(scache);
 				    else
 					{
 					    System.err.print("Warning! StatementPooling not ");
@@ -223,6 +225,8 @@ public final class C3P0PooledConnectionPool
 		    int status;
 		    if (pc instanceof C3P0PooledConnection)
 			status = ((C3P0PooledConnection) pc).getConnectionStatus();
+		    else if (pc instanceof NewPooledConnection)
+			status = ((NewPooledConnection) pc).getConnectionStatus();
 		    else //default to invalid connection, but not invalid database
 			status = ConnectionTester.CONNECTION_IS_INVALID;
 		    switch (status)
