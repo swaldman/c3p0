@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -25,21 +25,150 @@ package com.mchange.v2.c3p0;
 
 import java.sql.SQLException;
 import javax.sql.DataSource;
+import java.util.Collection;
 
 /**
- *  Most clients need never use or know about this interface -- c3p0 pooled DataSources
- *  can be treated like any other DataSource. But, applications that are interested in
- *  following the current state of their pools can make use of these c3p0-specific methods.
+ *  <p><b>Most clients need never use or know about this interface -- c3p0 pooled DataSources
+ *  can be treated like any other DataSource.</b></p>
+ *
+ *  <p>The functionality in this interface will be only be of interest if 1) for administrative
+ *  reasons you like to keep close track of the number and status of all Connections your application
+ *  is using; 2) to work around problems encountered while managing a DataSource whose clients are
+ *  poorly coded applications that leak Connections, but which you are not permitted to fix; 
+ *  or 3) to work around problems that may occur if an underlying jdbc driver / DBMS system is
+ *  unreliable. In the third case, most users will be better off not using the present interface
+ *  at all, and using the DataSources' <tt>maxIdleTime</tt>, <tt>idleConnectionTestPeriod</tt>,
+ *  or <tt>testConnectionOnCheckout</tt> parameters to help your DataSources "automatically" heal. 
+ *  But for those who prefer a more direct, manual approach, this interface is for you. It is anticipated
+ *  that the methods of this interface will primarily be of use to administrators managing c3p0
+ *  PooledDataSources via JMX MBeans.</p>
+ *
+ *  <a name="perauthpools"><h3>Method Names & Per-Auth Pools</h3></a>
+ *
+ *  <p>To understand this interface, you need to realize that a c3p0 PooledDataSource may represent
+ *  not just one pool of Connections, but many, if users call the method
+ *  <tt>Connection getConnection(String username, String password)</tt> rather than the
+ *  no-argument <tt>getConnection()</tt> method. If users make use of non-default username, password
+ *  combinations, there will be a separate pool for each set of authentification criteria supplied.</p>
+ *
+ *  <p>Many methods in this interface have three variants:</p>
+ *  <ol>
+ *    <li><tt><i>&lt;method-name&gt;</i>()</tt></li>
+ *    <li><tt><i>&lt;method-name&gt;</i>(String username, String password)</tt></li>
+ *    <li><tt><i>&lt;method-name&gt;</i>AllAuths()</tt></li>
+ *  </ol>
+ *  <p>The first variant makes use of the pool maintained for the "default auth" --
+ *  Connections created by calls to the no argument <tt>getConnection()</tt>,
+ *  the second variant lets you keeps track of pools created by calling 
+ *  <tt>getConnection( <i>username</i>, <i>password</i> )</tt>, and the third variant
+ *  provides aggregate information or performs operation on all pools.</p> 
+ *
+ *  <p>Under most circumstances, non-default authentication credentials will not
+ *  be used, and methods of the first variant are sufficient to manage the DataSource.</p> 
+ *
+ *  <h3>Soft and Hard Resets</h3>
+ *
+ *  <p>A properly configured PooledDataSource whose applications are careful to close all checked-out Connections
+ *  would never need to use these methods. But, sometimes applications are untrustworthy
+ *  and leak Connections, or database administrators suspect that Connections may be corrupt or invalid,
+ *  and would like to force a pool to flush and acquire fresh Connections. This interface provides two 
+ *  ways to do so.</p>
+ *
+ *  <ol>
+ *    <li><b><tt>hardReset()</tt></b> immediately closes all Connections managed by the DataSource, including
+ *    those that are currently checked out, bringing the DataSource back to the state it was in before
+ *    the first client called getConnection(). This method is obviously disruptive, and should be with
+ *    great care. Administrators who need to work around client applications that leak Connections, can
+ *    periodically poll for pool exhaustion (using the methods of this class, or by attempting to retrieve
+ *    a Connection and timing out) and use this method clean-up all Connections and start over. But calling
+ *    this method risks breaking Connections in current use by valid applications.<br/><br/></li>
+ *
+ *    <li><b><tt>softReset()</tt></b>, <b><tt>softReset( <i>username</i>, <i>password</i> )</tt></b> and
+ *    <b><tt>softResetAllAuths()</tt></b> asks the DataSource to flush its current pool of Connections and
+ *    reacquire <i>without</i> invalidating currently checked-out Connections. Currently checked out Connections
+ *    are logically removed from the pool, but their destruction is deferred until a client attempts to close() / check-in
+ *    the Connection. Administrators who suspect that some Connections in the pool may be invalid, but who do not
+ *    wish to rely upon c3p0's automatic testing and detection mechanisms to resolve the problem, may call these
+ *    methods to force a refresh without disrupting current clients. Administrators who suspect that clients may be
+ *    leaking Connections may minimize disruptive hardReset() calls by using softReset() until the number of unclosed
+ *    orphaned connections reaches an unacceptable level. (See <a href="#perauthpools">above</a> to understand
+ *    why there are three variants of this method.)</li> 
+ *  </ol>
+ *
+ *  <h3>Understanding Connection Counts</h3>
+ *
+ *  <p>For each <a href="#perauthpools">per-auth pool</a>, four different statistics are available:</p>
+ *
+ *  <ol>
+ *    <li><tt>numConnections</tt> represents the total number of Connections in the pool.<br/><br/></li>
+ *    <li><tt>numIdleConnections</tt> represents the number of Connections in the pool that are currently available for checkout.<br/><br/></li> 
+ *    <li><tt>numBusyConnections</tt> represents the number of Connections in the pool that are currently checked out. The
+ *    invariant <tt>numIdleConnections + numBusyConnections == numConnections</tt> should always hold.<br/><br/></li>
+ *    <li><tt>numUnclosedOrphanedConnections</tt> will only be non-zero following a call to <tt>softReset()</tt>. It represents
+ *    the number of Connections that were checked out when a soft reset occurred and were therefore
+ *    silently excluded from the pool, and which remain unclosed by the client application.</li>
+ *  </ol>
  */
 public interface PooledDataSource extends DataSource
 {
     public int getNumConnections() throws SQLException;
     public int getNumIdleConnections() throws SQLException;
     public int getNumBusyConnections() throws SQLException;
+    public int getNumUnclosedOrphanedConnections() throws SQLException;
+
+    /**
+     * Discards all Connections managed by the PooledDataSource's default-authentication pool
+     * and reacquires new Connections to populate.
+     * Current checked out Connections will still
+     * be valid, and should still be checked into the
+     * PooledDataSource (so the PooledDataSource can destroy 
+     * them).
+     */
+    public void softReset() throws SQLException;
+
     public int getNumConnections(String username, String password) throws SQLException;
     public int getNumIdleConnections(String username, String password) throws SQLException;
     public int getNumBusyConnections(String username, String password) throws SQLException;
+    public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException;
+
+    /**
+     * Discards all Connections managed by the PooledDataSource with the specified authentication credentials
+     * and reacquires new Connections to populate.
+     * Current checked out Connections will still
+     * be valid, and should still be checked into the
+     * PooledDataSource (so the PooledDataSource can destroy 
+     * them).
+     */
+    public void softReset(String username, String password) throws SQLException;
+
+    public int getNumBusyConnectionsAllAuths() throws SQLException;
+    public int getNumIdleConnectionsAllAuths() throws SQLException;
     public int getNumConnectionsAllAuths() throws SQLException;
+    public int getNumUnclosedOrphanedConnectionsAllAuths() throws SQLException;
+
+    /**
+     * Discards all Connections managed by the PooledDataSource
+     * and reacquires new Connections to populate.
+     * Current checked out Connections will still
+     * be valid, and should still be checked into the
+     * PooledDataSource (so the PooledDataSource can destroy 
+     * them).
+     */
+    public void softResetAllAuths() throws SQLException;
+
+    public int getNumManagedAuths() throws SQLException;
+
+// leaving getAllUsers() unimplemented for the moment out of security considerations
+//
+//     public Collection getAllUsers() throws SQLException;
+
+    /**
+     * Destroys all pooled and checked-out Connections associated with
+     * this DataSource immediately. The PooledDataSource is
+     * reset to its initial state prior to first Connection acquisition,
+     * with no pools yet active, but ready for requests.  
+     */
+    public void hardReset() throws SQLException;
 
     /**
      * <p>C3P0 pooled DataSources use no resources before they are actually used in a VM,
@@ -78,5 +207,5 @@ public interface PooledDataSource extends DataSource
      *
      *   @see #close()
      */
-    public void close(boolean force_destory);
+    public void close(boolean force_destory) throws SQLException;
 }

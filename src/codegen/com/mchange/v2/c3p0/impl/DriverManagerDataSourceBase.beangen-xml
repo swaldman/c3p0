@@ -3,6 +3,7 @@
   <imports>
      <general>java.util</general>
      <specific>com.mchange.v2.c3p0.PoolConfig</specific>
+     <specific>com.mchange.v2.c3p0.impl.AuthMaskingProperties</specific>
   </imports>
   <modifiers>
      <modifier>public</modifier>
@@ -38,9 +39,9 @@
        <type>Properties</type>
        <name>properties</name>
        <defensive-copy>
-           (Properties) properties.clone()
+           (Properties) AuthMaskingProperties.fromAnyProperties( properties )
        </defensive-copy>
-       <default-value>new Properties()</default-value>
+       <default-value>new AuthMaskingProperties()</default-value>
        <bound/>
     </property>
     <property>

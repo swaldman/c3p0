@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -39,6 +39,9 @@ public class DelegatorGenerator
     boolean default_constructor  = true;
     boolean inner_getter         = true;
     boolean inner_setter         = true;
+
+    Class   superclass           = null;
+    Class[] extraInterfaces      = null;
 
     final static Comparator classComp = new Comparator()
     {
@@ -94,13 +97,33 @@ public class DelegatorGenerator
     public int getClassModifiers()
     { return class_modifiers; }
 
+    public void setSuperclass( Class superclass )
+    { this.superclass = superclass; }
+
+    public Class getSuperclass()
+    { return superclass; }
+
+    public void setExtraInterfaces( Class[] extraInterfaces )
+    { this.extraInterfaces = extraInterfaces; }
+
+    public Class[] getExtraInterfaces()
+    { return extraInterfaces; }
+
     public void writeDelegator(Class intfcl, String genclass, Writer w) throws IOException
     {
 	IndentedWriter iw = CodegenUtils.toIndentedWriter(w);
 	
-	String pkg      = genclass.substring(0, genclass.lastIndexOf('.'));
-	String sin      = ClassUtils.simpleClassName( intfcl );
-	String sgc      = CodegenUtils.fqcnLastElement( genclass );
+	String   pkg      = genclass.substring(0, genclass.lastIndexOf('.'));
+	String   sgc      = CodegenUtils.fqcnLastElement( genclass );
+	String   scn      = (superclass != null ? ClassUtils.simpleClassName( superclass ) : null);
+	String   sin      = ClassUtils.simpleClassName( intfcl );
+	String[] eins     = null;
+	if (extraInterfaces != null)
+	    {
+		eins = new String[ extraInterfaces.length ];
+		for (int i = 0, len = extraInterfaces.length; i < len; ++i)
+		    eins[i] = ClassUtils.simpleClassName( extraInterfaces[i] );
+	    }
 
 	Set    imports  = new TreeSet( classComp );
 	
@@ -110,6 +133,17 @@ public class DelegatorGenerator
 	//build import set
 	if (! CodegenUtils.inSamePackage( intfcl.getName(), genclass ) )
 	    imports.add( intfcl );
+	if (superclass != null && ! CodegenUtils.inSamePackage( superclass.getName(), genclass ) )
+	    imports.add( superclass );
+	if (extraInterfaces != null)
+	    {
+		for (int i = 0, len = extraInterfaces.length; i < len; ++i)
+		    {
+			Class checkMe = extraInterfaces[i];
+			if (! CodegenUtils.inSamePackage( checkMe.getName(), genclass ) )
+			    imports.add( checkMe );
+		    }
+	    }
 	for (int i = 0, len = methods.length; i < len; ++i)
 	    {
 		Class[] args = methods[i].getParameterTypes();
@@ -137,7 +171,14 @@ public class DelegatorGenerator
 	    iw.println("import "+ ((Class) ii.next()).getName() + ';');
 	generateExtraImports( iw );
 	iw.println();
-	iw.println(CodegenUtils.getModifierString( class_modifiers ) + " class " + sgc + " implements " + sin);
+	iw.print(CodegenUtils.getModifierString( class_modifiers ) + " class " + sgc);
+	if (superclass != null)
+	    iw.print(" extends " + scn);
+	iw.print(" implements " + sin);
+	if (eins != null)
+	    for (int i = 0, len = eins.length; i < len; ++i)
+		iw.print(", " + eins[i]);
+	iw.println();
 	iw.println("{");
 	iw.upIndent();
 

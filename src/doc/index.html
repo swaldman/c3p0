@@ -122,6 +122,7 @@
       <li><a href="#feedback_and_support">Feedback and support</a></li>
       <li><a href="#appendix_a">Appendix A: Configuration Properties</a></li>
       <li><a href="#appendix_b">Appendix B: Configuring c3p0 pooled DataSources for Apache Tomcat</a></li>
+      <li><a href="apidocs/index.html">API Documentation</a></li>
     </ol>
     <hr/>
     <h2><a name="quickstart">Quickstart</a></h2>
@@ -649,11 +650,37 @@ c3p0.maxIdleTime=1800
 	    Determines how many connections at a time c3p0 will try to acquire when the pool is exhausted.
 	  </div>
 	</dd>
+	<dt>acquireRetryAttempts</dt>
+	<dd>
+	  <div class="default">Default: 30</div>
+	  <div class="propdesc">
+	    Defines how many times c3p0 will try to acquire a new Connection from the database before giving up. If
+	    this value is less than or equal to zero, c3p0 will keep trying to fetch a Connection indefinitely.	  
+	  </div>
+	</dd>
+	<dt>acquireRetryDelay</dt>
+	<dd>
+	  <div class="default">Default: 1000</div>
+	  <div class="propdesc">
+	    Milliseconds, time c3p0 will wait between acquire attempts.
+	  </div>
+	</dd>
+	<dt>breakAfterAcquireFailure</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    If true, a pooled DataSource will declare itself broken and be permanently closeed if
+	    a Connection cannot be obtained from the database after making <tt>acquireRetryAttempts</tt> to acquire one.
+	    If false, failure to obtain a Connection will cause all Threads waiting for the pool to acquire a Connection
+	    to throw an Exception, but the DataSource will remain valid, and will attempt to acquire again following
+	    a call to <tt>getConnection()</tt>.
+	  </div>
+	</dd>
 	<dt>testConnectionOnCheckout</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
-	    <b><i>Don't use. Very expensive.</i></b>
+	    <b><i>Use only if necessary. Very expensive.</i></b>
             If true, an operation will be performed at every connection checkout to verify that the connection is valid.
             <b>Better choice:</b> verify connections periodically using c3p0.idleConnectionTestPeriod	
 	  </div>

@@ -10,13 +10,19 @@
     <property>
        <type>ConnectionPoolDataSource</type>
        <name>connectionPoolDataSource</name>
-       <bound/>
+       <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
     </property>
     <property>
        <type>int</type>
        <name>numHelperThreads</name>
        <default-value>PoolConfig.defaultNumHelperThreads()</default-value>
        <bound/>
+    </property>
+    <property>
+       <type>String</type>
+       <name>poolOwnerIdentityToken</name>
+       <default-value>Integer.toString( System.identityHashCode( this ), 16 )</default-value>
+       <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
     </property>
     <property>
        <type>String</type>

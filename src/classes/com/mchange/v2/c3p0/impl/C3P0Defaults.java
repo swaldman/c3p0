@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -35,7 +35,11 @@ public final class C3P0Defaults
     private final static int MAX_IDLE_TIME               = 0;  //seconds, 0 means connections never expire
     private final static int PROPERTY_CYCLE              = 300; //seconds, but ignored by present implementation
     private final static int ACQUIRE_INCREMENT           = 3;
+    private final static int ACQUIRE_RETRY_ATTEMPTS      = 30;
+    private final static int ACQUIRE_RETRY_DELAY         = 1000; //milliseconds!
 
+
+    private final static boolean BREAK_AFTER_ACQUIRE_FAILURE  = false;
     private final static boolean TEST_CONNECTION_ON_CHECKOUT  = false;
     private final static boolean AUTO_COMMIT_ON_CLOSE         = false;
     private final static boolean FORCE_IGNORE_UNRESOLVED_TXNS = false;
@@ -70,6 +74,12 @@ public final class C3P0Defaults
     public static int acquireIncrement()
     { return ACQUIRE_INCREMENT; }
 
+    public static int acquireRetryAttempts()
+    { return ACQUIRE_RETRY_ATTEMPTS; }
+
+    public static int acquireRetryDelay()
+    { return ACQUIRE_RETRY_DELAY; }
+
     public static ConnectionTester connectionTester()
     { return CONNECTION_TESTER; }
 
@@ -78,6 +88,9 @@ public final class C3P0Defaults
 
     public static int numHelperThreads()
     { return NUM_HELPER_THREADS; }
+
+    public static boolean breakAfterAcquireFailure()
+    { return BREAK_AFTER_ACQUIRE_FAILURE; }
 
     public static boolean testConnectionOnCheckout()
     { return TEST_CONNECTION_ON_CHECKOUT; }

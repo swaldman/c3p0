@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -40,7 +40,7 @@ public final class C3P0PooledConnectionPoolManager
     private final static CoalesceChecker COALESCE_CHECKER = new CoalesceChecker()
 	{
 	    // note that we expect all ConnectionTesters of a single class to be effectively
-	    // equivalent, since they are to be construvcted via a no-arg ctor and no
+	    // equivalent, since they are to be constructed via a no-arg ctor and no
 	    // extra initialization is performed. thus we only compare the classes of ConnectionTesters.
 	    public boolean checkCoalesce( Object a, Object b )
 	    {
@@ -48,6 +48,7 @@ public final class C3P0PooledConnectionPoolManager
 		C3P0PooledConnectionPoolManager bb = (C3P0PooledConnectionPoolManager) b;
 
 		return
+		    aa.poolOwnerIdentityToken.equals( bb.poolOwnerIdentityToken ) &&
 		    aa.cpds.equals( bb.cpds ) &&
 		    aa.num_task_threads == bb.num_task_threads &&
 		    aa.maxStatements == bb.maxStatements &&
@@ -55,6 +56,9 @@ public final class C3P0PooledConnectionPoolManager
 		    aa.idleConnectionTestPeriod == bb.idleConnectionTestPeriod &&
 		    aa.maxIdleTime == bb.maxIdleTime &&
 		    aa.acquireIncrement == bb.acquireIncrement &&
+		    aa.acquireRetryAttempts == bb.acquireRetryAttempts &&
+		    aa.acquireRetryDelay == bb.acquireRetryDelay &&
+		    aa.breakAfterAcquireFailure == bb.breakAfterAcquireFailure &&
 		    aa.testConnectionOnCheckout == bb.testConnectionOnCheckout &&
 		    aa.autoCommitOnClose == bb.autoCommitOnClose &&
 		    aa.forceIgnoreUnresolvedTransactions == bb.forceIgnoreUnresolvedTransactions &&
@@ -66,6 +70,7 @@ public final class C3P0PooledConnectionPoolManager
 	    {
 		C3P0PooledConnectionPoolManager aa = (C3P0PooledConnectionPoolManager) a;
 		return
+		    aa.poolOwnerIdentityToken.hashCode() ^
 		    aa.cpds.hashCode() ^
 		    aa.num_task_threads ^
 		    aa.maxStatements ^
@@ -73,9 +78,12 @@ public final class C3P0PooledConnectionPoolManager
 		    aa.idleConnectionTestPeriod ^
 		    aa.maxIdleTime ^
 		    aa.acquireIncrement ^
-		    (aa.testConnectionOnCheckout ? 1<<0 : 0) ^
-		    (aa.autoCommitOnClose ? 1<<1 : 0) ^
+		    aa.acquireRetryAttempts ^
+		    aa.acquireRetryDelay ^
+		    (aa.testConnectionOnCheckout          ? 1<<0 : 0) ^
+		    (aa.autoCommitOnClose                 ? 1<<1 : 0) ^
 		    (aa.forceIgnoreUnresolvedTransactions ? 1<<2 : 0) ^
+		    (aa.breakAfterAcquireFailure          ? 1<<3 : 0) ^
 		    aa.defaultAuth.hashCode() ^
 		    aa.connectionTester.getClass().hashCode(); 
 	    };
@@ -95,6 +103,8 @@ public final class C3P0PooledConnectionPoolManager
     GooGooStatementCache         scache;
     Map                          authsToPools;
 
+    String poolOwnerIdentityToken = null;
+
     /* MT: independently thread-safe, never reassigned post-ctor or factory */
     final ConnectionPoolDataSource     cpds;
     /* MT: end independently thread-safe, never reassigned post-ctor or factory */
@@ -108,6 +118,9 @@ public final class C3P0PooledConnectionPoolManager
     int idleConnectionTestPeriod               = PoolConfig.defaultIdleConnectionTestPeriod();
     int maxIdleTime                            = PoolConfig.defaultMaxIdleTime();  
     int acquireIncrement                       = PoolConfig.defaultAcquireIncrement(); 
+    int acquireRetryAttempts                   = PoolConfig.defaultAcquireRetryAttempts(); 
+    int acquireRetryDelay                      = PoolConfig.defaultAcquireRetryDelay(); 
+    boolean breakAfterAcquireFailure           = PoolConfig.defaultBreakAfterAcquireFailure(); 
     boolean testConnectionOnCheckout           = PoolConfig.defaultTestConnectionOnCheckout(); 
     boolean autoCommitOnClose                  = PoolConfig.defaultAutoCommitOnClose(); 
     boolean forceIgnoreUnresolvedTransactions  = PoolConfig.defaultForceIgnoreUnresolvedTransactions(); 
@@ -161,21 +174,22 @@ public final class C3P0PooledConnectionPoolManager
     /*
      * COALESCER is unsync'ed -- we sync the factory method instead
      */
-    public synchronized static C3P0PooledConnectionPoolManager find(ConnectionPoolDataSource cpds, int num_task_threads )
+    public synchronized static C3P0PooledConnectionPoolManager find(String poolOwnerIdentityToken, ConnectionPoolDataSource cpds, int num_task_threads )
 	throws SQLException
     {
- 	C3P0PooledConnectionPoolManager nascent = new C3P0PooledConnectionPoolManager( cpds, num_task_threads );
+ 	C3P0PooledConnectionPoolManager nascent = new C3P0PooledConnectionPoolManager( poolOwnerIdentityToken, cpds, num_task_threads );
 	C3P0PooledConnectionPoolManager out = (C3P0PooledConnectionPoolManager) COALESCER.coalesce( nascent );
 	if ( out == nascent ) //the new guy is the ONE
 	    out.poolsInit();
 	return out;
     }
 
-    private C3P0PooledConnectionPoolManager(ConnectionPoolDataSource cpds, int num_task_threads )
+    private C3P0PooledConnectionPoolManager(String poolOwnerIdentityToken, ConnectionPoolDataSource cpds, int num_task_threads )
 	throws SQLException
     {
 	try
 	    {
+		this.poolOwnerIdentityToken = poolOwnerIdentityToken;
 		this.cpds = cpds;
 		this.num_task_threads = num_task_threads;
 
@@ -216,6 +230,10 @@ public final class C3P0PooledConnectionPoolManager
 				    this.maxIdleTime = value;
 				else if ("acquireIncrement".equals(propName))
 				    this.acquireIncrement = value;
+				else if ("acquireRetryAttempts".equals(propName))
+				    this.acquireRetryAttempts = value;
+				else if ("acquireRetryDelay".equals(propName))
+				    this.acquireRetryDelay = value;
 				// System.err.println( propName + " -> " + propVal );
 			    }
 			else if (propCl == String.class)
@@ -237,6 +255,8 @@ public final class C3P0PooledConnectionPoolManager
 				    this.autoCommitOnClose = value;
 				else if ("forceIgnoreUnresolvedTransactions".equals(propName))
 				    this.forceIgnoreUnresolvedTransactions = value;
+				else if ("breakAfterAcquireFailure".equals(propName))
+				    this.breakAfterAcquireFailure = value;
 				// System.err.println( propName + " -> " + propVal );
 			    }
 
@@ -266,9 +286,35 @@ public final class C3P0PooledConnectionPoolManager
 	return out;
     }
 
+//
+// best from a security perspective if we keep these to ourselves...
+//
+
+//     public synchronized Set getManagedAuths()
+//     { return Collections.unmodifiableSet( authsToPools.keySet() ); }
+
+    public synchronized int getNumManagedAuths()
+    { return authsToPools.size(); }
+
     public C3P0PooledConnectionPool getPool()
 	throws SQLException
     { return getPool( defaultAuth ); }
+
+    public synchronized int getNumIdleConnectionsAllAuths() throws SQLException
+    {
+	int out = 0;
+	for (Iterator ii = authsToPools.values().iterator(); ii.hasNext(); )
+	    out += ((C3P0PooledConnectionPool) ii.next()).getNumIdleConnections();
+	return out;
+    }
+
+    public synchronized int getNumBusyConnectionsAllAuths() throws SQLException
+    {
+	int out = 0;
+	for (Iterator ii = authsToPools.values().iterator(); ii.hasNext(); )
+	    out += ((C3P0PooledConnectionPool) ii.next()).getNumBusyConnections();
+	return out;
+    }
 
     public synchronized int getNumConnectionsAllAuths() throws SQLException
     {
@@ -276,6 +322,20 @@ public final class C3P0PooledConnectionPoolManager
 	for (Iterator ii = authsToPools.values().iterator(); ii.hasNext(); )
 	    out += ((C3P0PooledConnectionPool) ii.next()).getNumConnections();
 	return out;
+    }
+
+    public synchronized int getNumUnclosedOrphanedConnectionsAllAuths() throws SQLException
+    {
+	int out = 0;
+	for (Iterator ii = authsToPools.values().iterator(); ii.hasNext(); )
+	    out += ((C3P0PooledConnectionPool) ii.next()).getNumUnclosedOrphanedConnections();
+	return out;
+    }
+
+    public synchronized void softResetAllAuths() throws SQLException
+    {
+	for (Iterator ii = authsToPools.values().iterator(); ii.hasNext(); )
+	    ((C3P0PooledConnectionPool) ii.next()).reset();
     }
 
     public synchronized void close()
@@ -299,6 +359,9 @@ public final class C3P0PooledConnectionPoolManager
 					     minPoolSize,
 					     maxPoolSize,
 					     acquireIncrement,
+					     acquireRetryAttempts,
+					     acquireRetryDelay,
+					     breakAfterAcquireFailure,
 					     idleConnectionTestPeriod,
 					     maxIdleTime,
 					     testConnectionOnCheckout,

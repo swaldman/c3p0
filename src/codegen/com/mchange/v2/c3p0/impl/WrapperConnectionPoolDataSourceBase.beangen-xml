@@ -56,6 +56,16 @@
        <default-value>PoolConfig.defaultAcquireIncrement()</default-value>
     </property>
     <property>
+       <type>int</type>
+       <name>acquireRetryAttempts</name>
+       <default-value>PoolConfig.defaultAcquireRetryAttempts()</default-value>
+    </property>
+    <property>
+       <type>int</type>
+       <name>acquireRetryDelay</name>
+       <default-value>PoolConfig.defaultAcquireRetryDelay()</default-value>
+    </property>
+    <property>
        <type>String</type>
        <name>connectionTesterClassName</name>
        <default-value>
@@ -79,6 +89,11 @@
        <type>boolean</type>
        <name>forceIgnoreUnresolvedTransactions</name>
        <default-value>PoolConfig.defaultForceIgnoreUnresolvedTransactions()</default-value>
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>breakAfterAcquireFailure</name>
+       <default-value>PoolConfig.defaultBreakAfterAcquireFailure()</default-value>
     </property>
     <property>
        <type>String</type>

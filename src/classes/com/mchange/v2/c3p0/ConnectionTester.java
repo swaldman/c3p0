@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -27,8 +27,12 @@ import java.io.Serializable;
 import java.sql.Connection;
 
 /**
- *  ConnectionTesters should be Serializable, immutable, 
- *  and must have public, no-arg constructors
+ *  <p>Define your own Connection tester if you want to
+ *  override c3p0's default behavior for testing the validity
+ *  of Connections and responding to Connection errors encountered.</p>
+ *
+ *  <p>ConnectionTesters should be Serializable, immutable, 
+ *  and must have public, no-arg constructors.</p>
  */
 public interface ConnectionTester extends Serializable
 {

@@ -76,12 +76,18 @@
       <delete dir="${dist.dir}" />
    </target>
 
-   <target name="codegen" depends="init">
+   <target name="init-codegen" depends="init">
       <javac srcdir="${java.src.dir}"
              destdir="${build.classes.dir}" 
              includes="com/mchange/v2/c3p0/codegen/**/*.java"
              classpathref="codegen-classpath"
              debug="true" />
+      <uptodate property="up-to-date-proxies" 
+                srcfile="${java.src.dir}/com/mchange/v2/c3p0/codegen/JdbcProxyGenerator.java"
+                targetfile="${build.codegen.dir}/com/mchange/v2/c3p0/impl/NewProxyConnection.java" />
+   </target>
+
+   <target name="beangen" depends="init-codegen">
       <apply executable="java" dest="${build.codegen.dir}"> 
         <arg value="-classpath" />
         <arg path="${codegen.classpath}" />
@@ -95,11 +101,16 @@
 	</fileset>
         <mapper type="glob" from="*.beangen-xml" to="*.java" />
       </apply>
+   </target>
+
+   <target name="newproxygen" depends="init-codegen" unless="up-to-date-proxies">
       <java classname="com.mchange.v2.c3p0.codegen.JdbcProxyGenerator" fork="true" dir=".">
 	<classpath refid="codegen-classpath" />
         <arg value="${build.codegen.dir}" />
       </java>
    </target>
+
+   <target name="codegen" depends="beangen,newproxygen" />
 
    <target name="compile" depends="codegen">
       <javac destdir="${build.classes.dir}" 
@@ -175,6 +186,20 @@
        </java>
    </target>
 
+   <target name="rco-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.RawConnectionOpTest" 
+         classpathref="test-classpath" 
+	 	 fork="true">
+           <!-- <jvmarg value="-Xrunhprof:cpu=times,file=/tmp/java.hprof,doe=y,format=a" /> -->
+           <!-- <jvmarg value="-Xprof" /> -->
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
    <target name="load-test" depends="test-init">
        <java 
          classname="com.mchange.v2.c3p0.test.LoadPoolBackedDataSource" 
@@ -190,6 +215,18 @@
    <target name="psload-test" depends="test-init">
        <java 
          classname="com.mchange.v2.c3p0.test.PSLoadPoolBackedDataSource" 
+         classpathref="test-classpath" 
+	 fork="true">
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
+   <target name="onethreadrepeat-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest" 
          classpathref="test-classpath" 
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />

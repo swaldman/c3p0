@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -23,19 +23,24 @@
 
 package com.mchange.v2.c3p0.impl;
 
-import java.sql.*;
-import javax.sql.*;
-import com.mchange.v2.sql.SqlUtils;
-import com.mchange.v2.resourcepool.*;
-import java.util.Properties;
-import com.mchange.v2.c3p0.stmt.*;
-import com.mchange.v2.c3p0.ConnectionTester;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.PooledConnection;
+
 import com.mchange.v1.db.sql.ConnectionUtils;
+import com.mchange.v2.c3p0.ConnectionTester;
+import com.mchange.v2.c3p0.stmt.GooGooStatementCache;
+import com.mchange.v2.resourcepool.ResourcePool;
+import com.mchange.v2.resourcepool.ResourcePoolException;
+import com.mchange.v2.resourcepool.ResourcePoolFactory;
+import com.mchange.v2.sql.SqlUtils;
 
 public final class C3P0PooledConnectionPool
 {
-    final static int ACQ_RETRY_ATTEMPTS = 30;
-
     ResourcePool rp;
     ConnectionEventListener cl = new ConnectionEventListenerImpl();
 
@@ -47,6 +52,9 @@ public final class C3P0PooledConnectionPool
 			      int  min, 
 			      int  max, 
 			      int  inc,
+			      int acq_retry_attempts,
+			      int acq_retry_delay,
+			      boolean break_after_acq_failure,
 			      int idleConnectionTestPeriod, //seconds
 			      int maxIdleTime, //seconds
 			      final boolean testConnectionOnCheckout,
@@ -85,26 +93,28 @@ public final class C3P0PooledConnectionPool
 			// REFURBISHMENT:
 			// the PooledConnection refurbishes itself when 
 			// its Connection view is closed, prior to being
-			// checked back in to the pool.
+			// checked back in to the pool. But we still may want to
+			// test to make sure it is still good.
 
 			public void refurbishResourceOnCheckout( Object resc ) throws Exception
 			{
 			    if ( testConnectionOnCheckout )
 				{
 				    //System.err.println("testing connection on checkout...");
-				    refurbishResource( resc );
+				    testPooledConnection( resc );
 				}
 			}
 
 			public void refurbishResourceOnCheckin( Object resc ) throws Exception
 			{
-			    // do nothing on checkin
+			    if (false)
+				{ testPooledConnection( resc ); }
 			}
 
 			public void refurbishIdleResource( Object resc ) throws Exception
-			{ refurbishResource( resc ); }
+			{ testPooledConnection( resc ); }
 			
-			private void refurbishResource(Object resc) throws Exception
+			private void testPooledConnection(Object resc) throws Exception
 			{ 
 			    PooledConnection pc = (PooledConnection) resc;
 			    
@@ -157,7 +167,9 @@ public final class C3P0PooledConnectionPool
 			fact.setIncrement( inc );
 			fact.setIdleResourceTestPeriod( idleConnectionTestPeriod * 1000);
 			fact.setResourceMaxAge( maxIdleTime * 1000 );
-			fact.setAcquisitionRetryAttempts( ACQ_RETRY_ATTEMPTS );
+			fact.setAcquisitionRetryAttempts( acq_retry_attempts );
+			fact.setAcquisitionRetryDelay( acq_retry_delay );
+			fact.setBreakOnAcquisitionFailure( break_after_acq_failure );
 			fact.setAgeIsAbsolute( false ); //we timeout Connections only when idle
 			rp = fact.createPool( manager );
 		    }
@@ -260,7 +272,38 @@ public final class C3P0PooledConnectionPool
 
     public int getNumBusyConnections() throws SQLException
     { 
-	try { return rp.getAwaitingCheckinCount(); }
+	try 
+	    {
+		synchronized ( rp )
+		    { return (rp.getAwaitingCheckinCount() - rp.getExcludedCount()); }
+	    }
+	catch ( Exception e )
+	    { 
+		e.printStackTrace();
+		throw SqlUtils.toSQLException( e );
+	    }
+    }
+
+    public int getNumUnclosedOrphanedConnections() throws SQLException
+    {
+	try { return rp.getExcludedCount(); }
+	catch ( Exception e )
+	    { 
+		e.printStackTrace();
+		throw SqlUtils.toSQLException( e );
+	    }
+    }
+
+    /**
+     * Discards all Connections managed by the pool
+     * and reacquires new Connections to populate.
+     * Current checked out Connections will still
+     * be valid, and should still be checked into the
+     * pool (so the pool can destroy them).
+     */
+    public void reset() throws SQLException
+    { 
+	try { rp.resetPool(); }
 	catch ( Exception e )
 	    { 
 		e.printStackTrace();

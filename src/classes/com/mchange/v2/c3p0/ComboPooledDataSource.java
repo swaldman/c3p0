@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -28,7 +28,6 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 import javax.naming.*;
-import javax.sql.*;
 import com.mchange.v2.naming.*;
 
 /**
@@ -284,22 +283,58 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     public int getNumBusyConnections() throws SQLException
     { return pbds.getNumBusyConnections(); }
 
+    public int getNumUnclosedOrphanedConnections() throws SQLException
+    { return pbds.getNumUnclosedOrphanedConnections(); }
+
+    public void softReset() throws SQLException
+    { pbds.softReset();}
+
     public int getNumConnections(String username, String password) throws SQLException
-    { return pbds.getNumConnections(); }
+    { return pbds.getNumConnections( username, password ); }
 
     public int getNumIdleConnections(String username, String password) throws SQLException
-    { return pbds.getNumIdleConnections(); }
+    { return pbds.getNumIdleConnections( username, password ); }
 
     public int getNumBusyConnections(String username, String password) throws SQLException
-    { return pbds.getNumBusyConnections(); }
+    { return pbds.getNumBusyConnections( username, password ); }
+
+    public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException
+    { return pbds.getNumUnclosedOrphanedConnections( username, password ); }
+
+    public void softReset(String username, String password) throws SQLException
+    { pbds.softReset( username, password );}
+
+    public int getNumBusyConnectionsAllAuths() throws SQLException
+    { return pbds.getNumBusyConnectionsAllAuths(); }
+
+    public int getNumIdleConnectionsAllAuths() throws SQLException
+    { return pbds.getNumIdleConnectionsAllAuths(); }
 
     public int getNumConnectionsAllAuths() throws SQLException
     { return pbds.getNumConnectionsAllAuths(); }
 
-    public void close()
+    public int getNumUnclosedOrphanedConnectionsAllAuths() throws SQLException
+    { return pbds.getNumUnclosedOrphanedConnectionsAllAuths(); }
+
+    public void softResetAllAuths() throws SQLException
+    { pbds.softResetAllAuths();}
+
+    public int getNumManagedAuths() throws SQLException
+    { return pbds.getNumManagedAuths(); }
+
+
+//     Not implemented due to security concerns
+//
+//     public Collection getAllUsers() throws SQLException
+//     { return pbds.getAllUsers(); }
+
+    public void hardReset() throws SQLException
+    { pbds.hardReset(); }
+
+    public void close() throws SQLException
     { pbds.close(); }
 
-    public void close( boolean force_destroy )
+    public void close( boolean force_destroy ) throws SQLException
     { pbds.close( force_destroy ); }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -58,12 +58,15 @@ public final class C3P0ImplUtils
 //  				System.err.println( pd.getReadMethod() );
 
 				Method readMethod = pd.getReadMethod();
-				Object propVal = readMethod.invoke( o, NOARGS );
-				String value = (String) propVal;
-				if ("user".equals(propName))
-				    user = value;
-				else if ("password".equals(propName))
-				    password = value;
+				if (readMethod != null)
+				    {
+					Object propVal = readMethod.invoke( o, NOARGS );
+					String value = (String) propVal;
+					if ("user".equals(propName))
+					    user = value;
+					else if ("password".equals(propName))
+					    password = value;
+				    }
 			    }
 		    }
 		if (user == null)

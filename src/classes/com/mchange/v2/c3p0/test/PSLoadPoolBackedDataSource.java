@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -118,6 +118,8 @@ public final class PSLoadPoolBackedDataSource
 				    else
 					executeInsert( con );
 				}
+// 			    catch (Exception e)
+// 				{ e.printStackTrace(); }
 			    finally
 				{ ConnectionUtils.attemptClose( con ); }
 

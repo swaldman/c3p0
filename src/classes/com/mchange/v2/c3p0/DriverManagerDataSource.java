@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -24,7 +24,6 @@
 package com.mchange.v2.c3p0;
 
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeSupport;
 import java.beans.PropertyVetoException;
 import java.beans.VetoableChangeListener;
 import java.io.PrintWriter;
@@ -115,8 +114,17 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     private final Properties overrideProps(String user, String password)
     {
 	Properties overriding = (Properties) properties.clone(); //we are relying on a defensive clone in our base class!!!
-	overriding.put(SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user);
-	overriding.put(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password);
+
+	if (user != null)
+	    overriding.put(SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user);
+	else
+	    overriding.remove(SqlUtils.DRIVER_MANAGER_USER_PROPERTY);
+
+	if (password != null)
+	    overriding.put(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password);
+	else
+	    overriding.remove(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY);
+
 	return overriding;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -103,6 +103,7 @@ public final class C3P0BenchmarkApp
    		l.add( new ConnectionAcquisitionTest() );
       		l.add( new StatementCreateTest() );
       		l.add( new StatementEmptyTableSelectTest() );
+		l.add( new DataBaseMetaDataListNonexistentTablesTest() );
       		l.add( new PreparedStatementEmptyTableSelectTest() );
     		l.add( new PreparedStatementAcquireTest() );
     		l.add( new ResultSetReadTest() );
@@ -290,6 +291,7 @@ public final class C3P0BenchmarkApp
 	}
     }
 
+
     static class StatementEmptyTableSelectTest extends Test
     {
 	StatementEmptyTableSelectTest()
@@ -326,6 +328,50 @@ public final class C3P0BenchmarkApp
 	}
     }
 
+    static class DataBaseMetaDataListNonexistentTablesTest extends Test
+    {
+	DataBaseMetaDataListNonexistentTablesTest()
+	{ super("DataBaseMetaDataListNonexistentTablesTest"); }
+
+	protected long test(DataSource ds, int n) throws SQLException
+	{
+	    Connection con  = null;
+	    Statement  stmt = null;
+	    try 
+		{ 
+		    con = ds.getConnection();
+		    return test( con , n );
+		}
+	    finally
+		{ 
+		    StatementUtils.attemptClose( stmt ); 
+		    ConnectionUtils.attemptClose( con ); 
+		}
+	}
+
+	long test(Connection con, int n) throws SQLException
+	{ 
+	    ResultSet rs = null;
+
+	    try
+		{
+		    long start;
+		    long end;
+		    
+		    start = System.currentTimeMillis();
+		    for (int i = 0; i < n; ++i)
+			rs = con.getMetaData().getTables( null, 
+							null, 
+							"PROBABLYNOT", 
+							new String[] {"TABLE"} );
+		    end = System.currentTimeMillis();
+		    return end - start;
+		}
+	finally
+	    { ResultSetUtils.attemptClose( rs ); }
+	}
+    }
+
     static class PreparedStatementAcquireTest extends Test
     {
 	PreparedStatementAcquireTest()
@@ -356,6 +402,8 @@ public final class C3P0BenchmarkApp
  								 ResultSet.CONCUR_UPDATABLE, 
  								 ResultSet.HOLD_CURSORS_OVER_COMMIT);
  				}
+
+
   				{ pstmt = con.prepareStatement(N_ENTRY_TABLE_INSERT); }
 */
 			    finally
@@ -487,6 +535,16 @@ public final class C3P0BenchmarkApp
 				    while( rs.next() )
 					System.err.println("Huh?? Empty table has values?");
 				    //System.out.println(this + "   " + i);
+
+// 				    if (ds instanceof PooledDataSource)
+// 					{
+// 					    PooledDataSource pds = (PooledDataSource) ds;
+// 					    System.err.println("numConnections: " + pds.getNumConnections() );
+// 					    System.err.println("numIdleConnections: " + pds.getNumIdleConnections() );
+// 					    System.err.println("numBusyConnections: " + pds.getNumBusyConnections() );
+// 					    System.err.println();
+// 					}
+
 				    con.commit();
 				}
 			    catch (Exception e)

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -36,7 +36,8 @@ class BasicResourcePoolFactory extends ResourcePoolFactory
     int     retry_delay               = 1000; //1 second
     long    idle_resource_test_period = -1;   //milliseconds, by default we don't test idle resources
     long    max_age                   = -1;   //milliseconds, by default resources never expire
-    boolean age_is_absolute = true;
+    boolean age_is_absolute              = true;
+    boolean break_on_acquisition_failure = true;
 
     AsynchronousRunner taskRunner;
     boolean            taskRunner_is_external;
@@ -256,6 +257,14 @@ class BasicResourcePoolFactory extends ResourcePoolFactory
 	throws ResourcePoolException
     { return age_is_absolute; }
 
+    public synchronized void setBreakOnAcquisitionFailure( boolean break_on_acquisition_failure )
+	throws ResourcePoolException
+    { this.break_on_acquisition_failure = break_on_acquisition_failure; }
+
+    public synchronized boolean getBreakOnAcquisitionFailure()
+	throws ResourcePoolException
+    { return break_on_acquisition_failure; }
+
     public synchronized ResourcePool createPool(ResourcePool.Manager mgr)
 	throws ResourcePoolException
     {
@@ -266,7 +275,7 @@ class BasicResourcePoolFactory extends ResourcePoolFactory
 						    start, min, max, inc, 
 						    retry_attempts, retry_delay, 
 						    idle_resource_test_period,
-						    max_age, age_is_absolute,
+						    max_age, age_is_absolute, break_on_acquisition_failure,
 						    taskRunner,
 						    asyncEventQueue,
 						    timer,

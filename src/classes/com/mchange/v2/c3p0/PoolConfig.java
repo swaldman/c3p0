@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -87,9 +87,31 @@ import com.mchange.v1.io.InputStreamUtils;
  *    <td>Determines how many connections at a time c3p0 will try to acquire when the pool is exhausted.</td>
  *  </tr>
  *  <tr>
+ *    <td><tt>c3p0.acquireRetryAttempts</tt></td>
+ *    <td>30</td>
+ *    <td>Defines how many times c3p0 will try to acquire a new Connection from the database before giving up. If
+ *        this value is less than or equal to zero, c3p0 will keep trying to fetch a Connection indefinitely.
+ *    </td>
+ *  </tr>
+ *  <tr>
+ *    <td><tt>c3p0.acquireRetryDelay</tt></td>
+ *    <td>1000</td>
+ *    <td>Milliseconds, time c3p0 will wait between acquire attempts.</td>
+ *  </tr>
+ *  <tr>
+ *    <td><tt>c3p0.breakAfterAcquireFailure</tt></td>
+ *    <td>false</td>
+ *    <td>If true, a pooled DataSource will declare itself broken and be permanently closeed if
+ *    a Connection cannot be obtained from the database after making <tt>acquireRetryAttempts</tt> to acquire one.
+ *    If false, failure to obtain a Connection will cause all Threads waiting for the pool to acquire a Connection
+ *    to throw an Exception, but the DataSource will remain valid, and will attempt to acquire again following
+ *    a call to <tt>getConnection()</tt>.
+ *    </td>
+ *  </tr>
+ *  <tr>
  *    <td><tt>c3p0.testConnectionOnCheckout</tt></td>
  *    <td>false</td>
- *    <td><b><i>Don't use. Very expensive.</i></b>
+ *    <td><b><i>Use only if necessary. Very expensive.</i></b>
  *        If true, an operation will be performed at every connection checkout to verify that the connection is valid.
  *        <b>Better choice:</b> verify connections periodically using c3p0.idleConnectionTestPeriod
  *    </td>
@@ -159,6 +181,9 @@ public final class PoolConfig
     public final static String PROPERTY_CYCLE                       = "c3p0.propertyCycle";
     public final static String MAX_STATEMENTS                       = "c3p0.maxStatements";
     public final static String ACQUIRE_INCREMENT                    = "c3p0.acquireIncrement";
+    public final static String ACQUIRE_RETRY_ATTEMPTS               = "c3p0.acquireRetryAttempts";
+    public final static String ACQUIRE_RETRY_DELAY                  = "c3p0.acquireRetryDelay";
+    public final static String BREAK_AFTER_ACQUIRE_FAILURE          = "c3p0.breakAfterAcquireFailure";
     public final static String TEST_CONNECTION_ON_CHECKOUT          = "c3p0.testConnectionOnCheckout";
     public final static String CONNECTION_TESTER_CLASS_NAME         = "c3p0.connectionTesterClassName";
     public final static String AUTO_COMMIT_ON_CLOSE                 = "c3p0.autoCommitOnClose";
@@ -207,6 +232,15 @@ public final class PoolConfig
     public static int defaultAcquireIncrement()
     { return DEFAULTS.getAcquireIncrement(); }
 
+    public static int defaultAcquireRetryAttempts()
+    { return DEFAULTS.getAcquireRetryAttempts(); }
+
+    public static int defaultAcquireRetryDelay()
+    { return DEFAULTS.getAcquireRetryDelay(); }
+
+    public static boolean defaultBreakAfterAcquireFailure()
+    { return DEFAULTS.isBreakAfterAcquireFailure(); }
+
     public static String defaultConnectionTesterClassName()
     { return DEFAULTS.getConnectionTesterClassName(); }
 
@@ -228,6 +262,9 @@ public final class PoolConfig
     int     maxIdleTime;
     int     propertyCycle;
     int     acquireIncrement;
+    int     acquireRetryAttempts;
+    int     acquireRetryDelay;
+    boolean breakAfterAcquireFailure;
     boolean testConnectionOnCheckout;
     boolean autoCommitOnClose;
     boolean forceIgnoreUnresolvedTransactions;
@@ -277,6 +314,15 @@ public final class PoolConfig
     public int getAcquireIncrement()
     { return acquireIncrement; }
     
+    public int getAcquireRetryAttempts()
+    { return acquireRetryAttempts; }
+    
+    public int getAcquireRetryDelay()
+    { return acquireRetryDelay; }
+    
+    public boolean isBreakAfterAcquireFailure()
+    { return this.breakAfterAcquireFailure;	}
+
     public String getConnectionTesterClassName()
     { return connectionTesterClassName; }
     
@@ -325,8 +371,17 @@ public final class PoolConfig
     public void setAcquireIncrement( int acquireIncrement )
     { this.acquireIncrement = acquireIncrement; }
     
+    public void setAcquireRetryAttempts( int acquireRetryAttempts )
+    { this.acquireRetryAttempts = acquireRetryAttempts; }
+    
+    public void setAcquireRetryDelay( int acquireRetryDelay )
+    { this.acquireRetryDelay = acquireRetryDelay; }
+    
     public void setConnectionTesterClassName( String connectionTesterClassName )
     { this.connectionTesterClassName = connectionTesterClassName; }
+    
+    public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
+    { this.breakAfterAcquireFailure = breakAfterAcquireFailure; }
     
     /**
      * @deprecated you really shouldn't use testConnectionOnCheckout, it's a performance
@@ -359,6 +414,9 @@ public final class PoolConfig
 	String maxIdleTimeStr                       = null;
 	String propertyCycleStr                     = null;
 	String acquireIncrementStr                  = null;
+	String acquireRetryAttemptsStr              = null;
+	String acquireRetryDelayStr                 = null;
+	String breakAfterAcquireFailureStr          = null;
 	String testConnectionOnCheckoutStr          = null;
 	String autoCommitOnCloseStr                 = null;
 	String forceIgnoreUnresolvedTransactionsStr = null;
@@ -376,6 +434,9 @@ public final class PoolConfig
 		maxIdleTimeStr = props.getProperty(MAX_IDLE_TIME);
 		propertyCycleStr = props.getProperty(PROPERTY_CYCLE);
 		acquireIncrementStr = props.getProperty(ACQUIRE_INCREMENT);
+		acquireRetryAttemptsStr = props.getProperty(ACQUIRE_RETRY_ATTEMPTS);
+		acquireRetryDelayStr = props.getProperty(ACQUIRE_RETRY_DELAY);
+		breakAfterAcquireFailureStr = props.getProperty(BREAK_AFTER_ACQUIRE_FAILURE);
 		testConnectionOnCheckoutStr = props.getProperty(TEST_CONNECTION_ON_CHECKOUT);
 		autoCommitOnCloseStr = props.getProperty(AUTO_COMMIT_ON_CLOSE);
 		forceIgnoreUnresolvedTransactionsStr = props.getProperty(FORCE_IGNORE_UNRESOLVED_TRANSACTIONS);
@@ -447,6 +508,30 @@ public final class PoolConfig
 	    pcfg.setAcquireIncrement( defaults.getAcquireIncrement() );
 	else
 	    pcfg.setAcquireIncrement( C3P0Defaults.acquireIncrement() );
+
+	// acquireRetryAttempts
+	if ( acquireRetryAttemptsStr != null )
+	    pcfg.setAcquireRetryAttempts( Integer.parseInt( acquireRetryAttemptsStr ) );
+	else if (defaults != null)
+	    pcfg.setAcquireRetryAttempts( defaults.getAcquireRetryAttempts() );
+	else
+	    pcfg.setAcquireRetryAttempts( C3P0Defaults.acquireRetryAttempts() );
+
+	// acquireRetryDelay
+	if ( acquireRetryDelayStr != null )
+	    pcfg.setAcquireRetryDelay( Integer.parseInt( acquireRetryDelayStr ) );
+	else if (defaults != null)
+	    pcfg.setAcquireRetryDelay( defaults.getAcquireRetryDelay() );
+	else
+	    pcfg.setAcquireRetryDelay( C3P0Defaults.acquireRetryDelay() );
+
+	// breakAfterAcquireFailure
+	if ( breakAfterAcquireFailureStr != null )
+	    pcfg.setBreakAfterAcquireFailure( Boolean.valueOf(breakAfterAcquireFailureStr).booleanValue() );
+	else if (defaults != null)
+	    pcfg.setBreakAfterAcquireFailure( defaults.isBreakAfterAcquireFailure() );
+	else
+	    pcfg.setBreakAfterAcquireFailure( C3P0Defaults.breakAfterAcquireFailure() );
 
 	// testConnectionOnCheckout
 	if ( testConnectionOnCheckoutStr != null )

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -49,6 +49,7 @@ public final class NewPooledConnection implements PooledConnection
     Set                  uncachedActiveStatements  = new HashSet(); //cached statements are managed by the cache
     Map                  resultSetsForStatements   = new HashMap(); //for both cached and uncached statements
     Set                  metaDataResultSets        = new HashSet();
+    Set                  rawConnectionResultSets   = null;          //very rarely used, so we lazy initialize...
     boolean              connection_error_signaled = false;
 
     //MT: thread-safe, volatile
@@ -153,6 +154,19 @@ public final class NewPooledConnection implements PooledConnection
 	Set rss = resultSets( stmt, false );
 	if ( ! rss.remove( rs ) )
 	    throw new InternalError("Marking a ResultSet inactive that we did not know was opened!");
+    }
+
+    synchronized void markActiveRawConnectionResultSet( ResultSet rs )
+    {
+	if (rawConnectionResultSets == null)
+	    rawConnectionResultSets = new HashSet();
+	rawConnectionResultSets.add( rs );
+    }
+
+    synchronized void markInactiveRawConnectionResultSet( ResultSet rs )
+    { 
+	if ( ! rawConnectionResultSets.remove( rs ) )
+	    throw new InternalError("Marking a raw Connection ResultSet inactive that we did not know was opened!");
     }
 
     synchronized void markActiveMetaDataResultSet( ResultSet rs )
@@ -289,12 +303,14 @@ public final class NewPooledConnection implements PooledConnection
     private void cleanupResultSets( List closeExceptions )
     {
 	cleanupAllStatementResultSets( closeExceptions );
-	cleanupMetaDataResultSets( closeExceptions );
+	cleanupUnclosedResultSetsSet( metaDataResultSets, closeExceptions );
+	if ( rawConnectionResultSets != null )
+	    cleanupUnclosedResultSetsSet( rawConnectionResultSets, closeExceptions );
     }
 
-    private void cleanupMetaDataResultSets( List closeExceptions )
+    private void cleanupUnclosedResultSetsSet( Set rsSet, List closeExceptions )
     {
-	for ( Iterator ii = metaDataResultSets.iterator(); ii.hasNext(); )
+	for ( Iterator ii = rsSet.iterator(); ii.hasNext(); )
 	    {
 		ResultSet rs = (ResultSet) ii.next();
 		try

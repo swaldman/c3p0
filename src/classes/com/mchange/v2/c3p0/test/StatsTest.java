@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -33,9 +33,10 @@ public final class StatsTest
 {
     static void display( ComboPooledDataSource cpds ) throws Exception
     {
-	System.err.println("num_connections: " + cpds.getNumConnections());
-	System.err.println("num_busy_connections: " + cpds.getNumBusyConnections());
-	System.err.println("num_idle_connections: " + cpds.getNumIdleConnections());
+	System.err.println("numConnections: " + cpds.getNumConnections());
+	System.err.println("numBusyConnections: " + cpds.getNumBusyConnections());
+	System.err.println("numIdleConnections: " + cpds.getNumIdleConnections());
+	System.err.println("numUnclosedOrphanedConnections: " + cpds.getNumUnclosedOrphanedConnections());
 	System.err.println();
     }
 
@@ -44,10 +45,9 @@ public final class StatsTest
 	try
 	    {
 		ComboPooledDataSource cpds = new ComboPooledDataSource();
-		cpds.setDriverClass( "org.postgresql.Driver" );
-		cpds.setJdbcUrl( "jdbc:postgresql://localhost/c3p0-test" );
-		cpds.setUser("swaldman");
-		cpds.setPassword("test");
+		cpds.setJdbcUrl( argv[0] );
+		cpds.setUser( argv[1] );
+		cpds.setPassword( argv[2] );
 		cpds.setMinPoolSize(5);
 		cpds.setAcquireIncrement(5);
 		cpds.setMaxPoolSize(20);
@@ -61,14 +61,34 @@ public final class StatsTest
  		    {
 			Connection c = cpds.getConnection();
  			hs.add( c );
-			System.err.println( c );
+			System.err.println( "Adding (" + (i + 1) + ") " + c );
  			display( cpds );
 			Thread.sleep(1000);
- 		    }
 
+// 			if (i == 9)
+// 			    {
+//  				//System.err.println("hardReset()ing");
+//  				//cpds.hardReset();
+// 				System.err.println("softReset()ing");
+// 				cpds.softReset();
+// 			    }
+ 		    }
+		
+		int count = 0;
 		for (Iterator ii = hs.iterator(); ii.hasNext(); )
 		    {
-			((Connection) ii.next()).close();
+			Connection c = ((Connection) ii.next());
+			System.err.println("Removing " + ++count);
+			ii.remove();
+			try { c.getMetaData().getTables( null, null, "PROBABLYNOT", new String[] {"TABLE"} ); }
+			catch (Exception e)
+			    { 
+				System.err.println( e ); 
+				System.err.println();
+				continue;
+			    }
+			finally
+			    { c.close(); }
 			display( cpds );
 		    }
 

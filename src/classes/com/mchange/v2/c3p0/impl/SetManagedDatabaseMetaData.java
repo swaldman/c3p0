@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -29,24 +29,12 @@ import com.mchange.v2.sql.filter.FilterDatabaseMetaData;
 
 final class SetManagedDatabaseMetaData extends FilterDatabaseMetaData
 {
-    final static class NullStatementSetManagedResultSet extends SetManagedResultSet
-    {
-	NullStatementSetManagedResultSet(Set activeResultSets)
-	{ super( activeResultSets ); }
-	
-	NullStatementSetManagedResultSet(ResultSet inner, Set activeResultSets)
-	{ super( inner, activeResultSets); }
-	
-	public Statement getStatement()
-	{ return null; }
-    }
-
     Set activeResultSets;
 
     SetManagedDatabaseMetaData( DatabaseMetaData inner, Set activeResultSets )
     {
-	super( inner );
-	this.activeResultSets = activeResultSets;
+		super( inner );
+		this.activeResultSets = activeResultSets;
     }
 
     public ResultSet getProcedures(String a, String b, String c) throws SQLException

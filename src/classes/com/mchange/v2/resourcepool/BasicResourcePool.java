@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -20,10 +20,6 @@
  * Boston, MA 02111-1307, USA.
  */
 
-
-// TODO: refurbishment on checkout and refurbishment on checkin should happen asynchronously,
-//       with the checking out / checking in threads yielding the pool's lock by wait()ing.
-//       refurbishment of idle resources already happens this way.
 
 package com.mchange.v2.resourcepool;
 
@@ -53,13 +49,16 @@ class BasicResourcePool implements ResourcePool
     Timer                    cullAndIdleRefurbishTimer;
     TimerTask                cullTask;
     TimerTask                idleRefurbishTask;
-    HashSet                  interruptableWaiters = new HashSet();
+    HashSet                  acquireWaiters = new HashSet();
+    HashSet                  otherWaiters = new HashSet();
 
     Set idleCheckResources = new HashSet();
 
     //CheckInProgressResourceHolder chipper = new CheckInProgressResourceHolder();
 
     ResourcePoolEventSupport rpes = new ResourcePoolEventSupport(this);
+
+    boolean force_kill_acquires = false;
 
     boolean broken = false;
 
@@ -81,6 +80,8 @@ class BasicResourcePool implements ResourcePool
     long check_idle_resources_delay; //milliseconds
     long max_resource_age;           //milliseconds
     boolean age_is_absolute;
+
+    boolean break_on_acquisition_failure;
 
     //
     // end unchanging members
@@ -113,6 +114,7 @@ class BasicResourcePool implements ResourcePool
 			     long                     check_idle_resources_delay,
 			     long                     max_resource_age,
 			     boolean                  age_is_absolute,
+			     boolean                  break_on_acquisition_failure,
 			     AsynchronousRunner       taskRunner,
 			     RunnableQueue            asyncEventQueue,
 			     Timer                    cullAndIdleRefurbishTimer,
@@ -211,10 +213,14 @@ class BasicResourcePool implements ResourcePool
 			// we'll wait for "something to happen" -- probably an idle check to
 			// complete -- then we'll try again and hope for the best.
 			Thread t = Thread.currentThread();
-			interruptableWaiters.add ( t );
-			this.wait( timeout );
-			ensureNotBroken();
-			interruptableWaiters.remove( t );
+			try
+			    {
+				otherWaiters.add ( t );
+				this.wait( timeout );
+				ensureNotBroken();
+			    }
+			finally
+			    { otherWaiters.remove( t ); }
 			return checkoutResource( timeout );
 		    }
 
@@ -388,7 +394,7 @@ class BasicResourcePool implements ResourcePool
 	try
 	    {
 		for (Iterator ii = cloneOfManaged().keySet().iterator(); ii.hasNext();)
-		    markBroken(ii.next());
+		    markBrokenNoEnsureMinResources(ii.next());
 		ensureMinResources();
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
@@ -423,6 +429,31 @@ class BasicResourcePool implements ResourcePool
     public void removeResourcePoolListener(ResourcePoolListener rpl)
     { rpes.removeResourcePoolListener(rpl); }
 
+    private synchronized boolean isForceKillAcquiresPending()
+    { return force_kill_acquires; }
+
+    // this is designed as a response to a determination that our resource source is down.
+    // rather than declaring ourselves broken in this case (as we did previously), we
+    // kill all pending acquisition attempts, but retry on new acqusition requests.
+    private synchronized void forceKillAcquires() throws InterruptedException
+    {
+	Thread t = Thread.currentThread();
+
+	try
+	    {
+		force_kill_acquires = true;
+		this.notifyAll(); //wake up any threads waiting on an acquire, and force them all to die.
+		while (acquireWaiters.size() > 0) //we want to let all the waiting acquires die before we unset force_kill_acquires
+		    {
+			otherWaiters.add( t ); 
+			this.wait();
+		    }
+		force_kill_acquires = false;
+	    }
+	finally
+	    { otherWaiters.remove( t ); }
+    }
+
     //same as close(), but we do not destroy checked out
     //resources
     private synchronized void unexpectedBreak()
@@ -433,11 +464,15 @@ class BasicResourcePool implements ResourcePool
     }
 
     private void postAcquireUntil(int num) 
-    { taskRunner.postRunnable(new AcquireTask(num)); }
+    {
+// 	System.err.println("...postAcquireUntil( " +  num + " )"); 
+// 	new Exception("...dumping stack trace").printStackTrace();
+	taskRunner.postRunnable(new AcquireTask(num)); 
+    }
 
     private void postRemoveTowards(int num) 
     {
-	System.err.println("postRemoveTowards(" + num + ")");
+	System.err.println("...postRemoveTowards(" + num + ")");
 	taskRunner.postRunnable(new RemoveTask(num)); 
     }
 
@@ -583,6 +618,19 @@ class BasicResourcePool implements ResourcePool
 //     private int actuallyAvailable()
 //     { return unused.size() - idleCheckResources.size(); }
 
+    private void markBrokenNoEnsureMinResources(Object resc) 
+    {
+	try
+	    { 
+		_markBroken( resc ); 
+	    }
+	catch ( ResourceClosedException e ) // one of our async threads died
+	    {
+		e.printStackTrace();
+		this.unexpectedBreak();
+	    }
+    }
+
     private void _markBroken( Object resc )
     {
 	if ( unused.contains( resc ) )
@@ -615,7 +663,9 @@ class BasicResourcePool implements ResourcePool
 			catch (Exception e)
 			    {if (Debug.DEBUG) e.printStackTrace();}
 		    }
-		for (Iterator ii = interruptableWaiters.iterator(); ii.hasNext(); )
+		for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
+		    ((Thread) ii.next()).interrupt();
+		for (Iterator ii = otherWaiters.iterator(); ii.hasNext(); )
 		    ((Thread) ii.next()).interrupt();
 		if (factory != null)
 		    factory.markBroken( this );
@@ -631,7 +681,7 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
-    private void doCheckinManaged( Object resc ) throws ResourcePoolException
+    private void doCheckinManaged( final Object resc ) throws ResourcePoolException
     {
 	if (unused.contains(resc))
 	    {
@@ -640,21 +690,31 @@ class BasicResourcePool implements ResourcePool
 	    }
 	else
 	    {
-		boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
-		if ( resc_okay )
+		Runnable doMe = new Runnable()
 		    {
-			unused.add( resc );
-			if (! age_is_absolute ) //we need to reset the clock, 'cuz we are counting idle time
-			    managed.put( resc, new Date() );
-		    }
-		else
-		    {
-			removeResource( resc );
-			ensureMinResources();
-		    }
-
-		asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
-		this.notifyAll();
+			public void run()
+			{
+			    synchronized( BasicResourcePool.this )
+				{
+				    boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
+				    if ( resc_okay )
+					{
+					    unused.add( resc );
+					    if (! age_is_absolute ) //we need to reset the clock, 'cuz we are counting idle time
+						managed.put( resc, new Date() );
+					}
+				    else
+					{
+					    removeResource( resc );
+					    ensureMinResources();
+					}
+				    
+				    asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
+				    BasicResourcePool.this.notifyAll();
+				}
+			}
+		    };
+		taskRunner.postRunnable( doMe );
 	    }
     }
 
@@ -742,44 +802,56 @@ class BasicResourcePool implements ResourcePool
      */
     private void awaitAcquire(long timeout) throws InterruptedException, TimeoutException, ResourcePoolException
     {
-	Thread t = Thread.currentThread();
-	interruptableWaiters.add( t );
+	if (force_kill_acquires)
+	    throw new ResourcePoolException("A ResourcePool cannot acquire a new resource -- the factory or source appears to be down.");
 
-	int avail;
-	long start = ( timeout > 0 ? System.currentTimeMillis() : -1);
-	if (Debug.TRACE == Debug.TRACE_MAX)
+	Thread t = Thread.currentThread();
+	try
 	    {
-		System.err.println("awaitAvailable(): " + 
-				   (exampleResource != null ? 
-				    exampleResource : 
-				    "[unknown]") );
-		trace();
-	    }
-	while ((avail = unused.size()) == 0) 
-	    {
-		// the if case below can only occur when 1) a user attempts a
-		// checkout which would provoke an acquire; 2) this
-		// increments the pending acquires, so we go to the
-		// wait below without provoking postAcquireMore(); 3)
-		// the resources are acquired; 4) external management
-		// of the pool (via for instance unpoolResource() 
-		// depletes the newly acquired resources before we
-		// regain this' monitor; 5) we fall into wait() with
-		// no acquires being scheduled, and perhaps a managed.size()
-		// of zero, leading to deadlock. This could only occur in
-		// fairly pathological situations where the pool is being
-		// externally forced to a very low (even zero) size, but 
-		// since I've seen it, I've fixed it.
-		if (pendingAcquiresCounter.getValue() == 0)
-		    postAcquireMore();
+		acquireWaiters.add( t );
 		
-		this.wait(timeout);
-		if (timeout > 0 && System.currentTimeMillis() - start > timeout)
-		    throw new TimeoutException("internal -- timeot at awaitAcquire()");
-		ensureNotBroken();
+		int avail;
+		long start = ( timeout > 0 ? System.currentTimeMillis() : -1);
+		if (Debug.TRACE == Debug.TRACE_MAX)
+		    {
+			System.err.println("awaitAvailable(): " + 
+					   (exampleResource != null ? 
+					    exampleResource : 
+					    "[unknown]") );
+			trace();
+		    }
+		while ((avail = unused.size()) == 0) 
+		    {
+			// the if case below can only occur when 1) a user attempts a
+			// checkout which would provoke an acquire; 2) this
+			// increments the pending acquires, so we go to the
+			// wait below without provoking postAcquireMore(); 3)
+			// the resources are acquired; 4) external management
+			// of the pool (via for instance unpoolResource() 
+			// depletes the newly acquired resources before we
+			// regain this' monitor; 5) we fall into wait() with
+			// no acquires being scheduled, and perhaps a managed.size()
+			// of zero, leading to deadlock. This could only occur in
+			// fairly pathological situations where the pool is being
+			// externally forced to a very low (even zero) size, but 
+			// since I've seen it, I've fixed it.
+			if (pendingAcquiresCounter.getValue() == 0)
+			    postAcquireMore();
+			
+			this.wait(timeout);
+			if (timeout > 0 && System.currentTimeMillis() - start > timeout)
+			    throw new TimeoutException("internal -- timeout at awaitAcquire()");
+			if (force_kill_acquires)
+			    throw new ResourcePoolException("A ResourcePool could not acquire a resource from its primary factory or source.");
+			ensureNotBroken();
+		    }
 	    }
-	
-	interruptableWaiters.remove( t );
+	finally
+	    {
+		acquireWaiters.remove( t );
+		if (acquireWaiters.size() == 0)
+		    this.notifyAll();
+	    }
     }
 
     private void assimilateResource() throws Exception
@@ -974,21 +1046,34 @@ class BasicResourcePool implements ResourcePool
 				    success = true;
 				}
 			    catch (Exception e)
-				{if (Debug.DEBUG) e.printStackTrace();}
+				{
+				    if (Debug.DEBUG) e.printStackTrace();
+				}
 			}
 		    if (!success) 
 			{
-			    System.err.println(this + " -- Unexpectedly Broken!!!");
+			    System.err.println(this + " -- Acquisition Attempt Failed!!! Clearing pending acquires.");
 			    System.err.println("\tWhile trying to acquire a needed new resource, we failed");
 			    System.err.println("\tto succeed more than the maximum number of allowed");
 			    System.err.println("\tacquisition attempts (" + num_acq_attempts + ").");
-			    unexpectedBreak();
+			    if (break_on_acquisition_failure)
+				{
+				    System.err.println("\tTHE RESOURCE POOL IS PERMANENTLY BROKEN!");
+				    unexpectedBreak();
+				}
+			    else
+				forceKillAcquires();
 			}
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
 		    e.printStackTrace();
 		    unexpectedBreak();
+		}
+	    catch (InterruptedException e) //from force kill acquires
+		{
+		    System.err.println(BasicResourcePool.this + " -- Thread unexpectedly interrupted while waiting for stale acquisition attempts to die.");
+		    e.printStackTrace();
 		}
 	    finally
 		{ pendingAcquiresCounter.decrement(); }
@@ -997,10 +1082,12 @@ class BasicResourcePool implements ResourcePool
 	private boolean shouldTry(int attempt_num)
 	{
 	    //try if we haven't already succeeded
+	    //and someone hasn't signalled that our resource source is down
 	    //and not max attempts is set,
 	    //or we are less than the set limit
 	    return 
 		!success && 
+		!isForceKillAcquiresPending() &&
 		(num_acq_attempts <= 0 || attempt_num < num_acq_attempts);
 	}
     }
@@ -1110,8 +1197,8 @@ class BasicResourcePool implements ResourcePool
 			}
 		    catch ( Exception e )
 			{
-			    System.err.println("c3p0-TRAVIS: An idle resource is broken and must be purged.");
-			    System.err.print("c3p0-TRAVIS: ");
+			    System.err.println("c3p0: An idle resource is broken and must be purged.");
+			    System.err.print("c3p0 [broken resource]: ");
 			    e.printStackTrace();
 			    failed = true;
 			}

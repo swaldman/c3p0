@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.5
+ * Distributed as part of c3p0 v.0.8.5-pre2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -23,14 +23,20 @@
 
 package com.mchange.v2.c3p0;
 
+import java.sql.*;
+import javax.sql.*;
+import com.mchange.v2.c3p0.impl.*;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
 import java.beans.VetoableChangeListener;
 import java.beans.PropertyChangeListener;
 import java.io.PrintWriter;
-import java.sql.*;
-import javax.sql.*;
-import com.mchange.v2.c3p0.impl.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Set;
 
 public final class PoolBackedDataSource extends PoolBackedDataSourceBase implements PooledDataSource
 {
@@ -87,6 +93,12 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
     public int getNumBusyConnections() throws SQLException
     { return getPoolManager().getPool().getNumBusyConnections(); }
 
+    public int getNumUnclosedOrphanedConnections() throws SQLException
+    { return getPoolManager().getPool().getNumUnclosedOrphanedConnections(); }
+
+    public void softReset() throws SQLException
+    { getPoolManager().getPool().reset(); }
+
     public int getNumConnections(String username, String password) throws SQLException
     { return getPoolManager().getPool(username, password).getNumConnections(); }
 
@@ -96,21 +108,68 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
     public int getNumBusyConnections(String username, String password) throws SQLException
     { return getPoolManager().getPool(username, password).getNumBusyConnections(); }
 
+    public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getNumUnclosedOrphanedConnections(); }
+
+    public void softReset(String username, String password) throws SQLException
+    { getPoolManager().getPool(username, password).reset(); }
+
+    public int getNumBusyConnectionsAllAuths() throws SQLException
+    { return getPoolManager().getNumBusyConnectionsAllAuths(); }
+
+    public int getNumIdleConnectionsAllAuths() throws SQLException
+    { return getPoolManager().getNumIdleConnectionsAllAuths(); }
+
     public int getNumConnectionsAllAuths() throws SQLException
     { return getPoolManager().getNumConnectionsAllAuths(); }
+
+    public int getNumUnclosedOrphanedConnectionsAllAuths() throws SQLException
+    { return getPoolManager().getNumUnclosedOrphanedConnectionsAllAuths(); }
+
+    public void softResetAllAuths() throws SQLException
+    { getPoolManager().softResetAllAuths(); }
+
+    public int getNumManagedAuths() throws SQLException
+    { return getPoolManager().getNumManagedAuths(); }
+
+//
+// leaving getAllUsers() unimplemented for the moment out of security considerations
+//
+
+//     public Collection getAllUsers() throws SQLException
+//     {
+// 	LinkedList out = new LinkedList();
+// 	Set auths = getPoolManager().getManagedAuths();
+// 	for ( Iterator ii = auths.iterator(); ii.hasNext(); )
+// 	    out.add( ((DbAuth) ii.next()).getUser() );
+// 	return Collections.unmodifiableList( out );
+//     }
+
+    public synchronized void hardReset()
+    {
+	C3P0PooledConnectionPoolManager forceDestroyMe = poolManager;
+	resetPoolManager(); 
+	forceDestroyMe.forceDestroy();
+    }
 
     public void close()
     { close( false ); }
 
-    public void close(boolean force_destroy)
+    public synchronized void close(boolean force_destroy)
     { 
 	C3P0PooledConnectionPoolManager forceDestroyMe = (force_destroy ? poolManager : null );
-
 	resetPoolManager(); 
-	is_closed = true;
-
 	if ( force_destroy )
 	    forceDestroyMe.forceDestroy();
+
+	is_closed = true;
+
+	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+	    {
+		System.err.println( this.getClass().getName() + '@' + Integer.toHexString( System.identityHashCode( this ) ) +
+				    " has been closed. force_destroy == " + force_destroy );
+		new Exception("Debug -- PoolBackedDataSource.close() stack trace:").printStackTrace();
+	    }
     }
 
     //other code
@@ -138,12 +197,13 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
      {
 	if (poolManager == null)
 	    {
-		poolManager = C3P0PooledConnectionPoolManager.find(assertCpds(), this.getNumHelperThreads());
+		poolManager = C3P0PooledConnectionPoolManager.find(this.getPoolOwnerIdentityToken(), assertCpds(), this.getNumHelperThreads());
 		poolManager.registerActiveClient( this );
 		if (Debug.DEBUG && Debug.TRACE > Debug.TRACE_NONE)
 		    System.err.println("Initializing c3p0 pool... " + this.toString());
 	    }
         return poolManager;	    
      }
+
 }
 
