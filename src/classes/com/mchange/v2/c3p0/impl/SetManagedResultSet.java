@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.1
+ * Distributed as part of c3p0 v.0.8.4.2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -27,7 +27,7 @@ import java.sql.*;
 import java.util.Set;
 import com.mchange.v2.sql.filter.FilterResultSet;
 
-final class SetManagedResultSet extends FilterResultSet
+abstract class SetManagedResultSet extends FilterResultSet
 {
     Set activeResultSets;
 

@@ -1,3 +1,17 @@
+c3p0-0.8.4.2
+	-- Fixed bug in which proxy Statements and ResultSets returned their 
+	   naked, unproxied parents from their getConnection() / getStatement()
+	   methods. Thanks to Christian Josefsson for noticing this!
+	-- Added check to ensure that ResourcePools are not broken prior to
+	   posting asynchronous events. It'd be better to factor the (as yet
+	   unutilized async event stuff into a subclass to simplify 
+	   BasicResourcePool).
+	-- Fixed documentation typo that said default numHelperThreads was "false"... not it's correctly set to "3".
+	-- Added extra System.err information to instrument the causes of broken
+	   resource pools.
+	-- finalize() method of BasicResourcePool checks to be sure user has not
+	   already closed the pool before closing, to avoid spurious multiple
+	   close warnings. Thanks to Gavin King.
 c3p0-0.8.4.1
 	-- Added (hopefully not too annoying) dump of DataSource configuration
 	   on pool initialization to assist user debugging.

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.1
+ * Distributed as part of c3p0 v.0.8.4.2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -61,7 +61,7 @@ class BasicResourcePool implements ResourcePool
 
     ResourcePoolEventSupport rpes = new ResourcePoolEventSupport(this);
 
-    boolean broken  = false;
+    boolean broken = false;
 
     //DEBUG only!
     Object exampleResource;
@@ -234,8 +234,16 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
+		System.err.println(this + " -- the pool was found to be closed or broken during an attempt to check out a resource.");
 		e.printStackTrace();
 		this.unexpectedBreak();
+		throw e;
+	    }
+	catch ( InterruptedException e )
+	    {
+		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread must " +
+				   "must have either interrupted the Thread attempting checkout or called close() on the pool.");
+		e.printStackTrace();
 		throw e;
 	    }
     }
@@ -257,6 +265,8 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
+		System.err.println(this + 
+				   " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.");
 		e.printStackTrace();
 		this.unexpectedBreak();
 	    }
@@ -276,6 +286,8 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
+		System.err.println(this + 
+				   " - checkinAll() -- even broken pools should allow checkins without exception. probable resource pool bug.");
 		e.printStackTrace();
 		this.unexpectedBreak();
 	    }
@@ -400,7 +412,9 @@ class BasicResourcePool implements ResourcePool
 	//obviously, clients mustn't rely on finalize,
 	//but must close pools ASAP after use.
 	//System.err.println("finalizing..." + this);
-	this.close();
+
+	if (! broken )
+	    this.close();
     }
 
     public void addResourcePoolListener(ResourcePoolListener rpl)
@@ -432,12 +446,15 @@ class BasicResourcePool implements ResourcePool
 					    final int          available_size,
 					    final int          removed_but_unreturned_size )
     {
-	Runnable r = new Runnable()
+	if (! broken)
 	    {
-		public void run()
-		{rpes.fireResourceAcquired(resc, pool_size, available_size, removed_but_unreturned_size);}
-	    };
-	asyncEventQueue.postRunnable(r);
+		Runnable r = new Runnable()
+		    {
+			public void run()
+			{rpes.fireResourceAcquired(resc, pool_size, available_size, removed_but_unreturned_size);}
+		    };
+		asyncEventQueue.postRunnable(r);
+	    }
     }
 
     private void asyncFireResourceCheckedIn( final Object       resc,
@@ -445,12 +462,15 @@ class BasicResourcePool implements ResourcePool
 					     final int          available_size,
 					     final int          removed_but_unreturned_size )
     {
-	Runnable r = new Runnable()
+	if (! broken)
 	    {
-		public void run()
-		{rpes.fireResourceCheckedIn(resc, pool_size, available_size, removed_but_unreturned_size);}
-	    };
-	asyncEventQueue.postRunnable(r);
+		Runnable r = new Runnable()
+		    {
+			public void run()
+			{rpes.fireResourceCheckedIn(resc, pool_size, available_size, removed_but_unreturned_size);}
+		    };
+		asyncEventQueue.postRunnable(r);
+	    }
     }
 
     private void asyncFireResourceCheckedOut( final Object       resc,
@@ -458,12 +478,15 @@ class BasicResourcePool implements ResourcePool
 					      final int          available_size,
 					      final int          removed_but_unreturned_size )
     {
-	Runnable r = new Runnable()
+	if (! broken)
 	    {
-		public void run()
-		{rpes.fireResourceCheckedOut(resc,pool_size,available_size,removed_but_unreturned_size);}
-	    };
-	asyncEventQueue.postRunnable(r);
+		Runnable r = new Runnable()
+		    {
+			public void run()
+			{rpes.fireResourceCheckedOut(resc,pool_size,available_size,removed_but_unreturned_size);}
+		    };
+		asyncEventQueue.postRunnable(r);
+	    }
     }
 
     private void asyncFireResourceRemoved( final Object       resc,
@@ -472,22 +495,25 @@ class BasicResourcePool implements ResourcePool
 					   final int          available_size,
 					   final int          removed_but_unreturned_size )
     {
-	//System.err.println("ASYNC RSRC REMOVED");
-	//new Exception().printStackTrace();
-	Runnable r = new Runnable()
+	if (! broken)
 	    {
-		public void run()
-		{
-		    rpes.fireResourceRemoved(resc, checked_out_resource,
-					     pool_size,available_size,removed_but_unreturned_size);
-		}
-	    };
-	asyncEventQueue.postRunnable(r);
+		//System.err.println("ASYNC RSRC REMOVED");
+		//new Exception().printStackTrace();
+		Runnable r = new Runnable()
+		    {
+			public void run()
+			{
+			    rpes.fireResourceRemoved(resc, checked_out_resource,
+						     pool_size,available_size,removed_but_unreturned_size);
+			}
+		    };
+		asyncEventQueue.postRunnable(r);
+	    }
     }
-
+	
     private void destroyResource(final Object resc)
     { destroyResource( resc, false ); }
-
+    
     private void destroyResource(final Object resc, boolean synchronous)
     {
 	Runnable r = new Runnable()
@@ -565,12 +591,18 @@ class BasicResourcePool implements ResourcePool
 	    excludeResource( resc );
     }
 
+    //DEBUG
+    //Exception firstClose = null;
+
     private void close( boolean close_checked_out_resources )
     {
+
 	if (! broken ) //ignore repeated calls to close
 	    {
+		//DEBUG
+		//firstClose = new Exception("First Close");
+		
 		this.broken = true;
-		// new Exception("CRAIGRAW - BROKE HERE").printStackTrace();
 		Collection cleanupResources = ( close_checked_out_resources ? (Collection) cloneOfManaged().keySet() : (Collection) cloneOfUnused() );
 		if ( cullTask != null )
 		    cullTask.cancel();
@@ -590,7 +622,13 @@ class BasicResourcePool implements ResourcePool
 		// System.err.println(this + " closed.");
 	    }
 	else
-	    System.err.println(this + " -- close() called multiple times...");
+	    {
+		System.err.println(this + " -- close() called multiple times.");
+
+		//DEBUG
+		//firstClose.printStackTrace();
+		//new Exception("Repeat close()").printStackTrace();
+	    }
     }
 
     private void doCheckinManaged( Object resc ) throws ResourcePoolException

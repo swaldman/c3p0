@@ -29,21 +29,15 @@ import javax.sql.*;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v1.db.sql.*;
 
-public final class StatsTest
+public final class ProxyWrappersTest
 {
-    static void display( ComboPooledDataSource cpds ) throws Exception
-    {
-	System.err.println("num_connections: " + cpds.getNumConnections());
-	System.err.println("num_busy_connections: " + cpds.getNumBusyConnections());
-	System.err.println("num_idle_connections: " + cpds.getNumIdleConnections());
-	System.err.println();
-    }
-
     public static void main(String[] argv)
     {
+	ComboPooledDataSource cpds = null;
+	Connection c               = null;
 	try
 	    {
-		ComboPooledDataSource cpds = new ComboPooledDataSource();
+		cpds = new ComboPooledDataSource();
 		cpds.setDriverClass( "org.postgresql.Driver" );
 		cpds.setJdbcUrl( "jdbc:postgresql://localhost/c3p0-test" );
 		cpds.setUser("swaldman");
@@ -52,37 +46,24 @@ public final class StatsTest
 		cpds.setAcquireIncrement(5);
 		cpds.setMaxPoolSize(20);
 
-		System.err.println("Initial...");
-		display( cpds );
-		Thread.sleep(2000);
-
- 		HashSet hs = new HashSet();
- 		for (int i = 0; i < 20; ++i)
- 		    {
-			Connection c = cpds.getConnection();
- 			hs.add( c );
-			System.err.println( c );
- 			display( cpds );
-			Thread.sleep(1000);
- 		    }
-
-		for (Iterator ii = hs.iterator(); ii.hasNext(); )
-		    {
-			((Connection) ii.next()).close();
-			display( cpds );
-		    }
-
-		System.err.println("Closing data source, \"forcing\" garbage collection, and sleeping for 5 seconds...");
-		cpds.close();
-		System.gc();
-		System.err.println("Main Thread: Sleeping for five seconds!");
-		Thread.sleep(5000);
-// 		System.gc();
-// 		Thread.sleep(5000);
-		System.err.println("Bye!");
+		c = cpds.getConnection();
+		c.setAutoCommit( false );
+		Statement stmt = c.createStatement();
+		stmt.executeUpdate("CREATE TABLE pwtest_table (col1 char(5), col2 char(5))");
+		ResultSet rs = stmt.executeQuery("SELECT * FROM pwtest_table");
+		System.err.println("rs: " + rs);
+		System.err.println("rs.getStatement(): " + rs.getStatement());
+		System.err.println("rs.getStatement().getConnection(): " + rs.getStatement().getConnection());
 	    }
 	catch( Exception e )
 	    { e.printStackTrace(); }
+	finally
+	    {
+		try { if (c!= null) c.rollback(); }
+		catch (Exception e) { e.printStackTrace(); }
+		try { if (cpds!= null) cpds.close(); }
+		catch (Exception e) { e.printStackTrace(); }
+	    }
     }
 }
 

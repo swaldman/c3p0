@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.1
+ * Distributed as part of c3p0 v.0.8.4.2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -432,6 +432,20 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     { return this.createProxyStatement( false, innerStmt ); }
 
 
+    private static class StatementProxyingSetManagedResultSet extends SetManagedResultSet
+    {
+	private Statement proxyStatement;
+
+	StatementProxyingSetManagedResultSet(Set activeResultSets)
+	{ super( activeResultSets ); }
+
+	public void setProxyStatement( Statement proxyStatement )
+	{ this.proxyStatement = proxyStatement; }
+
+	public Statement getStatement() throws SQLException
+	{ return (proxyStatement == null ? super.getStatement() : proxyStatement); }
+    }
+
     /*
      * TODO: factor all this convolution out into
      *       C3P0Statement
@@ -442,12 +456,19 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				    final Statement innerStmt) throws Exception
     {
 	final Set activeResultSets = Collections.synchronizedSet( new HashSet() );
+	final Connection parentConnection = exposedProxy;
+
+	if (Debug.DEBUG && parentConnection == null)
+	    {
+		System.err.print("PROBABLE C3P0 BUG -- ");
+		System.err.println(this + ": created a proxy Statement when there is no active, exposed proxy Connection???");
+	    }
+
 
 	//we can use this one wrapper under all circumstances
 	//except jdbc3 CallableStatement multiple open ResultSets...
 	//avoid object allocation in statement methods where possible.
-
-	final SetManagedResultSet mainResultSet = new SetManagedResultSet( activeResultSets );
+	final StatementProxyingSetManagedResultSet mainResultSet = new StatementProxyingSetManagedResultSet( activeResultSets );
 
 	class WrapperStatementHelper
 	{
@@ -468,13 +489,15 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		if (mainResultSet.getInner() == null)
 		    {
 			mainResultSet.setInner(rs);
+			mainResultSet.setProxyStatement( wrappedStmt );
 			return mainResultSet;
 		    }
 		else
 		    {
-			SetManagedResultSet out 
-			    = new SetManagedResultSet( activeResultSets );
+			StatementProxyingSetManagedResultSet out 
+			    = new StatementProxyingSetManagedResultSet( activeResultSets );
 			out.setInner( rs );
+			out.setProxyStatement( wrappedStmt );
 			return out;
 		    }
 	    }
@@ -503,6 +526,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		    {
 			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
 
+			public Connection getConnection()
+			{ return parentConnection; }
+
 			public ResultSet getResultSet() throws SQLException
 			{ return wsh.wrap( super.getResultSet() ); }
 			
@@ -522,6 +548,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		    {
 			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
 
+			public Connection getConnection()
+			{ return parentConnection; }
+
 			public ResultSet getResultSet() throws SQLException
 			{ return wsh.wrap( super.getResultSet() ); }
 			
@@ -540,6 +569,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		return new FilterStatement( innerStmt )
 		    {
 			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
+
+			public Connection getConnection()
+			{ return parentConnection; }
 
 			public ResultSet getResultSet() throws SQLException
 			{ return wsh.wrap( super.getResultSet() ); }
@@ -567,6 +599,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	 * MT: protected by this' lock
 	 */
 	final Set activeMetaDataResultSets = new HashSet();
+
+	public String toString()
+	{ return "C3P0ProxyConnection [Invocation Handler: " + super.toString() + ']'; }
 	
 	public synchronized Object invoke(Object proxy, Method m, Object[] args)
 	    throws Throwable
