@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.8.5.2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -827,7 +827,16 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				{
 				    ensureOkay();
 					    
-				    txn_known_resolved = ( mname.equals("commit") || mname.equals( "rollback" ) || mname.equals( "setAutoCommit" ) );
+				    // we've disabled setting txn_known_resolved to true, ever, because
+				    // we failed to deal with the case that clients would work with previously
+				    // acquired Statements and ResultSets after a commit(), rollback(), or setAutoCommit().
+				    // the new non-reflective proxies have been modified to deal with this case.
+				    // here, with soon-to-be-deprecated in "traditional reflective proxies mode"
+				    // we are reverting to the conservative, always-presume-you-have-to-rollback
+				    // policy.
+
+				    //txn_known_resolved = ( mname.equals("commit") || mname.equals( "rollback" ) || mname.equals( "setAutoCommit" ) );
+				    txn_known_resolved = false; 
 
 				    return m.invoke( activeConnection, args );
 				}

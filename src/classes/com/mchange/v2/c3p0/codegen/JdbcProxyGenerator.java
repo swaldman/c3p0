@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.8.5.2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -153,6 +153,7 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println();
 	    iw.println("Object creator;");
 	    iw.println("Object creatorProxy;");
+	    iw.println("NewProxyConnection proxyConn;");
 	    iw.println();
 	    iw.print( CodegenUtils.fqcnLastElement( genclass ) );
 	    iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + " inner, NewPooledConnection parentPooledConnection, Object c, Object cProxy )");
@@ -161,8 +162,16 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println("this( inner, parentPooledConnection );");
 	    iw.println("this.creator      = c;");
 	    iw.println("this.creatorProxy = cProxy;");
+	    iw.println("if (creatorProxy instanceof NewProxyConnection) this.proxyConn = (NewProxyConnection) cProxy;");
 	    iw.downIndent();
 	    iw.println("}");
+	}
+
+	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	{
+	    iw.println("if (proxyConn != null) proxyConn.maybeDirtyTransaction();");
+	    iw.println();
+	    super.generatePreDelegateCode( intfcl, genclass, method, iw );
 	}
     }
 
@@ -186,7 +195,14 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else if ( mname.equals("getConnection") )
 		{
+ 		    iw.println("if (! this.isDetached())");
+ 		    iw.upIndent();
 		    iw.println("return creatorProxy;");
+ 		    iw.downIndent();
+ 		    iw.println("else");
+ 		    iw.upIndent();
+ 		    iw.println("throw new SQLException(\"You cannot operate on a closed Statement!\");");
+ 		    iw.downIndent();
 		}
 	    else if ( mname.equals("close") )
 		{
@@ -199,13 +215,29 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.println("parentPooledConnection.checkinStatement( inner );");
 		    iw.downIndent();
 		    iw.println("else");
+		    iw.println("{");
 		    iw.upIndent();
 		    iw.println("parentPooledConnection.markInactiveUncachedStatement( inner );");
-		    iw.downIndent();
 
+		    iw.println("try{ inner.close(); }");
+		    iw.println("catch (Exception e )");
+		    iw.println("{");
+		    iw.upIndent();
+
+		    iw.println("System.err.println(this + \" -- Exception on close of inner statement!\");");
+		    iw.println("e.printStackTrace();");
+		    iw.println();
+		    iw.println( "SQLException sqle = SqlUtils.toSQLException( e );" );
+		    iw.println( "throw sqle;" );
+		    iw.downIndent();
+		    iw.println("}");
+		    iw.downIndent();
+		    iw.println("}");
+
+		    iw.println();
 		    iw.println("this.detach();");
-		    iw.println("inner.close();");
 		    iw.println("this.inner = null;");
+		    iw.println("this.creatorProxy = null;");
 
 		    iw.downIndent();
 		    iw.println("}");
@@ -216,6 +248,13 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else
 		super.generateDelegateCode( intfcl, genclass, method, iw );
+	}
+
+	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	{
+	    iw.println("maybeDirtyTransaction();");
+	    iw.println();
+	    super.generatePreDelegateCode( intfcl, genclass, method, iw );
 	}
 
 	protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
@@ -240,6 +279,8 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		       "throws IllegalAccessException, InvocationTargetException, SQLException");
 	    iw.println("{");
 	    iw.upIndent();
+	    iw.println("maybeDirtyTransaction();");
+	    iw.println();
 	    iw.println("if (target == C3P0ProxyStatement.RAW_STATEMENT) target = inner;");
 	    iw.println("for (int i = 0, len = args.length; i < len; ++i)");
 	    iw.upIndent();
@@ -258,6 +299,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println("return out;");
 	    iw.downIndent();
 	    iw.println("}");
+	    iw.println();
+	    iw.println("void maybeDirtyTransaction()");
+	    iw.println("{ creatorProxy.maybeDirtyTransaction(); }");
 	}
 
 	protected void generateExtraImports( IndentedWriter iw ) throws IOException
@@ -418,6 +462,8 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.downIndent();
 	    iw.println("{");
 	    iw.upIndent();
+	    iw.println("maybeDirtyTransaction();");
+	    iw.println();
 	    iw.println("if (inner == null)");
 	    iw.upIndent();
 	    iw.println("throw new SQLException(\"You cannot operate on a closed Connection!\");");
@@ -478,6 +524,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println("return out;");
 	    iw.downIndent();
 	    iw.println("}");
+	    iw.println();
+	    iw.println("synchronized void maybeDirtyTransaction()");
+	    iw.println("{ txn_known_resolved = false; }");
 
 	    super.generateExtraDeclarations( intfcl, genclass, iw );
 	}

@@ -1,3 +1,17 @@
+c3p0-0.8.5.2
+	-- Fixed a really embarrassing oversight, wherein cached PreparedStatements
+	   were being physically close()ed prior to their return to the cache! Tests
+	   on psql failed to reveal this, because psql-7.4 Statement.close() does nothing
+	   to invalidate the Statement! [Many thanks to tbayboy on hibernate's forum for
+	   discovering this issue, and to fassev, also on hibernate's forum, for correctly
+	   deducing the cause!]
+	-- Fixed an embarrassing oversight where operations of proxy Statements
+	   and ResultSets failed to mark transactions as potentially dirty, leading
+	   to the possibility that Connections with unresolved transactional work could
+	   be checked into the pool.
+	-- Modified c3p0 Statements to no longer permit calls to getConnection()
+	   after Statement close, and to null out the backreference to the
+	   parent Connection. [Thanks to Edward Bridges for pointing out the issue.]
 c3p0-0.8.5.1
 	-- Fixed a really embarrassing bug that made Statement pooling worse than
 	   useless where users have set maxStatements but not maxStatementsPerConnection.
