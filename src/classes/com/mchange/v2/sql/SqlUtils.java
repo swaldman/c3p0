@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -36,6 +36,7 @@ public final class SqlUtils
 {
     final static MLogger logger = MLog.getLogger( SqlUtils.class );
 
+    // protected by SqlUtils.class' lock
     final static DateFormat tsdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSS");
 
     public final static String DRIVER_MANAGER_USER_PROPERTY     = "user";
@@ -54,13 +55,16 @@ public final class SqlUtils
 	return sb.toString();
     }
 
-    public static String escapeAsTimestamp( Date date )
+    public synchronized static String escapeAsTimestamp( Date date )
     { return "{ts '" + tsdf.format( date ) + "'}";  }
 
     public static SQLException toSQLException(Throwable t)
     { return toSQLException( "An SQLException was provoked by the following failure: " + t.toString(), t ); }
 
     public static SQLException toSQLException(String msg, Throwable t)
+    { return toSQLException(msg, null, t);}
+
+    public static SQLException toSQLException(String msg, String sqlState, Throwable t)
     {
         if (t instanceof SQLException)
             return (SQLException) t;
@@ -80,7 +84,7 @@ public final class SqlUtils
 		}
 	    else
 		return new SQLException( msg + System.getProperty( "line.separator" ) +
-					 "[Cause: " + ThrowableUtils.extractStackTrace(t) + ']'); 
+					 "[Cause: " + ThrowableUtils.extractStackTrace(t) + ']', sqlState); 
         }
     }
     

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -105,6 +105,8 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
 	protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
+	    iw.println("if (proxyConn != null) proxyConn.maybeDirtyTransaction();");
+	    iw.println();
 	    String mname   = method.getName();
 	    Class  retType = method.getReturnType();
 
@@ -177,8 +179,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
 	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
-	    iw.println("if (proxyConn != null) proxyConn.maybeDirtyTransaction();");
-	    iw.println();
 	    super.generatePreDelegateCode( intfcl, genclass, method, iw );
 	}
     }
@@ -188,7 +188,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	String getInnerTypeName()
 	{ return "Statement"; }
 
-	private final static boolean DOUBLE_DETACH_DEBUG = false;
+	private final static boolean DOUBLE_DETACH_DEBUG     = false;
 	private final static boolean CONCURRENT_ACCESS_DEBUG = false;
 
 	{
@@ -197,6 +197,9 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
 	protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
+	    iw.println("maybeDirtyTransaction();");
+	    iw.println();
+
 	    String mname   = method.getName();
 	    Class  retType = method.getReturnType();
 
@@ -296,9 +299,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
 	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
-	    iw.println("maybeDirtyTransaction();");
-	    iw.println();
-
 	    // concurrent-access-debug only
 	    if (CONCURRENT_ACCESS_DEBUG)
 		{
@@ -404,7 +404,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.downIndent();
 	    iw.println("}");
 	    iw.println();
-	    iw.println("void maybeDirtyTransaction()");
+ 	    iw.println("void maybeDirtyTransaction()");
 	    iw.println("{ creatorProxy.maybeDirtyTransaction(); }");
 	}
 
@@ -544,6 +544,10 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.println("this.inner = null;");
 		    iw.downIndent();
 		    iw.println("}");
+		    iw.println("else if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))");
+		    iw.upIndent();
+		    iw.println("logger.log( MLevel.FINE, this + \042: close() called more than once.\042 );");
+		    iw.downIndent();
 		}
 	    else if ( mname.equals("isClosed") )
 		{
@@ -707,7 +711,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
     
     protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
     {
-	generateTryCloserAndCatch( iw );
+	generateTryCloserAndCatch( intfcl, genclass, method, iw );
     }
 
     void generateTryOpener( IndentedWriter iw ) throws IOException
@@ -717,7 +721,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	iw.upIndent();
     }
 
-    void generateTryCloserAndCatch( IndentedWriter iw ) throws IOException
+    void generateTryCloserAndCatch( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
     {
 	iw.downIndent();
 	iw.println("}");
@@ -729,7 +733,15 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	iw.upIndent();
 	//iw.println( "System.err.print(\042probably 'cuz we're closed -- \042);" );
 	//iw.println( "exc.printStackTrace();" );
-	iw.println( "throw SqlUtils.toSQLException(\042You can't operate on a closed " + getInnerTypeName() + "!!!\042, exc);");
+	if ( "close".equals( method.getName() ) )
+	    {
+		iw.println("if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))");
+		iw.upIndent();
+		iw.println("logger.log( MLevel.FINE, this + \042: close() called more than once.\042 );");
+		iw.downIndent();
+	    }
+	else
+	    iw.println( "throw SqlUtils.toSQLException(\042You can't operate on a closed " + getInnerTypeName() + "!!!\042, exc);");
 	iw.downIndent();
 	iw.println("}");
 	iw.println( "else throw exc;" );

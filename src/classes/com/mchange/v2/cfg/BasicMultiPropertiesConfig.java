@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -116,7 +116,16 @@ public class BasicMultiPropertiesConfig extends MultiPropertiesConfig
 	//System.err.println("findProps( " + rp + ", ... )");
 	Properties p;
 	if ( "/".equals( rp ) )
-	    p = System.getProperties();
+	    {
+		try { p = System.getProperties(); }
+		catch ( SecurityException e )
+		    {
+			System.err.println(BasicMultiPropertiesConfig.class.getName() +
+					   " Read of system Properties blocked -- ignoring any configuration via System properties, and using Empty Properties! " +
+					   "(But any configuration via a resource properties files is still okay!)"); 
+			p = new Properties(); 
+		    }
+	    }
 	else
 	    p = (Properties) pbrp.get( rp );
 	//System.err.println( p );

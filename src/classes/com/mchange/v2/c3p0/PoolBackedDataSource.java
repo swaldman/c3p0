@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -253,7 +253,9 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 // 		if (Debug.DEBUG && Debug.TRACE > Debug.TRACE_NONE)
 // 		    System.err.println("Initializing c3p0 pool... " + this.toString() /* + "; using pool manager: " + poolManager */);
 		//new Exception("PRINT STACK TRACE").printStackTrace();
-		logger.info("Initializing c3p0 pool... " + (parent == null ? this.toString() : parent.toString()) /* + "; using pool manager: " + poolManager */);
+		if (logger.isLoggable(MLevel.INFO))
+		    logger.info("Initializing c3p0 pool... " + 
+				(parent == null ? this.toString() : parent.toString()) /* + "; using pool manager: " + poolManager */);
 	    }
         return poolManager;	    
      }

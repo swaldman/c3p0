@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -38,6 +38,7 @@ import com.mchange.v2.log.MLogger;
 import com.mchange.v2.c3p0.ConnectionTester;
 import com.mchange.v2.c3p0.QueryConnectionTester;
 import com.mchange.v2.c3p0.stmt.GooGooStatementCache;
+import com.mchange.v2.resourcepool.CannotAcquireResourceException;
 import com.mchange.v2.resourcepool.ResourcePool;
 import com.mchange.v2.resourcepool.ResourcePoolException;
 import com.mchange.v2.resourcepool.ResourcePoolFactory;
@@ -140,6 +141,7 @@ public final class C3P0PooledConnectionPool
 			    
 			    int status;
 			    Connection conn = null;
+			    Throwable rootCause = null;
 			    try	
 				{ 
 				    //we don't want any callbacks while we're testing the resource
@@ -173,6 +175,7 @@ public final class C3P0PooledConnectionPool
 					logger.log(MLevel.FINE, "A Connection test failed with an Exception.", e);
 					//e.printStackTrace();
 				    status = ConnectionTester.CONNECTION_IS_INVALID;
+				    rootCause = e;
 				}
 			    finally
 				{ 
@@ -188,7 +191,12 @@ public final class C3P0PooledConnectionPool
 				    rp.resetPool();
 				    //intentional cascade...
 				case ConnectionTester.CONNECTION_IS_INVALID:
-				    throw new SQLException("Connection is invalid");
+				    Exception throwMe;
+				    if (rootCause == null)
+					throwMe = new SQLException("Connection is invalid");
+				    else
+					throwMe = SqlUtils.toSQLException("Connection is invalid", rootCause);
+				    throw throwMe;
 				default:
 				    throw new Error("Bad Connection Tester (" + 
 						    connectionTester + ") " +
@@ -224,6 +232,8 @@ public final class C3P0PooledConnectionPool
         try { return (PooledConnection) rp.checkoutResource( checkoutTimeout ); }
 	catch (TimeoutException e)
 	    { throw SqlUtils.toSQLException("An attempt by a client to checkout a Connection has timed out.", e); }
+	catch (CannotAcquireResourceException e)
+	    { throw SqlUtils.toSQLException("Connections could not be acquired from the underlying database!", "08001", e); }
         catch (Exception e)
 	    { throw SqlUtils.toSQLException(e); }
     }

@@ -14,15 +14,19 @@
    <property name="rsrc.src.dir" value="${src.dir}/resources" />
    <property name="codegen.src.dir" value="${src.dir}/codegen" />
    <property name="doc.src.dir" value="${src.dir}/doc" />
+   <property name="docwebapp.src.dir" value="${src.dir}/docweb/docwebapp" />
+   <property name="docwebear.src.dir" value="${src.dir}/docweb/docwebear" />
    <property name="static.dist.src" value="${src.dir}/dist-static" />
    <property name="relproj.dir" value="relproj" />
    <property name="relproj.dist.dir" value="${relproj.dir}/dist" />
    <property name="test.props.dir" value="test-properties" />
    <property name="test.logging.props.file" location="${test.props.dir}/logging.properties" />
    <property name="build.dir" value="build" />
-   <property name="build.codegen.dir" value="${build.dir}/codegen" />
-   <property name="build.classes.dir" value="${build.dir}/classes" />
-   <property name="build.apidocs.dir" value="${build.dir}/apidocs" />
+   <property name="build.codegen.dir"    value="${build.dir}/codegen" />
+   <property name="build.classes.dir"    value="${build.dir}/classes" />
+   <property name="build.apidocs.dir"    value="${build.dir}/apidocs" />
+   <property name="build.docwebapp.dir"  value="${build.dir}/docweb/docwebapp" />
+   <property name="build.docwebear.dir"  value="${build.dir}/docweb/docwebear" />
    <property name="dbms.dir" value="dbms" />
    <property name="dbms.oracle.thin.antproj.dir" value="${dbms.dir}/oracle-thin" />
    <property name="dbms.oracle.thin.antproj.dist.dir" value="${dbms.oracle.thin.antproj.dir}/dist" />
@@ -33,6 +37,9 @@
    <property name="open.dist" value="${dist.dir}/${bindist.name}" />
    <property name="open.dist.doc.dir" value="${open.dist}/doc" />
    <property name="open.dist.lib.dir" value="${open.dist}/lib" />
+   <property name="docwebapp.war.file.name" value="docweb.war" />
+   <property name="docwebapp.war.file" value="${build.docwebear.dir}/${docwebapp.war.file.name}" />
+   <property name="docwebear.file" value="${build.dir}/c3p0-docweb.ear" />
 
    <!-- these properties should be set externally if desired  -->
    <!-- we set them here only to keep classpaths valid -->
@@ -355,6 +362,19 @@
        </java>
    </target>
 
+   <target name="dispersion-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.ConnectionDispersionTest" 
+         classpathref="test-classpath" 
+	 fork="true">
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
    <target name="onethreadrepeat-test" depends="test-init">
        <java 
          classname="com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest" 
@@ -416,6 +436,44 @@
          <fileset dir="${build.apidocs.dir}" />
       </copy>
       <copy file="${build.jar.file}" toDir="${open.dist.lib.dir}" />
+   </target>
+
+   <target name="docwebapp" depends="basic-open-dist">
+      <mkdir dir="${build.docwebapp.dir}" />
+      <copy toDir="${build.docwebapp.dir}">
+         <fileset dir="${docwebapp.src.dir}"/>
+	 <filterchain>
+           <replacetokens>
+              <token key="virtual.host" value="${docwebapp.virtual.host}"/>
+           </replacetokens>
+	 </filterchain>
+      </copy>
+   </target>
+
+   <target name="docwebear" depends="docwebapp">
+      <mkdir dir="${build.docwebear.dir}" />
+      <copy toDir="${build.docwebear.dir}">
+         <fileset dir="${docwebear.src.dir}"/>
+	 <filterchain>
+           <replacetokens>
+              <token key="web.uri" value="${docwebapp.war.file.name}"/>
+              <token key="context.root" value="${docwebapp.context.root}"/>
+           </replacetokens>
+	 </filterchain>
+      </copy>
+      <jar destfile="${docwebapp.war.file}">
+         <zipfileset dir="${build.docwebapp.dir}" />
+         <zipfileset dir="${open.dist.doc.dir}" />
+      </jar>
+      <jar destfile="${docwebear.file}">
+         <zipfileset dir="${build.docwebear.dir}" />
+      </jar>
+   </target>
+
+   <target name="docwebear-deploy" depends="docwebear">
+      <exec executable="scp">
+         <arg line="${docwebear.file} ${docwebear.deploy.user}@${docwebear.deploy.host}:${docwebear.deploy.path}" />
+      </exec>
    </target>
 
    <target name="oracle-thin-open-dist" depends="basic-open-dist, dbms-oracle-thin"  if="oracle-thin.jdbc.jar.file">

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -275,6 +275,10 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 			Date d = (Date) stoppedThreadsToStopDates.get( pt );
 			if ((about_now - d.getTime()) > interrupt_delay_after_apparent_deadlock)
 			    {
+				if (logger.isLoggable(MLevel.WARNING))
+				    logger.log(MLevel.WARNING, 
+					       "Task " + pt.getCurrentTask() + " (in deadlocked PoolThread) failed to complete in maximum time " +
+					       max_individual_task_time + "ms. Trying interrupt().");
 				pt.interrupt();
 				ii.remove();
 			    }
@@ -435,7 +439,26 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	    if (run_stray_tasks)
 		{
 		    for ( Iterator ii = current.iterator(); ii.hasNext(); )
-			new Thread( (Runnable) ii.next() ).start();
+			{
+			    final Runnable r = (Runnable) ii.next();
+			    final Thread t = new Thread( r );
+			    t.start();
+			    if (max_individual_task_time > 0)
+				{
+				    TimerTask maxIndividualTaskTimeEnforcer = new TimerTask() 
+					{ 
+					    public void run() 
+					    { 
+						if (logger.isLoggable(MLevel.WARNING))
+						    logger.log(MLevel.WARNING, 
+							       "Task " + t + " (in one-off task Thread created after deadlock) failed to complete in maximum time " +
+							       max_individual_task_time + "ms. Trying interrupt().");
+						t.interrupt();
+					    } 
+					};
+				    myTimer.schedule( maxIndividualTaskTimeEnforcer, max_individual_task_time );
+				}
+			}
 		    last = null;
 		}
 	    else

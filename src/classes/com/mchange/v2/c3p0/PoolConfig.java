@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -58,7 +58,7 @@ import com.mchange.v2.log.MLogger;
  */
 public final class PoolConfig
 {
-    final static MLogger logger = MLog.getLogger( PoolConfig.class );
+    final static MLogger logger;
 
     public final static String INITIAL_POOL_SIZE                    = "c3p0.initialPoolSize"; 
     public final static String MIN_POOL_SIZE                        = "c3p0.minPoolSize";
@@ -90,9 +90,24 @@ public final class PoolConfig
 
     static
     {
+	logger = MLog.getLogger( PoolConfig.class );
+
 	Properties rsrcProps = findResourceProperties();
 	PoolConfig rsrcDefaults = extractConfig( rsrcProps, null );
-	DEFAULTS = extractConfig( System.getProperties(), rsrcDefaults );
+
+	Properties sysProps;
+	try
+	    { sysProps = System.getProperties(); }
+	catch ( SecurityException e )
+	    {
+		if (logger.isLoggable(MLevel.WARNING))
+		    logger.log(MLevel.WARNING, 
+			       "Read of system Properties blocked -- ignoring any c3p0 configuration via System properties! " +
+			       "(But any configuration via a c3p0.properties file is still okay!)", 
+			       e);
+		sysProps = new Properties(); //TODO -- an alternative approach to getting c3p0-specific sysprops if allowed
+	    }
+	DEFAULTS = extractConfig( sysProps, rsrcDefaults );
     }
 
     public static int defaultNumHelperThreads()

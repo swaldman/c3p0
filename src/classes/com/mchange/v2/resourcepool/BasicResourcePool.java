@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -921,7 +921,7 @@ class BasicResourcePool implements ResourcePool
 			if (timeout > 0 && System.currentTimeMillis() - start > timeout)
 			    throw new TimeoutException("internal -- timeout at awaitAcquire()");
 			if (force_kill_acquires)
-			    throw new ResourcePoolException("A ResourcePool could not acquire a resource from its primary factory or source.");
+			    throw new CannotAcquireResourceException("A ResourcePool could not acquire a resource from its primary factory or source.");
 			ensureNotBroken();
 		    }
 	    }

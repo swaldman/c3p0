@@ -1,3 +1,5 @@
+better control over Connection distribution order (thanks Peter Fassev)
+
 Create a dbms-dir level build.xml file, rather than having top-level
 manage subdirectories.
 

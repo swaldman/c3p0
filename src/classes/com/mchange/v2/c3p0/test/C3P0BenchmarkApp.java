@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre3
+ * Distributed as part of c3p0 v.0.9.0-pre4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -115,13 +115,13 @@ public final class C3P0BenchmarkApp
 
 		System.out.println("Please wait. Tests can be very slow.");
 		List l = new ArrayList();
-       		l.add( new ConnectionAcquisitionTest() );
-  		l.add( new StatementCreateTest() );
-  		l.add( new StatementEmptyTableSelectTest() );
- 		//l.add( new DataBaseMetaDataListNonexistentTablesTest() );
- 		l.add( new PreparedStatementEmptyTableSelectTest() );
-       		l.add( new PreparedStatementAcquireTest() );
- 		l.add( new ResultSetReadTest() );
+		l.add( new ConnectionAcquisitionTest() );
+   		l.add( new StatementCreateTest() );
+   		l.add( new StatementEmptyTableSelectTest() );
+  		//l.add( new DataBaseMetaDataListNonexistentTablesTest() );
+  		l.add( new PreparedStatementEmptyTableSelectTest() );
+		l.add( new PreparedStatementAcquireTest() );
+  		l.add( new ResultSetReadTest() );
     		l.add( new FiveThreadPSQueryTestTest() );
 		for (int i = 0, len = l.size(); i < len; ++i)
 		    ((Test) l.get(i)).perform( ds_unpooled, ds_pooled, NUM_ITERATIONS );
@@ -599,10 +599,13 @@ public final class C3P0BenchmarkApp
 				{
 				    ResultSetUtils.attemptClose( rs ); 
 				    StatementUtils.attemptClose( pstmt );
-				    //try { System.err.println( pstmt.getConnection() ); } catch (Exception e) {e.printStackTrace();}
-				    //ResultSetUtils.attemptClose( rs ); 
 				    ConnectionUtils.attemptClose( con ); 
 				    con = null;
+
+// 				    StatementUtils.attemptClose( pstmt ); //dup close
+// 				    ConnectionUtils.attemptClose( con ); //dup close
+// 				    try { System.err.println( pstmt.getConnection() ); } catch (Exception e) {e.printStackTrace();}
+// 				    ResultSetUtils.attemptClose( rs ); 
 				}
 			}
 		    //System.out.println(this + " finished.");

@@ -1,3 +1,28 @@
+	-- Fixed NullPointerException on double-close of proxy Statements. [Thanks to Stephen Waud
+	   for finding this bug and tracking it down.]
+	-- Modified C3P0PooledConnectionPool to generate a more informative Exception (one that
+	   includes the stack trace of the initial problem) when a Connection test fails. [Thanks
+	   to novotny from the hibernate forums for calling attention to this issue.]
+`	-- PooledDataSources now set SQLState 08001 on SQLExceptions resulting from a determination
+	   by the pool that the database is down or unavailable. [Thanks to ml2709 on the hibernate
+	   forums for calling attention to this issue.]
+	-- Modified ThreadPoolAsynchronousRunner to enforce its max task time even on one-off
+	   "emergency threads" used to flush the pool of tasks after an apparent deadlock.
+	   Hopefully this will help to eliminate the OutOfMemoryErrors that users occasionally
+	   see if some Database operation starts to fail by blocking indefinitely, and is attempted
+	   many many times. As long as these operations are susceptable to interrupt(), this should
+	   resolve the problem. (If tasks block in a way that is immune to interrupt(), there is
+	   little c3p0 can do to recover the Threads and prevent the number of blocked Threads
+	   from growing until memory runs out.) [Thanks to Jean-Christophe Rousseau and Arup Vidyerthy 
+	   for calling attention to this issue.]
+	-- Wrapped System.getProperties() calls in try / catch blocks that  catch and log 
+	   the SecurityExceptions, and ignore System properties if access to them is forbidden. 
+	   c3p0.properties configuration should work fine in security-controlled apps, but you 
+	   won't be able to configure c3p0 using "java -Dc3p0.xxxx=yyy ..." Since most users use 
+	   c3p0.properties for configuration, I don't think this will be a major problem. In the 
+	   future, I may be able to work around the restriction by having ask only for c3p0-specific 
+	   System properties, rather than calling the unrestricted System.getProperties() method. 
+	   [Thanks to zambak on SourceForge for calling attention to this issue.]
 c3p0-0.9.0-pre3
 	-- Modified generated proxy classes to properly report the type of the closed Object
 	   if used after call to close().
