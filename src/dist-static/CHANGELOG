@@ -1,3 +1,10 @@
+c3p0-0.8.5.1
+	-- Fixed a really embarrassing bug that made Statement pooling worse than
+	   useless where users have set maxStatements but not maxStatementsPerConnection.
+	   maxStatementsPerConnection -- that is, 0 -- was being used in place of maxStatements
+	   on Statement cache initialization. [Thanks to Gwendal Tanguy for not only,
+	   calling attention to this issue, but tracking down the precise location of
+	   the bug!]
 c3p0-0.8.5
 	-- Documentation updates and improvements
 	-- Fixed an issue where failures on reset() of a pooled Connection caused

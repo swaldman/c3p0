@@ -174,7 +174,7 @@ public final class C3P0PooledConnectionPoolManager
 	else if (this.maxStatementsPerConnection > 0)
 	    this.scache = new PerConnectionMaxOnlyStatementCache( taskRunner, maxStatementsPerConnection );
 	else if (this.maxStatements > 0)
-	    this.scache = new GlobalMaxOnlyStatementCache( taskRunner, maxStatementsPerConnection );
+	    this.scache = new GlobalMaxOnlyStatementCache( taskRunner, maxStatements );
 	else
 	    this.scache = null;
 	this.authsToPools = new HashMap();
