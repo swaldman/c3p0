@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -44,9 +44,5 @@ public class ExplicitDefaultConstructorGeneratorExtension implements GeneratorEx
 
     public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 	throws IOException
-    {
-	iw.print( CodegenUtils.getModifierString( ctor_modifiers ) );
-	iw.println(" void " + info.getClassName() + "()");
-	iw.println("{}");
-    }
+    { BeangenUtils.writeExplicitDefaultConstructor( ctor_modifiers, info, iw); }
 }

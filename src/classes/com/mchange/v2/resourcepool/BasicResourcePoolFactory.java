@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -26,8 +26,26 @@ package com.mchange.v2.resourcepool;
 import java.util.*;
 import com.mchange.v2.async.*;
 
-class BasicResourcePoolFactory extends ResourcePoolFactory
+public class BasicResourcePoolFactory extends ResourcePoolFactory
 {
+    public static BasicResourcePoolFactory createNoEventSupportInstance( int num_task_threads )
+    { return createNoEventSupportInstance( null, null, num_task_threads ); }
+
+    public static BasicResourcePoolFactory createNoEventSupportInstance( AsynchronousRunner taskRunner, 
+									 Timer timer )
+    { return createNoEventSupportInstance( taskRunner, timer, ResourcePoolFactory.DEFAULT_NUM_TASK_THREADS ); }
+
+
+    private static BasicResourcePoolFactory createNoEventSupportInstance( AsynchronousRunner taskRunner, 
+									  Timer timer,
+									  int default_num_task_threads )
+    {
+	return new BasicResourcePoolFactory( taskRunner, 
+					     timer,
+					     default_num_task_threads,
+					     true );
+    }
+
     int     start                     = -1;   //default to min
     int     min                       = 1;
     int     max                       = 12;
@@ -72,6 +90,16 @@ class BasicResourcePoolFactory extends ResourcePoolFactory
 
     BasicResourcePoolFactory( int num_task_threads )
     { this ( null, null, null, num_task_threads ); }
+
+    BasicResourcePoolFactory( AsynchronousRunner taskRunner, 
+			      Timer timer,
+			      int default_num_task_threads,
+			      boolean no_event_support)
+    { 
+	this( taskRunner, null,  timer, default_num_task_threads );
+	if (no_event_support)
+	    asyncEventQueue_is_external = true; //if it's null, and external, it simply won't exist...
+    }
 
     BasicResourcePoolFactory( AsynchronousRunner taskRunner, 
 			      RunnableQueue asyncEventQueue,  

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -175,25 +175,40 @@ public final class NewPooledConnection implements PooledConnection
     synchronized void markInactiveMetaDataResultSet( ResultSet rs )
     { metaDataResultSets.remove( rs ); }
 
-    synchronized void markClosedProxyConnection( NewProxyConnection npc ) throws SQLException
+    synchronized void markClosedProxyConnection( NewProxyConnection npc, boolean txn_known_resolved ) 
     {
-	if (npc != exposedProxy)
-	    throw new InternalError("C3P0 Error: An exposed proxy asked a PooledConnection that was not its parents to clean up its resources!");
-
-	List closeExceptions = new LinkedList();
-	cleanupResultSets( closeExceptions );
-	cleanupUncachedStatements( closeExceptions );
-	if ( closeExceptions.size() > 0 )
+	try
 	    {
-		System.err.println("[c3p0] The following Exceptions occurred while trying to close a Connection's stranded resources:");
-		for ( Iterator ii = closeExceptions.iterator(); ii.hasNext(); )
+		if (npc != exposedProxy)
+		    throw new InternalError("C3P0 Error: An exposed proxy asked a PooledConnection that was not its parents to clean up its resources!");
+		
+		List closeExceptions = new LinkedList();
+		cleanupResultSets( closeExceptions );
+		cleanupUncachedStatements( closeExceptions );
+		checkinAllCachedStatements( closeExceptions );
+		if ( closeExceptions.size() > 0 )
 		    {
-			Throwable t = (Throwable) ii.next();
-			System.err.print("[c3p0 -- conection resource close Exception]: ");
-			t.printStackTrace();
+			System.err.println("[c3p0] The following Exceptions occurred while trying to clean up a Connection's stranded resources:");
+			for ( Iterator ii = closeExceptions.iterator(); ii.hasNext(); )
+			    {
+				Throwable t = (Throwable) ii.next();
+				System.err.print("[c3p0 -- conection resource close Exception]: ");
+				t.printStackTrace();
+			    }
 		    }
+		reset( txn_known_resolved );
+		fireConnectionClosed();
 	    }
-	fireConnectionClosed();
+	catch (SQLException e)
+	    {
+		e.printStackTrace();
+		fireConnectionErrorOccurred( e );
+	    }
+    }
+
+    private void reset( boolean txn_known_resolved ) throws SQLException
+    {
+	C3P0ImplUtils.resetTxnState( physicalConnection, forceIgnoreUnresolvedTransactions, autoCommitOnClose, txn_known_resolved );
     }
 
     synchronized boolean isStatementCaching()
@@ -372,6 +387,17 @@ public final class NewPooledConnection implements PooledConnection
 
 		ii.remove();
 	    }
+    }
+    
+    private void checkinAllCachedStatements( List closeExceptions )
+    {
+	try
+	    {
+		if (scache != null)
+		    scache.checkinAll( physicalConnection );
+	    }
+	catch ( SQLException e )
+	    { closeExceptions.add(e); }
     }
     
     private void closeAllCachedStatements() throws SQLException

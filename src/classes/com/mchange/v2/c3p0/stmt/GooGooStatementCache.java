@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -30,13 +30,13 @@ import com.mchange.v2.async.AsynchronousRunner;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
-public final class GooGooStatementCache
+public abstract class GooGooStatementCache
 {
     /* MT: protected by this's lock */
 
     // contains all statements in the cache, 
     // organized by connection
-    HashMap cxnToStmtSets = new HashMap();
+    ConnectionStatementManager cxnStmtMgr;
 
     // contains all statements in the cache, 
     // bound to the keys that produced them
@@ -47,23 +47,11 @@ public final class GooGooStatementCache
     // for checkout
     HashMap keyToKeyRec    = new HashMap();
     
-    // contains only statements available for checkout
-    // organized by key. values are Lists
-    // Map keyToStmtQueue = new HashMap(); 
-
-    // "death march" structures -- contain only statements
-    // available for checkout, therefore also available
-    // for purge if the cache overflows
-    TreeMap longsToStmts = new TreeMap(); //death-march...
-    HashMap stmtsToLongs = new HashMap();
-
     // contains all checked out statements -- in the cache, 
     // but not currently available for checkout, nor for
     // culling in case of overflow
     HashSet checkedOut = new HashSet();
     
-    long last_long = -1;
-
     int stmt_count;
 
     /* MT: end protected by this' lock */
@@ -71,14 +59,13 @@ public final class GooGooStatementCache
     //MT: protected by its own lock
     AsynchronousRunner blockingTaskAsyncRunner;
 
-    //MT: Unchanging
-    int max_statements;
-
-    public GooGooStatementCache(AsynchronousRunner blockingTaskAsyncRunner, int max_statements)
+    public GooGooStatementCache(AsynchronousRunner blockingTaskAsyncRunner)
     { 
 	this.blockingTaskAsyncRunner = blockingTaskAsyncRunner; 
-	this.max_statements = max_statements;
+	this.cxnStmtMgr = createConnectionStatementManager();
     }
+
+    abstract ConnectionStatementManager createConnectionStatementManager();
 
     public synchronized Object checkoutStatement( Connection physicalConnection,
 						  Method stmtProducingMethod, 
@@ -97,28 +84,31 @@ public final class GooGooStatementCache
 		// don't presume atomicity before and after!
 		out = acquireStatement( physicalConnection, stmtProducingMethod, args );
 
-		int size = this.countCachedStatements();
-		if (  size < max_statements || (size == max_statements && cullFromDeathmarch()) )
+		if ( prepareAssimilateNewStatement( physicalConnection ) )
 		    assimilateNewCheckedOutStatement( key, physicalConnection, out );
-		// else case: max_statements are checked out... we can't cache any more 
+		// else case: we can't assimilate the statement...
 		// so, we just return our newly created statement, without caching it.
 		// on check-in, it will simply be destroyed... this is an "overload statement"
 	    }
 	else //okay, we can use an old one
 	    {
-//  		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-//  		    System.err.println("-------------> CACHE HIT!");
+  		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+  		    System.err.println("-------------> CACHE HIT!");
+
 		out = l.get(0);
 		l.remove(0);
-		undeathmarchStatement( out );
 		if (! checkedOut.add( out ))
 		    throw new RuntimeException("Internal inconsistency: " +
 					       "Checking out a statement marked " + 
 					       "as already checked out!");
+		removeStatementFromDeathmarches( out, physicalConnection );
 	    }
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-	    printStats();
+	    {
+		System.err.print("checkoutStatement(): ");
+		printStats();
+	    }
 
 	return out;
     }
@@ -162,16 +152,22 @@ public final class GooGooStatementCache
 
 	LinkedList l = checkoutQueue( key );
 	l.add( pstmt );
-	deathmarchStatement( pstmt );
+	addStatementToDeathmarches( pstmt, key.physicalConnection );
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-	    printStats();
+	    {
+		System.err.print("checkinStatement(): ");
+		printStats();
+	    }
     }
+
 
     public synchronized void checkinAll(Connection pcon)
 	throws SQLException
     {
-	HashSet stmtSet = connectionSet( pcon );
+	//new Exception("checkinAll()").printStackTrace();
+
+	Set stmtSet = cxnStmtMgr.statementSet( pcon );
 	if (stmtSet != null)
 	    {
 		for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
@@ -183,20 +179,34 @@ public final class GooGooStatementCache
 	    }
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-	    printStats();
+	    {
+		System.err.print("checkinAll(): ");
+		printStats();
+	    }
     }
 
     public synchronized void closeAll(Connection pcon)
 	throws SQLException
     {
-//  	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-//  	    System.err.println("ENTER METHOD: closeAll( " + pcon + " )! -- " +
-//  			       "num_connections: " + cxnToStmtSets.size());
-	HashSet cSet = connectionSet( pcon );
-	//System.err.println("cSet: " + cSet);
+	//new Exception("closeAll()").printStackTrace();
+
+	Set cSet = cxnStmtMgr.statementSet( pcon );
+
+  	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+	    {
+		System.err.println("ENTER METHOD: closeAll( " + pcon + " )! -- " +
+				   "num_connections: " + cxnStmtMgr.getNumConnectionsWithCachedStatements());
+		System.err.print("Set of statements for connection: " + cSet);
+		if (cSet != null)
+		    System.err.println("; size: " + cSet.size());
+		else
+		    System.err.println();
+	    }
+
 	if (cSet != null)
 	    {
-		HashSet stmtSet = (HashSet) cSet.clone();
+		//the removeStatement(...) removes from cSet, so we can't be iterating over cSet directly
+		Set stmtSet = new HashSet( cSet );
 		//System.err.println("SIZE FOR CONNECTION SET: " + stmtSet.size());
 		for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
 		    {
@@ -206,43 +216,55 @@ public final class GooGooStatementCache
 	    }
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-	    printStats();
+	    {
+		System.err.print("closeAll(): ");
+		printStats();
+	    }
     }
 
     public synchronized void close() 
 	throws SQLException
     {
 	for (Iterator ii = stmtToKey.keySet().iterator(); ii.hasNext(); )
-	    destroyStatement( ii.next() );
+	    synchronousDestroyStatement( ii.next() );
 
-	cxnToStmtSets  = null;
-	stmtToKey      = null;
-	keyToKeyRec    = null;
-	longsToStmts   = null;
-	stmtsToLongs   = null;
-	checkedOut     = null;
-	stmt_count     = -1;
+	cxnStmtMgr       = null;
+	stmtToKey        = null;
+	keyToKeyRec      = null;
+	checkedOut       = null;
+	stmt_count       = -1;
     }
 
 
-    /* private methods that needn't be called with this' lock below */
+    /* non-public methods that needn't be called with this' lock below */
      
     private void destroyStatement( final Object pstmt )
     {
-	Runnable r = new Runnable()
-	    {
-		public void run()
-		{  StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
-	    };
+ 	Runnable r = new Runnable()
+ 	    {
+ 		public void run()
+ 		{  StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
+ 	    };
 	blockingTaskAsyncRunner.postRunnable(r);
     }
 
-    /* end private methods that needn't be called with this' lock */
+    private void synchronousDestroyStatement( final Object pstmt )
+    { StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
+
+    /* end non-public methods that needn't be called with this' lock */
 
 
 
-    /* private methods that MUST be called with this' lock */
+    /* non-public methods that MUST be called with this' lock */
 
+    abstract boolean prepareAssimilateNewStatement(Connection pcon);
+
+    abstract void addStatementToDeathmarches( Object pstmt, Connection physicalConnection );
+    abstract void removeStatementFromDeathmarches( Object pstmt, Connection physicalConnection );
+
+    final int countCachedStatements()
+    { return stmtToKey.size(); }
+    
     private void assimilateNewCheckedOutStatement( StatementCacheKey key, 
 						   Connection pConn, 
 						   Object ps )
@@ -251,18 +273,17 @@ public final class GooGooStatementCache
 	HashSet ks = keySet( key );
 	if (ks == null)
 	    keyToKeyRec.put( key, new KeyRec() );
-//  	else if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-//  	    System.err.println("-------> Multiply prepared statement! " + key.stmtText );
+  	else if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+  	    System.err.println("-------> Multiply prepared statement! " + key.stmtText );
 	keySet( key ).add( ps );
-	HashSet cSet = connectionSet( pConn );
-	if (cSet == null)
+	cxnStmtMgr.addStatementForConnection( ps, pConn );
+
+	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-		cSet = new HashSet();
-		cxnToStmtSets.put( pConn, cSet );
+		System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
+				   cxnStmtMgr.statementSet( pConn ).size());
 	    }
-	cSet.add( ps );
-	//System.err.println("connectionSet( " + pConn + " ).size(): " + 
-	//		      connectionSet( pConn ).size());
+
 	++stmt_count;
 
 	checkedOut.add( ps );
@@ -273,12 +294,10 @@ public final class GooGooStatementCache
 	StatementCacheKey sck = (StatementCacheKey) stmtToKey.remove( ps );
 	removeFromKeySet( sck, ps );
 	Connection pConn = sck.physicalConnection;
-	removeFromConnectionSet( pConn, ps );
-	--stmt_count;
 
 	if (! checkedOut.contains( ps ) )
 	    {
-		undeathmarchStatement( ps );
+		removeStatementFromDeathmarches( ps, pConn );
 		removeFromCheckoutQueue( sck , ps );
 		destroyStatement( ps );
 	    }
@@ -288,22 +307,11 @@ public final class GooGooStatementCache
 		if (force_destroy)       // but occasionally we want the statement assuredly gone.
 		    destroyStatement( ps );
 	    }
-    }
 
-    private boolean cullFromDeathmarch()
-    {
-	if ( longsToStmts.isEmpty() )
-	    return false;
-	else
-	    {
-		Long l = (Long) longsToStmts.firstKey();
-		Object ps = longsToStmts.get( l );
-//  		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-//  		    System.err.println("CULLING: " + 
-//  				       ((StatementCacheKey) stmtToKey.get(ps)).stmtText);
-		removeStatement( ps, true );
-		return true;
-	    }
+	boolean check =	cxnStmtMgr.removeStatementForConnection( ps, pConn );
+	if (Debug.DEBUG && check == false)
+	    new Exception("WARNING: removed a statement that apparently wasn't in a statement set!!!").printStackTrace();
+	--stmt_count;
     }
 
     private Object acquireStatement(final Connection pConn, 
@@ -360,33 +368,6 @@ public final class GooGooStatementCache
 	    { throw SqlUtils.toSQLException( e ); }
     }
 
-    private HashSet connectionSet( Connection pcon )
-    { return (HashSet) cxnToStmtSets.get( pcon ); }
-
-    private boolean removeFromConnectionSet( Connection pcon, Object stmt )
-    {
-//  	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-//  	    System.err.println("ENTER METHOD: " +
-//  			       "removeFromConnectionSet( Connection pcon, Object stmt )");
-
-	boolean out;
-	HashSet stmtSet = (HashSet) cxnToStmtSets.get( pcon );
-	//System.err.println("      stmtSet.size() -- begin: " + stmtSet.size());
-	if ( stmtSet != null )
-	    {
-		out = stmtSet.remove( stmt );
-		if (stmtSet.isEmpty())
-		    {
-			cxnToStmtSets.remove( pcon );
-//  			System.err.println("Removed Connection!!!!!!!!!!!!!!!");
-		    }
-	    }
-	else
-	    out = false;
-	//System.err.println("      stmtSet.size() -- end: " + stmtSet.size());
-	return out;
-    }
-
     private KeyRec keyRec( StatementCacheKey key )
     { return ((KeyRec) keyToKeyRec.get( key )); }
 
@@ -422,67 +403,24 @@ public final class GooGooStatementCache
 	return out;
     }
 
-    private void deathmarchStatement( Object ps )
-    {
-	//System.err.println("deathmarchStatement( " + ps + " )");
-	if (Debug.DEBUG)
-	    {
-		Long old = (Long) stmtsToLongs.get( ps );
-		if (old != null)
-		    throw new RuntimeException("Internal inconsistency: " +
-					       "A checking-in statement is already in deathmarch.");
-	    }
-
-	Long youth = getNextLong();
-	stmtsToLongs.put( ps, youth );
-	longsToStmts.put( youth, ps );
-    }
-    
-    private void undeathmarchStatement( Object ps )
-    {
-	Long old = (Long) stmtsToLongs.remove( ps );
-	if (Debug.DEBUG && old == null)
-	    throw new RuntimeException("Internal inconsistency: " +
-				       "A (not new) checking-out statement is not in deathmarch.");
-	Object check = longsToStmts.remove( old );
-	if (Debug.DEBUG && old == null)
-	    throw new RuntimeException("Internal inconsistency: " +
-				       "A (not new) checking-out statement is not in deathmarch.");
-    }
-
-    private boolean isCheckedIn( Object ps )
-    { return stmtsToLongs.keySet().contains( ps ); }
-
     private boolean ourResource( Object ps )
     { return stmtToKey.keySet().contains( ps ); }
 
     private void refreshStatement( PreparedStatement ps ) throws Exception
     { ps.clearParameters(); }
 
-    private int countCachedStatements()
-    { return stmtToKey.size(); }
-    
-    private Long getNextLong()
-    { return new Long( ++last_long ); }
-
     private void printStats()
     {
+	//new Exception("printStats()").printStackTrace();
 	int total_size = this.countCachedStatements();
 	int checked_out_size = checkedOut.size();
-	int checked_in_size_stmts = stmtsToLongs.size(); 
-	int checked_in_size_longs = longsToStmts.size(); 
-	int num_connections = cxnToStmtSets.size(); 
+	int num_connections  = cxnStmtMgr.getNumConnectionsWithCachedStatements(); 
 	int num_keys = keyToKeyRec.size(); 
-	System.err.println("GooGooStatementCache stats:");
-	System.err.println("\ttotal size: " + total_size);
-	System.err.println("\tchecked out: " + checked_out_size);
-	System.err.println("\tchecked in (deathmarch stmts): " + checked_in_size_stmts);
-	System.err.println("\tchecked in (deathmarch longs): " + checked_in_size_longs);
-	System.err.println("\tnum connections: " + num_connections);
-	System.err.println("\tnum keys: " + num_keys);
-	if (total_size != checked_out_size + checked_in_size_stmts ||
-	    checked_in_size_stmts != checked_in_size_longs)
-	    throw new RuntimeException("Inconsistency!");
+	System.err.print(this.getClass().getName() + " stats -- ");
+	System.err.print("total size: " + total_size);
+	System.err.print("; checked out: " + checked_out_size);
+	System.err.print("; num connections: " + num_connections);
+	System.err.println("; num keys: " + num_keys);
     }
 
     private static class KeyRec
@@ -490,6 +428,151 @@ public final class GooGooStatementCache
 	HashSet  allStmts       = new HashSet();
 	LinkedList checkoutQueue  = new LinkedList();
     }
-}
 
+    protected class Deathmarch
+    {
+	TreeMap longsToStmts = new TreeMap(); 
+	HashMap stmtsToLongs = new HashMap();
+
+	long last_long = -1;
+
+	public void deathmarchStatement( Object ps )
+	{
+	    //System.err.println("deathmarchStatement( " + ps + " )");
+	    if (Debug.DEBUG)
+		{
+		    Long old = (Long) stmtsToLongs.get( ps );
+		    if (old != null)
+			throw new RuntimeException("Internal inconsistency: " +
+						   "A statement is being double-deathmatched. no checked-out statements should be in a deathmarch already; " +
+						   "no already checked-in statement should be deathmarched!");
+		}
+
+	    Long youth = getNextLong();
+	    stmtsToLongs.put( ps, youth );
+	    longsToStmts.put( youth, ps );
+	}
+
+	public void undeathmarchStatement( Object ps )
+	{
+	    Long old = (Long) stmtsToLongs.remove( ps );
+	    if (Debug.DEBUG && old == null)
+		throw new RuntimeException("Internal inconsistency: " +
+					   "A (not new) checking-out statement is not in deathmarch.");
+	    Object check = longsToStmts.remove( old );
+	    if (Debug.DEBUG && old == null)
+		throw new RuntimeException("Internal inconsistency: " +
+					   "A (not new) checking-out statement is not in deathmarch.");
+	}
+
+	public boolean cullNext()
+	{
+	    if ( longsToStmts.isEmpty() )
+		return false;
+	    else
+		{
+		    Long l = (Long) longsToStmts.firstKey();
+		    Object ps = longsToStmts.get( l );
+		    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+			System.err.println("CULLING: " + 
+					   ((StatementCacheKey) stmtToKey.get(ps)).stmtText);
+		    // we do not undeathmarch the statement ourselves, because removeStatement( ... )
+		    // should remove from all deathmarches...
+		    removeStatement( ps, true ); 
+		    if (Debug.DEBUG && this.contains( ps ))
+			throw new RuntimeException("Inconsistency!!! Statement culled from deathmarch failed to be removed by removeStatement( ... )!");
+		    return true;
+		}
+	}
+
+	public boolean contains( Object ps )
+	{ return stmtsToLongs.keySet().contains( ps ); }
+
+	public int size()
+	{ return longsToStmts.size(); }
+
+	private Long getNextLong()
+	{ return new Long( ++last_long ); }
+    }
+
+    protected static abstract class ConnectionStatementManager
+    {
+	Map cxnToStmtSets = new HashMap();
+
+	public int getNumConnectionsWithCachedStatements()
+	{ return cxnToStmtSets.size(); }
+
+	public Set statementSet( Connection pcon )
+	{ return (Set) cxnToStmtSets.get( pcon ); }
+
+	public int getNumStatementsForConnection( Connection pcon )
+	{
+	    Set stmtSet = statementSet( pcon );
+	    return (stmtSet == null ? 0 : stmtSet.size());
+	}
+
+	public void addStatementForConnection( Object ps, Connection pcon )
+	{
+	    Set stmtSet = statementSet( pcon );
+	    if (stmtSet == null)
+		{
+		    stmtSet = new HashSet();
+		    cxnToStmtSets.put( pcon, stmtSet );
+		}
+	    stmtSet.add( ps );
+	}
+
+	public boolean removeStatementForConnection( Object ps, Connection pcon )
+	{
+	    boolean out;
+
+	    Set stmtSet = statementSet( pcon );
+	    if ( stmtSet != null )
+		{
+		    out = stmtSet.remove( ps );
+		    if (stmtSet.isEmpty())
+			cxnToStmtSets.remove( pcon );
+		}
+	    else
+		out = false;
+
+	    return out;
+	}
+    }
+
+    // i want this as optimized as possible, so i'm adopting the philosophy that all
+    // classes are abstract or final, to help enable compiler inlining...
+    protected static final class SimpleConnectionStatementManager extends ConnectionStatementManager 
+    {}
+
+    protected final class DeathmarchConnectionStatementManager extends ConnectionStatementManager
+    {
+	Map cxnsToDms = new HashMap();
+
+	public void addStatementForConnection( Object ps, Connection pcon )
+	{
+	    super.addStatementForConnection( ps, pcon );
+	    Deathmarch dm = (Deathmarch) cxnsToDms.get( pcon );
+	    if (dm == null)
+		{
+		    dm = new Deathmarch();
+		    cxnsToDms.put( pcon, dm );
+		}
+	}
+
+	public boolean removeStatementForConnection( Object ps, Connection pcon )
+	{
+	    boolean out = super.removeStatementForConnection( ps, pcon );
+	    if (out)
+		{
+		    if ( statementSet( pcon ) == null )
+			cxnsToDms.remove( pcon );
+		}
+	    return out;
+	}
+
+	public Deathmarch getDeathmarch( Connection pcon )
+	{ return (Deathmarch) cxnsToDms.get( pcon ); }
+    }
+}
 

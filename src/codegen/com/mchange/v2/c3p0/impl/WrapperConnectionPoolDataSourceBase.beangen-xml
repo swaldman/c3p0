@@ -14,56 +14,94 @@
        <type>DataSource</type>
        <name>nestedDataSource</name>
        <bound/>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>maxStatements</name>
        <default-value>PoolConfig.defaultMaxStatements()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>int</type>
+       <name>maxStatementsPerConnection</name>
+       <default-value>PoolConfig.defaultMaxStatementsPerConnection()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>initialPoolSize</name>
        <default-value>PoolConfig.defaultInitialPoolSize()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>minPoolSize</name>
        <default-value>PoolConfig.defaultMinPoolSize()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>maxPoolSize</name>
        <default-value>PoolConfig.defaultMaxPoolSize()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>idleConnectionTestPeriod</name>
        <default-value>PoolConfig.defaultIdleConnectionTestPeriod()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>maxIdleTime</name>
        <default-value>PoolConfig.defaultMaxIdleTime()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>propertyCycle</name>
        <default-value>PoolConfig.defaultPropertyCycle()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>acquireIncrement</name>
        <default-value>PoolConfig.defaultAcquireIncrement()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>acquireRetryAttempts</name>
        <default-value>PoolConfig.defaultAcquireRetryAttempts()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>acquireRetryDelay</name>
        <default-value>PoolConfig.defaultAcquireRetryDelay()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>automaticTestTable</name>
+       <default-value>
+          PoolConfig.defaultAutomaticTestTable();
+       </default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
@@ -72,6 +110,8 @@
           PoolConfig.defaultConnectionTesterClassName();
        </default-value>
        <constrained/>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
@@ -79,31 +119,68 @@
        <default-value>
           PoolConfig.defaultTestConnectionOnCheckout()
        </default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>testConnectionOnCheckin</name>
+       <default-value>
+          PoolConfig.defaultTestConnectionOnCheckin()
+       </default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>preferredTestQuery</name>
+       <default-value>
+          PoolConfig.defaultPreferredTestQuery()
+       </default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>autoCommitOnClose</name>
        <default-value>PoolConfig.defaultAutoCommitOnClose()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>forceIgnoreUnresolvedTransactions</name>
        <default-value>PoolConfig.defaultForceIgnoreUnresolvedTransactions()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>int</type>
+       <name>checkoutTimeout</name>
+       <default-value>PoolConfig.defaultCheckoutTimeout()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>breakAfterAcquireFailure</name>
        <default-value>PoolConfig.defaultBreakAfterAcquireFailure()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>usesTraditionalReflectiveProxies</name>
        <default-value>PoolConfig.defaultUsesTraditionalReflectiveProxies()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
        <name>factoryClassLocation</name>
        <default-value>PoolConfig.defaultFactoryClassLocation()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
   </properties>
 </beangen>

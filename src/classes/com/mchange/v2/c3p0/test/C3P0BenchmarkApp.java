@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -44,6 +44,7 @@ public final class C3P0BenchmarkApp
 
     final static int NUM_ITERATIONS = 2000;
     //final static int NUM_ITERATIONS = 10000;
+    //final static int NUM_ITERATIONS = 20;
 
     public static void main(String[] argv)
     {
@@ -191,6 +192,11 @@ public final class C3P0BenchmarkApp
 
 		ps1.executeUpdate();
 		ps2.executeUpdate();
+
+		// should be superfluous 'cuz should be autocommit
+		//con.commit();
+
+		System.err.println("Test schema dropped.");
 	    }
 	finally
 	    {
@@ -198,7 +204,6 @@ public final class C3P0BenchmarkApp
 		StatementUtils.attemptClose( ps2 );
 		ConnectionUtils.attemptClose( con ); 
 	    }
-	System.err.println("Test schema dropped.");
     }
 
     static abstract class Test
@@ -551,7 +556,7 @@ public final class C3P0BenchmarkApp
 				{ 
 				    System.err.print("FiveThreadPSQueryTestTest exception -- ");
 				    e.printStackTrace(); 
-				    try { con.rollback(); }
+				    try { if (con != null) con.rollback(); }
 				    catch (SQLException e2)
 					{
 					    System.err.print("Rollback on exception failed! -- ");
@@ -563,6 +568,7 @@ public final class C3P0BenchmarkApp
 				    ResultSetUtils.attemptClose( rs ); 
 				    StatementUtils.attemptClose( pstmt ); 
 				    ConnectionUtils.attemptClose( con ); 
+				    con = null;
 				}
 			}
 		    //System.out.println(this + " finished.");

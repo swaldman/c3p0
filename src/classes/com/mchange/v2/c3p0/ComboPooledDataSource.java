@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -30,11 +30,37 @@ import java.util.*;
 import javax.naming.*;
 import com.mchange.v2.naming.*;
 
+// WrapperConnectionPoolDataSource properties -- count: 20
+//
+// 	("checkoutTimeout");
+// 	("acquireIncrement");
+// 	("acquireRetryAttempts");
+// 	("acquireRetryDelay");
+// 	("autoCommitOnClose");
+// 	("connectionTesterClassName");
+// 	("forceIgnoreUnresolvedTransactions");
+// 	("idleConnectionTestPeriod");
+// 	("initialPoolSize");
+// 	("maxIdleTime");
+// 	("maxPoolSize");
+// 	("maxStatements");
+// 	("maxStatementsPerConnection");
+// 	("minPoolSize");
+// 	("propertyCycle");
+// 	("breakAfterAcquireFailure");
+// 	("testConnectionOnCheckout");
+// 	("testConnectionOnCheckin");
+// 	("usesTraditionalReflectiveProxies");
+// 	("preferredTestQuery");
+
+
 /**
  * <p>For the meaning of most of these properties, please see {@link PoolConfig}!</p>
  */
 public final class ComboPooledDataSource implements PooledDataSource, Serializable, Referenceable
 {
+    // not reassigned post-ctor; mutable elements protected by their own locks
+    // when (very rarely) necessery, we sync pbds -> wcpds -> dmds
     DriverManagerDataSource         dmds;
     WrapperConnectionPoolDataSource wcpds;
     PoolBackedDataSource            pbds;
@@ -48,7 +74,7 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	pbds.setConnectionPoolDataSource( wcpds );
     }
 
-    // DriverManagerDataSourceProperties
+    // DriverManagerDataSourceProperties  (count: 4)
     public String getDescription()
     { return dmds.getDescription(); }
 	
@@ -86,14 +112,29 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     public void setPassword( String password )
     { dmds.setPassword( password ); }
 
-    // WrapperConnectionPoolDataSource properties
+    // WrapperConnectionPoolDataSource properties (count: 21)
+    public int getCheckoutTimeout()
+    { return wcpds.getCheckoutTimeout(); }
+	
+    public void setCheckoutTimeout( int checkoutTimeout )
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setCheckoutTimeout( checkoutTimeout ); 
+		pbds.resetPoolManager();
+	    }
+    }
+	
     public int getAcquireIncrement()
     { return wcpds.getAcquireIncrement(); }
 	
     public void setAcquireIncrement( int acquireIncrement )
     { 
-	wcpds.setAcquireIncrement( acquireIncrement ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setAcquireIncrement( acquireIncrement ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public int getAcquireRetryAttempts()
@@ -101,8 +142,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setAcquireRetryAttempts( int acquireRetryAttempts )
     { 
-	wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public int getAcquireRetryDelay()
@@ -110,8 +154,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setAcquireRetryDelay( int acquireRetryDelay )
     { 
-	wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public boolean isAutoCommitOnClose()
@@ -119,8 +166,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 
     public void setAutoCommitOnClose( boolean autoCommitOnClose )
     { 
-	wcpds.setAutoCommitOnClose( autoCommitOnClose ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setAutoCommitOnClose( autoCommitOnClose ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public String getConnectionTesterClassName()
@@ -128,8 +178,23 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setConnectionTesterClassName( String connectionTesterClassName ) throws PropertyVetoException
     { 
-	wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
+		pbds.resetPoolManager();
+	    }
+    }
+	
+    public String getAutomaticTestTable()
+    { return wcpds.getAutomaticTestTable(); }
+	
+    public void setAutomaticTestTable( String automaticTestTable )
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setAutomaticTestTable( automaticTestTable ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public boolean isForceIgnoreUnresolvedTransactions()
@@ -137,17 +202,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setForceIgnoreUnresolvedTransactions( boolean forceIgnoreUnresolvedTransactions )
     { 
-	wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
-	pbds.resetPoolManager();
-    }
-	
-    public boolean isBreakAfterAcquireFailure()
-    { return wcpds.isBreakAfterAcquireFailure(); }
-	
-    public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
-    { 
-	wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public int getIdleConnectionTestPeriod()
@@ -155,8 +214,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setIdleConnectionTestPeriod( int idleConnectionTestPeriod )
     { 
-	wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); 
+		pbds.resetPoolManager();
+	    }
     }
     
     public int getInitialPoolSize()
@@ -164,8 +226,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setInitialPoolSize( int initialPoolSize )
     { 
-	wcpds.setInitialPoolSize( initialPoolSize ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setInitialPoolSize( initialPoolSize ); 
+		pbds.resetPoolManager();
+	    }
     }
 
     public int getMaxIdleTime()
@@ -173,8 +238,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setMaxIdleTime( int maxIdleTime )
     { 
-	wcpds.setMaxIdleTime( maxIdleTime ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setMaxIdleTime( maxIdleTime ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public int getMaxPoolSize()
@@ -182,8 +250,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setMaxPoolSize( int maxPoolSize )
     { 
-	wcpds.setMaxPoolSize( maxPoolSize ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setMaxPoolSize( maxPoolSize ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public int getMaxStatements()
@@ -191,8 +262,23 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setMaxStatements( int maxStatements )
     { 
-	wcpds.setMaxStatements( maxStatements ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setMaxStatements( maxStatements ); 
+		pbds.resetPoolManager();
+	    }
+    }
+	
+    public int getMaxStatementsPerConnection()
+    { return wcpds.getMaxStatementsPerConnection(); }
+	
+    public void setMaxStatementsPerConnection( int maxStatementsPerConnection )
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setMaxStatementsPerConnection( maxStatementsPerConnection ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public int getMinPoolSize()
@@ -200,8 +286,11 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setMinPoolSize( int minPoolSize )
     { 
-	wcpds.setMinPoolSize( minPoolSize ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setMinPoolSize( minPoolSize ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
     public int getPropertyCycle()
@@ -209,27 +298,87 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	
     public void setPropertyCycle( int propertyCycle )
     { 
-	wcpds.setPropertyCycle( propertyCycle ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setPropertyCycle( propertyCycle ); 
+		pbds.resetPoolManager();
+	    }
     }
-	
+    
+    public boolean isBreakAfterAcquireFailure()
+    { return wcpds.isBreakAfterAcquireFailure(); }
+    
+    public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
+		pbds.resetPoolManager();
+	    }
+    }
+    
     public boolean isTestConnectionOnCheckout()
     { return wcpds.isTestConnectionOnCheckout(); }
 	
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { 
-	wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); 
-	pbds.resetPoolManager();
+	synchronized ( pbds )
+	    {
+		wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); 
+		pbds.resetPoolManager();
+	    }
     }
 	
-    // PoolBackedDataSource properties
+    public boolean isTestConnectionOnCheckin()
+    { return wcpds.isTestConnectionOnCheckin(); }
+	
+    public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin )
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setTestConnectionOnCheckin( testConnectionOnCheckin ); 
+		pbds.resetPoolManager();
+	    }
+    }
+	
+    public boolean isUsesTraditionalReflectiveProxies()
+    { return wcpds.isUsesTraditionalReflectiveProxies(); }
+	
+    public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies )
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies ); 
+		pbds.resetPoolManager();
+	    }
+    }
+
+    public String getPreferredTestQuery()
+    { return wcpds.getPreferredTestQuery(); }
+	
+    public void setPreferredTestQuery( String preferredTestQuery )
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setPreferredTestQuery( preferredTestQuery ); 
+		pbds.resetPoolManager();
+	    }
+    }
+
+    // PoolBackedDataSource properties (count: 2)
     public int getNumHelperThreads()
     { return pbds.getNumHelperThreads(); }
 	
     public void setNumHelperThreads( int numHelperThreads )
     { pbds.setNumHelperThreads( numHelperThreads ); }
 
-    // shared properties
+    public String getPoolOwnerIdentityToken()
+    { return pbds.getPoolOwnerIdentityToken(); }
+	
+    public void setPoolOwnerIdentityToken( String poolOwnerIdentityToken )
+    { pbds.setPoolOwnerIdentityToken( poolOwnerIdentityToken ); }
+
+    // shared properties (count: 1)
     public String getFactoryClassLocation()
     {
 	return dmds.getFactoryClassLocation();
@@ -237,9 +386,18 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     
     public void setFactoryClassLocation( String factoryClassLocation )
     {
-	dmds.setFactoryClassLocation( factoryClassLocation );
-	wcpds.setFactoryClassLocation( factoryClassLocation );
-	pbds.setFactoryClassLocation( factoryClassLocation );
+	synchronized ( pbds )
+	    {
+		synchronized ( wcpds )
+		    {
+			synchronized( dmds )
+			    {
+				dmds.setFactoryClassLocation( factoryClassLocation );
+				wcpds.setFactoryClassLocation( factoryClassLocation );
+				pbds.setFactoryClassLocation( factoryClassLocation );
+			    }
+		    }
+	    }
     }
 
 
@@ -249,37 +407,56 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     {
 	referenceMaker.setFactoryClassName( JavaBeanObjectFactory.class.getName() );
 
-	// DriverManagerDataSource properties
+	// DriverManagerDataSource properties (count: 4)
 	referenceMaker.addReferenceProperty("description");
 	referenceMaker.addReferenceProperty("driverClass");
 	referenceMaker.addReferenceProperty("jdbcUrl");
 	referenceMaker.addReferenceProperty("properties");
 
-	// WrapperConnectionPoolDataSource properties
+	// WrapperConnectionPoolDataSource properties (count: 21)
+	referenceMaker.addReferenceProperty("checkoutTimeout");
 	referenceMaker.addReferenceProperty("acquireIncrement");
+	referenceMaker.addReferenceProperty("acquireRetryAttempts");
+	referenceMaker.addReferenceProperty("acquireRetryDelay");
 	referenceMaker.addReferenceProperty("autoCommitOnClose");
 	referenceMaker.addReferenceProperty("connectionTesterClassName");
-	referenceMaker.addReferenceProperty("factoryClassLocation");
 	referenceMaker.addReferenceProperty("forceIgnoreUnresolvedTransactions");
 	referenceMaker.addReferenceProperty("idleConnectionTestPeriod");
 	referenceMaker.addReferenceProperty("initialPoolSize");
 	referenceMaker.addReferenceProperty("maxIdleTime");
 	referenceMaker.addReferenceProperty("maxPoolSize");
 	referenceMaker.addReferenceProperty("maxStatements");
+	referenceMaker.addReferenceProperty("maxStatementsPerConnection");
 	referenceMaker.addReferenceProperty("minPoolSize");
-	referenceMaker.addReferenceProperty("nestedDataSource");
 	referenceMaker.addReferenceProperty("propertyCycle");
+	referenceMaker.addReferenceProperty("breakAfterAcquireFailure");
 	referenceMaker.addReferenceProperty("testConnectionOnCheckout");
+	referenceMaker.addReferenceProperty("testConnectionOnCheckin");
+	referenceMaker.addReferenceProperty("usesTraditionalReflectiveProxies");
+	referenceMaker.addReferenceProperty("preferredTestQuery");
+	referenceMaker.addReferenceProperty("automaticTestTable");
 
-	// PoolBackedDataSource properties
+	// PoolBackedDataSource properties (count: 2)
 	referenceMaker.addReferenceProperty("numHelperThreads");
+	referenceMaker.addReferenceProperty("poolOwnerIdentityToken");
 
-	// shared properties
+	// shared properties (count: 1)
 	referenceMaker.addReferenceProperty("factoryClassLocation");
     }
     
     public Reference getReference() throws NamingException
-    { return referenceMaker.createReference( this ); }
+    { 
+	synchronized ( pbds )
+	    {
+		synchronized ( wcpds )
+		    {
+			synchronized( dmds )
+			    {
+				return referenceMaker.createReference( this ); 
+			    }
+		    }
+	    }
+    }
 
     // DataSource implementation
     public Connection getConnection() throws SQLException
@@ -350,10 +527,10 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     { return pbds.getNumManagedAuths(); }
 
 
-//     Not implemented due to security concerns
-//
-//     public Collection getAllUsers() throws SQLException
-//     { return pbds.getAllUsers(); }
+    //     Not implemented due to security concerns
+    //
+    //     public Collection getAllUsers() throws SQLException
+    //     { return pbds.getAllUsers(); }
 
     public void hardReset() throws SQLException
     { pbds.hardReset(); }

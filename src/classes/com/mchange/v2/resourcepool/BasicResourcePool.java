@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -32,6 +32,19 @@ class BasicResourcePool implements ResourcePool
 {
     final static int CULL_FREQUENCY_DIVISOR = 8;
 
+    //MT: unchanged post c'tor
+    Manager mgr;
+    BasicResourcePoolFactory factory;
+
+    //MT: protected by this' lock
+    AsynchronousRunner       taskRunner;
+    RunnableQueue            asyncEventQueue;
+    Timer                    cullAndIdleRefurbishTimer;
+    TimerTask                cullTask;
+    TimerTask                idleRefurbishTask;
+    HashSet                  acquireWaiters = new HashSet();
+    HashSet                  otherWaiters = new HashSet();
+
     /*  keys are all valid, managed resources, value is a Date */ 
     HashMap  managed  = new HashMap();
 
@@ -41,16 +54,6 @@ class BasicResourcePool implements ResourcePool
     /* resources which have been invalidated somehow, but which are */
     /* still checked out and in use.                                */
     HashSet  excluded = new HashSet();
-
-    Manager                  mgr;
-    BasicResourcePoolFactory factory;
-    AsynchronousRunner       taskRunner;
-    RunnableQueue            asyncEventQueue;
-    Timer                    cullAndIdleRefurbishTimer;
-    TimerTask                cullTask;
-    TimerTask                idleRefurbishTask;
-    HashSet                  acquireWaiters = new HashSet();
-    HashSet                  otherWaiters = new HashSet();
 
     Set idleCheckResources = new HashSet();
 
@@ -247,7 +250,7 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( InterruptedException e )
 	    {
-		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread must " +
+		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread " +
 				   "must have either interrupted the Thread attempting checkout or called close() on the pool.");
 		e.printStackTrace();
 		throw e;
@@ -424,10 +427,22 @@ class BasicResourcePool implements ResourcePool
     }
 
     public void addResourcePoolListener(ResourcePoolListener rpl)
-    { rpes.addResourcePoolListener(rpl); }
+    { 
+	if ( asyncEventQueue == null )
+	    throw new RuntimeException(this + " does not support ResourcePoolEvents. " +
+				       "Probably it was constructed by a BasicResourceFactory configured not to support such events.");
+	else
+	    rpes.addResourcePoolListener(rpl); 
+    }
 
     public void removeResourcePoolListener(ResourcePoolListener rpl)
-    { rpes.removeResourcePoolListener(rpl); }
+    { 
+	if ( asyncEventQueue == null )
+	    throw new RuntimeException(this + " does not support ResourcePoolEvents. " +
+				       "Probably it was constructed by a BasicResourceFactory configured not to support such events.");
+	else
+	    rpes.removeResourcePoolListener(rpl); 
+    }
 
     private synchronized boolean isForceKillAcquiresPending()
     { return force_kill_acquires; }
@@ -476,12 +491,15 @@ class BasicResourcePool implements ResourcePool
 	taskRunner.postRunnable(new RemoveTask(num)); 
     }
 
+    private boolean canFireEvents()
+    { return (! broken && asyncEventQueue != null); }
+
     private void asyncFireResourceAcquired( final Object       resc,
 					    final int          pool_size,
 					    final int          available_size,
 					    final int          removed_but_unreturned_size )
     {
-	if (! broken)
+	if ( canFireEvents() )
 	    {
 		Runnable r = new Runnable()
 		    {
@@ -497,7 +515,7 @@ class BasicResourcePool implements ResourcePool
 					     final int          available_size,
 					     final int          removed_but_unreturned_size )
     {
-	if (! broken)
+	if ( canFireEvents() )
 	    {
 		Runnable r = new Runnable()
 		    {
@@ -513,7 +531,7 @@ class BasicResourcePool implements ResourcePool
 					      final int          available_size,
 					      final int          removed_but_unreturned_size )
     {
-	if (! broken)
+	if ( canFireEvents() )
 	    {
 		Runnable r = new Runnable()
 		    {
@@ -530,7 +548,7 @@ class BasicResourcePool implements ResourcePool
 					   final int          available_size,
 					   final int          removed_but_unreturned_size )
     {
-	if (! broken)
+	if ( canFireEvents() )
 	    {
 		//System.err.println("ASYNC RSRC REMOVED");
 		//new Exception().printStackTrace();
@@ -660,7 +678,13 @@ class BasicResourcePool implements ResourcePool
 		for (Iterator ii = cleanupResources.iterator(); ii.hasNext();)
 		    {
 			try
-			    {removeResource(ii.next(), true);}
+			    {
+				Object resc = ii.next();
+				if (unused.contains( resc )) //same logic as _markBroken(...), but removes have to be synchronous
+				    removeResource(resc, true);
+				else
+				    excludeResource( resc );
+			    }
 			catch (Exception e)
 			    {if (Debug.DEBUG) e.printStackTrace();}
 		    }
@@ -1198,7 +1222,7 @@ class BasicResourcePool implements ResourcePool
 			}
 		    catch ( Exception e )
 			{
-			    System.err.println("c3p0: An idle resource is broken and must be purged.");
+			    System.err.println("c3p0: An idle resource is broken and will be purged.");
 			    System.err.print("c3p0 [broken resource]: ");
 			    e.printStackTrace();
 			    failed = true;

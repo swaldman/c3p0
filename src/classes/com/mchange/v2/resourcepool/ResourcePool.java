@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -87,18 +87,6 @@ public interface ResourcePool extends ClosableResource
 	throws ResourcePoolException;
 
     public void close() 
-	throws ResourcePoolException;
-
-    /**
-     * Events may be fired asynchronously: listeners must not rely on
-     * events to reflect the current state of the pool, but they will
-     * accurately represent the state of the pool in the recent past
-     * when the event-provoking incident occurred.
-     */
-    public void addResourcePoolListener(ResourcePoolListener rpl)
-	throws ResourcePoolException;
-
-    public void removeResourcePoolListener(ResourcePoolListener rpl)
 	throws ResourcePoolException;
 
     public interface Manager

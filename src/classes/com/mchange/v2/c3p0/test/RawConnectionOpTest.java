@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -27,6 +27,7 @@ import java.lang.reflect.Method;
 
 import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.mchange.v2.c3p0.util.TestUtils;
 
 public final class RawConnectionOpTest
 {
@@ -60,6 +61,8 @@ public final class RawConnectionOpTest
 		cpds.setJdbcUrl( jdbc_url );
 		cpds.setUser( username );
 		cpds.setPassword( password );
+  		cpds.setMaxPoolSize( 10 );
+//  		cpds.setUsesTraditionalReflectiveProxies( true );
 				
 		C3P0ProxyConnection conn = (C3P0ProxyConnection) cpds.getConnection();
 		Method toStringMethod = Object.class.getMethod("toString", new Class[]{});
@@ -68,8 +71,21 @@ public final class RawConnectionOpTest
 				   conn.rawConnectionOperation(toStringMethod, C3P0ProxyConnection.RAW_CONNECTION, new Object[]{}));
 		Integer ihc = (Integer) conn.rawConnectionOperation(identityHashCodeMethod, null, new Object[]{C3P0ProxyConnection.RAW_CONNECTION});
 		System.out.println("System.identityHashCode( rawConnection ) -> " + Integer.toHexString( ihc.intValue() ));
+
 		conn.close();	
-		
+
+  		for (int i = 0; i < 10; ++i)
+  		    {
+  			C3P0ProxyConnection check = null;
+  			try
+  			    {
+  				check = (C3P0ProxyConnection) cpds.getConnection();
+  				//System.err.println( TestUtils.samePhysicalConnection( conn, check ) );
+  				System.err.println( TestUtils.physicalConnectionIdentityHashCode( check ) == ihc.intValue() );
+  			    }
+  			finally
+  			    { /* if (check != null) check.close(); */ }
+  		    }
 	    }
 	catch (Exception e)
 	    { e.printStackTrace(); }

@@ -1,7 +1,10 @@
 <html>
   <head>
-    <title>c3p0 - JDBC3 Connection and Statement Pooling - Documentation</title>
+    <title>c3p0-v@c3p0.version@ - JDBC3 Connection and Statement Pooling - Documentation</title>
     <style type="text/css">
+      a.cfg_param {
+         font-family: monospace;
+      }
       body {
          font-family: optima, helvetica, arial, sans-serif;
       }
@@ -74,6 +77,9 @@
       ol.contents ol li {
 	 font-size: smaller;
       }
+      ul.pointerlist {
+         list-style: square;
+      }
 
     </style>
   </head>
@@ -90,7 +96,10 @@
 	  under the terms of the <a href="../LICENSE">Lesser GNU Public License (LGPL)</a>, which you should
 	  have received with this distribution.
       </i></p>
-      <p><b>Note:</b> <i>API docs for c3p0 can be found <a href="apidocs/">here</a>.</i></p>
+      <ul class="pointerlist"> 
+	<li>API docs for c3p0 are <a href="apidocs/index.html">here</a>.</li> 
+	<li>Download the latest version from <a href="http://sourceforge.net/projects/c3p0/">c3p0's site on SourceForge</li>
+      </ul>
     </div>
     <hr/>
     <h2><a name="contents">Contents</a></h2>
@@ -114,8 +123,10 @@
       <li>
 	<a href="#configuration">Configuration</a>
 	<ol>
-	  <li><a href="c3p0_properties">Overriding c3p0 defaults with a c3p0.properties file</a></li>
-	  <li><a href="programmatic_configuration">Programmatic configuration of DataSources</a></li>
+	  <li><a href="#c3p0_properties">Overriding c3p0 defaults with a c3p0.properties file</a></li>
+	  <li><a href="#programmatic_configuration">Programmatic configuration of DataSources</a></li>
+	  <li><a href="#configuring_connection_testing">Configuring Connection Testing</a></li>
+	  <li><a href="#configuring_statement_pooling">Configuring Statement Pooling</a></li>
 	</ol>
       </li>
       <li><a href="#known_shortcomings">Performance</a></li>
@@ -131,7 +142,7 @@
     <div class="sectiontext">
       <p>
 	c3p0 was designed to be butt-simple to use. Just put
-	the jar file [<tt>lib/c3p0-0.8.x.jar</tt>] in your applications
+	the jar file [<tt>lib/c3p0-@c3p0.version@.jar</tt>] in your applications
 	effective <tt>CLASSPATH</tt>, and make a <tt>DataSource</tt> like this:
       </p>
       <div class="example">
@@ -146,7 +157,8 @@ cpds.setUser("dbuser");
 cpds.setPassword("dbpassword");                                  
       </div>
       <p>
-	<b>[Optional]</b> If you want to turn on PreparedStatement pooling, you must also set <tt>maxStatements</tt> (which defaults to 0):
+	<b>[Optional]</b> If you want to turn on PreparedStatement pooling, you must also set <tt>maxStatements</tt> 
+	and/or <tt>maxStatementsPerConnection</tt>(both default to 0):
       </p>
       <div class="example">
 cpds.setMaxStatements( 180 );                                  
@@ -490,6 +502,11 @@ Method m = CLOB.class.getMethod("createTemporary", new Class[]{Connection.class,
 Object[] args = new Object[] {C3P0ProxyConnection.RAW_CONNECTION, Boolean.valueOf( true ), new Integer( 10 )};
 CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);			
       </div>
+      <p>
+	<i>Note: C3P0 now includes special support for some Oracle-specific methods. 
+           See <a href="#appendix_c">Appendix C</a>.
+        </i>
+      </p>
       <h2><a name="configuration">Configuration</a></h2>
       <p>
 	While c3p0 does not <i>require</i> very much configuration, it is very tweakable. All the interesting
@@ -539,7 +556,7 @@ c3p0.maxStatements=150
 c3p0.maxIdleTime=1800
       </div>
       <a name="programmatic_configuration">
-	<h3>Programmatic configuration of individual <tt>DataSource</tt>s</h3>
+	<h3>Programmatic configuration of <tt>DataSource</tt> instances</h3>
       </a>
       <p>
 	<tt>DataSource</tt>s are usually configured before they are used, either
@@ -561,6 +578,106 @@ c3p0.maxIdleTime=1800
 	and pass your configuration as an argument to 
 	<tt><a href="apidocs/com/mchange/v2/c3p0/DataSources.html">DataSources</a>.pooledDataSource( ... )</tt>.
 	See the example above.
+      </p>
+      <a name="configuring_connection_testing">
+	<h3>Configuring Connection Testing</h3>
+      </a>
+      <p>
+	c3p0 can be configured to test the <tt>Connection</tt>s that it pools in a variety of ways, to
+	minimize the likelihood that your application will see a broken or "stale" <tt>Connection</tt>.
+	Pooled <tt>Connection</tt>s can go bad for a variety of reasons -- some JDBC drivers intentionally
+	"time-out" long-lasting database Connections; back-end databases or networks sometimes go down 
+	"stranding" pooled Connections; and Connections can simply become corrupted over time and use due
+	to resource leaks, driver bugs, or other causes.
+      </p>
+      <p>
+	c3p0 provides users a great deal of flexibility in testing Connections, via the following
+	configuration parameters:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#automaticTestTable">automaticTestTable</a></li>
+	<li><a class="cfg_param" href="#connectionTesterClassName">connectionTesterClassName</a></li>
+	<li><a class="cfg_param" href="#preferredTestQuery">preferredTestQuery</a></li>
+	<li><a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a></li>
+	<li><a class="cfg_param" href="#testConnectionOnCheckout">testConnectionOnCheckout</a></li>
+	<li><a class="cfg_param" href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a></li>
+      </ul>
+      <p>
+	<tt>idleConnectionTestPeriod</tt>, <tt>testConnectionOnCheckout</tt>, and
+	<tt>testConnectionOnCheckin</tt> control <i>when</i> <tt>Connection</tt>s will be tested.
+	<tt>automaticTestTable</tt>, <tt>connectionTesterClassName</tt>, and <tt>preferredTestQuery</tt> control <i>how</i>.
+      </p>
+      <p>
+	When configuring
+	<tt>Connection</tt> testing, first try to minimize the cost of each test. By default, <tt>Connection</tt>s are tested
+	by calling the <tt>getTables()</tt> method on a <tt>Connection</tt>'s associated <tt>DatabaseMetaData</tt>
+	object. This has the advantage of working with any database, independent of database schema. However, empirical
+	a <tt>DatabaseMetaData.getTables()</tt> call is often much slower than a simple database query.
+      </p>
+      <p>
+	The most convenient way to speed up <tt>Connection</tt> testing is to define the parameter <tt>automaticTestTable</tt>. Using the name
+	you provide, c3p0 will create an empty table, and make a simple query against it to test the database. Alternatively, if your 
+	database schema
+	is fixed prior to your application's use of the database, you can simply define a test query with the <tt>preferredTestQuery</tt>
+	parameter. Be careful, however. Setting <tt>preferredTestQuery</tt> will lead to errors as <tt>Connection</tt> tests fail
+	if the query target table does not exist in your database table <u>prior</u> to initialization of your DataSource. (Advanced
+	users may define any kind of <tt>Connection</tt> testing they wish, by implementing the interface 
+	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> or 
+	<a href="apidocs/com/mchange/v2/c3p0/advanced/QueryConnectionTester.html">QueryConnectionTester</a>, and supplying the
+	fully qualified name of the class as <tt>connectionTesterClassName</tt>.)
+      </p>
+      <p>
+	The most reliable time to test <tt>Connection</tt>s is on check-out. But this is also the most costly choice
+	from a performance perspective. Most applications should work quite reliably using a combination of 
+	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionsOnCheckIn</tt>. Both the idle test and the check-in 
+	test are performed asynchronously, which leads to better performance, both perceived and actual.
+      </p>
+      <p>
+	Note that for many applications, high performance is more important than the risk of an occasional database exception.
+	In its default configuration, c3p0 does no Connection testing at all. Setting a long 
+	<tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is an excellent, high-performance
+	approach.
+      </p>
+      <a name="configuring_statement_pooling">
+	<h3>Configuring Statement Pooling</h3>
+      </a>
+      <p>
+	c3p0 implement's transparent <tt>PreparedStatement</tt> pooling as defined by the JDBC spec. Under some circumstances,
+	statement pooling can dramatically improve application performance. Under other circumstances, the overhead of
+	statement pooling can slightly harm
+	performance. Whether and how much statement pooling will help depends on how much 
+	parsing, planning, and optimizing of queries your databases does when the statements are prepared. 
+	Databases (and JDBC drivers) vary widely
+	in this respect. It's a good idea to benchmark your application with and without statement pooling to 
+	see if and how much it helps.
+      </p>
+      <p>
+	You configure statement pooling in c3p0 via the following
+	configuration parameters:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#maxStatements">maxStatements</a></li>
+	<li><a class="cfg_param" href="#maxStatementsPerConnection">maxStatementsPerConnection</a></li>
+      </ul>
+      <p>
+	<tt>maxStatements</tt> is JDBC's standard parameter for controlling statement pooling. <tt>maxStatements</tt> defines the
+	total number <tt>PreparedStatements</tt> a DataSource will cache. The pool will destroy the least-recently-used <tt>PreparedStatement</tt>
+	when it hits this limit. This sounds simple, but it's actually a strange approach, because
+	cached statements conceptually belong to individual Connections; they are not global resources. To figure out a size
+	for <tt>maxStatements</tt> that does not "churn" cached statements, you need to consider the number of <i>frequently used</i> 
+	PreparedStatements in your application,	and multiply that by the number of Connections you expect in the pool (<tt>maxPoolSize</tt>
+	in a busy application).
+      </p>
+      <p>
+	<tt>maxStatementsPerConnection</tt> is a non-standard configuration parameter that makes a bit more
+	sense conceptually. It defines how many statements each pooled <tt>Connection</tt> is allowed to own.
+	You can set this to a bit more than the number of <tt>PreparedStatements</tt> your application <i>frequently</i>
+	uses, to avoid churning.
+      </p>
+      <p>
+	If either of these parameters are greater than zero, statement pooling will be enabled. If both
+	parameters are greater than zero, both limits will be enforced. If only one is greater than zero, statement pooling
+	will be enabled, but only one limit will be enforced.
       </p>
     </div>
     <h2><a name="performance">Performance</a></h2>
@@ -639,40 +756,63 @@ c3p0.maxIdleTime=1800
     <h2><a name="appendix_a">Appendix A: Configuration Properties</a></h2>
     <div class="sectiontext">
       <dl class="properties">
-	<dt>initialPoolSize</dt>
+	<dt><a name="initialPoolSize"/>initialPoolSize</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	</dd>
-	<dt>minPoolSize</dt>
+	<dt><a name="minPoolSize"/>minPoolSize</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	</dd>
-	<dt>maxPoolSize</dt>
+	<dt><a name="maxPoolSize"/>maxPoolSize</dt>
 	<dd>
 	  <div class="default">Default: 15</div>
 	</dd>
-	<dt>idleConnectionTestPeriod</dt>
+	<dt><a name="idleConnectionTestPeriod"/>idleConnectionTestPeriod</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
 	    If this is a number greater than 0, c3p0 will test all idle, pooled but unchecked-out connections, every this number of seconds.
 	  </div>
 	</dd>
-	<dt>maxIdleTime</dt>
+	<dt><a name="maxIdleTime" />maxIdleTime</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
 	    Seconds a Connection can remain pooled but unused before being discarded. Zero means idle connections never expire.
 	  </div>
 	</dd>
-	<dt>maxStatements</dt>
+	<dt><a name="maxStatements" />maxStatements</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
-	    The size of c3p0's PreparedStatement cache. Zero means statement caching is turned off.
+	    The size of c3p0's global PreparedStatement cache. If both <tt>maxStatements</tt> and <tt>maxStatementsPerConnection</tt>
+	    are zero, statement caching will not be enabled. If <tt>maxStatements</tt> is zero but <tt>maxStatementsPerConnection</tt>
+	    is a non-zero value, statement caching will be enabled, but no global limit will be enforced, only the per-connection maximum.
+	    <tt>maxStatements</tt> controls the total number of Statements cached,
+	    for all Connections. If set, it should be a fairly large number, as each pooled Connection requires its own,
+	    distinct flock of cached statements. As a guide, consider how many distinct PreparedStatements are used
+	    <i>frequently</i> in your application, and multiply that number by <tt>maxPoolSize</tt> to arrive at an appropriate
+	    value. Though <tt>maxStatements</tt> is the JDBC standard parameter for controlling statement caching, users may
+	    find c3p0's alternative <tt>maxStatementsPerConnection</tt> more intuitive to use.
 	  </div>
 	</dd>
-	<dt>propertyCycle</dt>
+	<dt><a name="maxStatementsPerConnection" />maxStatementsPerConnection</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    The number of PreparedStatements c3p0 will cache for a single pooled Connection. 
+	    If both <tt>maxStatements</tt> and <tt>maxStatementsPerConnection</tt>
+	    are zero, statement caching will not be enabled. If <tt>maxStatementsPerConnection</tt> is zero but <tt>maxStatements</tt>
+	    is a non-zero value, statement caching will be enabled, and a global limit enforced, but otherwise no limit will be set 
+	    on the number of cached statements for a single Connection.
+	    If set, maxStatementsPerConnection should be set to about the number distinct PreparedStatements that are used
+	    <i>frequently</i> in your application, plus two or three extra so infrequently statements don't force the more common
+	    cached statements to be culled. Though <tt>maxStatements</tt> is the JDBC standard parameter for controlling statement caching,
+	    users may find <tt>maxStatementsPerConnection</tt> more intuitive to use.
+	  </div>
+	</dd>
+	<dt><a name="propertyCycle" />propertyCycle</dt>
 	<dd>
 	  <div class="default">Default: 300</div>
 	  <div class="propdesc">
@@ -681,14 +821,23 @@ c3p0.maxIdleTime=1800
             It is included for JDBC 3 completeness.
 	  </div>
 	</dd>
-	<dt>acquireIncrement</dt>
+	<dt><a name="checkoutTimeout" />checkoutTimeout</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    The number of milliseconds a client calling getConnection() will wait for a Connection to be checked-in or acquired
+	    when the pool is exhausted. Zero means wait indefinitely. Setting any positive value will cause the getConnection()
+	    call to time-out and break with an <tt>SQLException</tt> after the specified number of milliseconds.
+	  </div>
+	</dd>
+	<dt><a name="acquireIncrement" />acquireIncrement</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	  <div class="propdesc">
 	    Determines how many connections at a time c3p0 will try to acquire when the pool is exhausted.
 	  </div>
 	</dd>
-	<dt>acquireRetryAttempts</dt>
+	<dt><a name="acquireRetryAttempts" />acquireRetryAttempts</dt>
 	<dd>
 	  <div class="default">Default: 30</div>
 	  <div class="propdesc">
@@ -696,14 +845,14 @@ c3p0.maxIdleTime=1800
 	    this value is less than or equal to zero, c3p0 will keep trying to fetch a Connection indefinitely.	  
 	  </div>
 	</dd>
-	<dt>acquireRetryDelay</dt>
+	<dt><a name="acquireRetryDelay" />acquireRetryDelay</dt>
 	<dd>
 	  <div class="default">Default: 1000</div>
 	  <div class="propdesc">
 	    Milliseconds, time c3p0 will wait between acquire attempts.
 	  </div>
 	</dd>
-	<dt>breakAfterAcquireFailure</dt>
+	<dt><a name="breakAfterAcquireFailure" />breakAfterAcquireFailure</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -714,16 +863,52 @@ c3p0.maxIdleTime=1800
 	    a call to <tt>getConnection()</tt>.
 	  </div>
 	</dd>
-	<dt>testConnectionOnCheckout</dt>
+	<dt><a name="testConnectionOnCheckout" />testConnectionOnCheckout</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
-	    <b><i>Use only if necessary. Very expensive.</i></b>
+	    <b><i>Use only if necessary. Expensive.</i></b>
             If true, an operation will be performed at every connection checkout to verify that the connection is valid.
-            <b>Better choice:</b> verify connections periodically using c3p0.idleConnectionTestPeriod	
+            <b>Better choice:</b> verify connections periodically using <tt>idleConnectionTestPeriod</tt>. Also, setting an
+	    <tt>automaticTestTable</tt> or <tt>preferredTestQuery</tt> will usually speed up all connection tests.
 	  </div>
 	</dd>
-	<dt>autoCommitOnClose</dt>
+	<dt><a name="testConnectionOnCheckin" />testConnectionOnCheckin</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+            If true, an operation will be performed asynchronously at every connection checkin to verify that the connection is valid.
+	    Use in combination with <tt>idleConnectionTestPeriod</tt> for quite reliable, always asynchronous Connection testing.
+	    Also, setting an <tt>automaticTestTable</tt> or <tt>preferredTestQuery</tt> will usually speed up all connection tests.
+	  </div>
+	</dd>
+	<dt><a name="preferredTestQuery" />preferredTestQuery</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    Defines the query that will be executed for all connection tests, if the default ConnectionTester (or some
+	    other implementation of <a href="apidocs/com/mchange/v2/c3p0/advanced/QueryConnectionTester.html">QueryConnectionTester</a>) 
+	    is being used. Defining a <tt>preferredTestQuery</tt>
+	    that will execute quickly in your database may dramatically speed up Connection tests. (If no <tt>preferredTestQuery</tt>
+	    is set, the default ConnectionTester executes a <tt>getTables()</tt> call on the Connection's DatabaseMetaData.
+	    Depending on your database, this may execute more slowly than a "normal" database query.) > <b>NOTE: The table against
+            which your <tt>preferredTestQuery</tt> will be run must exist in the database schema <i>prior</i> to your initialization
+            of your DataSource. If your application defines its own schema, try <tt>automaticTestTable</tt> instead.</b>
+	  </div>
+	</dd>
+	<dt><a name="automaticTestTable" />automaticTestTable</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    If provided, c3p0 will create an empty table of the specified name, and use queries against that table to
+	    test the Connection. If <tt>automaticTestTable</tt> is provided, c3p0 will generate its own test query, therefore
+	    any <tt>preferredTestQuery</tt> set will be ignored. You should not work with the named table after c3p0 creates
+	    it; it should be strictly for c3p0's use in testing your Connection. (If you define your own ConnectionTester, it
+	    must implement the <a href="apidocs/com/mchange/v2/c3p0/advanced/QueryConnectionTester.html">QueryConnectionTester</a>
+	    interface for this parameter to be useful.)
+	  </div>
+	</dd>
+	<dt><a name="autoCommitOnClose" />autoCommitOnClose</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -736,7 +921,7 @@ c3p0.maxIdleTime=1800
               rolled-back before close is called.</i>]
 	  </div>
 	</dd>
-	<dt>forceIgnoreUnresolvedTransactions</dt>
+	<dt><a name="forceIgnoreUnresolvedTransactions" />forceIgnoreUnresolvedTransactions</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -754,7 +939,7 @@ c3p0.maxIdleTime=1800
               setting this to true is just a bad idea.</b>	
 	  </div>
 	</dd>
-	<dt>numHelperThreads</dt>
+	<dt><a name="numHelperThreads" />numHelperThreads</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	  <div class="propdesc">
@@ -764,7 +949,7 @@ c3p0.maxIdleTime=1800
             by allowing multiple operations to be performed simultaneously.	
 	  </div>
 	</dd>
-	<dt>usesTraditionalReflectiveProxies</dt>
+	<dt><a name="usesTraditionalReflectiveProxies" />usesTraditionalReflectiveProxies</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -774,7 +959,7 @@ c3p0.maxIdleTime=1800
             by allowing multiple operations to be performed simultaneously.
  	  </div>
 	</dd>
-	<dt>factoryClassLocation</dt>
+	<dt><a name="factoryClassLocation" />factoryClassLocation</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">

@@ -10,24 +10,32 @@
     <property>
        <type>ConnectionPoolDataSource</type>
        <name>connectionPoolDataSource</name>
-       <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <bound/><!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>numHelperThreads</name>
        <default-value>PoolConfig.defaultNumHelperThreads()</default-value>
-       <bound/>
+       <bound/><!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
        <name>poolOwnerIdentityToken</name>
        <default-value>Integer.toString( System.identityHashCode( this ), 16 )</default-value>
        <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
        <name>factoryClassLocation</name>
        <default-value>PoolConfig.defaultFactoryClassLocation()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
   </properties> 
 </beangen>

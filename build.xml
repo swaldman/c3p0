@@ -279,7 +279,7 @@
    </target>
 
    <target name="javadocs" depends="init">
-      <javadoc packagenames="com.mchange.v2.c3p0"
+      <javadoc packagenames="com.mchange.v2.c3p0,com.mchange.v2.c3p0.advanced"
                sourcepath="${java.src.dir}"
                destdir="${build.apidocs.dir}" 
                classpathref="build-classpath" 

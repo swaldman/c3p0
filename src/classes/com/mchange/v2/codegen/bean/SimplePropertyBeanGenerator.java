@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -32,17 +32,6 @@ import com.mchange.v2.codegen.IndentedWriter;
 
 public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 {
-    final static Comparator PROPERTY_COMPARATOR = new Comparator()
-    {
-	public int compare(Object a, Object b)
-	{
-	    Property aa = (Property) a;
-	    Property bb = (Property) b;
-
-	    return (aa.getName().compareTo( bb.getName() ));
-	}
-     };
-
     private boolean inner              = false;
     private int     java_version       = 130; //1.3.0
     private boolean force_unmodifiable = false;
@@ -100,7 +89,7 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
     {
 	this.info = info;
 	this.props = props;
-	Arrays.sort( props, PROPERTY_COMPARATOR );
+	Arrays.sort( props, BeangenUtils.PROPERTY_COMPARATOR );
 	this.iw = ( w instanceof IndentedWriter ? (IndentedWriter) w : new IndentedWriter(w));
 
 	this.generalImports = new TreeSet();
@@ -219,7 +208,8 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
     protected void writeCoreBody() throws IOException
     {
 	writeJavaBeansChangeSupport();
-	writePropertyMembers();
+	writePropertyVariables();
+	writeOtherVariables();
 	iw.println();
 
 	writeGetterSetterPairs();
@@ -234,6 +224,9 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 		writeConstrainedPropertyEventSourceMethods();
 	    }
 	writeInternalUtilityFunctions();
+	writeOtherFunctions();
+
+	writeOtherClasses();
 
 	String[] completed_intfc_names = (String[]) interfaceNames.toArray( new String[ interfaceNames.size() ] );
 	String[] completed_gen_imports = (String[]) generalImports.toArray( new String[ generalImports.size() ] );
@@ -330,15 +323,24 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 	    }
     }
 
-    protected void writePropertyMembers() throws IOException
+    protected void writeOtherVariables() throws IOException //hook method for subclasses
+    {}
+
+    protected void writeOtherFunctions() throws IOException //hook method for subclasses
+    {}
+
+    protected void writeOtherClasses() throws IOException //hook method for subclasses
+    {}
+
+    protected void writePropertyVariables() throws IOException
     {
 	for (int i = 0, len = props.length; i < len; ++i)
-	    writePropertyMember( props[i] );
+	    writePropertyVariable( props[i] );
     }
 
-    protected void writePropertyMember( Property prop ) throws IOException
+    protected void writePropertyVariable( Property prop ) throws IOException
     {
-	BeangenUtils.writePropertyMember( prop, iw );
+	BeangenUtils.writePropertyVariable( prop, iw );
 // 	iw.print( CodegenUtils.getModifierString( prop.getVariableModifiers() ) );
 // 	iw.print( ' ' + prop.getSimpleTypeName() + ' ' + prop.getName());
 // 	String dflt = prop.getDefaultValueExpression();
@@ -346,6 +348,18 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 // 	    iw.print( " = " + dflt );
 // 	iw.println(';');
     }
+
+    /**
+     * @deprecated
+     */
+    protected void writePropertyMembers() throws IOException 
+    { throw new InternalError("writePropertyMembers() deprecated and removed. please us writePropertyVariables()."); }
+
+    /**
+     * @deprecated
+     */
+    protected void writePropertyMember( Property prop ) throws IOException
+    { throw new InternalError("writePropertyMember() deprecated and removed. please us writePropertyVariable()."); }
 
     protected void writeGetterSetterPairs() throws IOException
     {

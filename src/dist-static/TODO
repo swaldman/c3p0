@@ -1,15 +1,15 @@
-Better pool stats API.
+some validation stuff in C3P0PooledConnectionPoolManager...
 
-Allow user-defined Connection-test queries.
+Better pool stats API.
+API for raw Statement access
 
 JBoss integration.
 
 Create a dbms-dir level build.xml file, rather than having top-level
 manage subdirectories.
 
-	things to complete:
-	   preferredTestQuery
-	   testConnectionsOnCheckin	
+
+
 
 
 

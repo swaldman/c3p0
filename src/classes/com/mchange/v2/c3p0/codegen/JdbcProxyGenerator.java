@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -54,6 +54,10 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.println("ResultSet innerResultSet = inner." + CodegenUtils.methodCall( method ) + ";");
 		    iw.println("return new NewProxyResultSet( innerResultSet, parentPooledConnection, inner, this );"); 
 		}
+ 	    else if ( mname.equals( "getConnection" ) )
+ 		{
+		    iw.println("return this.proxyCon;");
+ 		}
 	    else
 		super.generateDelegateCode( intfcl, genclass, method, iw );
 	}
@@ -69,6 +73,22 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    if ( method.getExceptionTypes().length > 0 )
 		super.generatePostDelegateCode( intfcl, genclass, method, iw );
 	}
+
+	protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
+	{
+	    super.generateExtraDeclarations( intfcl, genclass, iw );
+	    iw.println();
+	    iw.println("NewProxyConnection proxyCon;");
+	    iw.println();
+	    iw.print( CodegenUtils.fqcnLastElement( genclass ) );
+	    iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + " inner, NewPooledConnection parentPooledConnection, NewProxyConnection proxyCon )");
+	    iw.println("{");
+	    iw.upIndent();
+	    iw.println("this( inner, parentPooledConnection );");
+	    iw.println("this.proxyCon = proxyCon;");
+	    iw.downIndent();
+	    iw.println("}");
+	}
     }
 
     static final class NewProxyResultSetGenerator extends JdbcProxyGenerator
@@ -80,6 +100,10 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 
 	    if ( mname.equals("close") )
 		{
+		    iw.println("if (! this.isDetached())");
+		    iw.println("{");
+		    iw.upIndent();
+
 		    iw.println("if (creator instanceof Statement)");
 		    iw.upIndent();
  		    iw.println("parentPooledConnection.markInactiveResultSetForStatement( (Statement) creator, inner );");
@@ -96,6 +120,10 @@ public class JdbcProxyGenerator extends DelegatorGenerator
  
 		    iw.println("this.detach();");
 		    iw.println("inner.close();");
+		    iw.println("this.inner = null;");
+
+		    iw.downIndent();
+		    iw.println("}");
 		}
 	    else if ( mname.equals("getStatement") )
 		{
@@ -111,7 +139,7 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else if ( mname.equals("isClosed") )
 		{
-		    iw.println( "return parentPooledConnection != null;" );
+		    iw.println( "return this.isDetached();" );
 		}
 	    else
 		super.generateDelegateCode( intfcl, genclass, method, iw );
@@ -155,23 +183,29 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else if ( mname.equals("close") )
 		{
+		    iw.println("if (! this.isDetached())");
+		    iw.println("{");
+		    iw.upIndent();
+		    
 		    iw.println("if ( is_cached )");
 		    iw.upIndent();
 		    iw.println("parentPooledConnection.checkinStatement( inner );");
 		    iw.downIndent();
 		    iw.println("else");
-		    iw.println("{");
 		    iw.upIndent();
-
 		    iw.println("parentPooledConnection.markInactiveUncachedStatement( inner );");
+		    iw.downIndent();
+
 		    iw.println("this.detach();");
 		    iw.println("inner.close();");
+		    iw.println("this.inner = null;");
+
 		    iw.downIndent();
 		    iw.println("}");
 		}
 	    else if ( mname.equals("isClosed") )
 		{
-		    iw.println( "return parentPooledConnection != null;" );
+		    iw.println( "return this.isDetached();" );
 		}
 	    else
 		super.generateDelegateCode( intfcl, genclass, method, iw );
@@ -225,12 +259,16 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    String mname = method.getName();
 	    if (mname.equals("createStatement"))
 		{
+		    iw.println("txn_known_resolved = false;");
+		    iw.println();
 		    iw.println("Statement innerStmt = inner."  + CodegenUtils.methodCall( method ) + ";");
 		    iw.println("parentPooledConnection.markActiveUncachedStatement( innerStmt );");
 		    iw.println("return new NewProxyStatement( innerStmt, parentPooledConnection, false, this );");
 		}
 	    else if (mname.equals("prepareStatement"))
 		{
+		    iw.println("txn_known_resolved = false;");
+		    iw.println();
 		    iw.println("PreparedStatement innerStmt;");
 		    iw.println();
 		    iw.println("if ( parentPooledConnection.isStatementCaching() )");
@@ -257,6 +295,8 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else if (mname.equals("prepareCall"))
 		{
+		    iw.println("txn_known_resolved = false;");
+		    iw.println();
 		    iw.println("CallableStatement innerStmt;");
 		    iw.println();
 		    iw.println("if ( parentPooledConnection.isStatementCaching() )");
@@ -283,39 +323,60 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else if (mname.equals("getMetaData"))
 		{
+		    iw.println("txn_known_resolved = false;");
+		    iw.println();
 		    iw.println("if (this.metaData == null)");
 		    iw.println("{");
 		    iw.upIndent();
 		    iw.println("DatabaseMetaData innerMetaData = inner." + CodegenUtils.methodCall( method ) + ";");
-		    iw.println("this.metaData = new NewProxyDatabaseMetaData( innerMetaData, parentPooledConnection );");
+		    iw.println("this.metaData = new NewProxyDatabaseMetaData( innerMetaData, parentPooledConnection, this );");
 		    iw.downIndent();
 		    iw.println("}");
 		    iw.println("return this.metaData;");
 		}
 	    else if ( mname.equals("close") )
 		{
+		    iw.println("if (! this.isDetached())");
+		    iw.println("{");
+		    iw.upIndent();
 		    iw.println("NewPooledConnection npc = parentPooledConnection;");
 		    iw.println("this.detach();");
-		    iw.println("npc.markClosedProxyConnection( this );");
+		    iw.println("npc.markClosedProxyConnection( this, txn_known_resolved );");
+		    iw.println("this.inner = null;");
+		    iw.downIndent();
+		    iw.println("}");
 		}
 	    else if ( mname.equals("isClosed") )
 		{
-		    iw.println("return (this.parentPooledConnection == null);");
+		    iw.println("return this.isDetached();");
 		}
 	    else
-		super.generateDelegateCode( intfcl, genclass, method, iw );
+		{
+		    iw.println("txn_known_resolved = " + 
+			       ( mname.equals("commit") || mname.equals( "rollback" ) || mname.equals( "setAutoCommit" ) ) +
+			       ';');
+		    iw.println();
+		    super.generateDelegateCode( intfcl, genclass, method, iw );
+		}
 	}
 
 	protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
 	{
+	    iw.println("boolean txn_known_resolved = true;");
+	    iw.println();
 	    iw.println("DatabaseMetaData metaData = null;");
 	    iw.println();
 	    iw.println("public Object rawConnectionOperation(Method m, Object target, Object[] args)");
 	    iw.upIndent();
-	    iw.println("throws IllegalAccessException, IllegalArgumentException, InvocationTargetException");
+	    iw.println("throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SQLException");
 	    iw.downIndent();
 	    iw.println("{");
 	    iw.upIndent();
+	    iw.println("if (inner == null)");
+	    iw.upIndent();
+	    iw.println("throw new SQLException(\"You cannot operate on a closed Connection!\");");
+	    iw.downIndent();
+
 	    iw.println("if ( target == C3P0ProxyConnection.RAW_CONNECTION)");
 	    iw.upIndent();
 	    iw.println("target = inner;");

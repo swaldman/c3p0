@@ -12,30 +12,24 @@
   <output-class>DriverManagerDataSourceBase</output-class>
   <properties> 
     <property>
-       <variable>
-         <modifiers>
-            <modifier>protected</modifier>
-         </modifiers>
-       </variable>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
        <type>String</type>
        <name>driverClass</name>
        <constrained/>
     </property>
     <property>
-       <variable>
-         <modifiers>
-            <modifier>protected</modifier>
-         </modifiers>
-       </variable>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
        <type>String</type>
        <name>jdbcUrl</name>
     </property>
     <property>
-       <variable>
-         <modifiers>
-            <modifier>protected</modifier>
-         </modifiers>
-       </variable>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
        <type>Properties</type>
        <name>properties</name>
        <defensive-copy>
@@ -45,20 +39,16 @@
        <bound/>
     </property>
     <property>
-       <variable>
-         <modifiers>
-            <modifier>protected</modifier>
-         </modifiers>
-       </variable>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
        <type>String</type>
        <name>description</name>
     </property>
     <property>
-       <variable>
-         <modifiers>
-            <modifier>protected</modifier>
-         </modifiers>
-       </variable>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
        <type>String</type>
        <name>factoryClassLocation</name>
        <default-value>PoolConfig.defaultFactoryClassLocation()</default-value>

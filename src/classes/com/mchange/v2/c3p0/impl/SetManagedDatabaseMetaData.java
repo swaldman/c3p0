@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -30,12 +30,17 @@ import com.mchange.v2.sql.filter.FilterDatabaseMetaData;
 final class SetManagedDatabaseMetaData extends FilterDatabaseMetaData
 {
     Set activeResultSets;
+    Connection returnableProxy;
 
-    SetManagedDatabaseMetaData( DatabaseMetaData inner, Set activeResultSets )
+    SetManagedDatabaseMetaData( DatabaseMetaData inner, Set activeResultSets, Connection returnableProxy )
     {
 		super( inner );
 		this.activeResultSets = activeResultSets;
+		this.returnableProxy = returnableProxy;
     }
+
+    public Connection getConnection() throws SQLException
+    { return returnableProxy; }
 
     public ResultSet getProcedures(String a, String b, String c) throws SQLException
     {

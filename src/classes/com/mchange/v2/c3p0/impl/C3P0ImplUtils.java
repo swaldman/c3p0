@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -25,6 +25,7 @@ package com.mchange.v2.c3p0.impl;
 
 import java.beans.*;
 import java.lang.reflect.*;
+import java.sql.Connection;
 import java.sql.SQLException;
 import com.mchange.v2.sql.SqlUtils;
 
@@ -79,6 +80,22 @@ public final class C3P0ImplUtils
 		if (Debug.DEBUG)
 		    e.printStackTrace();
 		throw SqlUtils.toSQLException(e);
+	    }
+    }
+
+    static void resetTxnState( Connection pCon, 
+			       boolean forceIgnoreUnresolvedTransactions, 
+			       boolean autoCommitOnClose, 
+			       boolean txnKnownResolved ) throws SQLException
+    {
+	if ( !forceIgnoreUnresolvedTransactions && !pCon.getAutoCommit() )
+	    {
+		if (! autoCommitOnClose && ! txnKnownResolved)
+		    {
+			System.err.println("Rolling back potentially unresolved txn...");
+			pCon.rollback();
+		    }	
+		pCon.setAutoCommit( true ); //implies commit if not already rolled back.
 	    }
     }
 

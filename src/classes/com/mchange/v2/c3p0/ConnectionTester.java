@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -30,6 +30,10 @@ import java.sql.Connection;
  *  <p>Define your own Connection tester if you want to
  *  override c3p0's default behavior for testing the validity
  *  of Connections and responding to Connection errors encountered.</p>
+ *
+ *  <p><b>Recommended:</b> If you'd like your ConnectionTester
+ *  to support the user-configured <tt>preferredTestQuery</tt>
+ *  parameter, please implement {@link com.mchange.v2.c3p0.advanced.QueryConnectionTester}.
  *
  *  <p>ConnectionTesters should be Serializable, immutable, 
  *  and must have public, no-arg constructors.</p>

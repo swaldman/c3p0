@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -51,7 +51,7 @@ abstract class StatementCacheKey
 	    }
     }
 
-    //MT: instances are immutable once they 
+    //MT: instances are treated as immutable once they 
     //    have been initialized and handed to
     //    a client. (Factories may reinitialize
     //    instances that never get released to

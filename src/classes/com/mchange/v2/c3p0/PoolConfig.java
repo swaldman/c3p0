@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -192,16 +192,21 @@ public final class PoolConfig
     public final static String MAX_IDLE_TIME                        = "c3p0.maxIdleTime";
     public final static String PROPERTY_CYCLE                       = "c3p0.propertyCycle";
     public final static String MAX_STATEMENTS                       = "c3p0.maxStatements";
+    public final static String MAX_STATEMENTS_PER_CONNECTION        = "c3p0.maxStatementsPerConnection";
+    public final static String CHECKOUT_TIMEOUT                     = "c3p0.checkoutTimeout";
     public final static String ACQUIRE_INCREMENT                    = "c3p0.acquireIncrement";
     public final static String ACQUIRE_RETRY_ATTEMPTS               = "c3p0.acquireRetryAttempts";
     public final static String ACQUIRE_RETRY_DELAY                  = "c3p0.acquireRetryDelay";
     public final static String BREAK_AFTER_ACQUIRE_FAILURE          = "c3p0.breakAfterAcquireFailure";
     public final static String USES_TRADITIONAL_REFLECTIVE_PROXIES  = "c3p0.usesTraditionalReflectiveProxies";
     public final static String TEST_CONNECTION_ON_CHECKOUT          = "c3p0.testConnectionOnCheckout";
+    public final static String TEST_CONNECTION_ON_CHECKIN           = "c3p0.testConnectionOnCheckin";
     public final static String CONNECTION_TESTER_CLASS_NAME         = "c3p0.connectionTesterClassName";
+    public final static String AUTOMATIC_TEST_TABLE                 = "c3p0.automaticTestTable";
     public final static String AUTO_COMMIT_ON_CLOSE                 = "c3p0.autoCommitOnClose";
     public final static String FORCE_IGNORE_UNRESOLVED_TRANSACTIONS = "c3p0.forceIgnoreUnresolvedTransactions";
     public final static String NUM_HELPER_THREADS                   = "c3p0.numHelperThreads";
+    public final static String PREFERRED_TEST_QUERY                 = "c3p0.preferredTestQuery";
     public final static String FACTORY_CLASS_LOCATION               = "c3p0.factoryClassLocation";
     
     public final static String DEFAULT_CONFIG_RSRC_PATH = "/c3p0.properties";
@@ -218,11 +223,17 @@ public final class PoolConfig
     public static int defaultNumHelperThreads()
     { return DEFAULTS.getNumHelperThreads(); }
 
+    public static String defaultPreferredTestQuery()
+    { return DEFAULTS.getPreferredTestQuery(); }
+
     public static String defaultFactoryClassLocation()
     { return DEFAULTS.getFactoryClassLocation(); }
 
     public static int defaultMaxStatements()
     { return DEFAULTS.getMaxStatements(); }
+
+    public static int defaultMaxStatementsPerConnection()
+    { return DEFAULTS.getMaxStatementsPerConnection(); }
 
     public static int defaultInitialPoolSize()
     { return DEFAULTS.getInitialPoolSize(); }
@@ -242,6 +253,9 @@ public final class PoolConfig
     public static int defaultPropertyCycle()
     { return DEFAULTS.getPropertyCycle(); }
 
+    public static int defaultCheckoutTimeout()
+    { return DEFAULTS.getCheckoutTimeout(); }
+
     public static int defaultAcquireIncrement()
     { return DEFAULTS.getAcquireIncrement(); }
 
@@ -257,8 +271,14 @@ public final class PoolConfig
     public static String defaultConnectionTesterClassName()
     { return DEFAULTS.getConnectionTesterClassName(); }
 
+    public static String defaultAutomaticTestTable()
+    { return DEFAULTS.getAutomaticTestTable(); }
+
     public static boolean defaultTestConnectionOnCheckout()
     { return DEFAULTS.isTestConnectionOnCheckout(); }
+
+    public static boolean defaultTestConnectionOnCheckin()
+    { return DEFAULTS.isTestConnectionOnCheckin(); }
 
     public static boolean defaultAutoCommitOnClose()
     { return DEFAULTS.isAutoCommitOnClose(); }
@@ -271,22 +291,27 @@ public final class PoolConfig
 
 
     int     maxStatements;
+    int     maxStatementsPerConnection;
     int     initialPoolSize;
     int     minPoolSize;
     int     maxPoolSize;
     int     idleConnectionTestPeriod;
     int     maxIdleTime;
     int     propertyCycle;
+    int     checkoutTimeout;
     int     acquireIncrement;
     int     acquireRetryAttempts;
     int     acquireRetryDelay;
     boolean breakAfterAcquireFailure;
     boolean testConnectionOnCheckout;
+    boolean testConnectionOnCheckin;
     boolean autoCommitOnClose;
     boolean forceIgnoreUnresolvedTransactions;
     boolean usesTraditionalReflectiveProxies;
     String  connectionTesterClassName;
+    String  automaticTestTable;
     int     numHelperThreads;
+    String  preferredTestQuery;
     String  factoryClassLocation;
 
     private PoolConfig( Properties props, boolean init ) throws NumberFormatException
@@ -304,11 +329,17 @@ public final class PoolConfig
     public int getNumHelperThreads()
     { return numHelperThreads; }
 
+    public String getPreferredTestQuery()
+    { return preferredTestQuery; }
+
     public String getFactoryClassLocation()
     { return factoryClassLocation; }
 
     public int getMaxStatements()
     { return maxStatements; }
+    
+    public int getMaxStatementsPerConnection()
+    { return maxStatementsPerConnection; }
     
     public int getInitialPoolSize()
     { return initialPoolSize; }
@@ -331,6 +362,9 @@ public final class PoolConfig
     public int getAcquireIncrement()
     { return acquireIncrement; }
     
+    public int getCheckoutTimeout()
+    { return checkoutTimeout; }
+    
     public int getAcquireRetryAttempts()
     { return acquireRetryAttempts; }
     
@@ -346,6 +380,9 @@ public final class PoolConfig
     public String getConnectionTesterClassName()
     { return connectionTesterClassName; }
     
+    public String getAutomaticTestTable()
+    { return automaticTestTable; }
+    
     /**
      * @deprecated use isTestConnectionOnCheckout
      */
@@ -354,6 +391,9 @@ public final class PoolConfig
 
     public boolean isTestConnectionOnCheckout()
     { return this.getTestConnectionOnCheckout(); }
+
+    public boolean isTestConnectionOnCheckin()
+    { return testConnectionOnCheckin; }
 
     public boolean isAutoCommitOnClose()
     { return this.autoCommitOnClose;	}
@@ -364,11 +404,17 @@ public final class PoolConfig
     public void setNumHelperThreads( int numHelperThreads )
     { this.numHelperThreads = numHelperThreads;	}
 
+    public void setPreferredTestQuery( String preferredTestQuery )
+    { this.preferredTestQuery = preferredTestQuery; }
+
     public void setFactoryClassLocation( String factoryClassLocation )
     { this.factoryClassLocation = factoryClassLocation;	}
 
     public void setMaxStatements( int maxStatements )
     { this.maxStatements = maxStatements; }
+    
+    public void setMaxStatementsPerConnection( int maxStatementsPerConnection )
+    { this.maxStatementsPerConnection = maxStatementsPerConnection; }
     
     public void setInitialPoolSize( int initialPoolSize )
     { this.initialPoolSize = initialPoolSize; }
@@ -388,6 +434,9 @@ public final class PoolConfig
     public void setPropertyCycle( int propertyCycle )
     { this.propertyCycle = propertyCycle; }
     
+    public void setCheckoutTimeout( int checkoutTimeout )
+    { this.checkoutTimeout = checkoutTimeout; }
+    
     public void setAcquireIncrement( int acquireIncrement )
     { this.acquireIncrement = acquireIncrement; }
     
@@ -399,6 +448,9 @@ public final class PoolConfig
     
     public void setConnectionTesterClassName( String connectionTesterClassName )
     { this.connectionTesterClassName = connectionTesterClassName; }
+    
+    public void setAutomaticTestTable( String automaticTestTable )
+    { this.automaticTestTable = automaticTestTable; }
     
     public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
     { this.breakAfterAcquireFailure = breakAfterAcquireFailure; }
@@ -413,6 +465,9 @@ public final class PoolConfig
      */
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { this.testConnectionOnCheckout = testConnectionOnCheckout; }
+    
+    public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin )
+    { this.testConnectionOnCheckin = testConnectionOnCheckin; }
     
     public void setAutoCommitOnClose( boolean autoCommitOnClose )
     { this.autoCommitOnClose = autoCommitOnClose;  }
@@ -430,43 +485,53 @@ public final class PoolConfig
     private static void extractConfig(PoolConfig pcfg, Properties props, PoolConfig defaults) throws NumberFormatException
     {
 	String maxStatementsStr                     = null;
+	String maxStatementsPerConnectionStr        = null;
 	String initialPoolSizeStr                   = null;
 	String minPoolSizeStr                       = null;
 	String maxPoolSizeStr                       = null;
 	String idleConnectionTestPeriodStr          = null;
 	String maxIdleTimeStr                       = null;
 	String propertyCycleStr                     = null;
+	String checkoutTimeoutStr                   = null;
 	String acquireIncrementStr                  = null;
 	String acquireRetryAttemptsStr              = null;
 	String acquireRetryDelayStr                 = null;
 	String breakAfterAcquireFailureStr          = null;
 	String usesTraditionalReflectiveProxiesStr  = null;
 	String testConnectionOnCheckoutStr          = null;
+	String testConnectionOnCheckinStr           = null;
 	String autoCommitOnCloseStr                 = null;
 	String forceIgnoreUnresolvedTransactionsStr = null;
 	String connectionTesterClassName            = null;
+	String automaticTestTable                   = null;
 	String numHelperThreadsStr                  = null;
+	String preferredTestQuery                   = null;
 	String factoryClassLocation                 = null;
 
 	if ( props != null )
 	    {
 		maxStatementsStr = props.getProperty(MAX_STATEMENTS);
+		maxStatementsPerConnectionStr = props.getProperty(MAX_STATEMENTS_PER_CONNECTION);
 		initialPoolSizeStr = props.getProperty(INITIAL_POOL_SIZE);
 		minPoolSizeStr = props.getProperty(MIN_POOL_SIZE);
 		maxPoolSizeStr = props.getProperty(MAX_POOL_SIZE);
 		idleConnectionTestPeriodStr = props.getProperty(IDLE_CONNECTION_TEST_PERIOD);
 		maxIdleTimeStr = props.getProperty(MAX_IDLE_TIME);
 		propertyCycleStr = props.getProperty(PROPERTY_CYCLE);
+		checkoutTimeoutStr = props.getProperty(CHECKOUT_TIMEOUT);
 		acquireIncrementStr = props.getProperty(ACQUIRE_INCREMENT);
 		acquireRetryAttemptsStr = props.getProperty(ACQUIRE_RETRY_ATTEMPTS);
 		acquireRetryDelayStr = props.getProperty(ACQUIRE_RETRY_DELAY);
 		breakAfterAcquireFailureStr = props.getProperty(BREAK_AFTER_ACQUIRE_FAILURE);
 		usesTraditionalReflectiveProxiesStr = props.getProperty(USES_TRADITIONAL_REFLECTIVE_PROXIES);
 		testConnectionOnCheckoutStr = props.getProperty(TEST_CONNECTION_ON_CHECKOUT);
+		testConnectionOnCheckinStr = props.getProperty(TEST_CONNECTION_ON_CHECKIN);
 		autoCommitOnCloseStr = props.getProperty(AUTO_COMMIT_ON_CLOSE);
 		forceIgnoreUnresolvedTransactionsStr = props.getProperty(FORCE_IGNORE_UNRESOLVED_TRANSACTIONS);
 		connectionTesterClassName = props.getProperty(CONNECTION_TESTER_CLASS_NAME);
+		automaticTestTable = props.getProperty(AUTOMATIC_TEST_TABLE);
 		numHelperThreadsStr = props.getProperty(NUM_HELPER_THREADS);
+		preferredTestQuery = props.getProperty(PREFERRED_TEST_QUERY);
 		factoryClassLocation = props.getProperty(FACTORY_CLASS_LOCATION);
 	    }
 
@@ -477,6 +542,14 @@ public final class PoolConfig
 	    pcfg.setMaxStatements( defaults.getMaxStatements() );
 	else
 	    pcfg.setMaxStatements( C3P0Defaults.maxStatements() );
+
+	// maxStatementsPerConnection
+	if ( maxStatementsPerConnectionStr != null )
+	    pcfg.setMaxStatementsPerConnection( Integer.parseInt( maxStatementsPerConnectionStr ) );
+	else if (defaults != null)
+	    pcfg.setMaxStatementsPerConnection( defaults.getMaxStatementsPerConnection() );
+	else
+	    pcfg.setMaxStatementsPerConnection( C3P0Defaults.maxStatementsPerConnection() );
 
 	// initialPoolSize
 	if ( initialPoolSizeStr != null )
@@ -526,6 +599,14 @@ public final class PoolConfig
 	else
 	    pcfg.setPropertyCycle( C3P0Defaults.propertyCycle() );
 
+	// checkoutTimeout
+	if ( checkoutTimeoutStr != null )
+	    pcfg.setCheckoutTimeout( Integer.parseInt( checkoutTimeoutStr ) );
+	else if (defaults != null)
+	    pcfg.setCheckoutTimeout( defaults.getCheckoutTimeout() );
+	else
+	    pcfg.setCheckoutTimeout( C3P0Defaults.checkoutTimeout() );
+
 	// acquireIncrement
 	if ( acquireIncrementStr != null )
 	    pcfg.setAcquireIncrement( Integer.parseInt( acquireIncrementStr ) );
@@ -574,6 +655,14 @@ public final class PoolConfig
 	else
 	    pcfg.setTestConnectionOnCheckout( C3P0Defaults.testConnectionOnCheckout() );
 
+	// testConnectionOnCheckin
+	if ( testConnectionOnCheckinStr != null )
+	    pcfg.setTestConnectionOnCheckin( Boolean.valueOf(testConnectionOnCheckinStr).booleanValue() );
+	else if (defaults != null)
+	    pcfg.setTestConnectionOnCheckin( defaults.isTestConnectionOnCheckin() );
+	else
+	    pcfg.setTestConnectionOnCheckin( C3P0Defaults.testConnectionOnCheckin() );
+
 	// autoCommitOnClose
 	if ( autoCommitOnCloseStr != null )
 	    pcfg.setAutoCommitOnClose( Boolean.valueOf(autoCommitOnCloseStr).booleanValue() );
@@ -598,6 +687,14 @@ public final class PoolConfig
 	else
 	    pcfg.setConnectionTesterClassName( C3P0Defaults.connectionTesterClassName() );
 
+	// automaticTestTable
+	if ( automaticTestTable != null )
+	    pcfg.setAutomaticTestTable( automaticTestTable );
+	else if (defaults != null)
+	    pcfg.setAutomaticTestTable( defaults.getAutomaticTestTable() );
+	else
+	    pcfg.setAutomaticTestTable( C3P0Defaults.automaticTestTable() );
+
 	// numHelperThreads
 	if ( numHelperThreadsStr != null )
 	    pcfg.setNumHelperThreads( Integer.parseInt( numHelperThreadsStr ) );
@@ -605,6 +702,14 @@ public final class PoolConfig
 	    pcfg.setNumHelperThreads( defaults.getNumHelperThreads() );
 	else
 	    pcfg.setNumHelperThreads( C3P0Defaults.numHelperThreads() );
+
+	// preferredTestQuery
+	if ( preferredTestQuery != null )
+	    pcfg.setPreferredTestQuery( preferredTestQuery );
+	else if (defaults != null)
+	    pcfg.setPreferredTestQuery( defaults.getPreferredTestQuery() );
+	else
+	    pcfg.setPreferredTestQuery( C3P0Defaults.preferredTestQuery() );
 
 	// factoryClassLocation
 	if ( factoryClassLocation != null )

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -29,6 +29,7 @@ import java.beans.VetoableChangeListener;
 import java.io.PrintWriter;
 import java.util.Properties;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import javax.sql.DataSource;
@@ -37,6 +38,8 @@ import com.mchange.v2.c3p0.impl.DriverManagerDataSourceBase;
 
 public final class DriverManagerDataSource extends DriverManagerDataSourceBase implements DataSource
 {
+    Driver driver;
+
     {
 	VetoableChangeListener registerDriverListener = new VetoableChangeListener()
 	    {
@@ -58,11 +61,11 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	this.addVetoableChangeListener( registerDriverListener );
     }
 
-    public Connection getConnection() throws SQLException
-    { return DriverManager.getConnection( jdbcUrl, properties ); }
+    public synchronized Connection getConnection() throws SQLException
+    { return driver().connect( jdbcUrl, properties ); }
 
-    public Connection getConnection(String username, String password) throws SQLException
-    { return DriverManager.getConnection( jdbcUrl, overrideProps(username, password) );  }
+    public synchronized Connection getConnection(String username, String password) throws SQLException
+    { return driver().connect( jdbcUrl, overrideProps(username, password) );  }
 
     public PrintWriter getLogWriter() throws SQLException
     { return DriverManager.getLogWriter(); }
@@ -76,8 +79,15 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     public void setLoginTimeout(int seconds) throws SQLException
     { DriverManager.setLoginTimeout( seconds ); }
 
+    //overrides
+    public synchronized void setJdbcUrl(String jdbcUrl)
+    {
+	super.setJdbcUrl( jdbcUrl );
+	this.driver = null;
+    }
+
     //"virtual properties"
-    public void setUser(String user)
+    public synchronized void setUser(String user)
     {
 	String oldUser = this.getUser();
 	if (! eqOrBothNull( user, oldUser ))
@@ -91,10 +101,10 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	    }
     }
 
-    public String getUser()
+    public synchronized String getUser()
     { return properties.getProperty( SqlUtils.DRIVER_MANAGER_USER_PROPERTY ); }
 
-    public void setPassword(String password)
+    public synchronized void setPassword(String password)
     {
 	String oldPass = this.getPassword();
 	if (! eqOrBothNull( password, oldPass ))
@@ -108,7 +118,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	    }
     }
 
-    public String getPassword()
+    public synchronized String getPassword()
     { return properties.getProperty( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY ); }
 
     private final Properties overrideProps(String user, String password)
@@ -126,6 +136,13 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	    overriding.remove(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY);
 
 	return overriding;
+    }
+
+    private Driver driver() throws SQLException
+    {
+	if (driver == null)
+	    driver = DriverManager.getDriver( jdbcUrl );
+	return driver;
     }
 
     private static boolean eqOrBothNull( Object a, Object b )

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -47,6 +47,7 @@ public class SerializableExtension implements GeneratorExtension
     public SerializableExtension(Set transientProperties, Map transientPropertyInitializers)
     { 
 	this.transientProperties = transientProperties; 
+	this.transientPropertyInitializers = transientPropertyInitializers;
     }
 
     public SerializableExtension()
@@ -91,7 +92,7 @@ public class SerializableExtension implements GeneratorExtension
 		if (! transientProperties.contains( prop.getName() ) )
 		    {
 			Class propType = propTypes[i];
-			if (propType.isPrimitive())
+			if (propType != null && propType.isPrimitive()) //primitives should always resolve, object types may not, and be null
 			    {
 				if (propType == byte.class)
 				    iw.println("oos.writeByte(" + prop.getName() + ");");
@@ -134,7 +135,7 @@ public class SerializableExtension implements GeneratorExtension
 		if (! transientProperties.contains( prop.getName() ) )
 		    {
 			Class propType = propTypes[i];
-			if (propType.isPrimitive())
+			if (propType != null && propType.isPrimitive()) //if a propType is unresolvable, it ain't a primitive
 			    {
 				if (propType == byte.class)
 				    iw.println("this." + prop.getName() + " = ois.readByte();");

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -23,6 +23,7 @@
 
 package com.mchange.v2.codegen.bean;
 
+import java.util.Comparator;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import com.mchange.v1.lang.ClassUtils;
@@ -31,6 +32,17 @@ import com.mchange.v2.codegen.IndentedWriter;
 
 public final class BeangenUtils
 {
+    public final static Comparator PROPERTY_COMPARATOR = new Comparator()
+    {
+	public int compare(Object a, Object b)
+	{
+	    Property aa = (Property) a;
+	    Property bb = (Property) b;
+
+	    return String.CASE_INSENSITIVE_ORDER.compare(aa.getName(), bb.getName() );
+	}
+     };
+
     public static String capitalize( String propName )
     {
 	char c = propName.charAt( 0 );
@@ -58,6 +70,14 @@ public final class BeangenUtils
 // 	    }
 //     }
 
+    public static void writeExplicitDefaultConstructor( int ctor_modifiers, ClassInfo info, IndentedWriter iw) throws IOException
+    {
+	iw.print( CodegenUtils.getModifierString( ctor_modifiers ) );
+	iw.println(' ' + info.getClassName() + "()");
+	iw.println("{}");
+    }
+
+
     public static void writeArgList(Property[] props, boolean declare_types, IndentedWriter iw ) throws IOException
     {
 	for (int i = 0, len = props.length; i < len; ++i)
@@ -70,10 +90,22 @@ public final class BeangenUtils
 	    }
     }
 
+    /**
+     * @deprecated use writePropertyVariable
+     */
     public static void writePropertyMember( Property prop, IndentedWriter iw ) throws IOException
-    { writePropertyMember( prop, prop.getDefaultValueExpression(), iw ); }
+    { writePropertyVariable( prop, iw ); }
 
+    public static void writePropertyVariable( Property prop, IndentedWriter iw ) throws IOException
+    { writePropertyVariable( prop, prop.getDefaultValueExpression(), iw ); }
+
+    /**
+     * @deprecated use writePropertyVariable
+     */
     public static void writePropertyMember( Property prop, String defaultValueExpression, IndentedWriter iw ) throws IOException
+    { writePropertyVariable( prop, defaultValueExpression, iw ); }
+
+    public static void writePropertyVariable( Property prop, String defaultValueExpression, IndentedWriter iw ) throws IOException
     {
 	iw.print( CodegenUtils.getModifierString( prop.getVariableModifiers() ) );
 	iw.print( ' ' + prop.getSimpleTypeName() + ' ' + prop.getName());
@@ -103,20 +135,28 @@ public final class BeangenUtils
     public static void writePropertySetter( Property prop, String setterDefensiveCopyExpression, IndentedWriter iw ) 
 	throws IOException
     {
+	String setVal = setterDefensiveCopyExpression;
+	if (setVal == null) setVal = prop.getName();
+	String usualGetExpression = ("this." + prop.getName());
+	String usualSetStatement = ("this." + prop.getName() + " = " + setVal + ';');
+	writePropertySetterWithGetExpressionSetStatement(prop, usualGetExpression, usualSetStatement, iw);
+    }
+
+    public static void writePropertySetterWithGetExpressionSetStatement( Property prop, String getExpression, String setStatement, IndentedWriter iw ) 
+	throws IOException
+    {
 	iw.print( CodegenUtils.getModifierString( prop.getSetterModifiers() ) );
 	iw.print(" void set" + BeangenUtils.capitalize( prop.getName() ) + "( " + prop.getSimpleTypeName() + ' ' + prop.getName() + " )");
 	if ( prop.isConstrained() )
 	    iw.println(" throws PropertyVetoException");
 	else
 	    iw.println();
-	String setVal = setterDefensiveCopyExpression;
-	if (setVal == null) setVal = prop.getName();
 	iw.println('{');
 	iw.upIndent();
 
 	if ( changeMarked( prop ) )
 	    {
-		iw.println( prop.getSimpleTypeName() + " oldVal = this." + prop.getName() + ';');
+		iw.println( prop.getSimpleTypeName() + " oldVal = " + getExpression + ';');
 
 		String oldValExpr = "oldVal";
 		String newValExpr = prop.getName();
@@ -168,7 +208,7 @@ public final class BeangenUtils
 			iw.downIndent();
 		    }
 
-		iw.println("this." + prop.getName() + " = " + setVal + ';');
+		iw.println( setStatement );
 				
 		if ( prop.isBound() )
 		    {
@@ -179,7 +219,7 @@ public final class BeangenUtils
 		    }
 	    }
 	else
-	    	iw.println("this." + prop.getName() + " = " + setVal + ';');
+	    iw.println( setStatement );
 
 	iw.downIndent();
 	iw.println('}');

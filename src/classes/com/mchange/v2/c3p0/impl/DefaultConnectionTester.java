@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -25,11 +25,11 @@ package com.mchange.v2.c3p0.impl;
 
 import java.sql.*;
 import java.util.*;
-import com.mchange.v2.c3p0.ConnectionTester;
+import com.mchange.v2.c3p0.advanced.QueryConnectionTester;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
-public class DefaultConnectionTester implements ConnectionTester
+public class DefaultConnectionTester implements QueryConnectionTester
 {
     final static int HASH_CODE = DefaultConnectionTester.class.getName().hashCode();
 
@@ -94,6 +94,7 @@ public class DefaultConnectionTester implements ConnectionTester
 	    { 
 		stmt = c.createStatement();
 		rs = stmt.executeQuery( query );
+		//rs.next();
 		return CONNECTION_IS_OKAY;
 	    }
 	catch (SQLException e)

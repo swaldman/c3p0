@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -26,17 +26,21 @@ package com.mchange.v2.c3p0.impl;
 import java.beans.*;
 import java.util.*;
 import java.lang.reflect.*;
+import java.sql.*;
 import javax.sql.*;
-import java.sql.SQLException;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v2.async.*;
 import com.mchange.v2.coalesce.*;
+import com.mchange.v1.db.sql.*;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.resourcepool.ResourcePoolFactory;
+import com.mchange.v2.resourcepool.BasicResourcePoolFactory;
 
 public final class C3P0PooledConnectionPoolManager
 {
+    private final static boolean POOL_EVENT_SUPPORT = false;
+
     private final static CoalesceChecker COALESCE_CHECKER = new CoalesceChecker()
 	{
 	    // note that we expect all ConnectionTesters of a single class to be effectively
@@ -49,17 +53,22 @@ public final class C3P0PooledConnectionPoolManager
 
 		return
 		    aa.poolOwnerIdentityToken.equals( bb.poolOwnerIdentityToken ) &&
+		    (aa.preferredTestQuery == null ? (bb.preferredTestQuery == null ) : (aa.preferredTestQuery.equals( bb.preferredTestQuery ))) &&
+		    (aa.automaticTestTable == null ? (bb.automaticTestTable == null ) : (aa.automaticTestTable.equals( bb.automaticTestTable ))) &&
 		    aa.cpds.equals( bb.cpds ) &&
 		    aa.num_task_threads == bb.num_task_threads &&
 		    aa.maxStatements == bb.maxStatements &&
+		    aa.maxStatementsPerConnection == bb.maxStatementsPerConnection &&
 		    aa.minPoolSize == bb.minPoolSize &&
 		    aa.idleConnectionTestPeriod == bb.idleConnectionTestPeriod &&
 		    aa.maxIdleTime == bb.maxIdleTime &&
+		    aa.checkoutTimeout == bb.checkoutTimeout &&
 		    aa.acquireIncrement == bb.acquireIncrement &&
 		    aa.acquireRetryAttempts == bb.acquireRetryAttempts &&
 		    aa.acquireRetryDelay == bb.acquireRetryDelay &&
 		    aa.breakAfterAcquireFailure == bb.breakAfterAcquireFailure &&
 		    aa.testConnectionOnCheckout == bb.testConnectionOnCheckout &&
+		    aa.testConnectionOnCheckin == bb.testConnectionOnCheckin &&
 		    aa.autoCommitOnClose == bb.autoCommitOnClose &&
 		    aa.forceIgnoreUnresolvedTransactions == bb.forceIgnoreUnresolvedTransactions &&
 		    aa.defaultAuth.equals( bb.defaultAuth ) &&
@@ -71,19 +80,24 @@ public final class C3P0PooledConnectionPoolManager
 		C3P0PooledConnectionPoolManager aa = (C3P0PooledConnectionPoolManager) a;
 		return
 		    aa.poolOwnerIdentityToken.hashCode() ^
+		    (aa.preferredTestQuery == null ? 0 : aa.preferredTestQuery.hashCode()) ^
+		    (aa.automaticTestTable == null ? 0 : aa.automaticTestTable.hashCode()) ^
 		    aa.cpds.hashCode() ^
 		    aa.num_task_threads ^
 		    aa.maxStatements ^
+		    aa.maxStatementsPerConnection ^
 		    aa.minPoolSize ^
 		    aa.idleConnectionTestPeriod ^
 		    aa.maxIdleTime ^
+		    aa.checkoutTimeout ^
 		    aa.acquireIncrement ^
 		    aa.acquireRetryAttempts ^
 		    aa.acquireRetryDelay ^
 		    (aa.testConnectionOnCheckout          ? 1<<0 : 0) ^
-		    (aa.autoCommitOnClose                 ? 1<<1 : 0) ^
-		    (aa.forceIgnoreUnresolvedTransactions ? 1<<2 : 0) ^
-		    (aa.breakAfterAcquireFailure          ? 1<<3 : 0) ^
+		    (aa.testConnectionOnCheckin           ? 1<<1 : 0) ^
+		    (aa.autoCommitOnClose                 ? 1<<2 : 0) ^
+		    (aa.forceIgnoreUnresolvedTransactions ? 1<<3 : 0) ^
+		    (aa.breakAfterAcquireFailure          ? 1<<4 : 0) ^
 		    aa.defaultAuth.hashCode() ^
 		    aa.connectionTester.getClass().hashCode(); 
 	    };
@@ -102,6 +116,8 @@ public final class C3P0PooledConnectionPoolManager
     ResourcePoolFactory          rpfact;
     GooGooStatementCache         scache;
     Map                          authsToPools;
+    boolean                      is_first_pool = true;
+    String                       realTestQuery;
 
     String poolOwnerIdentityToken = null;
 
@@ -113,17 +129,22 @@ public final class C3P0PooledConnectionPoolManager
     int num_task_threads = DFLT_NUM_TASK_THREADS_PER_DATA_SOURCE;
 
     int maxStatements                          = PoolConfig.defaultMaxStatements(); 
+    int maxStatementsPerConnection             = PoolConfig.defaultMaxStatementsPerConnection(); 
     int minPoolSize                            = PoolConfig.defaultMinPoolSize();  
     int maxPoolSize                            = PoolConfig.defaultMaxPoolSize();  
     int idleConnectionTestPeriod               = PoolConfig.defaultIdleConnectionTestPeriod();
     int maxIdleTime                            = PoolConfig.defaultMaxIdleTime();  
+    int checkoutTimeout                        = PoolConfig.defaultCheckoutTimeout(); 
     int acquireIncrement                       = PoolConfig.defaultAcquireIncrement(); 
     int acquireRetryAttempts                   = PoolConfig.defaultAcquireRetryAttempts(); 
     int acquireRetryDelay                      = PoolConfig.defaultAcquireRetryDelay(); 
     boolean breakAfterAcquireFailure           = PoolConfig.defaultBreakAfterAcquireFailure(); 
     boolean testConnectionOnCheckout           = PoolConfig.defaultTestConnectionOnCheckout(); 
+    boolean testConnectionOnCheckin            = PoolConfig.defaultTestConnectionOnCheckin(); 
     boolean autoCommitOnClose                  = PoolConfig.defaultAutoCommitOnClose(); 
     boolean forceIgnoreUnresolvedTransactions  = PoolConfig.defaultForceIgnoreUnresolvedTransactions(); 
+    String preferredTestQuery                  = PoolConfig.defaultPreferredTestQuery(); 
+    String automaticTestTable                  = PoolConfig.defaultAutomaticTestTable(); 
     DbAuth defaultAuth                         = C3P0ImplUtils.NULL_AUTH; 
     ConnectionTester connectionTester;
 
@@ -144,9 +165,18 @@ public final class C3P0PooledConnectionPoolManager
 	this.taskRunner = new ThreadPoolAsynchronousRunner( num_task_threads, true, timer );
 	//this.taskRunner = new RoundRobinAsynchronousRunner( num_task_threads, true );
 	//this.rpfact = ResourcePoolFactory.createInstance( taskRunner, timer );
-	this.rpfact = ResourcePoolFactory.createInstance( taskRunner, null, timer );
-	if (this.maxStatements > 0)
-	    this.scache = new GooGooStatementCache( taskRunner, maxStatements );
+	if (POOL_EVENT_SUPPORT)
+	    this.rpfact = ResourcePoolFactory.createInstance( taskRunner, null, timer );
+	else
+	    this.rpfact = BasicResourcePoolFactory.createNoEventSupportInstance( taskRunner, timer );
+	if (this.maxStatements > 0 && this.maxStatementsPerConnection > 0)
+	    this.scache = new DoubleMaxStatementCache( taskRunner, maxStatements, maxStatementsPerConnection );
+	else if (this.maxStatementsPerConnection > 0)
+	    this.scache = new PerConnectionMaxOnlyStatementCache( taskRunner, maxStatementsPerConnection );
+	else if (this.maxStatements > 0)
+	    this.scache = new GlobalMaxOnlyStatementCache( taskRunner, maxStatementsPerConnection );
+	else
+	    this.scache = null;
 	this.authsToPools = new HashMap();
     }
 
@@ -163,8 +193,12 @@ public final class C3P0PooledConnectionPoolManager
 
 	this.taskRunner.close( true );
 	this.timer.cancel();
-	this.scache = null;
 
+	try {if (scache != null) scache.close();}
+	catch (SQLException e)
+	    { e.printStackTrace(); }
+
+	this.scache = null;
 	this.taskRunner = null;
 	this.timer = null;
 	this.rpfact = null;
@@ -220,6 +254,8 @@ public final class C3P0PooledConnectionPoolManager
 				int value = ((Integer) propVal).intValue();
 				if ("maxStatements".equals(propName))
 				    this.maxStatements = value;
+				if ("maxStatementsPerConnection".equals(propName))
+				    this.maxStatementsPerConnection = value;
 				else if ("minPoolSize".equals(propName))
 				    this.minPoolSize = value;
 				else if ("maxPoolSize".equals(propName))
@@ -228,6 +264,8 @@ public final class C3P0PooledConnectionPoolManager
 				    this.idleConnectionTestPeriod = value;
 				else if ("maxIdleTime".equals(propName))
 				    this.maxIdleTime = value;
+				else if ("checkoutTimeout".equals(propName))
+				    this.checkoutTimeout = value;
 				else if ("acquireIncrement".equals(propName))
 				    this.acquireIncrement = value;
 				else if ("acquireRetryAttempts".equals(propName))
@@ -243,6 +281,10 @@ public final class C3P0PooledConnectionPoolManager
 				if ("connectionTesterClassName".equals(propName))
 				    this.connectionTester =
 					(ConnectionTester) Class.forName( value ).newInstance();
+				else if ("preferredTestQuery".equals(propName))
+				    this.preferredTestQuery = value;
+				else if ("automaticTestTable".equals(propName))
+				    this.automaticTestTable = value;
 				// System.err.println( propName + " -> " + propVal );
 			    }
 			else if (propCl == boolean.class)
@@ -251,6 +293,8 @@ public final class C3P0PooledConnectionPoolManager
 				boolean value = ((Boolean) propVal).booleanValue();
 				if ("testConnectionOnCheckout".equals(propName))
 				    this.testConnectionOnCheckout = value;
+				else if ("testConnectionOnCheckin".equals(propName))
+				    this.testConnectionOnCheckin = value;
 				else if ("autoCommitOnClose".equals(propName))
 				    this.autoCommitOnClose = value;
 				else if ("forceIgnoreUnresolvedTransactions".equals(propName))
@@ -351,23 +395,47 @@ public final class C3P0PooledConnectionPoolManager
  	this.close();
     }
 
+    // called only from sync'ed methods
     private C3P0PooledConnectionPool createPooledConnectionPool(DbAuth auth)
 	throws SQLException
     {
-	return new C3P0PooledConnectionPool( cpds,
-					     auth,
-					     minPoolSize,
-					     maxPoolSize,
-					     acquireIncrement,
-					     acquireRetryAttempts,
-					     acquireRetryDelay,
-					     breakAfterAcquireFailure,
-					     idleConnectionTestPeriod,
-					     maxIdleTime,
-					     testConnectionOnCheckout,
-					     scache,
-					     connectionTester,
-					     rpfact );
+	if ( is_first_pool )
+	    {
+		if (automaticTestTable != null)
+		    {
+			this.realTestQuery = initializeAutomaticTestTable();
+			if (this.preferredTestQuery != null)
+			    {
+				System.err.println("[c3p0] WARNING -- Both automaticTestTable and preferredTestQuery have been set! " +
+						   "Using automaticTestTable, and ignoring preferredTestQuery. Real test query is '" +
+						   realTestQuery + "'.");
+			    }
+		    }
+		else
+		    {
+			this.realTestQuery = this.preferredTestQuery;
+		    }
+	    }
+
+	C3P0PooledConnectionPool out =  new C3P0PooledConnectionPool( cpds,
+								      auth,
+								      minPoolSize,
+								      maxPoolSize,
+								      acquireIncrement,
+								      acquireRetryAttempts,
+								      acquireRetryDelay,
+								      breakAfterAcquireFailure,
+								      checkoutTimeout,
+								      idleConnectionTestPeriod,
+								      maxIdleTime,
+								      testConnectionOnCheckout,
+								      testConnectionOnCheckin,
+								      scache,
+								      connectionTester,
+								      realTestQuery,
+								      rpfact );
+	is_first_pool = false;
+	return out;
     }
 
     public synchronized void registerActiveClient( Object o )
@@ -395,6 +463,61 @@ public final class C3P0PooledConnectionPoolManager
 	    {
 		activeClients.clear();
 		this.close();
+	    }
+    }
+
+    // only called from sync'ed methods
+    private String initializeAutomaticTestTable() throws SQLException
+    {
+	PooledConnection throwawayPooledConnection = cpds.getPooledConnection(); 
+	Connection c = null;
+	PreparedStatement testStmt = null;
+	PreparedStatement createStmt = null;
+	ResultSet mdrs = null;
+	ResultSet rs = null;
+	boolean exists;
+	boolean has_rows;
+	String out;
+	try
+	    {
+		c = throwawayPooledConnection.getConnection();
+
+		DatabaseMetaData dmd = c.getMetaData();
+		String q = dmd.getIdentifierQuoteString();
+		String quotedTableName = q + automaticTestTable + q;
+		out = "SELECT * FROM " + quotedTableName;
+		mdrs = dmd.getTables( null, null, automaticTestTable, new String[] {"TABLE"} );
+		exists = mdrs.next();
+
+		//System.err.println("Table " + automaticTestTable + " exists? " + exists);
+		
+		if (exists)
+		    {
+			testStmt = c.prepareStatement( out );
+			rs = testStmt.executeQuery();
+			has_rows = rs.next();
+			if (has_rows)
+			    throw new SQLException("automatic test table '" + automaticTestTable + 
+						   "' contains rows, and it should not! Please set this " +
+						   "parameter to the name of a table c3p0 can create on its own, " +
+						   "that is not used elsewhere in the database!");
+		    }
+		else
+		    {
+			createStmt = c.prepareStatement("CREATE TABLE " + quotedTableName + " ( a CHAR(1) )");
+			createStmt.executeUpdate();
+		    }
+		return out;
+	    }
+	finally
+	    { 
+		ResultSetUtils.attemptClose( mdrs );
+		ResultSetUtils.attemptClose( rs );
+		StatementUtils.attemptClose( testStmt );
+		StatementUtils.attemptClose( createStmt );
+		ConnectionUtils.attemptClose( c ); 
+		try{ if (throwawayPooledConnection != null) throwawayPooledConnection.close(); }
+		catch ( Exception e ) { e.printStackTrace(); }
 	    }
     }
 }

@@ -1,3 +1,68 @@
+c3p0-0.8.5-pre7a
+	-- Fixed some bugs in new Proxy classes relating to close(), methods,
+	   especially NullPointerExceptions on duplicate close() operations.
+	-- Fixed some misleading documentation re: testConnectionOnCheckin and
+	   automaticTestTable vs. preferredTestQuery
+	-- Changed wording of warning message on purge of idle-test-failing
+	   resource to no longer suggest that some user action is required.
+	   [Thanks to Krishna Kuchibhotla for calling attention to this
+	   issue.]
+	-- Modified GooGooStatementCache so that its close() is synchronous,
+	   since when the Statement cache is closed, it's asynchronous
+	   runner has often been closed already underneath it. (Actually
+	   changed as of c3p0-0.8.5-pre7, but forgot to log it.)
+c3p0-0.8.5-pre7
+	-- Added flag (in both new and tradional reflective proxies) to
+	   prevent automatic rollbacks on Connection close()es immediately post-
+	   commit(), rollback(), or setAutoCommit().
+	-- DatabaseMetaData now properly returns proxy rather than naked 
+	   raw Connection. [Thanks to jhoeller on the hibernate forums]
+	-- In response to an apparent BEA WebLogic specific problem with 
+	   DriverManager.getConnection( ... ), DriverManagerDataSource now
+	   caches its driver and uses Driver.connect( ... ) rather than 
+	   DriverManager.getConnection() when acquiring Connections. Thanks to
+	   Lars Torunski for calling attention to this issue.
+	-- Fixed some missing synchroniztion that really should be provided for accessors
+	   and mutators of DataSource bean properties.
+	-- Added config parameter automaticTestTable, which takes the name of a table
+	   that c3p0 will create and use as the basis for Connection tests. It's easier
+	   to use than preferred test query, because you don't have to ensure the existance
+	   of any tables in the schema prior to using a Pooled data source.
+	-- Fixed idiotic oversight whereby Connections didn't get their transaction status
+	   resolved and reset on check-in...
+c3p0-0.8.5-pre6
+	-- Modified resource pools to only conditionally support async ResourcePoolEvent
+	   generation. Since c3p0 doesn't use ResourcePoolEvents, we can do without the
+	   superfluous CarefulRunnableQueue, and its associated Thread, which was serving
+	   as an event queue.
+	-- Fixed bug where asynchronous refurbishment (testing) of resources would be
+	   attempted even on check-in to a closed pool, whose async threads had terminated.
+	-- c3p0 now supports the following new configuraion parameters: preferredTestQuery,
+           testConnectionOnCheckin, checkoutTimeout, and maxStatementsPerConnection.
+	   preferredTestQuery should allow c3p0 to test Connections (whether on checkout,
+	   checkin, or after a specified idle time) much more efficiently than with
+	   it's default test [a call to getTables(...) on the Connection's DatabaseMetaData.].
+	   checkoutTimeout allows clients to break out of a getConnection() call after a 
+	   a specified time period, rather than waiting (potentially indefinitely) for
+	   a new Connection to be acquired from the database, or a checked-out Connection
+	   to be rechecked in. testConnectionOnCheckin should be self-explanatory.
+           maxStatementsPerConnections allows users to specify how many statements to cache
+	   on a per-connection base instead of, or in addition to, the global limit maxStatements.
+	-- Fixed various bugs relating to the referenceMaker and getReference() method of
+	   ComboPooledDataSource.
+	-- Added TestUtils class to util package (modified from an old C3P0TestUtils
+	   class now removed from the test directory), which now contains facilities
+	   for establishing the identity of the physical Connection beneath a proxy,
+	   so that tests can check to see when they are seeing the same physical
+	   Connections recycled. [Thanks to Julian Legeny for calling attention to this
+	   issue.]
+	-- Modified code generators so that inner objects of all NewProxy classes
+	   go to null on object close(). Closed proxies should be hopelessly broken.
+	-- Added missing parameter "usesTraditionalRefelctiveProxies" 
+	   to ComboPooledDataSource
+	-- Fixed bug whereby CarefulRunnableQueue threads linger indefinitely, even
+	   though their close() method has been called. [Thanks to muirwa on the
+	   hibernate forums for calling attention to this issue.]
 c3p0-0.8.5-pre5
 	-- added utility class for Oracle users who wish to access vendor specific
 	   Connection API relating to BLOBs and CLOBs. [Thanks to Dave Smith for calling

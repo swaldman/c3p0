@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -33,10 +33,12 @@ import javax.sql.PooledConnection;
 
 import com.mchange.v1.db.sql.ConnectionUtils;
 import com.mchange.v2.c3p0.ConnectionTester;
+import com.mchange.v2.c3p0.advanced.QueryConnectionTester;
 import com.mchange.v2.c3p0.stmt.GooGooStatementCache;
 import com.mchange.v2.resourcepool.ResourcePool;
 import com.mchange.v2.resourcepool.ResourcePoolException;
 import com.mchange.v2.resourcepool.ResourcePoolFactory;
+import com.mchange.v2.resourcepool.TimeoutException;
 import com.mchange.v2.sql.SqlUtils;
 
 public final class C3P0PooledConnectionPool
@@ -47,6 +49,8 @@ public final class C3P0PooledConnectionPool
     ConnectionTester     connectionTester;
     GooGooStatementCache scache;
 
+    int checkoutTimeout;
+
     C3P0PooledConnectionPool( final ConnectionPoolDataSource cpds,
 			      final DbAuth auth,
 			      int  min, 
@@ -55,17 +59,22 @@ public final class C3P0PooledConnectionPool
 			      int acq_retry_attempts,
 			      int acq_retry_delay,
 			      boolean break_after_acq_failure,
+			      int checkoutTimeout, //milliseconds
 			      int idleConnectionTestPeriod, //seconds
 			      int maxIdleTime, //seconds
 			      final boolean testConnectionOnCheckout,
+			      final boolean testConnectionOnCheckin,
 			      GooGooStatementCache myscache,
 			      final ConnectionTester connectionTester,
+			      final String testQuery,
 			      final ResourcePoolFactory fact) throws SQLException
     {
         try
 	    {
 		this.scache = myscache;
 		this.connectionTester = connectionTester;
+
+		this.checkoutTimeout = checkoutTimeout;
 
 		ResourcePool.Manager manager = new ResourcePool.Manager()
 		    {	
@@ -109,7 +118,7 @@ public final class C3P0PooledConnectionPool
 
 			public void refurbishResourceOnCheckin( Object resc ) throws Exception
 			{
-			    if (false)
+			    if ( testConnectionOnCheckin )
 				{ testPooledConnection( resc ); }
 			}
 
@@ -128,7 +137,21 @@ public final class C3P0PooledConnectionPool
 				    pc.removeConnectionEventListener( cl );
 
 				    conn = pc.getConnection(); //checkout proxy connection
-				    status = connectionTester.activeCheckConnection( conn );
+				    if ( testQuery == null )
+					status = connectionTester.activeCheckConnection( conn );
+				    else
+					{
+					    if (connectionTester instanceof QueryConnectionTester)
+						status = ((QueryConnectionTester) connectionTester).activeCheckConnection( conn, testQuery );
+					    else
+						{
+						    System.err.println("[c3p0] WARNING: testQuery '" + testQuery +
+								       "' ignored. Please set a ConnectionTester that implements " +
+								       "com.mchange.v2.c3p0.advanced.QueryConnectionTester, or use the " +
+								       "DefaultConnectionTester, to test with the testQuery.");
+						    status = connectionTester.activeCheckConnection( conn );
+						}
+					}
 				}
 			    catch (SQLException e)
 				{
@@ -179,11 +202,13 @@ public final class C3P0PooledConnectionPool
         catch (ResourcePoolException e)
 	    { throw SqlUtils.toSQLException(e); }
     }
-    
+
     public PooledConnection checkoutPooledConnection() throws SQLException
     { 
 	//System.err.println(this + " -- CHECKOUT");
-        try { return (PooledConnection) rp.checkoutResource(); }
+        try { return (PooledConnection) rp.checkoutResource( checkoutTimeout ); }
+	catch (TimeoutException e)
+	    { throw new SQLException("An attempt by a client to checkout a Connection has timed out."); }
         catch (Exception e)
 	    { throw SqlUtils.toSQLException(e); }
     }

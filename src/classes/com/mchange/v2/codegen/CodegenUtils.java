@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -24,6 +24,7 @@
 package com.mchange.v2.codegen;
 
 import java.lang.reflect.*;
+import java.io.File;
 import java.io.Writer;
 import com.mchange.v1.lang.ClassUtils;
 
@@ -155,6 +156,16 @@ public final class CodegenUtils
 
     public static IndentedWriter toIndentedWriter( Writer w )
     { return (w instanceof IndentedWriter ? (IndentedWriter) w : new IndentedWriter(w)); }
+
+    public static String packageNameToFileSystemDirPath(String packageName)
+    {
+	StringBuffer sb = new StringBuffer( packageName );
+	for (int i = 0, len = sb.length(); i < len; ++i)
+	    if ( sb.charAt(i) == '.' )
+		sb.setCharAt(i, File.separatorChar);
+	sb.append( File.separatorChar );
+	return sb.toString();
+    }
 
     private CodegenUtils()
     {}

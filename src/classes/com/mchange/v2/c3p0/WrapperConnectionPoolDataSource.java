@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5pre4
+ * Distributed as part of c3p0 v.0.8.5-pre7a
  *
- * Copyright (C) 2003 Machinery For Change, Inc.
+ * Copyright (C) 2004 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -40,6 +40,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     {
 	VetoableChangeListener setConnectionTesterListener = new VetoableChangeListener()
 	    {
+		// always called within synchronized mutators of the parent class... needn't explicitly sync here
 		public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
 		{
 		    Object val = evt.getNewValue();
@@ -59,7 +60,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     }
 
     //implementation of javax.sql.ConnectionPoolDataSource
-    public PooledConnection getPooledConnection()
+    public synchronized PooledConnection getPooledConnection()
 	throws SQLException
     { 
 	Connection conn = getNestedDataSource().getConnection();
@@ -80,7 +81,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    }
     } 
  
-    public PooledConnection getPooledConnection(String user, String password)
+    public synchronized PooledConnection getPooledConnection(String user, String password)
 	throws SQLException
     { 
 	Connection conn = getNestedDataSource().getConnection(user, password);
@@ -101,24 +102,24 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    }
     }
  
-    public PrintWriter getLogWriter()
+    public synchronized PrintWriter getLogWriter()
 	throws SQLException
     { return getNestedDataSource().getLogWriter(); }
 
-    public void setLogWriter(PrintWriter out)
+    public synchronized void setLogWriter(PrintWriter out)
 	throws SQLException
     { getNestedDataSource().setLogWriter( out ); }
 
-    public void setLoginTimeout(int seconds)
+    public synchronized void setLoginTimeout(int seconds)
 	throws SQLException
     { getNestedDataSource().setLoginTimeout( seconds ); }
 
-    public int getLoginTimeout()
+    public synchronized int getLoginTimeout()
 	throws SQLException
     { return getNestedDataSource().getLoginTimeout(); }
 
     //"virtual properties"
-    public String getUser()
+    public synchronized String getUser()
     { 
 	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getUser(); }
 	catch (SQLException e)
@@ -128,7 +129,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    }
     }
 
-    public String getPassword()
+    public synchronized String getPassword()
     { 
 	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getPassword(); }
 	catch (SQLException e)
