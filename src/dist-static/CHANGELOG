@@ -1,4 +1,17 @@
-c3p0-0.8.4-test
+c3p0-0.8.4-test2
+	-- Backed off a binary incompatible change to DataSources API. Users
+	   interested in statistics about running DataSources will need to
+	   cast the result of DataSources.pooledDataSource() to a
+	   com.mchange.v2.c3p0.PooledDataSource object. Other users should
+	   be able to use DataSources without recompilinbg libraries that
+	   depend upon it.
+	-- Defined com.mchange.v2.c3p0.ComboDataSource, a single, directly-instantiable
+	   JavaBean-style DataSource backed by a c3p0 pool, which makes integration
+	   with various app servers easier (e.g. works with Tomcat), and which may
+	   provide a more straightforward API for users than DataSources and PoolConfig.
+c3p0-0.8.4-test1
+        -- Switched various classes from using RoundRobinAsynchronousRunner 
+           to a new ThreadPoolAsynchronousRunner.         
         -- Defined PoolingDataSource interface, which permits clients to access
            statistics about the state of underlying pools, and made C3P0 pool-backed
            DataSources implement that interface.
@@ -18,7 +31,7 @@ c3p0-0.8.4-test
 	   directly, and divided source and binary distributions
         -- relicensed library; now available under LGPL.
 	-- THERE ARE SOME MAJOR REORGANIZATIONS IN THIS RELEASE. ANY HELP IN
-	   TESTING AND FEEDBACK WOULD BE APPRECIATED!
+	   TESTING AND FEEDBACK WOULD BE APPRECIATED! THANKS!
 c3p0-0.8.3.1
         -- take greater care to abort if a helper thread wakes from wait()
            inside of a broken resource pool

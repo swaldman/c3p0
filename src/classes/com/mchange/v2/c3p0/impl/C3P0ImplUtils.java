@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -37,6 +37,9 @@ public final class C3P0ImplUtils
     public static DbAuth findAuth(Object o)
 	throws SQLException
     {
+	if ( o == null )
+	    return NULL_AUTH;
+
 	String user = null;
 	String password = null;
 	try

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -87,16 +87,18 @@ public final class DataSources
      *                 not pre-parse and optimize PreparedStatements, statement caching is a net
      *                 performance loss. But if your database <i>does</i> optimize PreparedStatements
      *                 you'll want to turn StatementCaching on via {@link #pooledDataSource(javax.sql.DataSource, int)}.</p>
+     *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      */
-    public static PooledDataSource pooledDataSource( DataSource unpooledDataSource ) throws SQLException
+    public static DataSource pooledDataSource( DataSource unpooledDataSource ) throws SQLException
     { return pooledDataSource( unpooledDataSource, PoolConfig.DEFAULTS ); }
 
     /**
      * <p>Creates a pooled version of an unpooled DataSource using default configuration information 
      *    and the specified startement cache size.
      *    Use a value greater than zero to turn statement caching on.</p>
+     *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      */
-    public static PooledDataSource pooledDataSource( DataSource unpooledDataSource, int statement_cache_size ) throws SQLException
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, int statement_cache_size ) throws SQLException
     {
 	PoolConfig pcfg = new PoolConfig();
 	pcfg.setMaxStatements( statement_cache_size );
@@ -106,8 +108,9 @@ public final class DataSources
     /**
      * <p>Creates a pooled version of an unpooled DataSource using configuration 
      *    information supplied explicitly by a {@link com.mchange.v2.c3p0.PoolConfig}.
+     *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      */
-    public static PooledDataSource pooledDataSource( DataSource unpooledDataSource, PoolConfig pcfg ) throws SQLException
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, PoolConfig pcfg ) throws SQLException
     {
 	try
 	    {
@@ -148,9 +151,10 @@ public final class DataSources
      * <p>Creates a pooled version of an unpooled DataSource using configuration 
      *    information supplied explicitly by a Java Properties object.</p>
      *
+     *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      *  @see com.mchange.v2.c3p0.PoolConfig
      */
-    public static PooledDataSource pooledDataSource( DataSource unpooledDataSource, Properties props ) throws SQLException
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, Properties props ) throws SQLException
     { return pooledDataSource( unpooledDataSource, new PoolConfig( props ) ); }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -24,6 +24,7 @@
 package com.mchange.v2.c3p0;
 
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeSupport;
 import java.beans.PropertyVetoException;
 import java.beans.VetoableChangeListener;
 import java.io.PrintWriter;
@@ -79,10 +80,16 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     //"virtual properties"
     public void setUser(String user)
     {
-	if (user != null)
-	    properties.put( SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user ); 
-	else
-	    properties.remove( SqlUtils.DRIVER_MANAGER_USER_PROPERTY );
+	String oldUser = this.getUser();
+	if (! eqOrBothNull( user, oldUser ))
+	    {
+		if (user != null)
+		    properties.put( SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user ); 
+		else
+		    properties.remove( SqlUtils.DRIVER_MANAGER_USER_PROPERTY );
+
+		pcs.firePropertyChange("user", oldUser, user);
+	    }
     }
 
     public String getUser()
@@ -90,10 +97,16 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     public void setPassword(String password)
     {
-	if (password != null)
-	    properties.put( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password ); 
-	else
-	    properties.remove( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY );
+	String oldPass = this.getPassword();
+	if (! eqOrBothNull( password, oldPass ))
+	    {
+		if (password != null)
+		    properties.put( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password ); 
+		else
+		    properties.remove( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY );
+
+		pcs.firePropertyChange("password", oldPass, password);
+	    }
     }
 
     public String getPassword()
@@ -106,4 +119,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	overriding.put(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password);
 	return overriding;
     }
+
+    private static boolean eqOrBothNull( Object a, Object b )
+    { return (a == b || (a != null && a.equals(b))); }
 }

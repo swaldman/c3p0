@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -399,6 +399,7 @@ class BasicResourcePool implements ResourcePool
     {
 	//obviously, clients mustn't rely on finalize,
 	//but must close pools ASAP after use.
+	//System.err.println("finalizing..." + this);
 	this.close();
     }
 
@@ -579,6 +580,7 @@ class BasicResourcePool implements ResourcePool
 		    ((Thread) ii.next()).interrupt();
 		if (factory != null)
 		    factory.markBroken( this );
+		// System.err.println(this + " closed.");
 	    }
 	else
 	    System.err.println(this + " -- close() called multiple times...");

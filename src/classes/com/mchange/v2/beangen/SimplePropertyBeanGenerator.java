@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -294,9 +294,9 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
     protected void writeJavaBeansChangeSupport() throws IOException
     {
 	if ( boundProperties() )
-	    iw.println("PropertyChangeSupport pcs = new PropertyChangeSupport( this );");
+	    iw.println("protected PropertyChangeSupport pcs = new PropertyChangeSupport( this );");
 	if ( constrainedProperties() )
-	    iw.println("VetoableChangeSupport vcs = new VetoableChangeSupport( this );");
+	    iw.println("protected VetoableChangeSupport vcs = new VetoableChangeSupport( this );");
     }
 
     protected void writePropertyMembers() throws IOException

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -34,7 +34,6 @@ import com.mchange.v2.async.*;
 import com.mchange.v2.coalesce.*;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.resourcepool.ResourcePoolFactory;
-import com.mchange.v2.c3p0.util.ConnectionEventSupport;
 
 public final class C3P0PooledConnectionPoolManager
 {
@@ -216,7 +215,7 @@ public final class C3P0PooledConnectionPoolManager
 				    this.maxIdleTime = value;
 				else if ("acquireIncrement".equals(propName))
 				    this.acquireIncrement = value;
-				//System.err.println(propName + ": " + value); 
+				// System.err.println( propName + " -> " + propVal );
 			    }
 			else if (propCl == String.class)
 			    {
@@ -225,6 +224,7 @@ public final class C3P0PooledConnectionPoolManager
 				if ("connectionTesterClassName".equals(propName))
 				    this.connectionTester =
 					(ConnectionTester) Class.forName( value ).newInstance();
+				// System.err.println( propName + " -> " + propVal );
 			    }
 			else if (propCl == boolean.class)
 			    {
@@ -236,7 +236,9 @@ public final class C3P0PooledConnectionPoolManager
 				    this.autoCommitOnClose = value;
 				else if ("forceIgnoreUnresolvedTransactions".equals(propName))
 				    this.forceIgnoreUnresolvedTransactions = value;
+				// System.err.println( propName + " -> " + propVal );
 			    }
+
 		    }
 	    }
 	catch (Exception e)
@@ -283,7 +285,8 @@ public final class C3P0PooledConnectionPoolManager
 
     protected synchronized void finalize()
     {
-	this.close();
+	// System.err.println("finalizing... " + this);
+ 	this.close();
     }
 
     private C3P0PooledConnectionPool createPooledConnectionPool(DbAuth auth)

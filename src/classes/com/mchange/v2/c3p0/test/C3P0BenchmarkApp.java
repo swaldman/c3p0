@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -113,6 +113,14 @@ public final class C3P0BenchmarkApp
 	finally
 	    {
  		try { drop(ds_pooled); }
+		catch (Exception e)
+		    { e.printStackTrace(); }
+
+ 		try { DataSources.destroy(ds_pooled); }
+		catch (Exception e)
+		    { e.printStackTrace(); }
+
+ 		try { DataSources.destroy(ds_unpooled); }
 		catch (Exception e)
 		    { e.printStackTrace(); }
 	    }

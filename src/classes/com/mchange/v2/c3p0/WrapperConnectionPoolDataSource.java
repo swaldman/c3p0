@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -28,14 +28,13 @@ import java.beans.PropertyVetoException;
 import java.beans.VetoableChangeListener;
 import java.beans.PropertyChangeListener;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.sql.*;
 import javax.sql.*;
 import com.mchange.v2.c3p0.impl.*;
 
 public final class WrapperConnectionPoolDataSource extends WrapperConnectionPoolDataSourceBase implements ConnectionPoolDataSource
 {
-    transient DbAuth auth;
-
     {
 	VetoableChangeListener setConnectionTesterListener = new VetoableChangeListener()
 	    {
@@ -55,17 +54,6 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		}
 	    };
 	this.addVetoableChangeListener( setConnectionTesterListener );
-
-	PropertyChangeListener authFromNestedDataSourceListener = new PropertyChangeListener()
-	    {
-		public void propertyChange( PropertyChangeEvent evt )
-		{
-		    Object val = evt.getNewValue();
-		    if ( "nestedDataSource".equals( evt.getPropertyName() ) )
-			findAuth( (DataSource) val );
-		}
-	    };
-	this.addPropertyChangeListener( authFromNestedDataSourceListener );
     }
 
     //implementation of javax.sql.ConnectionPoolDataSource
@@ -103,10 +91,24 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 
     //"virtual properties"
     public String getUser()
-    { return (auth != null ? auth.getUser() : null); }
+    { 
+	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getUser(); }
+	catch (SQLException e)
+	    {
+		e.printStackTrace();
+		return null; 
+	    }
+    }
 
     public String getPassword()
-    { return (auth != null ? auth.getPassword() : null); }
+    { 
+	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getPassword(); }
+	catch (SQLException e)
+	    { 
+		e.printStackTrace();
+		return null; 
+	    }
+    }
 
     //other code
     private void checkConnectionTesterClassName(String className) throws Exception
@@ -114,21 +116,4 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	if (className != null)
 	    Class.forName( className ).newInstance();
     }
-
-    void findAuth( DataSource ds )
-    {
-	try
-	    {
-		if (ds == null)
-		    this.auth = null;
-		else
-		    this.auth = C3P0ImplUtils.findAuth( ds);
-	    }
-	catch ( SQLException e )
-	    { 
-		e.printStackTrace();
-		this.auth = null;
-	    }
-    }
 }
-

@@ -121,6 +121,19 @@
       </copy>
    </target>
 
+   <target name="stats-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.StatsTest" 
+         classpathref="test-classpath" 
+	 fork="true">
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+           <!-- <jvmarg value="-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" /> -->
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
    <target name="benchmark-test" depends="test-init">
        <java 
          classname="com.mchange.v2.c3p0.test.C3P0BenchmarkApp" 

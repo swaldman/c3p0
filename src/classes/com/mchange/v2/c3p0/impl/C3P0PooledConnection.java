@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -642,6 +642,11 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				    else
 					return null;
 				}
+// 			    else if ( mname.equals("finalize") ) //REMOVE THIS CASE -- TMP DEBUG
+// 				{
+// 				    System.err.println("Connection apparently finalized!");
+// 				    return m.invoke( activeConnection, args );
+// 				}
 			    else
 				return m.invoke( activeConnection, args );
 			}

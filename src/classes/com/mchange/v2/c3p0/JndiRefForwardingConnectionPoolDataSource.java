@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test1
+ * Distributed as part of c3p0 v.0.8.4-test2
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -24,20 +24,24 @@
 package com.mchange.v2.c3p0;
 
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.beans.VetoableChangeListener;
 import java.beans.PropertyVetoException;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Hashtable;
 import javax.naming.Name;
 import javax.naming.NamingException;
 import javax.naming.InitialContext;
-import javax.sql.DataSource;
+import javax.naming.Referenceable;
+import javax.sql.PooledConnection;
+import javax.sql.ConnectionPoolDataSource;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.c3p0.impl.JndiRefDataSourceBase;
 
-public final class JndiRefDataSource extends JndiRefDataSourceBase implements DataSource
+final class JndiRefForwardingConnectionPoolDataSource extends JndiRefDataSourceBase implements ConnectionPoolDataSource, Serializable, Referenceable
 {
     {
 	VetoableChangeListener l = new VetoableChangeListener()
@@ -53,13 +57,21 @@ public final class JndiRefDataSource extends JndiRefDataSourceBase implements Da
 		}
 	    };
 	this.addVetoableChangeListener( l );
+
+	PropertyChangeListener pcl = new PropertyChangeListener()
+	    {
+		public void propertyChange( PropertyChangeEvent evt )
+		{ cachedInner = null; }
+	    };
+	this.addPropertyChangeListener( pcl );
+
     }
 
     //MT: protected by this' lock in all cases
-    transient DataSource cachedInner;
+    transient ConnectionPoolDataSource cachedInner;
 
     //MT: called only from inner(), effectively synchrtonized
-    private DataSource dereference() throws SQLException
+    private ConnectionPoolDataSource dereference() throws SQLException
     {
 	Object jndiName = this.getJndiName();
 	Hashtable jndiEnv = this.getJndiEnv();
@@ -71,11 +83,11 @@ public final class JndiRefDataSource extends JndiRefDataSourceBase implements Da
 		else
 		    ctx = new InitialContext();
 		if (jndiName instanceof String)
-		    return (DataSource) ctx.lookup( (String) jndiName );
+		    return (ConnectionPoolDataSource) ctx.lookup( (String) jndiName );
 		else if (jndiName instanceof Name)
-		    return (DataSource) ctx.lookup( (Name) jndiName );
+		    return (ConnectionPoolDataSource) ctx.lookup( (Name) jndiName );
 		else
-		    throw new SQLException("Could not find DataSource with " +
+		    throw new SQLException("Could not find ConnectionPoolDataSource with " +
 					   "JNDI name: " + jndiName);
 	    }
 	catch( NamingException e )
@@ -85,35 +97,42 @@ public final class JndiRefDataSource extends JndiRefDataSourceBase implements Da
 	    }
     }
 
-    private synchronized DataSource inner() throws SQLException
+    private synchronized ConnectionPoolDataSource inner() throws SQLException
     {
 	if (cachedInner != null)
 	    return cachedInner;
 	else
 	    {
-		DataSource out = dereference();
+		ConnectionPoolDataSource out = dereference();
 		if (this.isCaching())
 		    cachedInner = out;
 		return out;
 	    }
     }
 
-    /* DataSource methods */
-    public Connection getConnection() throws SQLException
-    { return inner().getConnection(); }
-
-    public Connection getConnection(String a, String b) throws SQLException
-    { return inner().getConnection(a, b); }
-
-    public PrintWriter getLogWriter() throws SQLException
+    //implementation of javax.sql.ConnectionPoolDataSource
+    public PooledConnection getPooledConnection()
+	throws SQLException
+    { return inner().getPooledConnection(); } 
+ 
+    public PooledConnection getPooledConnection(String user, String password)
+	throws SQLException
+    { return inner().getPooledConnection( user, password ); }
+ 
+    public PrintWriter getLogWriter()
+	throws SQLException
     { return inner().getLogWriter(); }
 
-    public int getLoginTimeout() throws SQLException
+    public void setLogWriter(PrintWriter out)
+	throws SQLException
+    { inner().setLogWriter( out ); }
+
+    public void setLoginTimeout(int seconds)
+	throws SQLException
+    { inner().setLoginTimeout( seconds ); }
+
+    public int getLoginTimeout()
+	throws SQLException
     { return inner().getLoginTimeout(); }
-
-    public void setLogWriter(PrintWriter a) throws SQLException
-    { inner().setLogWriter(a); }
-
-    public void setLoginTimeout(int a) throws SQLException
-    { inner().setLoginTimeout(a); }
 }
+

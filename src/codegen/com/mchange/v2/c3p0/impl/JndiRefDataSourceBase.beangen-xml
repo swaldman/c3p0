@@ -13,23 +13,26 @@
            (jndiName instanceof Name ? ((Name) jndiName).clone() : jndiName /* String */)
        </defensive-copy>
        <constrained />
+       <bound />
     </property>
     <property>
        <type>Hashtable</type>
        <name>jndiEnv</name>
-       <serializable/>
        <defensive-copy>
            (Hashtable) jndiEnv.clone()
        </defensive-copy>
+       <bound />
     </property>
     <property>
        <type>boolean</type>
        <name>caching</name>
        <default-value>true</default-value>
+       <bound />
     </property>
     <property>
        <type>String</type>
        <name>factoryClassLocation</name>
+       <bound />
     </property>
   </properties>
 </beangen>

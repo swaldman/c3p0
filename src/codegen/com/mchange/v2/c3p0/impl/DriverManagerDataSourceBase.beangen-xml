@@ -41,6 +41,7 @@
            (Properties) properties.clone()
        </defensive-copy>
        <default-value>new Properties()</default-value>
+       <bound/>
     </property>
     <property>
        <variable>
