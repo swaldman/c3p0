@@ -1,0 +1,69 @@
+<beangen>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <general>java.util</general>
+     <specific>com.mchange.v2.c3p0.PoolConfig</specific>
+  </imports>
+  <modifiers>
+     <modifier>public</modifier>
+     <modifier>abstract</modifier>
+  </modifiers>
+  <output-class>DriverManagerDataSourceBase</output-class>
+  <properties> 
+    <property>
+       <variable>
+         <modifiers>
+            <modifier>protected</modifier>
+         </modifiers>
+       </variable>
+       <type>String</type>
+       <name>driverClass</name>
+       <constrained/>
+    </property>
+    <property>
+       <variable>
+         <modifiers>
+            <modifier>protected</modifier>
+         </modifiers>
+       </variable>
+       <type>String</type>
+       <name>jdbcUrl</name>
+    </property>
+    <property>
+       <variable>
+         <modifiers>
+            <modifier>protected</modifier>
+         </modifiers>
+       </variable>
+       <type>Properties</type>
+       <name>properties</name>
+       <defensive-copy>
+           (Properties) properties.clone()
+       </defensive-copy>
+       <default-value>new Properties()</default-value>
+    </property>
+    <property>
+       <variable>
+         <modifiers>
+            <modifier>protected</modifier>
+         </modifiers>
+       </variable>
+       <type>String</type>
+       <name>description</name>
+    </property>
+    <property>
+       <variable>
+         <modifiers>
+            <modifier>protected</modifier>
+         </modifiers>
+       </variable>
+       <type>String</type>
+       <name>factoryClassLocation</name>
+       <default-value>PoolConfig.defaultFactoryClassLocation()</default-value>
+    </property>
+  </properties>
+</beangen>
+
+
+
+

@@ -1,0 +1,239 @@
+<project name="c3p0" default="dist">
+
+   <!-- ignore the CLASSPATH environment variable. force builds to specify classpaths -->
+   <property name="build.sysclasspath" value="ignore" />
+
+   <property file="build.properties" />
+   <property file="version.properties" />
+
+   <property name="c3p0.name" value="c3p0-${c3p0.version}" />
+   <property name="bindist.name" value="${c3p0.name}.bin" />
+   <property name="srcdist.name" value="${c3p0.name}.src" />
+   <property name="src.dir" value="src" />
+   <property name="java.src.dir" value="src/classes" />
+   <property name="codegen.src.dir" value="src/codegen" />
+   <property name="static.dist.src" value="${src.dir}/dist-static" />
+   <property name="test.props.dir" value="test-properties" />
+   <property name="build.dir" value="build" />
+   <property name="build.codegen.dir" value="${build.dir}/codegen" />
+   <property name="build.classes.dir" value="${build.dir}/classes" />
+   <property name="build.apidocs.dir" value="${build.dir}/apidocs" />
+   <property name="test.classes.dir" value="${build.dir}/testclasses" />
+   <property name="dist.dir" value="dist" />
+   <property name="license.header.file" value="src/legal.prepend" />
+   <property name="build.jar.file" value="build/${c3p0.name}.jar" />
+   <property name="open.dist" value="${dist.dir}/${bindist.name}" />
+
+   <path id="codegen-classpath">
+       <pathelement location="${build.classes.dir}" />
+       <pathelement path="${j2ee.classpath}" />
+       <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
+   </path>
+
+   <property name="codegen.classpath" refid="codegen-classpath" />
+
+   <path id="build-classpath">
+       <pathelement location="${build.classes.dir}" />
+       <pathelement path="${j2ee.classpath}" />
+       <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
+   </path>
+
+   <patternset id="dist-jar-classes"> <!-- excludes stuff only used by the code generator and by tests-->
+       <exclude name="com/mchange/v1/jvm/**" />
+       <exclude name="com/mchange/v1/lang/**" />
+       <exclude name="com/mchange/v1/xml/**" />
+       <exclude name="com/mchange/v2/c3p0/codegen/**" />
+       <exclude name="com/mchange/v2/c3p0/test/**" />
+   </patternset>   
+
+   <patternset id="test-only-classes">
+       <include name="com/mchange/v2/c3p0/test/**" />
+   </patternset>
+
+   <path id="test-classpath">
+       <pathelement location="${build.jar.file}" />
+       <pathelement location="${test.classes.dir}" />
+       <pathelement path="${j2ee.classpath}" />
+       <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
+       <pathelement location="${test.jdbc.driver.jar.file}" />
+       <pathelement location="${test.props.dir}" />
+   </path>
+
+   <target name="init">
+      <mkdir dir="${build.dir}" />
+      <mkdir dir="${build.codegen.dir}" />
+      <mkdir dir="${build.classes.dir}" />
+      <mkdir dir="${build.apidocs.dir}" />
+      <mkdir dir="${dist.dir}" />
+   </target>
+
+   <target name="clean">
+      <delete dir="${build.dir}" />
+      <delete dir="${dist.dir}" />
+   </target>
+
+   <target name="codegen" depends="init">
+      <javac srcdir="${java.src.dir}"
+             destdir="${build.classes.dir}" 
+             includes="com/mchange/v2/c3p0/codegen/**/*.java"
+             classpathref="codegen-classpath"
+             debug="true" />
+      <apply executable="java" dest="${build.codegen.dir}"> 
+        <arg value="-classpath" />
+        <arg path="${codegen.classpath}" />
+        <arg value="com.mchange.v2.c3p0.codegen.BeangenDataSourceGenerator" />
+        <srcfile />
+        <targetfile />
+        <fileset dir="${codegen.src.dir}" includes="**/*.beangen-xml" />
+        <mapper type="glob" from="*.beangen-xml" to="*.java" />
+      </apply>
+   </target>
+
+   <target name="compile" depends="codegen">
+      <javac destdir="${build.classes.dir}" 
+             classpathref="build-classpath" 
+             debug="on">
+          <sourcepath>
+             <pathelement location="${build.codegen.dir}" />
+             <pathelement location="${java.src.dir}" />
+          </sourcepath>
+          <src>
+             <pathelement location="${build.codegen.dir}" />
+             <pathelement location="${java.src.dir}" />
+          </src>
+      </javac>
+   </target>
+
+   <target name="jar" depends="compile">
+      <jar destfile="${build.jar.file}">
+          <fileset dir="${build.classes.dir}">
+             <patternset refid="dist-jar-classes"/>
+          </fileset>
+      </jar>
+   </target>
+
+   <target name="test-init" depends="jar">
+      <mkdir dir="${test.classes.dir}" />
+      <copy toDir="${test.classes.dir}">
+        <fileset dir="${build.classes.dir}">
+             <patternset refid="test-only-classes"/>
+        </fileset>
+      </copy>
+   </target>
+
+   <target name="benchmark-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.C3P0BenchmarkApp" 
+         classpathref="test-classpath" 
+	 fork="true">
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
+   <target name="load-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.LoadPoolBackedDataSource" 
+         classpathref="test-classpath" 
+	 fork="true">
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
+   <target name="psload-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.PSLoadPoolBackedDataSource" 
+         classpathref="test-classpath" 
+	 fork="true">
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
+   <target name="refser-test" depends="test-init">
+       <java 
+         classname="com.mchange.v2.c3p0.test.TestRefSerStuff" 
+         classpathref="test-classpath" 
+	 fork="true">
+           <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+           <arg value="${test.jdbc.url}" />
+           <arg value="${test.jdbc.user}" />
+           <arg value="${test.jdbc.password}" />
+       </java>
+   </target>
+
+   <target name="javadocs" depends="init">
+      <javadoc packagenames="com.mchange.v2.c3p0"
+               sourcepath="${java.src.dir}"
+               destdir="${build.apidocs.dir}" 
+               classpathref="build-classpath" 
+               windowtitle="${c3p0.name} API Documentation"
+      />
+   </target>
+
+   <target name="open-dist" depends="jar, javadocs">
+      <copy toDir="${open.dist}">
+         <fileset dir="${static.dist.src}">
+           <exclude name="*~" />
+           <exclude name="examples/*.class" />
+         </fileset>
+      </copy>
+      <copy toDir="${open.dist}/apidocs">
+         <fileset dir="${build.apidocs.dir}" />
+      </copy>
+      <copy file="${build.jar.file}" toDir="${open.dist}/lib" />
+   </target>
+
+   <target name="zip-dist" depends="open-dist">
+      <zip destfile="${dist.dir}/${bindist.name}.zip">
+        <zipfileset dir="${open.dist}" prefix="${c3p0.name}"/>
+      </zip>
+   </target>
+
+   <target name="tar-dist" depends="open-dist">
+      <tar destfile="${dist.dir}/${bindist.name}.tar">
+        <tarfileset dir="${open.dist}" prefix="${c3p0.name}"/>
+      </tar>
+   </target>
+
+   <target name="tgz-dist" depends="tar-dist">
+      <gzip zipfile="${dist.dir}/${bindist.name}.tgz" src="${dist.dir}/${bindist.name}.tar" />
+   </target>
+
+   <target name="bindist" depends="tgz-dist, zip-dist" />
+
+   <target name="dist" depends="bindist" />
+
+   <target name="srcdist">
+      <zip destfile="${dist.dir}/${srcdist.name}.zip">
+        <zipfileset dir="." prefix="${srcdist.name}">
+           <exclude name="${build.dir}/**"/>
+           <exclude name="${dist.dir}/**"/>
+           <exclude name="**/*.class"/>
+           <exclude name="**/old/**"/>
+           <exclude name="**/bad/**"/>
+        </zipfileset>
+      </zip>
+      <tar destfile="${dist.dir}/${srcdist.name}.tar">
+        <tarfileset dir="." prefix="${srcdist.name}">
+           <exclude name="${build.dir}/**"/>
+           <exclude name="${dist.dir}/**"/>
+           <exclude name="**/*.class"/>
+           <exclude name="**/old/**"/>
+           <exclude name="**/bad/**"/>
+        </tarfileset>
+      </tar>
+      <gzip zipfile="${dist.dir}/${srcdist.name}.tgz" src="${dist.dir}/${srcdist.name}.tar" />
+   </target>
+
+   <target name="all" depends="dist,srcdist" />
+
+</project>
+

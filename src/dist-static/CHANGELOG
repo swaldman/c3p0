@@ -1,0 +1,197 @@
+c3p0-0.8.4-test
+        -- Defined PoolingDataSource interface, which permits clients to access
+           statistics about the state of underlying pools, and made C3P0 pool-backed
+           DataSources implement that interface.
+        -- fixed a subtle bug with respect to ownership of shared resources in which
+           finalize() methods for discarded DataSources could cause helper threads and
+           other resources to be cleaned up prematurely, while they are still in use
+           by other DataSources.
+        -- major reorganization of code generation for DataSources and the
+           resulting objects.
+        -- reorganization of Serializable and Referenceable code of DataSources
+           for JNDI Binding
+        -- made PoolConfig defaults (which are set by system properties, a 
+           c3p0.properties file, or else hardcoded defaults) apply to DataSources
+           that are directly instantiated rather than created via the 
+           com.mchange.v2.c3p0.DataSources factory class.
+	-- organized scattered stuff into a self-contained, distributable build
+	   directly, and divided source and binary distributions
+        -- relicensed library; now available under LGPL.
+	-- THERE ARE SOME MAJOR REORGANIZATIONS IN THIS RELEASE. ANY HELP IN
+	   TESTING AND FEEDBACK WOULD BE APPRECIATED!
+c3p0-0.8.3.1
+        -- take greater care to abort if a helper thread wakes from wait()
+           inside of a broken resource pool
+        -- log more debug information if a pool unexpectedly breaks
+c3p0-0.8.3
+	-- resolved a deadlock arising from ConnectionEventSupport objects
+           calling event listener methods while holding the ConnectionEventSupport's
+           lock. (Thanks to an anonymous Sourceforge bug submitter for tracking this
+           down.)
+        -- added two configuration parameters to modify how c3p0 deals with
+           potentially unresolved transactions on transaction close -- 
+           autoCommitOnClose and forceIgnoreUnresolvedTransactions. c3p0's
+           default behavior is as it always was (and as I think it nearly
+           always should be) -- by default we roll back any uncommitted work
+           on close. See PoolConfig class for complete documentation.
+        -- fixed stupid build error that made unzipping c3p0 archives messy
+           since c3p0-0.8.2. (SORRY!)
+c3p0-0.8.3-pre-travis
+        -- fixed problem with c3p0 trying endlessly to connect to a database
+           that is down or not present. c3p0 now tries thirty time, once per
+           second, then gives up. if there's demand, I'll make the delay and
+           number of attempts user configurable. Thanks to Alfonso da Silva
+           for calling attention to this problem.
+        -- modified RoundRobinAsynchronousRunner to die more gracefully if, 
+           somehow, one of its CarefulAsynchronousRunners somehow dies. Thanks to
+           Travis Reeder for calling attention to this issue.
+        -- modified ResourcePools to allow resources to be tested periodically
+           and asynchronously while they are idle in the pool.
+        -- added to a new configuration property to PoolConfig and related
+           classes, idleConnectionTestPeriod, which if set to a greater-than-zero
+           value will cause c3p0 to periodically test idle, pooled connection,
+           and remove them from the pool if they are broken.  Thanks to
+           Travis Reeder for calling attention to this issue.
+        -- removed SQLState 08S01 from the set of SQL states presumed to mean
+           all connections in the pool have become invalid. Apparently MySQL
+           uses this SQLState to indicate the timing out of idle, individual
+           connections.  Thanks to Travis Reeder for calling attention to this issue.
+        -- many (!) bug-fixes, small tweaks and improvements.
+        -- temporarily sprinkled some debugging output prefixed "c3p0-TRAVIS" to 
+           try to resolve some issues for Travis Reeder
+c3p0-0.8.2
+        -- Addressed a rare problem that ocurred when application servers or
+           other external code calls interrupt() on c3p0 helper threads. Thanks 
+	   to Travis Reeder for reporting this issue! The endless cascade of 
+	   ArrayIndexOutOfBoundsException that would occasionallY result has 
+	   been fixed, and c3p0 helper threads now ignore interupts,
+           which should almost completely prevent such interrupts() 
+           from leaving c3p0 pools in a corrupt state. [In the very, very
+	   unlikely event that multiple, well-timed interrupts() cause
+	   a pool to diagnose itself broken, c3p0 will start throwing clear 
+	   exceptions to indicate that -- there shouldn't be any deadlock or
+	   any subtle kind of corruption.]
+	-- Deprecated PoolBackedDataSourceFactory and DriverManagerDataSourceFactory
+	   in favor of the newer DataSources class.
+        -- Updated example code and documentation.
+	-- Moved constants from DataSources to PoolConfig where they belong!
+c3p0-0.8.2-pre10
+        -- Removed use of properties default mechanism in setting up JDBC
+           properties for DriverManagerDataSource, as some drivers use get()
+           rather than getProperties(), and the Properties.get() method ignores
+           defaults. [Thanks go to Michael Jakl <mj@int-x.org> for both finding
+           and fixing this problem!!!]
+        -- Fixed subtle problem whereby the introspective constructor of 
+           C3P0PooledConnectionPoolManager would inadvertently check out an
+           extra pooled connection, by treating the getPooledConnection() as
+           a simple property read and invoking it. [Thanks go to Michael Jakl 
+           <mj@int-x.org> for both finding and fixing this bug!!!]
+c3p0-0.8.2-pre9
+        -- Finished DataSources static factory for, um, DataSources.
+        -- Added PoolConfig class to encapsulate all configuration
+           information from factories
+	-- Set up PoolConfig to pay attention to (in order):
+             1) explicit, user-defined parameters
+             2) parameters defined as System properties
+             3) parameters defined in a Properties file resource, at
+                resource pasth /c3p0.properties in PoolConfig's classloader
+	     4) Hardcoded defaults from the C3P0Defaults class
+        -- Defined a new pool configuration property, "testConnectionOnCheckout".
+           If set to true (it defaults to false), each pooled Connection will be 
+           verified at checkout time, before being supplied to clients. THIS SLOWS
+           CONNECTION CHECKOUT DRAMATICALLY (by an order of magnitude on my machine),
+           but some folks may want it. The expensive, verified Connections are still
+           faster to acquire than brand new ones.
+        -- If a Connection experiences an SQLException with a defined SQL State of
+           08001, 08007, or 08S01, the entire database is considered to have been
+           shutdown, and the pool whose connection experienced the problem is reset 
+           -- i.e. all existing Connections are discarded, and new Connections are 
+           acquired for the pool. (Thanks! to Gavin King for suggesting the SQL State
+           approach to detecting disconnects.)
+        -- ConnectionTester interface and its default implementation were modified
+           to support reporting DATABASE_IS_INVALID (rather than simply testing a
+           disconnected, individual Connection).
+c3p0-0.8.2-pre8
+        -- Fixed some really stupid bugs from pre-7, in particular
+           the static factory methods of the DataSources class were
+           not declared static. Oops. 
+c3p0-0.8.2-pre7
+        -- Major reorganization of data source implementations. These
+           are now generated from XML templates, because it was becoming
+           difficult to keep multiple versions of multiple types of 
+           datasources in sync with one another
+        -- a new factory / utility class has been added, 
+           com.mchange.v2.c3p0.DataSources.
+           Soon the older factories (DriverManagerDataSourceFactory and 
+           PoolBackedDataSourceFactory) will be deprecated in favor of this.
+        -- Began adding support for wrapper DataSources that lazily bind to 
+           an unpooled DataSource specified via JNDI. (Current wrappers require
+           an actual instance, not a mere reference in order to construct a
+           PoolBacked or ConnectionPoolDataSource).
+c3p0-0.8.2-pre6
+	-- Fixed bug that led to ConcurrentModificationException
+	   when Connection.close() iterates through and closes
+	   its unclosed Statements.
+	-- Fixed bug that caused uncached Statements to sometimes
+	   be closed twice, as they were not properly removed from
+	   the set of Connection-associated statements on user-
+           initiated Statement.close(), and would thus be closed 
+           again on Connection.close().
+	-- Reorganized classes to clean up top-level com.mchange.v2.c3p0
+	   package. The gory innards of c3p0 now live in an impl package.
+	-- Reorganized DataSources so that there are "Base" versions suitable
+	   for DBMS-specific subclassing.
+c3p0-0.8.2-pre5
+        -- DataSources looked up by JNDI now "coalesce" -- i.e., if
+           two separate calls look-up the same JNDI bound DataSource,
+           they will both see the same DataSource instance in the local
+           VM. This is especially important for PoolBackedDataSources, as they
+           own "helper threads" that help to manage the pool. Now each
+           logical DataSource shares the same pool of helper threads,
+           regardless of whether it is looked up once and cached, or
+	   looked up multiple times and at multiple places by an application. 
+        -- Number of helper-threads managing a PoolBackedDataSource is now
+           user-configurable
+c3p0-0.8.2-pre4
+        -- Fixed BAD memory leak -- cachedStatements were being retained
+           on close. This brings a performance improvement to
+	   the StatementCache as well.
+	-- Set-up StatementCacheKey to coalesce, such that its equals
+	   method can look like {return (this == o);}. Unfortunately, I
+	   did not see the kind of performance increase I'd anticipated
+	   from this... in fact, whatever performance changes I did see were
+	   pretty negligable. Performed some other, mostly useless, optimizations
+	   to the process of acquiring StatementCacheKeys. (I can't decide...
+           I've got 3 usuable, broadly similar versions of StatementCacheKey now.)
+	-- Fixed bugs having to do with when to create and the daemon status
+	   of Timers
+	-- Appropriately synchronized access to PoolBackedDataSource. (This
+	   should permit me to pull back on synchronization / marking of
+	   volatile in some dependent classes, as access to these is now 
+           controlled via PoolBackedDataSource.)
+	-- Made instantion of C3P0PooledConnectionPoolManager 
+           by WrapperPoolBackedDataSource "lazy", so that Timer / Async task
+	   threads are only started up when a Connection is actually requested 
+	   from a DataSource. This is useful especially for the instance residing
+	   in the JNDI server VM, whose purpose is likely only to serve as an
+	   instance to be looked up over the network. There's no reason why
+	   it should keep several stalled Threads open.
+	-- Fixed DefaultConnectionTester, whose logic was bass-ackwards.
+c3p0-0.8.2-pre3
+	-- Factory method for StatementCacheKeys now "coalesce" equivalent 
+	   instances to conserve memory and to enable a fast (this == o) test 
+	   to usually work in equals methods. [Value test remains for when 
+	   identity test fails... maybe later I'll be more comfortable with a 
+	   1 instance per value guarantee, and remove the rest of the test. 
+	   As the constructor is private, the factory method coalesces, and the 
+	   class is not Serializable, an identity test should suffice. But 
+	   I'm paranoid.]
+
+	-- All asynchronous tasks are now distributed to 3 helper threads per 
+	   DataSource rather than queuing on just one. (Culing of expired 
+	   Connections is still managed by a single java.util.Timer... I don't 
+	   think this will be a problem.)
+
+c3p0-0.8.2-pre2
+	-- Total rewite of Statement cache!
+

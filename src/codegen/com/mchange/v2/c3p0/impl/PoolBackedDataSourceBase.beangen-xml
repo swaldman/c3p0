@@ -1,0 +1,31 @@
+<beangen>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <specific>javax.sql.DataSource</specific>
+     <specific>javax.sql.ConnectionPoolDataSource</specific>
+     <specific>com.mchange.v2.c3p0.PoolConfig</specific>
+  </imports>
+  <output-class>PoolBackedDataSourceBase</output-class>
+  <properties> 
+    <property>
+       <type>ConnectionPoolDataSource</type>
+       <name>connectionPoolDataSource</name>
+       <bound/>
+    </property>
+    <property>
+       <type>int</type>
+       <name>numHelperThreads</name>
+       <default-value>PoolConfig.defaultNumHelperThreads()</default-value>
+       <bound/>
+    </property>
+    <property>
+       <type>String</type>
+       <name>factoryClassLocation</name>
+       <default-value>PoolConfig.defaultFactoryClassLocation()</default-value>
+    </property>
+  </properties> 
+</beangen>
+
+
+
+

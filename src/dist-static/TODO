@@ -1,0 +1,12 @@
+Support XADataSources.
+
+Support JDBC3 extensions to Connection, Statement, and ResultSet.
+
+Get rid of some of the complexity of default setting -- merge C3P0Defaults
+with PoolConfig.
+
+JBoss integration.
+
+
+
+

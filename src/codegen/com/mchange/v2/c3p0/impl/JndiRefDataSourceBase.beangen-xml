@@ -1,0 +1,38 @@
+<beangen>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <specific>java.util.Hashtable</specific>
+     <specific>javax.naming.Name</specific>
+  </imports>
+  <output-class>JndiRefDataSourceBase</output-class>
+  <properties> 
+    <property>
+       <type>Object</type>
+       <name>jndiName</name>
+       <defensive-copy>
+           (jndiName instanceof Name ? ((Name) jndiName).clone() : jndiName /* String */)
+       </defensive-copy>
+       <constrained />
+    </property>
+    <property>
+       <type>Hashtable</type>
+       <name>jndiEnv</name>
+       <serializable/>
+       <defensive-copy>
+           (Hashtable) jndiEnv.clone()
+       </defensive-copy>
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>caching</name>
+       <default-value>true</default-value>
+    </property>
+    <property>
+       <type>String</type>
+       <name>factoryClassLocation</name>
+    </property>
+  </properties>
+</beangen>
+
+
+
