@@ -1,3 +1,50 @@
+c3p0-0.8.4-test5
+	-- Includes, but does not yet use, cleaner, nonreflective
+	   reimplementation of C3P0PooledConnection and all of the
+	   JDBC proxy wrappers. (c3p0-0.8.4 will stick with the old,
+	   tested implementation, c3p0-0.8.5 will replace.)
+	-- Removed temporary debug wrapper around acquired Connections
+	   added in c3p0-0.8.4-test4-3.
+c3p0-0.8.4-test4-3
+	-- Fixed race condition in BasicResourcePool close(), whereby
+	   pooled resources were to be destroyed by an asynchronous thread
+	   that itself was shut down by the close() method, so the resource
+	   closures did not necessarily occur. Pooled resources are now
+	   destroyed synchronously in BasicResourcePool.close()
+	-- Fixed erroneous call to C3P0PooledConnection reset() even when
+	   the PooledConnection is known to be broken.
+	-- Added temporary debug wrapper that dumps a stack trace on physical
+	   Connection close() to help Adrian track down a stubborn issue.
+c3p0-0.8.4-test4
+	-- Made sure PooledConnection's that are known to be broken are not reset()
+	   when the ProxyConnection that noticed the break cleans itself up.
+	-- Fixed a problem in C3P0PooledConnection's ProxyConnectionInvocationHandler
+	   when Connection-invalidating exceptions occurred inside the factored-out
+	   doSilentClose() method rather than in the invoke() method. This could lead to
+	   broken PooledConnections not being noticed and expunged from the pool 
+	   prior to recheck-out.
+	-- Ensured stack-trace of any Connection-invalidating Exceptions are
+	   logged. (Previously only the messages were logged.)
+	-- Access to ProxyConnections is now synchronized to avoid a possible
+	   race condition where a Connection could close while another method
+	   was in progress.
+	-- Cleaned up C3P0PooledConnection a bit, got rid of no longer used
+	   reflective code, modified to use new SQL interface filter classes.
+	-- Reorganized bean generation stuff to sit under com.mchange.v2.codegen
+	-- Added com.mchange.v2.sql.filter package, and code generation stuff so
+	   that abstract filter classes that implement JDBC interfaces can be
+	   easily regenerated from current versions. (This is preparation for
+	   JDK 1.4.x build support.)
+c3p0-0.8.4-test3
+	-- Reorganized C3P0PooledConnection and C3P0PooledConnectionPool so that
+	   PooledConnections only fire connectionErrorOccurred events on errors that
+	   signal the Connection is invalid. (Previously we fired the event in all
+	   cases, then tested the validity of the connection in the event handler.)
+	-- Fixed a bug where SQLExceptions that do not signal invalid Connections
+	   (such as an exception on transaction commit under optimistic concurrency)
+	   caused Connections to be closed, but still returned to the pool, leaving
+	   the pool corrupt. [Thanks to Adrian Petru Dimulescu for discovering and
+	   reporting this subtle problem!]
 c3p0-0.8.4-test2
 	-- Backed off a binary incompatible change to DataSources API. Users
 	   interested in statistics about running DataSources will need to
@@ -5,7 +52,7 @@ c3p0-0.8.4-test2
 	   com.mchange.v2.c3p0.PooledDataSource object. Other users should
 	   be able to use DataSources without recompilinbg libraries that
 	   depend upon it.
-	-- Defined com.mchange.v2.c3p0.ComboDataSource, a single, directly-instantiable
+	-- Defined com.mchange.v2.c3p0.ComboPooledDataSource, a single, directly-instantiable
 	   JavaBean-style DataSource backed by a c3p0 pool, which makes integration
 	   with various app servers easier (e.g. works with Tomcat), and which may
 	   provide a more straightforward API for users than DataSources and PoolConfig.

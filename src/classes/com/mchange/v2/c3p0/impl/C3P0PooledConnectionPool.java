@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -115,7 +115,7 @@ public final class C3P0PooledConnectionPool
 				    //we don't want any callbacks while we're testing the resource
 				    pc.removeConnectionEventListener( cl );
 
-				    conn = pc.getConnection();
+				    conn = pc.getConnection(); //checkout proxy connection
 				    status = connectionTester.activeCheckConnection( conn );
 				}
 			    catch (SQLException e)
@@ -126,8 +126,8 @@ public final class C3P0PooledConnectionPool
 				}
 			    finally
 				{ 
-				    ConnectionUtils.attemptClose( conn ); 
-				    pc.addConnectionEventListener( cl );
+				    ConnectionUtils.attemptClose( conn ); //invalidate proxy connection
+				    pc.addConnectionEventListener( cl );  //should we move this to CONNECTION_IS_OKAY case? (it should work either way)
 				}
 
 			    switch (status)
@@ -184,6 +184,7 @@ public final class C3P0PooledConnectionPool
     
     public void close() throws SQLException
     { 
+	// System.err.println(this + " closing.");
         try { rp.close(); }
         catch (ResourcePoolException e)
 	    { throw SqlUtils.toSQLException(e); }
@@ -202,39 +203,30 @@ public final class C3P0PooledConnectionPool
 
 	public void connectionErrorOccurred(ConnectionEvent evt)
 	{
+	    System.err.println("CONNECTION ERROR OCCURRED!");
+	    System.err.println();
 	    try
 		{
 		    PooledConnection pc = (PooledConnection) evt.getSource();
-		    SQLException sqle = evt.getSQLException();
 		    int status;
-		    Connection conn = null;
-		    try 
-			{ 
-			    conn = pc.getConnection();
-			    status = connectionTester.statusOnException( conn, sqle ); 
-			}
-		    catch (SQLException e)
-			{
-			    if (Debug.DEBUG)
-				e.printStackTrace();
-			    status = ConnectionTester.CONNECTION_IS_INVALID;
-			}
-		    finally
-			{ ConnectionUtils.attemptClose( conn ); }
-
+		    if (pc instanceof C3P0PooledConnection)
+			status = ((C3P0PooledConnection) pc).getConnectionStatus();
+		    else //default to invalid connection, but not invalid database
+			status = ConnectionTester.CONNECTION_IS_INVALID;
 		    switch (status)
 			{
 			case ConnectionTester.CONNECTION_IS_OKAY:
-			    break; //no problem, babe
-			case ConnectionTester.DATABASE_IS_INVALID:
-			    rp.resetPool();
-			    break;
+			    throw new InternalError("connectionErrorOcccurred() should only be " +
+						    "called for errors fatal to the Connection.");
 			case ConnectionTester.CONNECTION_IS_INVALID:
 			    rp.markBroken( pc );
 			    break;
+			case ConnectionTester.DATABASE_IS_INVALID:
+			    rp.resetPool();
+			    break;
 			default:
-			    throw new Error("Bad Connection Tester (" + connectionTester + ") " +
-					    "returned invalid status (" + status + ").");
+			    throw new InternalError("Bad Connection Tester (" + connectionTester + ") " +
+						    "returned invalid status (" + status + ").");
 			}
 
 		}

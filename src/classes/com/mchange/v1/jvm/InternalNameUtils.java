@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -176,6 +176,7 @@ public final class InternalNameUtils
     {
 	try
 	    {
+		//System.out.println( decodeType( (new String[0]).getClass().getName() ) );
 		System.out.println(decodeTypeList(argv[0]));
 	    }
 	catch (Exception e)

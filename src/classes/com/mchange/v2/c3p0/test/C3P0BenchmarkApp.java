@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -43,7 +43,7 @@ public final class C3P0BenchmarkApp
     final static String N_ENTRY_TABLE_DROP   = "DROP TABLE n_entryyukyuk";
 
     final static int NUM_ITERATIONS = 2000;
-    //final static int NUM_ITERATIONS = 50;
+    //final static int NUM_ITERATIONS = 10000;
 
     public static void main(String[] argv)
     {
@@ -87,8 +87,10 @@ public final class C3P0BenchmarkApp
 //      							 100 );
 
 		ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
-
 		ds_pooled = DataSources.pooledDataSource( ds_unpooled );
+
+   		//DataSource ds_unpooled_screwy = C3P0TestUtils.unreliableCommitDataSource( ds_unpooled );
+   		//ds_pooled = DataSources.pooledDataSource( ds_unpooled_screwy );
 
 		//PoolConfig pc = new PoolConfig();
 		//pc.setMaxStatements(200);
@@ -98,18 +100,21 @@ public final class C3P0BenchmarkApp
 
 		System.out.println("Please wait. Tests can be very slow.");
 		List l = new ArrayList();
- 		l.add( new ConnectionAcquisitionTest() );
-    		l.add( new StatementCreateTest() );
-    		l.add( new StatementEmptyTableSelectTest() );
-    		l.add( new PreparedStatementEmptyTableSelectTest() );
-  		l.add( new PreparedStatementAcquireTest() );
+   		l.add( new ConnectionAcquisitionTest() );
+      		l.add( new StatementCreateTest() );
+      		l.add( new StatementEmptyTableSelectTest() );
+      		l.add( new PreparedStatementEmptyTableSelectTest() );
+    		l.add( new PreparedStatementAcquireTest() );
     		l.add( new ResultSetReadTest() );
-  		l.add( new FiveThreadPSQueryTestTest() );
+   		l.add( new FiveThreadPSQueryTestTest() );
 		for (int i = 0, len = l.size(); i < len; ++i)
 		    ((Test) l.get(i)).perform( ds_unpooled, ds_pooled, NUM_ITERATIONS );
 	    }
 	catch( Exception e )
-	    { e.printStackTrace(); }
+	    {
+		System.err.print("Aborting tests on Exception -- ");
+		e.printStackTrace(); 
+	    }
 	finally
 	    {
  		try { drop(ds_pooled); }
@@ -436,7 +441,7 @@ public final class C3P0BenchmarkApp
   	{ 
 	    super( "Five threads getting a connection, executing a query, " + 
 		   System.getProperty( "line.separator" ) +
-		   "and retrieving results concurrently via a prepared statement." ); 
+		   "and retrieving results concurrently via a prepared statement (in a transaction)." ); 
 	}
 
   	protected long test(final DataSource ds, final int n) throws Exception
@@ -457,15 +462,26 @@ public final class C3P0BenchmarkApp
 			    try
 				{
 				    con = ds.getConnection();
+				    con.setAutoCommit( false );
 				    pstmt = con.prepareStatement( EMPTY_TABLE_CONDITIONAL_SELECT );
 				    pstmt.setString(1, "boo");
 				    rs = pstmt.executeQuery();
 				    while( rs.next() )
 					System.err.println("Huh?? Empty table has values?");
 				    //System.out.println(this + "   " + i);
+				    con.commit();
 				}
 			    catch (Exception e)
-				{ e.printStackTrace(); }
+				{ 
+				    System.err.print("FiveThreadPSQueryTestTest exception -- ");
+				    e.printStackTrace(); 
+				    try { con.rollback(); }
+				    catch (SQLException e2)
+					{
+					    System.err.print("Rollback on exception failed! -- ");
+					    e2.printStackTrace();
+					}
+				}
 			    finally
 				{
 				    ResultSetUtils.attemptClose( rs ); 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -486,6 +486,9 @@ class BasicResourcePool implements ResourcePool
     }
 
     private void destroyResource(final Object resc)
+    { destroyResource( resc, false ); }
+
+    private void destroyResource(final Object resc, boolean synchronous)
     {
 	Runnable r = new Runnable()
 	    {
@@ -499,7 +502,10 @@ class BasicResourcePool implements ResourcePool
 			}
 		}
 	    };
-	taskRunner.postRunnable( r );
+	if ( synchronous )
+	    r.run();
+	else
+	    taskRunner.postRunnable( r );
     }
 
     //this method NEED NOT be invoked from a synchronized
@@ -564,6 +570,7 @@ class BasicResourcePool implements ResourcePool
 	if (! broken ) //ignore repeated calls to close
 	    {
 		this.broken = true;
+		// new Exception("CRAIGRAW - BROKE HERE").printStackTrace();
 		Collection cleanupResources = ( close_checked_out_resources ? (Collection) cloneOfManaged().keySet() : (Collection) cloneOfUnused() );
 		if ( cullTask != null )
 		    cullTask.cancel();
@@ -572,7 +579,7 @@ class BasicResourcePool implements ResourcePool
 		for (Iterator ii = cleanupResources.iterator(); ii.hasNext();)
 		    {
 			try
-			    {removeResource(ii.next());}
+			    {removeResource(ii.next(), true);}
 			catch (Exception e)
 			    {if (Debug.DEBUG) e.printStackTrace();}
 		    }
@@ -751,10 +758,13 @@ class BasicResourcePool implements ResourcePool
     }
 
     private void removeResource(Object resc)
+    { removeResource( resc, false ); }
+
+    private void removeResource(Object resc, boolean synchronous)
     {
 	managed.remove(resc);
 	unused.remove(resc);
-	destroyResource(resc);
+	destroyResource(resc, synchronous);
 	asyncFireResourceRemoved( resc, false, managed.size(), unused.size(), excluded.size() );
 	if (Debug.TRACE == Debug.TRACE_MAX) trace();
 	//System.err.println("RESOURCE REMOVED!");

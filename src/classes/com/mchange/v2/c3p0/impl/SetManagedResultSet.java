@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -25,18 +25,21 @@ package com.mchange.v2.c3p0.impl;
 
 import java.sql.*;
 import java.util.Set;
+import com.mchange.v2.sql.filter.FilterResultSet;
 
-final class SetManagedResultSet extends C3P0ResultSet
+final class SetManagedResultSet extends FilterResultSet
 {
     Set activeResultSets;
 
     SetManagedResultSet(Set activeResultSets)
-    { this.activeResultSets = activeResultSets; }
+    {
+ 	this.activeResultSets = activeResultSets; 
+    }
 
     SetManagedResultSet(ResultSet inner, Set activeResultSets)
     { 
-	this(activeResultSets);
-	setInner( inner );
+	super( inner );
+ 	this.activeResultSets = activeResultSets; 
     }
 
     public synchronized void setInner(ResultSet inner)

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -25,8 +25,9 @@ package com.mchange.v2.c3p0.impl;
 
 import java.sql.*;
 import java.util.Set;
+import com.mchange.v2.sql.filter.FilterResultSet;
 
-final class SnatchFromSetResultSet extends C3P0ResultSet
+final class SnatchFromSetResultSet extends FilterResultSet
 {
     Set activeResultSets;
 

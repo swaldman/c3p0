@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -26,7 +26,7 @@ package com.mchange.v2.async;
 import java.util.*;
 import com.mchange.v2.util.ResourceClosedException;
 
-public class ThreadPoolAsynchronousRunner implements AsynchronousRunner
+public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 {
     final static int POLL_FOR_STOP_INTERVAL     = 5000; //milliseconds
     final static int DEADLOCK_DETECTOR_INTERVAL = 10000; //milliseconds

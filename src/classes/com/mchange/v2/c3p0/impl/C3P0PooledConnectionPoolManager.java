@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -139,6 +139,7 @@ public final class C3P0PooledConnectionPoolManager
 
     private synchronized void poolsDestroy()
     {
+	//System.err.println("poolsDestroy() -- " + this);
 	for (Iterator ii = authsToPools.values().iterator(); ii.hasNext(); )
 	    {
 		try
@@ -279,6 +280,7 @@ public final class C3P0PooledConnectionPoolManager
 
     public synchronized void close()
     {
+	// System.err.println("close()ing " + this);
 	if (authsToPools != null)
 	    poolsDestroy();
     }
@@ -314,9 +316,14 @@ public final class C3P0PooledConnectionPoolManager
 
     public synchronized void unregisterActiveClient( Object o )
     {
+	// System.err.println("unregisterActiveClient() called.");
+	// System.err.println("active clients before -- " + activeClients);
+	
 	activeClients.remove( o );
 	if (activeClients.size() == 0)
 	    this.close();
+
+	// System.err.println("active clients after -- " + activeClients);
     }
 }
 

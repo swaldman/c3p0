@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -63,18 +63,24 @@ public final class ClassUtils
 
     public static String simpleClassName(Class cl)
     {
-	try
+	String scn;
+	int array_level = 0;
+	while (cl.isArray())
 	    {
-		String out = simpleClassName( cl.getName() );
-		if (cl.isArray())
-		    out = InternalNameUtils.decodeType(out);
-		return out;
+		++array_level;
+		cl = cl.getComponentType();
 	    }
-	catch (TypeFormatException e)
+	scn = simpleClassName( cl.getName() );
+	if ( array_level > 0 )
 	    {
-		e.printStackTrace();
-		throw new InternalError("Huh? the name of a genuine type failed to decode!");
+		StringBuffer sb = new StringBuffer(16);
+		sb.append( scn );
+		for( int i = 0; i < array_level; ++i)
+		    sb.append("[]");
+		return sb.toString();
 	    }
+	else
+	    return scn;
     }
 
     private static String simpleClassName(String fqcn)

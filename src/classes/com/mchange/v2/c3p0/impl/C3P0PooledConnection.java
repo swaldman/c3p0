@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -28,6 +28,7 @@ import java.sql.*;
 import java.util.*;
 import javax.sql.*;
 import com.mchange.v2.sql.*;
+import com.mchange.v2.sql.filter.*;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v1.util.ClosableResource;
@@ -39,10 +40,6 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     final static Class[]     PROXY_CTOR_ARGS = new Class[]{ InvocationHandler.class };
 
     final static Constructor CON_PROXY_CTOR;
-    final static Constructor STMT_PROXY_CTOR;
-    final static Constructor PSTMT_PROXY_CTOR;
-    final static Constructor CSTMT_PROXY_CTOR;
-    final static Constructor RS_PROXY_CTOR;
 
     final static Method RS_CLOSE_METHOD;
     final static Method STMT_CLOSE_METHOD;
@@ -66,10 +63,6 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	try
 	    {
 		CON_PROXY_CTOR = createProxyConstructor( ProxyConnection.class );
-		STMT_PROXY_CTOR = createProxyConstructor( Statement.class );
-		PSTMT_PROXY_CTOR = createProxyConstructor( PreparedStatement.class );
-		CSTMT_PROXY_CTOR = createProxyConstructor( CallableStatement.class );
-		RS_PROXY_CTOR = createProxyConstructor( ResultSet.class );
 
 		Class[] argClasses = new Class[0];
 		RS_CLOSE_METHOD = ResultSet.class.getMethod("close", argClasses);
@@ -88,6 +81,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     }
 
     //MT: post-constructor constants
+    final ConnectionTester connectionTester;
     final boolean autoCommitOnClose;
     final boolean forceIgnoreUnresolvedTransactions;
 
@@ -96,11 +90,14 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 
     //MT: threadsafe, but reassigned (on close)
     volatile Connection physicalConnection;
+    volatile Exception  invalidatingException = null;
 
     //MT: threadsafe, but reassigned, and a read + reassignment must happen
     //    atomically. protected by this' lock.
     ProxyConnection exposedProxy;
 
+    //MT: protected by this' lock
+    int connection_status = ConnectionTester.CONNECTION_IS_OKAY;
 
     /*
      * contains all unclosed Statements not managed by a StatementCache
@@ -113,9 +110,13 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     //MT: Thread-safe, assigned
     volatile GooGooStatementCache scache;
 
-    public C3P0PooledConnection(Connection con, boolean autoCommitOnClose, boolean forceIgnoreUnresolvedTransactions)
+    public C3P0PooledConnection(Connection con, 
+				ConnectionTester connectionTester,
+				boolean autoCommitOnClose, 
+				boolean forceIgnoreUnresolvedTransactions)
     { 
 	this.physicalConnection = con; 
+	this.connectionTester = connectionTester;
 	this.autoCommitOnClose = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
     }
@@ -129,13 +130,15 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     void initStatementCache( GooGooStatementCache scache )
     { this.scache = scache; }
 
+
     //DEBUG
     //Exception origGet = null;
 
     // synchronized to protect exposedProxy
-    public synchronized  Connection getConnection() throws SQLException
-    {
-	if (exposedProxy != null)
+    public synchronized Connection getConnection()
+	throws SQLException
+    { 
+	if ( exposedProxy != null)
 	    {
 		//DEBUG
 		//System.err.println("XXXXXX!!!!! double getting a Connection from " + this );
@@ -148,27 +151,33 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		return exposedProxy;
 	    }
 	else
-	    {
-		try
-		    {
-			//DEBUG
-			//origGet = new Exception("Orig Get");
+	    { return getCreateNewConnection(); }
+    }
 
-			ensureOkay();
-			/*
-			 * we reset the physical connection when we close an exposed proxy
-			 * no need to do it again when we create one
-			 */
-			//reset();
-			return (exposedProxy = createProxyConnection()); 
-		    }
-		catch (SQLException e)
-		    { throw e; }
-		catch (Exception e)
-		    {
-			e.printStackTrace();
-			throw new SQLException("Failed to acquire connection!");
-		    }
+    // must be called from sync'ed method to protecte
+    // exposedProxy
+    private Connection getCreateNewConnection()
+	throws SQLException
+    {
+	try
+	    {
+		//DEBUG
+		//origGet = new Exception("Orig Get");
+		
+		ensureOkay();
+		/*
+		 * we reset the physical connection when we close an exposed proxy
+		 * no need to do it again when we create one
+		 */
+		//reset();
+		return (exposedProxy = createProxyConnection()); 
+	    }
+	catch (SQLException e)
+	    { throw e; }
+	catch (Exception e)
+	    {
+		e.printStackTrace();
+		throw new SQLException("Failed to acquire connection!");
 	    }
     }
 
@@ -178,14 +187,32 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	    scache.closeAll( physicalConnection );
     }
 
-    public synchronized void close() throws SQLException
+    public void close() throws SQLException
+    { this.close( false ); }
+
+    //TODO: factor out repetitive debugging code
+    private synchronized void close(boolean known_invalid) throws SQLException
     {
+	//System.err.println("Closing " + this);
 	if ( physicalConnection != null )
 	    {
 		try
 		    { 
+			StringBuffer debugOnlyLog = null;
+			if ( Debug.DEBUG && known_invalid )
+			    {
+				debugOnlyLog = new StringBuffer();
+				debugOnlyLog.append("[ exceptions: ");
+			    }
+
 			Exception exc = cleanupUncachedActiveStatements();
-			if (Debug.DEBUG && exc != null) exc.printStackTrace();
+			if (Debug.DEBUG && exc != null) 
+			    {
+				if (known_invalid)
+				    debugOnlyLog.append( exc.toString() + ' ' );
+				else
+				    exc.printStackTrace();
+			    }
 
 			try 
 			    { 
@@ -198,31 +225,62 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				// be good. The PooledConnection itself should only be closed by the
 				// pool.
 				if (exposedProxy != null)
-				    exposedProxy.silentClose();
+				    exposedProxy.silentClose( known_invalid );
 			    }
 			catch (Exception e)
 			    {
-				if (Debug.DEBUG) e.printStackTrace();
+				if (Debug.DEBUG)
+				    {
+					if (known_invalid)
+					    debugOnlyLog.append( e.toString() + ' ' );
+					else
+					    e.printStackTrace();
+				    }
 				exc = e;
 			    }
 			try
 			    { this.closeAll(); }
 			catch (Exception e)
 			    {
-				if (Debug.DEBUG) e.printStackTrace();
+				if (Debug.DEBUG)
+				    {
+					if (known_invalid)
+					    debugOnlyLog.append( e.toString() + ' ' );
+					else
+					    e.printStackTrace();
+				    }
 				exc = e;
 			    }
 			
 			try { physicalConnection.close(); }
 			catch (Exception e)
 			    {
-				if (Debug.DEBUG) e.printStackTrace();
+				if (Debug.DEBUG)
+				    {
+					if (known_invalid)
+					    debugOnlyLog.append( e.toString() + ' ' );
+					else
+					    e.printStackTrace();
+				    }
 				exc = e;
 			    }
 
 			if (exc != null)
-			    throw new SQLException("At least one error occurred while attempting " +
-						   "to close() the PooledConnection: " + exc);
+			    {
+				if (known_invalid)
+				    {
+					debugOnlyLog.append(" ]");
+					if (Debug.DEBUG)
+					    {
+						System.err.print("[DEBUG]" + this + ": while closing a PooledConnection known to be invalid, ");
+						System.err.println("  some exceptions occurred. This is probably not a problem:");
+						System.err.println( debugOnlyLog.toString() );
+					    }
+				    }
+				else
+				    throw new SQLException("At least one error occurred while attempting " +
+							   "to close() the PooledConnection: " + exc);
+			    }
 			if (Debug.TRACE == Debug.TRACE_MAX)
 			    System.err.println("C3P0PooledConnection closed. [" + this + ']');
 		    }
@@ -281,7 +339,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     void ensureOkay() throws SQLException
     {
 	if (physicalConnection == null)
-	    throw new SQLException("Connection is broken");
+	    throw new SQLException( invalidatingException == null ?
+				    "Connection is closed or broken." :
+				    "Connection is broken. Invalidating Exception: " + invalidatingException.toString());
     }
 
     boolean closeAndRemoveResourcesInSet(Set s, Method closeMethod)
@@ -368,9 +428,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	return (ProxyConnection) CON_PROXY_CTOR.newInstance( new Object[] {handler} );
     }
 
-    Statement createProxyStatement( Statement innerStmt, 
-				    Constructor stmtProxyCtor) throws Exception
-    { return this.createProxyStatement( false, innerStmt, stmtProxyCtor ); }
+    Statement createProxyStatement( Statement innerStmt ) throws Exception
+    { return this.createProxyStatement( false, innerStmt ); }
 
 
     /*
@@ -380,8 +439,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     Statement createProxyStatement( //final Method cachedStmtProducingMethod, 
 				    //final Object[] cachedStmtProducingMethodArgs, 
 				    final boolean inner_is_cached,
-				    final Statement innerStmt, 
-				    final Constructor stmtProxyCtor) throws Exception
+				    final Statement innerStmt) throws Exception
     {
 	final Set activeResultSets = Collections.synchronizedSet( new HashSet() );
 
@@ -441,7 +499,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 
 	if (innerStmt instanceof CallableStatement)
 	    {
-		return new C3P0CallableStatement((CallableStatement) innerStmt )
+		return new FilterCallableStatement((CallableStatement) innerStmt )
 		    {
 			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
 
@@ -460,7 +518,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	    }
 	else if (innerStmt instanceof PreparedStatement)
 	    {
-		return new C3P0PreparedStatement((PreparedStatement) innerStmt )
+		return new FilterPreparedStatement((PreparedStatement) innerStmt )
 		    {
 			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
 
@@ -479,7 +537,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	    }
 	else
 	    {
-		return new C3P0Statement( innerStmt )
+		return new FilterStatement( innerStmt )
 		    {
 			WrapperStatementHelper wsh = new WrapperStatementHelper(this);
 
@@ -495,102 +553,48 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	    }
     }
 
-
-    class ProxyConnectionInvocationHandler implements InvocationHandler
+    final class ProxyConnectionInvocationHandler implements InvocationHandler
     {
-	//MT: ThreadSafe, but reassigned
-	volatile Connection activeConnection = physicalConnection;
-
-	volatile DatabaseMetaData metaData = null;
+	//MT: ThreadSafe, but reassigned -- protected by this' lock
+	Connection activeConnection = physicalConnection;
+	DatabaseMetaData metaData   = null;
+	boolean connection_error_signaled = false;
 	
 	/*
 	 * contains all unclosed ResultSets derived from this Connection's metadata
 	 * associated with the physical connection
 	 *
-	 * MT: protected by its own lock, not reassigned
+	 * MT: protected by this' lock
 	 */
-	final Set activeMetaDataResultSets = Collections.synchronizedSet( new HashSet() );
-
-	private Exception doSilentClose(Object pc)
-	{
-	    synchronized ( C3P0PooledConnection.this )
-		{
-		    if ( C3P0PooledConnection.this.exposedProxy == pc )
-			{
-			    C3P0PooledConnection.this.exposedProxy = null;
-			    //System.err.println("Reset exposed proxy.");
-
-			    //DEBUG
-			    //origGet = null;
-			}
-		}
-
-	    activeConnection = null;
-	    Exception out = null;
-	    
-	    Exception exc1 = null, exc2 = null, exc3 = null, exc4 = null;
-	    try { C3P0PooledConnection.this.reset(); }
-	    catch (Exception e)
-		{ 
-		    if (Debug.DEBUG)
-			e.printStackTrace();
-		    exc1 = e;
-		}
-	    
-	    exc2 = cleanupUncachedActiveStatements();
-	    if (Debug.DEBUG && exc2 != null)
-		exc2.printStackTrace();
-	    if (!closeAndRemoveResultSets( activeMetaDataResultSets ))
-		exc3 = new SQLException("Failed to close some DatabaseMetaData Result Sets.");
-	    if (Debug.DEBUG && exc3 != null)
-		exc3.printStackTrace();
-	    if (scache != null)
-		{
-		    try
-			{ scache.checkinAll( physicalConnection ); }
-		    catch ( Exception e )
-			{ exc4 = e; }
-		    if (Debug.DEBUG && exc4 != null)
-			exc4.printStackTrace();
-		}
-	    
-	    if (exc1 != null)
-		out = exc1;
-	    else if (exc2 != null)
-		out = exc2;
-	    else if (exc3 != null)
-		out = exc3;
-	    else if (exc4 != null)
-		out = exc4;
-	    return out;
-	}
+	final Set activeMetaDataResultSets = new HashSet();
 	
-	public Object invoke(Object proxy, Method m, Object[] args)
+	public synchronized Object invoke(Object proxy, Method m, Object[] args)
 	    throws Throwable
 	{
 	    if ( OBJECT_METHODS.contains( m ) )
 		return m.invoke( this, args );
 
-	    ensureOkay();
-	    
 	    try
 		{
 		    String mname = m.getName();
 		    if (activeConnection != null)
-			{
+			{	    
 			    if (mname.equals("createStatement"))
 				{
+				    ensureOkay();
+
 				    Object stmt = m.invoke( activeConnection, args );
-				    return createProxyStatement( (Statement) stmt, STMT_PROXY_CTOR );
+				    return createProxyStatement( (Statement) stmt );
 				}
 			    else if (mname.equals("prepareStatement"))
 				{
+				    ensureOkay();
+
 				    Object pstmt;
 				    if (scache == null)
 					{
 					    pstmt = m.invoke( activeConnection, args );
-					    return createProxyStatement( (Statement) pstmt, 
-									 PSTMT_PROXY_CTOR );
+					    return createProxyStatement( (Statement) pstmt );
 					}
 				    else
 					{
@@ -598,29 +602,30 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 									      m, 
 									      args );
 					    return createProxyStatement( true,
-									 (Statement) pstmt, 
-									 PSTMT_PROXY_CTOR );
+									 (Statement) pstmt );
 					}
 				}
 			    else if (mname.equals("prepareCall"))
 				{
+				    ensureOkay();
+
 				    Object cstmt;
 				    if (scache == null)
 					{
 					    cstmt = m.invoke( activeConnection, args );
-					    return createProxyStatement( (Statement) cstmt, 
-									 CSTMT_PROXY_CTOR );
+					    return createProxyStatement( (Statement) cstmt ); 
 					}
 				    else
 					{
 					    cstmt = scache.checkoutStatement( physicalConnection, m, args );
 					    return createProxyStatement( true,
-									 (Statement) cstmt, 
-									 CSTMT_PROXY_CTOR );
+									 (Statement) cstmt );
 					}
 				}
 			    else if (mname.equals("getMetaData"))
 				{
+				    ensureOkay();
+
 				    DatabaseMetaData innerMd = activeConnection.getMetaData();
 				    if (metaData == null)
 					metaData = new SetManagedDatabaseMetaData(innerMd, 
@@ -629,16 +634,25 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				}
 			    else if (mname.equals("silentClose"))
 				{
-				    doSilentClose( proxy );
+				    //the PooledConnection doesn't have to be okay
+
+				    doSilentClose( proxy, ((Boolean) args[0]).booleanValue() );
 				    return null;
 				}
 			    else if ( mname.equals("close") )
 				{
-				    Exception e = doSilentClose( proxy );
-				    ces.fireConnectionClosed();
+				    //the PooledConnection doesn't have to be okay
+
+				    Exception e = doSilentClose( proxy, false );
+				    if (! connection_error_signaled)
+					ces.fireConnectionClosed();
 				    //System.err.println("close() called on a ProxyConnection.");
 				    if (e != null)
-					throw e;
+					{
+// 					    System.err.print("user close exception -- ");
+// 					    e.printStackTrace();
+					    throw e;
+					}
 				    else
 					return null;
 				}
@@ -648,7 +662,11 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 // 				    return m.invoke( activeConnection, args );
 // 				}
 			    else
-				return m.invoke( activeConnection, args );
+				{
+				    ensureOkay();
+				    
+				    return m.invoke( activeConnection, args );
+				}
 			}
 		    else
 			{
@@ -666,16 +684,174 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		}
 	    catch (InvocationTargetException e)
 		{
-		    Throwable throwMe = e.getTargetException();
-		    SQLException sqle = SqlUtils.toSQLException( throwMe );
-		    ces.fireConnectionErrorOccurred( sqle );
+		    Throwable convertMe = e.getTargetException();
+		    SQLException sqle = handleMaybeFatalToPooledConnection( convertMe, proxy, false );
+		    sqle.fillInStackTrace();
 		    throw sqle;
 		}
 	}
+
+	private Exception doSilentClose(Object proxyConnection, boolean pooled_connection_is_dead)
+	{
+	    if ( activeConnection != null )
+		{
+		    synchronized ( C3P0PooledConnection.this ) //uh oh... this is a nested lock acq... is there a deadlock hazard here?
+			{
+			    if ( C3P0PooledConnection.this.exposedProxy == proxyConnection )
+				{
+				    C3P0PooledConnection.this.exposedProxy = null;
+				    //System.err.println("Reset exposed proxy.");
+				    
+				    //DEBUG
+				    //origGet = null;
+				}
+			}
+		    
+		    Exception out = null;
+		    
+		    Exception exc1 = null, exc2 = null, exc3 = null, exc4 = null;
+		    try 
+			{ 
+			    if (! pooled_connection_is_dead)
+				C3P0PooledConnection.this.reset(); 
+			}
+		    catch (Exception e)
+			{ 
+			    exc1 = e;
+			    // 		    if (Debug.DEBUG)
+			    // 			{
+			    // 			    System.err.print("exc1 -- ");
+			    // 			    exc1.printStackTrace();
+			    // 			}
+			}
+		    
+		    exc2 = cleanupUncachedActiveStatements();
+		    // 	    if (Debug.DEBUG && exc2 != null)
+		    // 		{
+		    // 		    System.err.print("exc2 -- ");
+		    // 		    exc2.printStackTrace();
+		    // 		}
+		    if (!closeAndRemoveResultSets( activeMetaDataResultSets ))
+			exc3 = new SQLException("Failed to close some DatabaseMetaData Result Sets.");
+		    // 	    if (Debug.DEBUG && exc3 != null)
+		    // 		{
+		    // 		    System.err.print("exc3 -- ");
+		    // 		    exc3.printStackTrace();
+		    // 		}
+		    if (scache != null)
+			{
+			    try
+				{ scache.checkinAll( physicalConnection ); }
+			    catch ( Exception e )
+				{ exc4 = e; }
+			    // 		    if (Debug.DEBUG && exc4 != null)
+			    // 			{
+			    // 			    System.err.print("exc4 -- ");
+			    // 			    exc4.printStackTrace();
+			    // 			}
+			}
+		    
+		    if (exc1 != null)
+			{
+			    handleMaybeFatalToPooledConnection( exc1, proxyConnection, true );
+			    out = exc1;
+			}
+		    else if (exc2 != null)
+			{
+			    handleMaybeFatalToPooledConnection( exc2, proxyConnection, true );
+			    out = exc2;
+			}
+		    else if (exc3 != null)
+			{
+			    handleMaybeFatalToPooledConnection( exc3, proxyConnection, true );
+			    out = exc3;
+			}
+		    else if (exc4 != null)
+			{
+			    handleMaybeFatalToPooledConnection( exc4, proxyConnection, true );
+			    out = exc4;
+			}
+		    
+		    // 	    if (out != null)
+		    // 		{
+		    // 		    System.err.print("out -- ");
+		    // 		    out.printStackTrace();
+		    // 		}
+
+		    activeConnection = null;
+		    return out;
+		}
+	    else
+		return null;
+	}
+
+	private SQLException handleMaybeFatalToPooledConnection( Throwable t, Object proxyConnection, boolean already_closed )
+	{
+	    //System.err.println("handleMaybeFatalToPooledConnection()");
+
+	    SQLException sqle = SqlUtils.toSQLException( t );
+	    int status = connectionTester.statusOnException( physicalConnection, sqle );
+	    updateConnectionStatus( status ); 
+	    if (status != ConnectionTester.CONNECTION_IS_OKAY)
+		{
+		    if (Debug.DEBUG)
+			{
+			    System.err.print(C3P0PooledConnection.this + " invalidated by Exception: ");
+			    t.printStackTrace();
+			}
+		    
+		    invalidatingException = sqle;
+		    if (! already_closed )
+			doSilentClose( proxyConnection, true );
+		    if (! connection_error_signaled)
+			{
+			    ces.fireConnectionErrorOccurred( sqle );
+			    connection_error_signaled = true;
+			}
+		}
+	    return sqle;
+	}
+
+
     }
 
     interface ProxyConnection extends Connection
-    {	void silentClose() throws SQLException;	}
+    { void silentClose( boolean known_invalid ) throws SQLException; }
+
+    public synchronized int getConnectionStatus()
+    { return this.connection_status; }
+
+    private synchronized void updateConnectionStatus(int status)
+    {
+	switch ( this.connection_status )
+	    {
+	    case ConnectionTester.DATABASE_IS_INVALID:
+		//can't get worse than this, do nothing.
+		break;
+	    case ConnectionTester.CONNECTION_IS_INVALID:
+		if (status == ConnectionTester.DATABASE_IS_INVALID)
+		    doBadUpdate(status);
+		break;
+	    case ConnectionTester.CONNECTION_IS_OKAY:
+		if (status != ConnectionTester.CONNECTION_IS_OKAY)
+		    doBadUpdate(status);
+		break;
+	    default:
+		throw new InternalError(this + " -- Illegal Connection Status: " + this.connection_status);
+	    }
+    }
+
+    //must be called from sync'ed method
+    private void doBadUpdate(int new_status)
+    {
+	this.connection_status = new_status;
+	try { this.close( true ); }
+	catch (SQLException e)
+	    {
+		System.err.print("Broken Connection Close Error: ");
+		e.printStackTrace(); 
+	    }
+    }
 }
 
 
@@ -683,43 +859,4 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 
 
 
-
-//      Object findCreateCachedStatement(Method m, Object[] args) throws Exception
-//      {
-//  	String stmtText = (String) args[0];
-//  	boolean is_callable = m.getName().equals("prepareCall");
-//  	int result_set_type;
-//  	int result_set_concurrency;
-
-//  	if (args.length == 1)
-//  	    {
-//  		result_set_type = ResultSet.TYPE_FORWARD_ONLY;
-//  		result_set_concurrency = ResultSet.CONCUR_READ_ONLY;
-//  	    }
-//  	else if (args.length == 3)
-//  	    {
-//  		result_set_type = ((Integer) args[1]).intValue();
-//  		result_set_concurrency = ((Integer) args[2]).intValue();
-//  	    }
-//  	else
-//  	    throw new IllegalArgumentException("Unexpected number of args to " + m.getName() +
-//  					       " [right now we do not support new JDBC3 variants!]");
-
-//  	StatementCacheKey sck = new StatementCacheKey( stmtCache, 
-//  						       stmtText, 
-//  						       is_callable,
-//  						       result_set_type,
-//  						       result_set_concurrency );
-
-//  	synchronized( sck )
-//  	    {
-//  		Object out = stmtCache.fetchStatement( sck );
-//  		if (out == null)
-//  		    {
-//  			out = m.invoke( physicalConnection, args );
-//  			stmtCache.cacheStatement( sck, out );
-//  		    }
-//  		return out;
-//  	    }
-//      }
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -27,7 +27,8 @@ import java.io.*;
 import java.util.*;
 import javax.xml.parsers.*;
 import org.w3c.dom.*;
-import com.mchange.v2.beangen.*;
+import com.mchange.v2.codegen.*;
+import com.mchange.v2.codegen.bean.*;
 
 import java.lang.reflect.Modifier;
 import com.mchange.v1.xml.DomParseUtils;
@@ -78,7 +79,7 @@ public class BeangenDataSourceGenerator
 		w.flush();
 		w.close();
 
-		System.err.println("Processed: " + argv[0] + " -> " + argv[1]);
+		System.err.println("Processed: " + argv[0] ); //+ " -> " + argv[1]);
 	    }
 	catch ( Exception e )
 	    { e.printStackTrace(); }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4-test2
+ * Distributed as part of c3p0 v.0.8.4-test5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -35,6 +35,8 @@ import com.mchange.v2.c3p0.impl.*;
 
 public final class WrapperConnectionPoolDataSource extends WrapperConnectionPoolDataSourceBase implements ConnectionPoolDataSource
 {
+    ConnectionTester connectionTester = C3P0Defaults.connectionTester();
+
     {
 	VetoableChangeListener setConnectionTesterListener = new VetoableChangeListener()
 	    {
@@ -44,7 +46,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		    try
 			{
 			    if ( "connectionTesterClassName".equals( evt.getPropertyName() ) )
-				checkConnectionTesterClassName( (String) val );
+				recreateConnectionTester( (String) val );
 			}
 		    catch ( Exception e )
 			{
@@ -60,7 +62,9 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     public PooledConnection getPooledConnection()
 	throws SQLException
     { 
+	//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( getNestedDataSource().getConnection() ), 
 	return new C3P0PooledConnection( getNestedDataSource().getConnection(), 
+					 connectionTester,
 					 this.isAutoCommitOnClose(), 
 					 this.isForceIgnoreUnresolvedTransactions() ); 
     } 
@@ -68,7 +72,9 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     public PooledConnection getPooledConnection(String user, String password)
 	throws SQLException
     { 
+	//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( getNestedDataSource().getConnection(user, password) ), 
 	return new C3P0PooledConnection( getNestedDataSource().getConnection(user, password), 
+					 connectionTester,
 					 this.isAutoCommitOnClose(), 
 					 this.isForceIgnoreUnresolvedTransactions() ); 
     }
@@ -111,9 +117,14 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     }
 
     //other code
-    private void checkConnectionTesterClassName(String className) throws Exception
+    private void recreateConnectionTester(String className) throws Exception
     {
 	if (className != null)
-	    Class.forName( className ).newInstance();
+	    {
+		ConnectionTester ct = (ConnectionTester) Class.forName( className ).newInstance();
+		this.connectionTester = ct;
+	    }
+	else
+	    this.connectionTester = C3P0Defaults.connectionTester();
     }
 }
