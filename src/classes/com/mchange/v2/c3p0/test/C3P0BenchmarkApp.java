@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre9
+ * Distributed as part of c3p0 v.0.8.5
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -93,10 +93,16 @@ public final class C3P0BenchmarkApp
    		//DataSource ds_unpooled_screwy = C3P0TestUtils.unreliableCommitDataSource( ds_unpooled );
    		//ds_pooled = DataSources.pooledDataSource( ds_unpooled_screwy );
 
-		PoolConfig pc = new PoolConfig();
+// 		PoolConfig pc = new PoolConfig();
 // 		pc.setMaxStatements(200);
 // 		pc.setCheckoutTimeout(500);
-		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
+// 		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
+
+		ComboPooledDataSource cpds = new ComboPooledDataSource();
+		cpds.setJdbcUrl( jdbc_url );
+		cpds.setUser( username );
+		cpds.setPassword( password );
+		ds_pooled = cpds;
 
  		create(ds_pooled);
 

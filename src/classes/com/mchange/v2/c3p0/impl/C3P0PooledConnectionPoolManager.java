@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre9
+ * Distributed as part of c3p0 v.0.8.5
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -254,7 +254,7 @@ public final class C3P0PooledConnectionPoolManager
 				int value = ((Integer) propVal).intValue();
 				if ("maxStatements".equals(propName))
 				    this.maxStatements = value;
-				if ("maxStatementsPerConnection".equals(propName))
+				else if ("maxStatementsPerConnection".equals(propName))
 				    this.maxStatementsPerConnection = value;
 				else if ("minPoolSize".equals(propName))
 				    this.minPoolSize = value;

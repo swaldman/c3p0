@@ -299,12 +299,15 @@
       </copy>
       <mkdir dir="${open.dist.doc.dir}/apidocs" />
       <copy toDir="${open.dist.doc.dir}">
-         <fileset dir="${doc.src.dir}" />
+         <fileset dir="${doc.src.dir}" excludes="*.png"/>
 	 <filterchain>
            <replacetokens>
               <token key="c3p0.version" value="${c3p0.version}"/>
            </replacetokens>
 	 </filterchain>
+      </copy>
+      <copy toDir="${open.dist.doc.dir}">
+         <fileset dir="${doc.src.dir}" includes="*.png"/>
       </copy>
       <copy toDir="${open.dist.doc.dir}/apidocs">
          <fileset dir="${build.apidocs.dir}" />

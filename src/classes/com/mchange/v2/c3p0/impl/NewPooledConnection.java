@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre9
+ * Distributed as part of c3p0 v.0.8.5
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -208,9 +208,10 @@ public final class NewPooledConnection implements PooledConnection
 		reset( txn_known_resolved );
 		fireConnectionClosed();
 	    }
-	catch (SQLException e)
+	catch (SQLException e) //Connection failed to reset!
 	    {
 		e.printStackTrace();
+		updateConnectionStatus( ConnectionTester.CONNECTION_IS_INVALID );
 		fireConnectionErrorOccurred( e );
 	    }
     }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre9
+ * Distributed as part of c3p0 v.0.8.5
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -56,8 +56,6 @@ class BasicResourcePool implements ResourcePool
     HashSet  excluded = new HashSet();
 
     Set idleCheckResources = new HashSet();
-
-    //CheckInProgressResourceHolder chipper = new CheckInProgressResourceHolder();
 
     ResourcePoolEventSupport rpes = new ResourcePoolEventSupport(this);
 
@@ -210,7 +208,7 @@ class BasicResourcePool implements ResourcePool
 		// an idle check and a checkout should be relatively rare. anyway, it should work just fine.
 		if ( idleCheckResources.contains( resc ) )
 		    {
-			//System.err.println("c3p0-TRAVIS: Uckh! Collision! Resource we want to check out is in idleCheck!");
+			//System.err.println("c3p0-JENNIFER: INFO: Resource we want to check out is in idleCheck! (waiting until idle-check completes.)"  + " [" + this + "]");
 			unused.add( resc );
 
 			// we'll wait for "something to happen" -- probably an idle check to
@@ -937,7 +935,10 @@ class BasicResourcePool implements ResourcePool
 	    {
 		Object resc = ii.next();
 		if ( isExpired( resc ) )
-		    removeResource( resc );
+		    {
+			//System.err.println("c3p0-JENNIFER: removing expired resource: " + resc + " [" + this + "]");
+			removeResource( resc );
+		    }
 	    }
 	ensureMinResources();
     }
@@ -961,8 +962,15 @@ class BasicResourcePool implements ResourcePool
 	    {
 		Date d = (Date) managed.get( resc );
 		long now = System.currentTimeMillis();
-		//System.err.println("c3p0-TRAVIS: " + resc + " ---> age: " + (now - d.getTime()) + "   max: " + max_resource_age);
-		return (now - d.getTime() > max_resource_age);
+		long age = now - d.getTime();
+		boolean expired = ( age > max_resource_age );
+
+// 		if (expired)
+// 		    System.err.println("c3p0-JENNIFER: EXPIRED resource: " + resc + " ---> age: " + age + "   max: " + max_resource_age + " [" + this + "]");
+// 		else
+// 		    System.err.println("c3p0-JENNIFER: resource age is okay: " + resc + " ---> age: " + age + "   max: " + max_resource_age + " [" + this + "]");
+
+		return expired;
 	    }
 	else
 	    return false; 
@@ -1125,7 +1133,7 @@ class BasicResourcePool implements ResourcePool
 	{
 	    try
 		{
-		    //System.err.println("c3p0-TRAVIS: culling expired resources - " + new Date());
+		    //System.err.println("c3p0-JENNIFER: checking for expired resources - " + new Date() + " [" + BasicResourcePool.this + "]");
 		    synchronized ( BasicResourcePool.this )
 			{ cullExpiredAndUnused(); }
 		}
@@ -1168,7 +1176,7 @@ class BasicResourcePool implements ResourcePool
 	{
 	    try
 		{
-		    //System.err.println("c3p0-TRAVIS: refurbishing idle resources - " + new Date());
+		    //System.err.println("c3p0-JENNIFER: refurbishing idle resources - " + new Date() + " [" + BasicResourcePool.this + "]");
 		    synchronized ( BasicResourcePool.this )
 			{ checkIdleResources(); }
 		}

@@ -1,6 +1,12 @@
-c3p0-0.8.5-pre8
+c3p0-0.8.5
+	-- Documentation updates and improvements
+	-- Fixed an issue where failures on reset() of a pooled Connection caused
+	   a Connection error to be signalled, without updating the status of the
+	   PooledConnection to indicate that it is broken. Thanks to Henry Le for
+	   calling attention to this issue.
+c3p0-0.8.5-pre9
 	-- Modified c3p0's behavior on detecting an apparently broken Connection.
-	   Previously c3p would very aggressivle close any Connections that, after
+	   Previously c3p0 would very aggressivle close any Connections that, after
 	   an Exception, failed to pass a Connection test. This sometimes surprised
 	   and confused users, when Conections they expected to remain open were 
 	   closed from underneath them. Under normal circumstances, a Connection
