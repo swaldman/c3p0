@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -34,10 +34,15 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import javax.sql.DataSource;
 import com.mchange.v2.sql.SqlUtils;
+import com.mchange.v2.log.MLevel;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
 import com.mchange.v2.c3p0.impl.DriverManagerDataSourceBase;
 
 public final class DriverManagerDataSource extends DriverManagerDataSourceBase implements DataSource
 {
+    final static MLogger logger = MLog.getLogger( DriverManagerDataSource.class );
+
     Driver driver;
 
     {
@@ -49,16 +54,24 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		    try
 			{
 			    if ( "driverClass".equals( evt.getPropertyName() ) )
-				Class.forName( (String) val );
+				{
+				    String dc = (String) val;
+				    if (dc != null)
+					Class.forName( dc );
+				}
 			}
 		    catch ( ClassNotFoundException e )
 			{
-			    e.printStackTrace();
+			    //e.printStackTrace();
+			    if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ) )
+				logger.log( MLevel.FINE, "ClassNotFoundException while setting driverClass", e );
 			    throw new PropertyVetoException("Could not locate driver class with name '" + val + "'.", evt);
 			}
 		}
 	    };
 	this.addVetoableChangeListener( registerDriverListener );
+
+	C3P0Registry.register( this );
     }
 
     public synchronized Connection getConnection() throws SQLException
@@ -140,6 +153,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     private Driver driver() throws SQLException
     {
+	//System.err.println( "driver() <-- " + this );
 	if (driver == null)
 	    driver = DriverManager.getDriver( jdbcUrl );
 	return driver;

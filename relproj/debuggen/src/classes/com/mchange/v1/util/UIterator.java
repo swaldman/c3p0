@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of debuggen v.0.1.0
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -23,7 +23,20 @@
 
 package com.mchange.v1.util;
 
-class Debug
+/**
+ * Incomplete parent of "Unreliable Iterator"
+ * This is often bound to a scarce resource! Don't
+ * forget to close it when you are done!!!
+ *
+ * This interface is not intended to be implemented
+ * directly, but to be extended by subinterfaces
+ * that narrow the exceptions reasonably.
+ */
+public interface UIterator extends ClosableResource
 {
-    final static boolean DEBUG = true;
+    public boolean hasNext() throws Exception;
+    public Object  next()    throws Exception;
+    public void    remove()  throws Exception;
+    public void    close() throws Exception;
 }
+

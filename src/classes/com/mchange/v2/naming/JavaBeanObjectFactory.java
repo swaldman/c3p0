@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -26,6 +26,7 @@ package com.mchange.v2.naming;
 import java.beans.*;
 import java.util.*;
 import javax.naming.*;
+import com.mchange.v2.log.*;
 import java.lang.reflect.Method;
 import javax.naming.spi.ObjectFactory;
 import com.mchange.v2.beans.BeansUtils;
@@ -34,6 +35,8 @@ import com.mchange.v2.ser.SerializableUtils;
 
 public class JavaBeanObjectFactory implements ObjectFactory
 {
+    private final static MLogger logger = MLog.getLogger( JavaBeanObjectFactory.class );
+
     final static Object NULL_TOKEN = new Object();
 
     public Object getObjectInstance(Object refObj, Name name, Context nameCtx, Hashtable env)
@@ -90,18 +93,22 @@ public class JavaBeanObjectFactory implements ObjectFactory
 			    {
 				byte[] content = (byte[]) ((BinaryRefAddr) addr).getContent();
 				if ( content.length == 0 )
-				    out.put( propertyName, NULL_TOKEN );
+				    out.put( propertyName, NULL_TOKEN ); //we use an empty array to mean null
 				else
 				    out.put( propertyName, SerializableUtils.fromByteArray( content ) ); //this will handle "indirectly serialized" objects.
 			    }
 			else
-			    System.err.println(this.getClass().getName() + ": WARNING -- unknown RefAddr subclass: " + addr.getClass().getName());
+			    {
+				if (logger.isLoggable( MLevel.WARNING ))
+				    logger.warning(this.getClass().getName() + " -- unknown RefAddr subclass: " + addr.getClass().getName());
+			    }
 		    }
 	    }
 	for ( Iterator ii = refAddrsMap.keySet().iterator(); ii.hasNext(); )
 	    {
 		String type = (String) ii.next();
-		System.err.println(this.getClass().getName() + ": WARNING -- RefAddr for unknown property: " + type);
+		if (logger.isLoggable( MLevel.WARNING ))
+		    logger.warning(this.getClass().getName() + " -- RefAddr for unknown property: " + type);
 	    }
 	return out;
     }
@@ -123,14 +130,23 @@ public class JavaBeanObjectFactory implements ObjectFactory
 			if (setter != null)
 			    setter.invoke( bean, new Object[] { (value == NULL_TOKEN ? null : value) } );
 			else
-			    System.err.println(this.getClass().getName() + ": Could not restore read-only property '" + propertyName + "'.");
+			    {
+				//System.err.println(this.getClass().getName() + ": Could not restore read-only property '" + propertyName + "'.");
+				if (logger.isLoggable( MLevel.WARNING ))
+				    logger.warning(this.getClass().getName() + ": Could not restore read-only property '" + propertyName + "'.");
+			    }
 		    }
 		else
 		    {
 			if (setter != null)
 			    {
 				if (refProps == null || refProps.contains( propertyName ))
-				    System.err.println(this.getClass().getName() +": WARNING -- Expected writable property '" + propertyName + "' left at default value");
+				    {
+					//System.err.println(this.getClass().getName() +
+					//": WARNING -- Expected writable property '" + propertyName + "' left at default value");
+					if (logger.isLoggable( MLevel.WARNING ))
+					    logger.warning(this.getClass().getName() + " -- Expected writable property ''" + propertyName + "'' left at default value");
+				    }
 			    }
 		    }
 	    }

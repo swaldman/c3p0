@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -23,10 +23,13 @@
 
 package com.mchange.v2.lang;
 
+import com.mchange.v2.log.*;
 import com.mchange.v1.util.StringTokenizerUtils;
 
 public final class VersionUtils
 {
+    private final static MLogger logger = MLog.getLogger( VersionUtils.class );
+
     private final static int[] DFLT_VERSION_ARRAY = {1,1};
 
     private final static int[] JDK_VERSION_ARRAY;
@@ -38,7 +41,8 @@ public final class VersionUtils
 	int[] v;
 	if (vstr == null)
 	    {
-		System.err.println("WARNING: Could not find java.version System property. Defaulting to JDK 1.1");
+		if (logger.isLoggable( MLevel.WARNING ))
+		    logger.warning("Could not find java.version System property. Defaulting to JDK 1.1");
 		v = DFLT_VERSION_ARRAY;
 	    }
 	else
@@ -46,7 +50,8 @@ public final class VersionUtils
 		try { v = extractVersionNumberArray( vstr, "._" ); }
 		catch ( NumberFormatException e )
 		    {
-			System.err.println("WARNING: java.version '" + vstr + "' could not be parsed. Defaulting to JDK 1.1.");
+			if (logger.isLoggable( MLevel.WARNING ))
+			    logger.warning("java.version ''" + vstr + "'' could not be parsed. Defaulting to JDK 1.1.");
 			v = DFLT_VERSION_ARRAY;
 		    }
 	    }

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -25,11 +25,14 @@ package com.mchange.v2.resourcepool;
 
 import java.util.*;
 import com.mchange.v2.async.*;
+import com.mchange.v2.log.*;
 import com.mchange.v2.holders.SynchronizedIntHolder;
 import com.mchange.v2.util.ResourceClosedException;
 
 class BasicResourcePool implements ResourcePool
 {
+    private final static MLogger logger = MLog.getLogger( BasicResourcePool.class );
+
     final static int CULL_FREQUENCY_DIVISOR = 8;
 
     //MT: unchanged post c'tor
@@ -174,7 +177,10 @@ class BasicResourcePool implements ResourcePool
 	catch (TimeoutException e)
 	    {
 		//this should never happen
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Huh??? TimeoutException with no timeout set!!!", e);
+
 		throw new ResourcePoolException("Huh??? TimeoutException with no timeout set!!!", e);
 	    }
     }
@@ -235,22 +241,32 @@ class BasicResourcePool implements ResourcePool
 		else
 		    {
 			asyncFireResourceCheckedOut( resc, managed.size(), unused.size(), excluded.size() );
-			if (Debug.TRACE == Debug.TRACE_MAX) trace();
+			if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 			return resc;
 		    }
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		System.err.println(this + " -- the pool was found to be closed or broken during an attempt to check out a resource.");
-		e.printStackTrace();
+		//System.err.println(this + " -- the pool was found to be closed or broken during an attempt to check out a resource.");
+		//e.printStackTrace();
+		if (logger.isLoggable( MLevel.SEVERE ))
+		    logger.log( MLevel.SEVERE, this + " -- the pool was found to be closed or broken during an attempt to check out a resource.", e );
+
 		this.unexpectedBreak();
 		throw e;
 	    }
 	catch ( InterruptedException e )
 	    {
-		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread " +
-				   "must have either interrupted the Thread attempting checkout, close() was called on the pool.");
-		e.printStackTrace();
+// 		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread " +
+// 				   "must have either interrupted the Thread attempting checkout, or close() was called on the pool.");
+// 		e.printStackTrace();
+		if (logger.isLoggable( MLevel.WARNING ))
+		    {
+			logger.log(MLevel.WARNING, 
+				   this + " -- an attempt to checkout a resource was interrupted: some other thread " +
+				   "must have either interrupted the Thread attempting checkout, or close() was called on the pool.",
+				   e );
+		    }
 		throw e;
 	    }
     }
@@ -268,13 +284,19 @@ class BasicResourcePool implements ResourcePool
 		    doCheckinExcluded( resc );
 		else
 		    throw new ResourcePoolException("ResourcePool" + (broken ? " [BROKEN!]" : "") + ": Tried to check-in a foreign resource!");
-		if (Debug.TRACE == Debug.TRACE_MAX) trace();
+		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		System.err.println(this + 
-				   " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.");
-		e.printStackTrace();
+// 		System.err.println(this + 
+// 				   " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.");
+// 		e.printStackTrace();
+
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE, 
+				this + " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.", 
+				e);
+
 		this.unexpectedBreak();
 		throw e;
 	    }
@@ -294,9 +316,15 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		System.err.println(this + 
-				   " - checkinAll() -- even broken pools should allow checkins without exception. probable resource pool bug.");
-		e.printStackTrace();
+// 		System.err.println(this + 
+// 				   " - checkinAll() -- even broken pools should allow checkins without exception. probable resource pool bug.");
+// 		e.printStackTrace();
+
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE,
+				this + " - checkinAll() -- even broken pools should allow checkins without exception. probable resource pool bug.",
+				e );
+
 		this.unexpectedBreak();
 		throw e;
 	    }
@@ -316,7 +344,9 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		e.printStackTrace();
+// 		e.printStackTrace();
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE, "Apparent pool break.", e );
 		this.unexpectedBreak();
 		throw e;
 	    }
@@ -331,7 +361,9 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE, "Apparent pool break.", e );
 		this.unexpectedBreak();
 	    }
     }
@@ -364,7 +396,9 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE, "Apparent pool break.", e );
 		this.unexpectedBreak();
 	    }
     }
@@ -402,7 +436,9 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE, "Apparent pool break.", e );
 		this.unexpectedBreak();
 	    }
     }
@@ -473,8 +509,8 @@ class BasicResourcePool implements ResourcePool
     //resources
     private synchronized void unexpectedBreak()
     {
-	System.err.println(this + " -- Unexpectedly broken!!!");
-	new ResourcePoolException("Unexpected Break Stack Trace!").printStackTrace();
+	if ( logger.isLoggable( MLevel.SEVERE ) )
+	    logger.log( MLevel.SEVERE, this + " -- Unexpectedly broken!!!", new ResourcePoolException("Unexpected Break Stack Trace!") );
 	close( false );
     }
 
@@ -487,7 +523,7 @@ class BasicResourcePool implements ResourcePool
 
     private void postRemoveTowards(int num) 
     {
-	System.err.println("...postRemoveTowards(" + num + ")");
+	//System.err.println("...postRemoveTowards(" + num + ")");
 	taskRunner.postRunnable(new RemoveTask(num)); 
     }
 
@@ -576,8 +612,11 @@ class BasicResourcePool implements ResourcePool
 		    try { mgr.destroyResource(resc); }
 		    catch ( Exception e )
 			{
-			    System.err.println("Failed to destroy resource: " + resc);
-			    e.printStackTrace();
+			    if ( logger.isLoggable( MLevel.WARNING ) )
+				logger.log( MLevel.WARNING, "Failed to destroy resource: " + resc, e );
+
+// 			    System.err.println("Failed to destroy resource: " + resc);
+// 			    e.printStackTrace();
 			}
 		}
 	    };
@@ -644,7 +683,9 @@ class BasicResourcePool implements ResourcePool
 	    }
 	catch ( ResourceClosedException e ) // one of our async threads died
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE, "Apparent pool break.", e );
 		this.unexpectedBreak();
 	    }
     }
@@ -686,7 +727,14 @@ class BasicResourcePool implements ResourcePool
 				    excludeResource( resc );
 			    }
 			catch (Exception e)
-			    {if (Debug.DEBUG) e.printStackTrace();}
+			    {
+				if (Debug.DEBUG) 
+				    {
+					//e.printStackTrace();
+					if ( logger.isLoggable( MLevel.FINE ) )
+					    logger.log( MLevel.FINE, "BasicResourcePool -- A resource couldn't be cleaned up on close()", e );
+				    }
+			    }
 		    }
 		for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
 		    ((Thread) ii.next()).interrupt();
@@ -698,7 +746,9 @@ class BasicResourcePool implements ResourcePool
 	    }
 	else
 	    {
-		System.err.println(this + " -- close() called multiple times.");
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.warning(this + " -- close() called multiple times.");
+		    //System.err.println(this + " -- close() called multiple times.");
 
 		//DEBUG
 		//firstClose.printStackTrace();
@@ -837,12 +887,13 @@ class BasicResourcePool implements ResourcePool
 		
 		int avail;
 		long start = ( timeout > 0 ? System.currentTimeMillis() : -1);
-		if (Debug.TRACE == Debug.TRACE_MAX)
+		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 		    {
-			System.err.println("awaitAvailable(): " + 
-					   (exampleResource != null ? 
-					    exampleResource : 
-					    "[unknown]") );
+			if ( logger.isLoggable( MLevel.FINE ) )
+			    logger.fine("awaitAvailable(): " + 
+					(exampleResource != null ? 
+					 exampleResource : 
+					 "[unknown]") );
 			trace();
 		    }
 		while ((avail = unused.size()) == 0) 
@@ -887,7 +938,7 @@ class BasicResourcePool implements ResourcePool
 	//System.err.println("assimilate resource... unused: " + unused.size());
 	asyncFireResourceAcquired( resc, managed.size(), unused.size(), excluded.size() );
 	this.notifyAll();
-	if (Debug.TRACE == Debug.TRACE_MAX) trace();
+	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 	if (Debug.DEBUG && exampleResource == null)
 	    exampleResource = resc;
     }
@@ -901,7 +952,7 @@ class BasicResourcePool implements ResourcePool
 	unused.remove(resc);
 	destroyResource(resc, synchronous);
 	asyncFireResourceRemoved( resc, false, managed.size(), unused.size(), excluded.size() );
-	if (Debug.TRACE == Debug.TRACE_MAX) trace();
+	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 	//System.err.println("RESOURCE REMOVED!");
     }
 
@@ -953,7 +1004,7 @@ class BasicResourcePool implements ResourcePool
 		    taskRunner.postRunnable( new AsyncTestIdleResourceTask( resc ) );
 	    }
 
-	//trace();
+	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
     }
 
     private boolean isExpired( Object resc )
@@ -1001,7 +1052,12 @@ class BasicResourcePool implements ResourcePool
 	catch (Exception e)
 	    {
 		//uh oh... bad resource...
-		if (Debug.DEBUG) e.printStackTrace();
+		if (Debug.DEBUG) 
+		    {
+			//e.printStackTrace();
+			if (logger.isLoggable( MLevel.FINE ))
+			    logger.log( MLevel.FINE, "A resource could not be refurbished on checkout.", e );
+		    }
 		return false;
 	    }
     }
@@ -1016,7 +1072,12 @@ class BasicResourcePool implements ResourcePool
 	catch (Exception e)
 	    {
 		//uh oh... bad resource...
-		if (Debug.DEBUG) e.printStackTrace();
+		if (Debug.DEBUG) 
+		    {
+			//e.printStackTrace();
+			if (logger.isLoggable( MLevel.FINE ))
+			    logger.log( MLevel.FINE, "A resource could not be refurbished on checkin.", e );
+		    }
 		return false;
 	    }
     }
@@ -1029,12 +1090,15 @@ class BasicResourcePool implements ResourcePool
 
     private void trace()
     {
-	String exampleResStr = ( exampleResource == null ?
-				 "" :
-				 " Ex: " + exampleResource );
-	System.err.println(this + "  [managed: " + managed.size() + ", " +
-			   "unused: " + unused.size() + ", excluded: " +
-			   excluded.size() + ']' + exampleResStr );
+	if ( logger.isLoggable( MLevel.FINE ) )
+	    {
+		String exampleResStr = ( exampleResource == null ?
+					 "" :
+					 " Ex: " + exampleResource );
+		logger.fine(this + "  [managed: " + managed.size() + ", " +
+			    "unused: " + unused.size() + ", excluded: " +
+			    excluded.size() + ']' + exampleResStr );
+	    }
     }
 
     private final HashMap cloneOfManaged()
@@ -1082,18 +1146,29 @@ class BasicResourcePool implements ResourcePool
 				}
 			    catch (Exception e)
 				{
-				    if (Debug.DEBUG) e.printStackTrace();
+				    if (Debug.DEBUG) 
+					{
+					    //e.printStackTrace();
+					    if (logger.isLoggable( MLevel.FINE ))
+						logger.log( MLevel.FINE, "An exception occurred while acquiring a resource.", e );
+					}
 				}
 			}
 		    if (!success) 
 			{
-			    System.err.println(this + " -- Acquisition Attempt Failed!!! Clearing pending acquires.");
-			    System.err.println("\tWhile trying to acquire a needed new resource, we failed");
-			    System.err.println("\tto succeed more than the maximum number of allowed");
-			    System.err.println("\tacquisition attempts (" + num_acq_attempts + ").");
+			    if ( logger.isLoggable( MLevel.WARNING ) )
+				{
+				    logger.log( MLevel.WARNING,
+						this + " -- Acquisition Attempt Failed!!! Clearing pending acquires. " +
+						"While trying to acquire a needed new resource, we failed " +
+						"to succeed more than the maximum number of allowed " +
+						"acquisition attempts (" + num_acq_attempts + ")." );
+				}
 			    if (break_on_acquisition_failure)
 				{
-				    System.err.println("\tTHE RESOURCE POOL IS PERMANENTLY BROKEN!");
+				    //System.err.println("\tTHE RESOURCE POOL IS PERMANENTLY BROKEN!");
+				    if ( logger.isLoggable( MLevel.SEVERE ) )
+					logger.severe("THE RESOURCE POOL IS PERMANENTLY BROKEN! [" + this + "]");
 				    unexpectedBreak();
 				}
 			    else
@@ -1102,13 +1177,25 @@ class BasicResourcePool implements ResourcePool
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
-		    e.printStackTrace();
+		    //e.printStackTrace();
+		    if ( Debug.DEBUG )
+			{
+			    if ( logger.isLoggable( MLevel.FINE ) )
+				logger.log( MLevel.FINE, "a resource pool async thread died.", e );
+			}
 		    unexpectedBreak();
 		}
 	    catch (InterruptedException e) //from force kill acquires
 		{
-		    System.err.println(BasicResourcePool.this + " -- Thread unexpectedly interrupted while waiting for stale acquisition attempts to die.");
-		    e.printStackTrace();
+		    if ( logger.isLoggable( MLevel.WARNING ) )
+			{
+			    logger.log( MLevel.WARNING,
+					BasicResourcePool.this + " -- Thread unexpectedly interrupted while waiting for stale acquisition attempts to die.",
+					e );
+			}
+
+// 		    System.err.println(BasicResourcePool.this + " -- Thread unexpectedly interrupted while waiting for stale acquisition attempts to die.");
+// 		    e.printStackTrace();
 		}
 	    finally
 		{ pendingAcquiresCounter.decrement(); }
@@ -1139,7 +1226,12 @@ class BasicResourcePool implements ResourcePool
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
-		    e.printStackTrace();
+// 		    e.printStackTrace();
+		    if ( Debug.DEBUG )
+			{
+			    if ( logger.isLoggable( MLevel.FINE ) )
+				logger.log( MLevel.FINE, "a resource pool async thread died.", e );
+			}
 		    unexpectedBreak();
 		}
 	}
@@ -1161,7 +1253,12 @@ class BasicResourcePool implements ResourcePool
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
-		    e.printStackTrace();
+// 		    e.printStackTrace();
+		    if ( Debug.DEBUG )
+			{
+			    if ( logger.isLoggable( MLevel.FINE ) )
+				logger.log( MLevel.FINE, "a resource pool async thread died.", e );
+			}
 		    unexpectedBreak();
 		}
 	}
@@ -1182,7 +1279,12 @@ class BasicResourcePool implements ResourcePool
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
-		    e.printStackTrace();
+		    //e.printStackTrace();
+		    if ( Debug.DEBUG )
+			{
+			    if ( logger.isLoggable( MLevel.FINE ) )
+				logger.log( MLevel.FINE, "a resource pool async thread died.", e );
+			}
 		    unexpectedBreak();
 		}
 	}
@@ -1232,9 +1334,13 @@ class BasicResourcePool implements ResourcePool
 			}
 		    catch ( Exception e )
 			{
-			    System.err.println("c3p0: An idle resource is broken and will be purged.");
-			    System.err.print("c3p0 [broken resource]: ");
-			    e.printStackTrace();
+			    //System.err.println("c3p0: An idle resource is broken and will be purged.");
+			    //System.err.print("c3p0 [broken resource]: ");
+			    //e.printStackTrace();
+
+			    if ( logger.isLoggable( MLevel.WARNING ) )
+				logger.log( MLevel.WARNING, "BasicResourcePool: An idle resource is broken and will be purged.", e);
+
 			    failed = true;
 			}
 		    

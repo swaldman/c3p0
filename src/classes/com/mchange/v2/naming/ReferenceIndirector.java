@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -32,11 +32,16 @@ import javax.naming.Name;
 import javax.naming.NamingException;
 import javax.naming.Reference;
 import javax.naming.Referenceable;
+import com.mchange.v2.log.MLevel;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
 import com.mchange.v2.ser.Indirector;
 import com.mchange.v2.ser.IndirectlySerialized;
 
 public class ReferenceIndirector implements Indirector
 {
+    final static MLogger logger = MLog.getLogger( ReferenceIndirector.class );
+
     Name      name;
     Name      contextName;
     Hashtable environmentProperties;
@@ -102,8 +107,10 @@ public class ReferenceIndirector implements Indirector
 		}
 	    catch (NamingException e)
 		{
-		    e.printStackTrace();
-		    throw new InvalidObjectException( e.toString() );
+		    //e.printStackTrace();
+		    if ( logger.isLoggable( MLevel.WARNING ) )
+			logger.log( MLevel.WARNING, "Failed to acquire the Context necessary to lookup an Object.", e );
+		    throw new InvalidObjectException( "Failed to acquire the Context necessary to lookup an Object: " + e.toString() );
 		}
 	}
     }

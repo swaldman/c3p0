@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -24,9 +24,12 @@
 package com.mchange.v1.io;
 
 import java.io.*;
+import com.mchange.v2.log.*;
 
 public final class InputStreamUtils
 {
+    private final static MLogger logger = MLog.getLogger( InputStreamUtils.class );
+
     public static boolean compare(InputStream is1, InputStream is2, long num_bytes) throws IOException
     {
 	int b;
@@ -104,7 +107,11 @@ public final class InputStreamUtils
 	try
 	    {if (is != null) is.close();}
 	catch (IOException e)
-	    {e.printStackTrace();}
+	    {
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "InputStream close FAILED.", e );
+	    }
     }
 
   public static void skipFully(InputStream is, long num_bytes) throws EOFException, IOException

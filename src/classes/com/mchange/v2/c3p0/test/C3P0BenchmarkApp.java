@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -42,12 +42,19 @@ public final class C3P0BenchmarkApp
     final static String N_ENTRY_TABLE_SELECT = "SELECT * FROM n_entryyukyuk";
     final static String N_ENTRY_TABLE_DROP   = "DROP TABLE n_entryyukyuk";
 
+    //final static int NUM_ITERATIONS = 20;
     final static int NUM_ITERATIONS = 2000;
     //final static int NUM_ITERATIONS = 10000;
-    //final static int NUM_ITERATIONS = 20;
+    //final static int NUM_ITERATIONS = 20000;
+    //final static int NUM_ITERATIONS = 100000;
 
     public static void main(String[] argv)
     {
+//      com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).info("this is some info.");
+// 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.WARNING, "this is a warning.", new Exception("test"));
+// 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.FINE, "this is fine.");
+
+
 	DataSource ds_unpooled = null;
 	DataSource ds_pooled   = null;
 	try
@@ -111,7 +118,7 @@ public final class C3P0BenchmarkApp
     		l.add( new ConnectionAcquisitionTest() );
        		l.add( new StatementCreateTest() );
        		l.add( new StatementEmptyTableSelectTest() );
- 		l.add( new DataBaseMetaDataListNonexistentTablesTest() );
+ 		//l.add( new DataBaseMetaDataListNonexistentTablesTest() );
        		l.add( new PreparedStatementEmptyTableSelectTest() );
      		l.add( new PreparedStatementAcquireTest() );
      		l.add( new ResultSetReadTest() );
@@ -126,6 +133,8 @@ public final class C3P0BenchmarkApp
 	    }
 	finally
 	    {
+		//System.err.println( "pooled data sources: " + C3P0Registry.getPooledDataSources() );
+
  		try { drop(ds_pooled); }
 		catch (Exception e)
 		    { e.printStackTrace(); }
@@ -168,11 +177,11 @@ public final class C3P0BenchmarkApp
 		ps2.executeUpdate();
 
   		for (int i = 0; i < NUM_ITERATIONS; ++i)
-  		    {
-  			ps3.setInt(1, i );
-  			ps3.executeUpdate();
-  			System.err.print('.');
-  		    }
+   		    {
+   			ps3.setInt(1, i );
+   			ps3.executeUpdate();
+   			System.err.print('.');
+   		    }
 		System.err.println();
 		System.err.println("Test schema created.");
 	    }

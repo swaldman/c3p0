@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -33,12 +33,15 @@ import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v2.async.*;
 import com.mchange.v2.coalesce.*;
 import com.mchange.v1.db.sql.*;
+import com.mchange.v2.log.*;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.resourcepool.ResourcePoolFactory;
 import com.mchange.v2.resourcepool.BasicResourcePoolFactory;
 
 public final class C3P0PooledConnectionPoolManager
 {
+    private final static MLogger logger = MLog.getLogger( C3P0PooledConnectionPoolManager.class );
+
     private final static boolean POOL_EVENT_SUPPORT = false;
 
     private final static CoalesceChecker COALESCE_CHECKER = new CoalesceChecker()
@@ -55,7 +58,7 @@ public final class C3P0PooledConnectionPoolManager
 		    aa.poolOwnerIdentityToken.equals( bb.poolOwnerIdentityToken ) &&
 		    (aa.preferredTestQuery == null ? (bb.preferredTestQuery == null ) : (aa.preferredTestQuery.equals( bb.preferredTestQuery ))) &&
 		    (aa.automaticTestTable == null ? (bb.automaticTestTable == null ) : (aa.automaticTestTable.equals( bb.automaticTestTable ))) &&
-		    aa.cpds.equals( bb.cpds ) &&
+		    aa.sourceCpdsIdentityToken.equals( bb.sourceCpdsIdentityToken ) &&
 		    aa.num_task_threads == bb.num_task_threads &&
 		    aa.maxStatements == bb.maxStatements &&
 		    aa.maxStatementsPerConnection == bb.maxStatementsPerConnection &&
@@ -78,11 +81,11 @@ public final class C3P0PooledConnectionPoolManager
 	    public int coalesceHash( Object a )
 	    {
 		C3P0PooledConnectionPoolManager aa = (C3P0PooledConnectionPoolManager) a;
-		return
+		int out =
 		    aa.poolOwnerIdentityToken.hashCode() ^
 		    (aa.preferredTestQuery == null ? 0 : aa.preferredTestQuery.hashCode()) ^
 		    (aa.automaticTestTable == null ? 0 : aa.automaticTestTable.hashCode()) ^
-		    aa.cpds.hashCode() ^
+		    aa.sourceCpdsIdentityToken.hashCode() ^
 		    aa.num_task_threads ^
 		    aa.maxStatements ^
 		    aa.maxStatementsPerConnection ^
@@ -100,6 +103,8 @@ public final class C3P0PooledConnectionPoolManager
 		    (aa.breakAfterAcquireFailure          ? 1<<4 : 0) ^
 		    aa.defaultAuth.hashCode() ^
 		    aa.connectionTester.getClass().hashCode(); 
+		//System.err.println("coalesceHash() --> " + out);
+		return out;
 	    };
 	};
 
@@ -122,7 +127,8 @@ public final class C3P0PooledConnectionPoolManager
     String poolOwnerIdentityToken = null;
 
     /* MT: independently thread-safe, never reassigned post-ctor or factory */
-    final ConnectionPoolDataSource     cpds;
+    final ConnectionPoolDataSource cpds;
+    final String                   sourceCpdsIdentityToken;
     /* MT: end independently thread-safe, never reassigned post-ctor or factory */
 
     /* MT: unchanging after constructor completes */
@@ -153,7 +159,11 @@ public final class C3P0PooledConnectionPoolManager
 	try { connectionTester = (ConnectionTester) Class.forName( PoolConfig.defaultConnectionTesterClassName() ).newInstance(); }
 	catch ( Exception e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log(MLevel.WARNING, 
+			   "Could not load ConnectionTester " + PoolConfig.defaultConnectionTesterClassName() +
+			   ", using built in default.", 
+			   e);
 		connectionTester = C3P0Defaults.connectionTester();
 	    }
     }
@@ -188,7 +198,10 @@ public final class C3P0PooledConnectionPoolManager
 		try
 		    { ((C3P0PooledConnectionPool) ii.next()).close(); }
 		catch ( Exception e )
-		    { e.printStackTrace(); }
+		    { 
+			//e.printStackTrace(); 
+			logger.log(MLevel.WARNING, "An Exception occurred while trying to clean up a pool!", e);
+		    }
 	    }
 
 	this.taskRunner.close( true );
@@ -196,7 +209,10 @@ public final class C3P0PooledConnectionPoolManager
 
 	try {if (scache != null) scache.close();}
 	catch (SQLException e)
-	    { e.printStackTrace(); }
+	    { 
+		//e.printStackTrace(); 
+		logger.log(MLevel.WARNING, "An Exception occurred while trying to clean up a Statement cache!", e);
+	    }
 
 	this.scache = null;
 	this.taskRunner = null;
@@ -208,23 +224,34 @@ public final class C3P0PooledConnectionPoolManager
     /*
      * COALESCER is unsync'ed -- we sync the factory method instead
      */
-    public synchronized static C3P0PooledConnectionPoolManager find(String poolOwnerIdentityToken, ConnectionPoolDataSource cpds, int num_task_threads )
+    public synchronized static C3P0PooledConnectionPoolManager find(String poolOwnerIdentityToken, 
+								    ConnectionPoolDataSource cpds, 
+								    String sourceCpdsIdentityToken, 
+								    int num_task_threads )
 	throws SQLException
     {
- 	C3P0PooledConnectionPoolManager nascent = new C3P0PooledConnectionPoolManager( poolOwnerIdentityToken, cpds, num_task_threads );
+ 	C3P0PooledConnectionPoolManager nascent = new C3P0PooledConnectionPoolManager( poolOwnerIdentityToken, 
+										       cpds, 
+										       sourceCpdsIdentityToken, 
+										       num_task_threads );
 	C3P0PooledConnectionPoolManager out = (C3P0PooledConnectionPoolManager) COALESCER.coalesce( nascent );
 	if ( out == nascent ) //the new guy is the ONE
 	    out.poolsInit();
+	//System.err.println("CANONICAL: " + out);
 	return out;
     }
 
-    private C3P0PooledConnectionPoolManager(String poolOwnerIdentityToken, ConnectionPoolDataSource cpds, int num_task_threads )
+    private C3P0PooledConnectionPoolManager(String poolOwnerIdentityToken, 
+					    ConnectionPoolDataSource cpds, 
+					    String sourceCpdsIdentityToken, 
+					    int num_task_threads )
 	throws SQLException
     {
 	try
 	    {
 		this.poolOwnerIdentityToken = poolOwnerIdentityToken;
 		this.cpds = cpds;
+		this.sourceCpdsIdentityToken = sourceCpdsIdentityToken;
 		this.num_task_threads = num_task_threads;
 
 		// we look for non-standard props user and
@@ -309,7 +336,8 @@ public final class C3P0PooledConnectionPoolManager
 	catch (Exception e)
 	    {
 		if (Debug.DEBUG)
-		    e.printStackTrace();
+		    logger.log(MLevel.FINE, null, e);
+		    //e.printStackTrace();
 		throw SqlUtils.toSQLException(e);
 	    }
     }
@@ -406,9 +434,19 @@ public final class C3P0PooledConnectionPoolManager
 			this.realTestQuery = initializeAutomaticTestTable();
 			if (this.preferredTestQuery != null)
 			    {
-				System.err.println("[c3p0] WARNING -- Both automaticTestTable and preferredTestQuery have been set! " +
-						   "Using automaticTestTable, and ignoring preferredTestQuery. Real test query is '" +
-						   realTestQuery + "'.");
+// 				System.err.println("[c3p0] WARNING -- Both automaticTestTable and preferredTestQuery have been set! " +
+// 						   "Using automaticTestTable, and ignoring preferredTestQuery. Real test query is '" +
+// 						   realTestQuery + "'.");
+				
+				if ( logger.isLoggable( MLevel.WARNING ) )
+				    {
+					logger.logp(MLevel.WARNING, 
+						    C3P0PooledConnectionPoolManager.class.getName(),
+						    "createPooledConnectionPool",
+						    "[c3p0] Both automaticTestTable and preferredTestQuery have been set! Using automaticTestTable, and ignoring preferredTestQuery. Real test query is ''{0}''.",
+						    realTestQuery
+						    );
+				    }
 			    }
 		    }
 		else
@@ -517,7 +555,11 @@ public final class C3P0PooledConnectionPoolManager
 		StatementUtils.attemptClose( createStmt );
 		ConnectionUtils.attemptClose( c ); 
 		try{ if (throwawayPooledConnection != null) throwawayPooledConnection.close(); }
-		catch ( Exception e ) { e.printStackTrace(); }
+		catch ( Exception e ) 
+		    { 
+			//e.printStackTrace(); 
+			logger.log(MLevel.WARNING, "A PooledConnection failed to close.", e);
+		    }
 	    }
     }
 }

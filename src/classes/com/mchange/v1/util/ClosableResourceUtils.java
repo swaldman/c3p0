@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -23,8 +23,12 @@
 
 package com.mchange.v1.util;
 
+import com.mchange.v2.log.*;
+
 public final class ClosableResourceUtils
 {
+    private final static MLogger logger = MLog.getLogger( ClosableResourceUtils.class );
+
     /**
      * attempts to close the specified resource,
      * logging any exception or failure, but allowing
@@ -39,7 +43,9 @@ public final class ClosableResourceUtils
 	    }
 	catch (Exception e)
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "CloseableResource close FAILED.", e );
 		return e;
 	    }
     }

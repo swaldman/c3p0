@@ -1,0 +1,71 @@
+<project name="debuggen" default="dist">
+
+   <!-- ignore the CLASSPATH environment variable. force builds to specify classpaths -->
+   <property name="build.sysclasspath" value="ignore" />
+
+   <property file="build.properties" />
+   <property file="version.properties" />
+
+   <property name="debuggen.name" value="debuggen-${debuggen.version}" />
+   <property name="src.dir" value="src" />
+   <property name="java.src.dir" value="${src.dir}/classes" />
+   <property name="app-rsrc.src.dir" value="${src.dir}/app-rsrc" />
+   <property name="build.dir" value="build" />
+   <property name="build.classes.dir" value="${build.dir}/classes" />
+   <property name="build.apidocs.dir" value="${build.dir}/apidocs" />
+   <property name="dist.dir" value="dist" />
+   <property name="app.jar.manifest" value="${app-rsrc.src.dir}/META-INF/manifest.src" />
+   <property name="jar.file" value="${dist.dir}/${debuggen.name}.jar" />
+   <property name="srcdist.name" value="${debuggen.name}-src" />
+
+   <target name="init">
+      <mkdir dir="${build.dir}" />
+      <mkdir dir="${dist.dir}" />
+   </target>
+
+   <target name="clean">
+      <delete dir="${build.dir}" />
+      <delete dir="${dist.dir}" />
+   </target>
+
+   <target name="compile" depends="init">
+      <mkdir dir="${build.classes.dir}" />
+      <javac srcdir="${java.src.dir}" 
+             destdir="${build.classes.dir}" 
+             debug="on" />
+   </target>
+
+   <target name="jar" depends="compile">
+      <jar destfile="${jar.file}" manifest="${app.jar.manifest}">
+          <fileset dir="${build.classes.dir}" />
+      </jar>
+   </target>
+
+   <target name="dist" depends="jar" />
+
+   <target name="srcdist">
+      <zip destfile="${dist.dir}/${srcdist.name}.zip">
+        <zipfileset dir="." prefix="${srcdist.name}">
+           <exclude name="${build.dir}/**"/>
+           <exclude name="${dist.dir}/**"/>
+           <exclude name="**/*.class"/>
+           <exclude name="**/old/**"/>
+           <exclude name="**/bad/**"/>
+        </zipfileset>
+      </zip>
+      <tar destfile="${dist.dir}/${srcdist.name}.tar">
+        <tarfileset dir="." prefix="${srcdist.name}">
+           <exclude name="${build.dir}/**"/>
+           <exclude name="${dist.dir}/**"/>
+           <exclude name="**/*.class"/>
+           <exclude name="**/old/**"/>
+           <exclude name="**/bad/**"/>
+        </tarfileset>
+      </tar>
+      <gzip zipfile="${dist.dir}/${srcdist.name}.tgz" src="${dist.dir}/${srcdist.name}.tar" />
+   </target>
+
+   <target name="all" depends="dist,srcdist" />
+
+</project>
+

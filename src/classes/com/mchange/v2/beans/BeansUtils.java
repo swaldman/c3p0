@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -26,9 +26,12 @@ package com.mchange.v2.beans;
 import java.beans.*;
 import java.lang.reflect.*;
 import java.util.*;
+import com.mchange.v2.log.*;
 
 public final class BeansUtils
 {
+    final static MLogger logger = MLog.getLogger( BeansUtils.class );
+
     final static Object[] EMPTY_ARGS = new Object[0];
 
     public static PropertyEditor findPropertyEditor( PropertyDescriptor pd )
@@ -43,9 +46,11 @@ public final class BeansUtils
 	    }
 	catch (Exception e)
 	    {
-		e.printStackTrace();
-		System.err.println("WARNING: Bad property editor class " + editorClass.getName() + 
-				   " registered for property " + pd.getName());
+// 		e.printStackTrace();
+// 		System.err.println("WARNING: Bad property editor class " + editorClass.getName() + 
+// 				   " registered for property " + pd.getName());
+		if (logger.isLoggable( MLevel.WARNING ) )
+		    logger.log(MLevel.WARNING, "Bad property editor class " + editorClass.getName() + " registered for property " + pd.getName(), e);
 	    }
 
 	if ( out == null )
@@ -77,14 +82,23 @@ public final class BeansUtils
 			    {
 				if ( pd instanceof IndexedPropertyDescriptor )
 				    {
-					System.err.println("WARNING: BeansUtils.overwriteAccessibleProperties() does not");
-					System.err.println("support indexed properties that do not provide single-valued");
-					System.err.println("array getters and setters! [The indexed methods provide no means");
-					System.err.println("of modifying the size of the array in the destination bean if");
-					System.err.println("it does not match the source.]");
+// 					System.err.println("WARNING: BeansUtils.overwriteAccessibleProperties() does not");
+// 					System.err.println("support indexed properties that do not provide single-valued");
+// 					System.err.println("array getters and setters! [The indexed methods provide no means");
+// 					System.err.println("of modifying the size of the array in the destination bean if");
+// 					System.err.println("it does not match the source.]");
+
+					if ( logger.isLoggable( MLevel.WARNING ) )
+					    logger.warning("BeansUtils.overwriteAccessibleProperties() does not" +
+							   " support indexed properties that do not provide single-valued" +
+							   " array getters and setters! [The indexed methods provide no means" +
+							   " of modifying the size of the array in the destination bean if" +
+							   " it does not match the source.]");
 				    }
 
-				System.err.println("Property inaccessible for overwriting: " + pd.getName());
+				//System.err.println("Property inaccessible for overwriting: " + pd.getName());
+				if (logger.isLoggable( MLevel.INFO ))
+				    logger.info("Property inaccessible for overwriting: " + pd.getName());
 			    }
 			else
 			    {
@@ -97,7 +111,10 @@ public final class BeansUtils
 	    { throw e; }
 	catch ( Exception e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
+		    logger.log( MLevel.FINE, "Converting exception to throwable IntrospectionException", e );
+		    
 		throw new IntrospectionException( e.getMessage() );
 	    }
     }
@@ -140,14 +157,24 @@ public final class BeansUtils
 			    {
 				if ( pd instanceof IndexedPropertyDescriptor )
 				    {
-					System.err.println("WARNING: BeansUtils.overwriteAccessiblePropertiesFromMap() does not");
-					System.err.println("support indexed properties that do not provide single-valued");
-					System.err.println("array getters and setters! [The indexed methods provide no means");
-					System.err.println("of modifying the size of the array in the destination bean if");
-					System.err.println("it does not match the source.]");
+// 					System.err.println("WARNING: BeansUtils.overwriteAccessiblePropertiesFromMap() does not");
+// 					System.err.println("support indexed properties that do not provide single-valued");
+// 					System.err.println("array getters and setters! [The indexed methods provide no means");
+// 					System.err.println("of modifying the size of the array in the destination bean if");
+// 					System.err.println("it does not match the source.]");
+
+					if ( logger.isLoggable( MLevel.WARNING ) )
+					    logger.warning("BeansUtils.overwriteAccessiblePropertiesFromMap() does not" +
+							   " support indexed properties that do not provide single-valued" +
+							   " array getters and setters! [The indexed methods provide no means" +
+							   " of modifying the size of the array in the destination bean if" +
+							   " it does not match the source.]");
+
 				    }
 
-				System.err.println("Property inaccessible for overwriting: " + pd.getName());
+				//System.err.println("Property inaccessible for overwriting: " + pd.getName());
+				if (logger.isLoggable( MLevel.INFO ))
+				    logger.info("Property inaccessible for overwriting: " + pd.getName());
 			    }
 			else
 			    {
@@ -158,16 +185,46 @@ public final class BeansUtils
 	    }
 	catch ( IntrospectionException e )
 	    {
-		if (propName != null)
-		    System.err.println("Problem occurred while overwriting property: " + propName);
+// 		if (propName != null)
+// 		    System.err.println("Problem occurred while overwriting property: " + propName);
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.warning("Problem occurred while overwriting property: " + propName);
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
+		    logger.logp( MLevel.FINE, 
+				 BeansUtils.class.getName(),
+				 "overwriteAccessiblePropertiesFromMap( Map sourceMap, Object destBean, boolean skip_nulls, Collection ignoreProps )",
+				 (propName != null ? "Problem occurred while overwriting property: " + propName : "") + " throwing...",
+				 e );
 		throw e; 
 	    }
 	catch ( Exception e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
+		    logger.log( MLevel.FINE, "Converting exception to throwable IntrospectionException [propName: " + propName + "]", e );
 		throw new IntrospectionException( e.toString() + (propName == null ? "" : " [" + propName + ']') );
 	    }
     }
+
+    public static void appendPropNamesAndValues(StringBuffer appendIntoMe, Object bean, Collection ignoreProps) throws IntrospectionException
+    {
+	Map tmp = new TreeMap( String.CASE_INSENSITIVE_ORDER );
+	extractAccessiblePropertiesToMap( tmp, bean, ignoreProps );
+	boolean first = true;
+	for (Iterator ii = tmp.keySet().iterator(); ii.hasNext(); )
+	    {
+		String key = (String) ii.next();
+		Object val = tmp.get( key );
+		if (first)
+		    first = false;
+		else
+		    appendIntoMe.append( ", " );
+		appendIntoMe.append( key );
+		appendIntoMe.append( " -> ");
+		appendIntoMe.append( val );
+	    }
+    }
+
 
     public static void extractAccessiblePropertiesToMap( Map fillMe, Object bean ) throws IntrospectionException
     { extractAccessiblePropertiesToMap( fillMe, bean, Collections.EMPTY_SET ); }
@@ -193,13 +250,27 @@ public final class BeansUtils
 	    }
 	catch ( IntrospectionException e )
 	    {
-		if (propName != null)
-		    System.err.println("Problem occurred while overwriting property: " + propName);
+// 		if (propName != null)
+// 		    System.err.println("Problem occurred while overwriting property: " + propName);
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.warning("Problem occurred while overwriting property: " + propName);
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
+		    logger.logp( MLevel.FINE, 
+				 BeansUtils.class.getName(),
+				 "extractAccessiblePropertiesToMap( Map fillMe, Object bean, Collection ignoreProps )",
+				 (propName != null ? "Problem occurred while overwriting property: " + propName : "") + " throwing...",
+				 e );
 		throw e; 
 	    }
 	catch ( Exception e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
+		    logger.logp( MLevel.FINE, 
+				 BeansUtils.class.getName(),
+				 "extractAccessiblePropertiesToMap( Map fillMe, Object bean, Collection ignoreProps )",
+				 "Caught unexpected Exception; Converting to IntrospectionException.",
+				 e );
 		throw new IntrospectionException( e.toString() + (propName == null ? "" : " [" + propName + ']') );
 	    }
     }
@@ -251,14 +322,22 @@ public final class BeansUtils
 			    {
 				if ( pd instanceof IndexedPropertyDescriptor )
 				    {
-					System.err.println("WARNING: BeansUtils.overwriteAccessibleProperties() does not");
-					System.err.println("support indexed properties that do not provide single-valued");
-					System.err.println("array getters and setters! [The indexed methods provide no means");
-					System.err.println("of modifying the size of the array in the destination bean if");
-					System.err.println("it does not match the source.]");
+// 					System.err.println("WARNING: BeansUtils.overwriteAccessibleProperties() does not");
+// 					System.err.println("support indexed properties that do not provide single-valued");
+// 					System.err.println("array getters and setters! [The indexed methods provide no means");
+// 					System.err.println("of modifying the size of the array in the destination bean if");
+// 					System.err.println("it does not match the source.]");
+
+					if ( logger.isLoggable( MLevel.WARNING ) )
+					    logger.warning("BeansUtils.overwriteAccessibleProperties() does not" +
+							   " support indexed properties that do not provide single-valued" +
+							   " array getters and setters! [The indexed methods provide no means" +
+							   " of modifying the size of the array in the destination bean if" +
+							   " it does not match the source.]");
 				    }
 
-				System.err.println("Property inaccessible for overwriting: " + pd.getName());
+				if ( logger.isLoggable( MLevel.INFO ) )
+				    logger.info("Property inaccessible for overwriting: " + pd.getName());
 			    }
 			else
 			    {
@@ -267,14 +346,24 @@ public final class BeansUtils
 				//setter.invoke( destBean, new Object[] { value } );
 			    }
 		    }
-		for (Iterator ii = _props.iterator(); ii.hasNext(); )
-		    System.err.println("failed to find expected property: " + ii.next());
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    {
+			for (Iterator ii = _props.iterator(); ii.hasNext(); )
+			    logger.warning("failed to find expected property: " + ii.next());
+			//System.err.println("failed to find expected property: " + ii.next());
+		    }
 	    }
 	catch ( IntrospectionException e )
 	    { throw e; }
 	catch ( Exception e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
+		    logger.logp( MLevel.FINE, 
+				 BeansUtils.class.getName(),
+				 "overwriteSpecificAccessibleProperties( Object sourceBean, Object destBean, Collection props )",
+				 "Caught unexpected Exception; Converting to IntrospectionException.",
+				 e );
 		throw new IntrospectionException( e.getMessage() );
 	    }
     }

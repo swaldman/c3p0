@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -29,12 +29,15 @@ import javax.sql.*;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v2.c3p0.util.*;
+import com.mchange.v2.log.*;
 
 import java.lang.reflect.Method;
 import com.mchange.v2.sql.SqlUtils;
 
 public final class NewPooledConnection implements PooledConnection
 {
+    private final static MLogger logger = MLog.getLogger( NewPooledConnection.class );
+
     //MT: thread-safe post-constructor constants
     final Connection             physicalConnection;
     final ConnectionTester       connectionTester;
@@ -82,9 +85,15 @@ public final class NewPooledConnection implements PooledConnection
  		    }
  		else
  		    {
- 			System.err.println("c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
- 					   "it had already provided a client with a Connection that has not yet been " +
- 					   "closed. This probably indicates a bug in the connection pool!!!");
+//    			System.err.println("c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
+//  					   "it had already provided a client with a Connection that has not yet been " +
+//  					   "closed. This probably indicates a bug in the connection pool!!!");
+
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    logger.warning("c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
+					   "it had already provided a client with a Connection that has not yet been " +
+					   "closed. This probably indicates a bug in the connection pool!!!");
+
  		    }
  		return exposedProxy;
 	    }
@@ -197,12 +206,16 @@ public final class NewPooledConnection implements PooledConnection
 		checkinAllCachedStatements( closeExceptions );
 		if ( closeExceptions.size() > 0 )
 		    {
-			System.err.println("[c3p0] The following Exceptions occurred while trying to clean up a Connection's stranded resources:");
+// 			System.err.println("[c3p0] The following Exceptions occurred while trying to clean up a Connection's stranded resources:");
+			if ( logger.isLoggable( MLevel.INFO ) )
+			    logger.info("[c3p0] The following Exceptions occurred while trying to clean up a Connection's stranded resources:");
 			for ( Iterator ii = closeExceptions.iterator(); ii.hasNext(); )
 			    {
 				Throwable t = (Throwable) ii.next();
-				System.err.print("[c3p0 -- conection resource close Exception]: ");
-				t.printStackTrace();
+// 				System.err.print("[c3p0 -- conection resource close Exception]: ");
+// 				t.printStackTrace();
+				if ( logger.isLoggable( MLevel.INFO ) )
+				    logger.log( MLevel.INFO, "[c3p0 -- conection resource close Exception]", t );
 			    }
 		    }
 		reset( txn_known_resolved );
@@ -210,7 +223,10 @@ public final class NewPooledConnection implements PooledConnection
 	    }
 	catch (SQLException e) //Connection failed to reset!
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
+		    logger.log(MLevel.FINE, "An exception occurred while reseting a closed Connection. Invalidating Connection.", e);
+
 		updateConnectionStatus( ConnectionTester.CONNECTION_IS_INVALID );
 		fireConnectionErrorOccurred( e );
 	    }
@@ -239,8 +255,10 @@ public final class NewPooledConnection implements PooledConnection
 	    {
 		if (Debug.DEBUG)
 		    {
-			System.err.print(this + " invalidated by Exception: ");
-			t.printStackTrace();
+// 			System.err.print(this + " invalidated by Exception: ");
+// 			t.printStackTrace();
+			if ( logger.isLoggable( MLevel.FINE ) )
+			    logger.log(MLevel.FINE, this + " invalidated by Exception.", t);
 		    }
 
 		/*
@@ -275,8 +293,13 @@ public final class NewPooledConnection implements PooledConnection
 		    }
 		else
 		    {
-			System.err.println("[c3p0] Warning: PooledConnection that has already signalled a Connection error is still in use!");
-			System.err.println("[c3p0] Another error has occurred [ " + t + " ] which will not be reported to listeners!");
+// 			System.err.println("[c3p0] Warning: PooledConnection that has already signalled a Connection error is still in use!");
+// 			System.err.println("[c3p0] Another error has occurred [ " + t + " ] which will not be reported to listeners!");
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    {
+				logger.log(MLevel.WARNING, "[c3p0] A PooledConnection that has already signalled a Connection error is still in use!");
+				logger.log(MLevel.WARNING, "[c3p0] Another error has occurred [ " + t + " ] which will not be reported to listeners!", t);
+			    }
 		    }
 		}
 	return sqle;
@@ -382,8 +405,10 @@ public final class NewPooledConnection implements PooledConnection
 			    { ((ResultSet) ii.next()).close(); }
 			catch ( Exception e )
 			    {
-				System.err.print("ResultSet close() failed: ");
-				e.printStackTrace();
+// 				System.err.print("ResultSet close() failed: ");
+// 				e.printStackTrace();
+				if ( logger.isLoggable( MLevel.INFO ) )
+				    logger.log(MLevel.INFO, "ResultSet close() failed.", e);
 			    }
 		    }
 	    }
@@ -473,22 +498,29 @@ public final class NewPooledConnection implements PooledConnection
     // static utility functions
     private static void logCloseExceptions( Throwable cause, Collection exceptions )
     {
-	if (cause != null)
+	if ( logger.isLoggable( MLevel.INFO ) )
 	    {
-		System.err.println("[c3p0] A PooledConnection died due to the following error!");
-		cause.printStackTrace();
-	    }
-	if ( exceptions != null && exceptions.size() > 0)
-	    {
-		if ( cause == null )
-		    System.err.println("[c3p0] The following Exceptions occurred while trying to close a PooledConnection's resources normally.");
-		else
-		    System.err.println("[c3p0] The following Exceptions occurred while trying to close a broken PooledConnection.");
-		for ( Iterator ii = exceptions.iterator(); ii.hasNext(); )
+		if (cause != null)
 		    {
-			Throwable t = (Throwable) ii.next();
-			System.err.print("[c3p0 -- close Exception]: ");
-			t.printStackTrace();
+			// 		System.err.println("[c3p0] A PooledConnection died due to the following error!");
+			// 		cause.printStackTrace();
+			logger.log(MLevel.INFO, "[c3p0] A PooledConnection died due to the following error!", cause);
+		    }
+		if ( exceptions != null && exceptions.size() > 0)
+		    {
+			if ( cause == null )
+			    logger.info("[c3p0] Exceptions occurred while trying to close a PooledConnection's resources normally.");
+			//System.err.println("[c3p0] The following Exceptions occurred while trying to close a PooledConnection's resources normally.");
+			else
+			    logger.info("[c3p0] Exceptions occurred while trying to close a Broken PooledConnection.");
+			//System.err.println("[c3p0] The following Exceptions occurred while trying to close a broken PooledConnection.");
+			for ( Iterator ii = exceptions.iterator(); ii.hasNext(); )
+			    {
+				Throwable t = (Throwable) ii.next();
+				// 			System.err.print("[c3p0 -- close Exception]: ");
+				// 			t.printStackTrace();
+				logger.log(MLevel.INFO, "[c3p0] NewPooledConnection close Exception.", t);
+			    }
 		    }
 	    }
     }

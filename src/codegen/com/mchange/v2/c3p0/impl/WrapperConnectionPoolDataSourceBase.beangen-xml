@@ -1,3 +1,5 @@
+<!-- DON'T FORGET TO CALL C3P0Registry.register( this ) AT CONSTRUCTION OF CONCRETE SUBCLASS -->
+
 <beangen>
   <package>com.mchange.v2.c3p0.impl</package>
   <imports>
@@ -9,6 +11,7 @@
      <modifier>abstract</modifier>
   </modifiers>
   <output-class>WrapperConnectionPoolDataSourceBase</output-class>
+  <extends>IdentityTokenResolvable</extends>
   <properties> 
     <property>
        <type>DataSource</type>
@@ -172,6 +175,14 @@
        <type>boolean</type>
        <name>usesTraditionalReflectiveProxies</name>
        <default-value>PoolConfig.defaultUsesTraditionalReflectiveProxies()</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>identityToken</name>
+       <default-value>C3P0ImplUtils.identityToken( this )</default-value>
+       <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>

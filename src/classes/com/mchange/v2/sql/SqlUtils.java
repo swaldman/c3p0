@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -24,6 +24,8 @@
 package com.mchange.v2.sql;
 
 import java.sql.*;
+import com.mchange.v2.log.*;
+
 import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -32,6 +34,8 @@ import com.mchange.v2.lang.VersionUtils;
 
 public final class SqlUtils
 {
+    final static MLogger logger = MLog.getLogger( SqlUtils.class );
+
     final static DateFormat tsdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSS");
 
     public final static String DRIVER_MANAGER_USER_PROPERTY     = "user";
@@ -62,7 +66,12 @@ public final class SqlUtils
             return (SQLException) t;
         else
         { 
-            if (Debug.DEBUG) t.printStackTrace();
+            if (Debug.DEBUG) 
+		{
+		    //t.printStackTrace();
+		    if ( logger.isLoggable( MLevel.FINE ) )
+			logger.log( MLevel.FINE, "Converting Throwable to SQLException...", t );
+		}
 	    if ( VersionUtils.isAtLeastJavaVersion14() )
 		{
 		    SQLException out = new SQLException(msg);

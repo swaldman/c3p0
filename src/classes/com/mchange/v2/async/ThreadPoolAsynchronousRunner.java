@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -24,10 +24,13 @@
 package com.mchange.v2.async;
 
 import java.util.*;
+import com.mchange.v2.log.*;
 import com.mchange.v2.util.ResourceClosedException;
 
 public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 {
+    final static MLogger logger = MLog.getLogger( ThreadPoolAsynchronousRunner.class );
+    
     final static int POLL_FOR_STOP_INTERVAL                       = 5000; //milliseconds
 
     final static int DFLT_DEADLOCK_DETECTOR_INTERVAL              = 10000; //milliseconds
@@ -137,7 +140,12 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	    }
 	catch ( NullPointerException e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( Debug.DEBUG )
+		    {
+			if ( logger.isLoggable( MLevel.FINE ) )
+			    logger.log( MLevel.FINE, "NullPointerException while posting Runnable -- Probably we're closed.", e );
+		    }
 		throw new ResourceClosedException("Attempted to use a ThreadPoolAsynchronousRunner in a closed or broken state.");
 	    }
     }
@@ -355,8 +363,9 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 				}
 			    catch ( RuntimeException e )
 				{
-				    System.err.println(this + " -- caught unexpected Exception while executing posted task.");
-				    e.printStackTrace();
+				    if ( logger.isLoggable( MLevel.WARNING ) )
+					logger.log(MLevel.WARNING, this + " -- caught unexpected Exception while executing posted task.", e);
+				    //e.printStackTrace();
 				}
 			    finally
 				{
@@ -377,8 +386,11 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 		}
 	    catch ( InterruptedException exc )
 		{
-		    if ( Debug.TRACE > Debug.TRACE_NONE )
-			System.err.println(this + " interrupted. Shutting down.");
+// 		    if ( Debug.TRACE > Debug.TRACE_NONE )
+// 			System.err.println(this + " interrupted. Shutting down.");
+
+ 		    if ( Debug.TRACE > Debug.TRACE_NONE && logger.isLoggable( MLevel.FINE ) )
+			logger.fine(this + " interrupted. Shutting down.");
 		}
 
 	    synchronized ( ThreadPoolAsynchronousRunner.this )
@@ -405,12 +417,17 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 		    current = (LinkedList) pendingTasks.clone();
 		    if ( current.equals( last ) )
 			{
-			    System.err.println(this + " -- APPARENT DEADLOCK!!! Creating emergency threads for unassigned pending tasks!");
-			    StringBuffer sb = new StringBuffer( 512 );
-			    sb.append( this );
-			    sb.append( " -- APPARENT DEADLOCK!!! Complete Status: ");
-			    appendStatusString( sb );
-			    System.err.println( sb.toString() );
+			    //System.err.println(this + " -- APPARENT DEADLOCK!!! Creating emergency threads for unassigned pending tasks!");
+			    if ( logger.isLoggable( MLevel.WARNING ) )
+				{
+				    logger.warning(this + " -- APPARENT DEADLOCK!!! Creating emergency threads for unassigned pending tasks!");
+				    StringBuffer sb = new StringBuffer( 512 );
+				    sb.append( this );
+				    sb.append( " -- APPARENT DEADLOCK!!! Complete Status: ");
+				    appendStatusString( sb );
+				    //System.err.println( sb.toString() );
+				    logger.warning( sb.toString() );
+				}
 			    recreateThreadsAndTasks();
 			    run_stray_tasks = true;
 			}

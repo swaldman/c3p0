@@ -1,3 +1,5 @@
+<!-- DON'T FORGET TO CALL C3P0Registry.register( this ) AT CONSTRUCTION OF CONCRETE SUBCLASS -->
+
 <beangen>
   <package>com.mchange.v2.c3p0.impl</package>
   <imports>
@@ -6,6 +8,7 @@
      <specific>com.mchange.v2.c3p0.PoolConfig</specific>
   </imports>
   <output-class>PoolBackedDataSourceBase</output-class>
+  <extends>IdentityTokenResolvable</extends>
   <properties> 
     <property>
        <type>ConnectionPoolDataSource</type>
@@ -24,12 +27,27 @@
     </property>
     <property>
        <type>String</type>
-       <name>poolOwnerIdentityToken</name>
-       <default-value>Integer.toString( System.identityHashCode( this ), 16 )</default-value>
+       <name>identityToken</name>
+       <default-value>C3P0ImplUtils.identityToken( this )</default-value>
        <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
+<!-- i think we can do without these....
+    <property>
+       <type>boolean</type>
+       <name>nested</name>
+       <default-value>false</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>sourceCpdsIdentityToken</name>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+-->
     <property>
        <type>String</type>
        <name>factoryClassLocation</name>

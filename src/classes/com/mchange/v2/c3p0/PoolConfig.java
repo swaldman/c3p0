@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -26,8 +26,12 @@ package com.mchange.v2.c3p0;
 import java.util.Properties;
 import java.io.InputStream;
 import java.io.IOException;
-import com.mchange.v2.c3p0.impl.C3P0Defaults;
 import com.mchange.v1.io.InputStreamUtils;
+import com.mchange.v2.c3p0.impl.C3P0Defaults;
+import com.mchange.v2.cfg.MultiPropertiesConfig;
+import com.mchange.v2.log.MLevel;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
 
 /**
  *  <p>Encapsulates all the configuration information required by a c3p0 pooled DataSource.</p>
@@ -54,6 +58,8 @@ import com.mchange.v1.io.InputStreamUtils;
  */
 public final class PoolConfig
 {
+    final static MLogger logger = MLog.getLogger( PoolConfig.class );
+
     public final static String INITIAL_POOL_SIZE                    = "c3p0.initialPoolSize"; 
     public final static String MIN_POOL_SIZE                        = "c3p0.minPoolSize";
     public final static String MAX_POOL_SIZE                        = "c3p0.maxPoolSize";
@@ -585,24 +591,29 @@ public final class PoolConfig
     }
 
     private static Properties findResourceProperties()
+    { return MultiPropertiesConfig.readVmConfig().getPropertiesByResourcePath(DEFAULT_CONFIG_RSRC_PATH); }
+
+    private static Properties origFindResourceProperties()
     {
-	Properties props = new Properties();
+ 	Properties props = new Properties();
 
-	InputStream is = null; 
-	try
-	    {
-		is = PoolConfig.class.getResourceAsStream(DEFAULT_CONFIG_RSRC_PATH);
-		if ( is != null )
-		    props.load( is );
-	    }
-	catch (IOException e)
-	    {
-		e.printStackTrace();
-		props = new Properties(); 
-	    }
-	finally
-	    { InputStreamUtils.attemptClose( is ); }
+ 	InputStream is = null; 
+ 	try
+ 	    {
+ 		is = PoolConfig.class.getResourceAsStream(DEFAULT_CONFIG_RSRC_PATH);
+ 		if ( is != null )
+ 		    props.load( is );
+ 	    }
+ 	catch (IOException e)
+ 	    {
+ 		//e.printStackTrace();
+ 		if ( logger.isLoggable( MLevel.WARNING ) )
+ 		    logger.log( MLevel.WARNING, "An IOException occurred while trying to read Pool properties!", e );
+ 		props = new Properties(); 
+ 	    }
+ 	finally
+ 	    { InputStreamUtils.attemptClose( is ); }
 
-	return props;
+ 	return props;
     }
 }

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -29,6 +29,8 @@ import java.sql.*;
 import java.util.*;
 import javax.naming.*;
 import com.mchange.v2.naming.*;
+import com.mchange.v2.c3p0.impl.*;
+import com.mchange.v2.beans.BeansUtils;
 
 // WrapperConnectionPoolDataSource properties -- count: 21
 //
@@ -58,21 +60,48 @@ import com.mchange.v2.naming.*;
 /**
  * <p>For the meaning of most of these properties, please see {@link PoolConfig}!</p>
  */
-public final class ComboPooledDataSource implements PooledDataSource, Serializable, Referenceable
+public final class ComboPooledDataSource extends IdentityTokenResolvable implements PooledDataSource, Serializable, Referenceable
 {
+    final static Set TO_STRING_IGNORE_PROPS = new HashSet( Arrays.asList( new String[] { 
+									      "connection",
+									      "logWriter",
+									      "numBusyConnections",
+									      "numBusyConnectionsAllUsers",
+									      "numBusyConnectionsDefaultUser",
+									      "numConnections",
+									      "numConnectionsAllUsers",
+									      "numConnectionsDefaultUser",
+									      "numIdleConnections",
+									      "numIdleConnectionsAllUsers",
+									      "numIdleConnectionsDefaultUser",
+									      "numUnclosedOrphanedConnections",
+									      "numUnclosedOrphanedConnectionsAllUsers",
+									      "numUnclosedOrphanedConnectionsDefaultUser",
+									      "numUserPools",
+									      "password",
+									      "reference",
+									      "user" } ) );
+
     // not reassigned post-ctor; mutable elements protected by their own locks
     // when (very rarely) necessery, we sync pbds -> wcpds -> dmds
     DriverManagerDataSource         dmds;
     WrapperConnectionPoolDataSource wcpds;
     PoolBackedDataSource            pbds;
 
+    String identityToken;
+
     {
+	// System.err.println("...Initializing ComboPooledDataSource.");
+
 	dmds  = new DriverManagerDataSource();
 	wcpds = new WrapperConnectionPoolDataSource();
-	pbds  = new PoolBackedDataSource(); 
+	pbds  = new PoolBackedDataSource( this ); 
 
 	wcpds.setNestedDataSource( dmds );
 	pbds.setConnectionPoolDataSource( wcpds );
+
+	this.identityToken = C3P0ImplUtils.identityToken( this );
+	C3P0Registry.register( this );
     }
 
     // DriverManagerDataSourceProperties  (count: 4)
@@ -86,19 +115,36 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     { return dmds.getDriverClass(); }
 	
     public void setDriverClass( String driverClass ) throws PropertyVetoException
-    { dmds.setDriverClass( driverClass ); }
+    { 
+	dmds.setDriverClass( driverClass ); 
+// 	System.err.println("setting driverClass: " + driverClass); 
+    }
 	
     public String getJdbcUrl()
-    { return dmds.getJdbcUrl(); }
+    {  
+// 	System.err.println("getting jdbcUrl: " + dmds.getJdbcUrl()); 
+	return dmds.getJdbcUrl(); 
+    }
 	
     public void setJdbcUrl( String jdbcUrl )
-    { dmds.setJdbcUrl( jdbcUrl ); }
+    { 
+	dmds.setJdbcUrl( jdbcUrl ); 
+// 	System.err.println("setting jdbcUrl: " + jdbcUrl + " [dmds@" + C3P0ImplUtils.identityToken( dmds ) + "]"); 
+// 	if (jdbcUrl == null)
+// 	    new Exception("*** NULL SETTER ***").printStackTrace();
+    }
 	
     public Properties getProperties()
-    { return dmds.getProperties(); }
+    { 
+	//System.err.println("getting properties: " + dmds.getProperties()); 
+	return dmds.getProperties(); 
+    }
 	
     public void setProperties( Properties properties )
-    { dmds.setProperties( properties ); }
+    { 
+	dmds.setProperties( properties ); 
+	//System.err.println("setting properties: " + properties); 
+    }
 	
     // DriverManagerDataSource "virtual properties" based on properties
     public String getUser()
@@ -366,19 +412,21 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	    }
     }
 
-    // PoolBackedDataSource properties (count: 2)
+    // PoolBackedDataSource properties (count: 1)
     public int getNumHelperThreads()
     { return pbds.getNumHelperThreads(); }
 	
     public void setNumHelperThreads( int numHelperThreads )
     { pbds.setNumHelperThreads( numHelperThreads ); }
 
-    public String getPoolOwnerIdentityToken()
-    { return pbds.getPoolOwnerIdentityToken(); }
-	
-    public void setPoolOwnerIdentityToken( String poolOwnerIdentityToken )
-    { pbds.setPoolOwnerIdentityToken( poolOwnerIdentityToken ); }
 
+    // identity tokens
+    public String getIdentityToken()
+    { return identityToken; }
+	
+    public void setIdentityToken(String identityToken)
+    { this.identityToken = identityToken; }
+	
     // shared properties (count: 1)
     public String getFactoryClassLocation()
     {
@@ -406,7 +454,7 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
     
     static
     {
-	referenceMaker.setFactoryClassName( JavaBeanObjectFactory.class.getName() );
+	referenceMaker.setFactoryClassName( C3P0JavaBeanObjectFactory.class.getName() );
 
 	// DriverManagerDataSource properties (count: 4)
 	referenceMaker.addReferenceProperty("description");
@@ -441,6 +489,9 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 	referenceMaker.addReferenceProperty("numHelperThreads");
 	referenceMaker.addReferenceProperty("poolOwnerIdentityToken");
 
+	// identity token
+	referenceMaker.addReferenceProperty("identityToken");
+
 	// shared properties (count: 1)
 	referenceMaker.addReferenceProperty("factoryClassLocation");
     }
@@ -453,6 +504,12 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 		    {
 			synchronized( dmds )
 			    {
+				//System.err.println("ComboPooledDataSource.getReference()!!!!");
+				//new Exception("PRINT-STACK-TRACE").printStackTrace();
+				//javax.naming.Reference out = referenceMaker.createReference( this ); 
+				//System.err.println(out);
+				//return out;
+
 				return referenceMaker.createReference( this ); 
 			    }
 		    }
@@ -553,5 +610,17 @@ public final class ComboPooledDataSource implements PooledDataSource, Serializab
 
     public void close( boolean force_destroy ) throws SQLException
     { pbds.close( force_destroy ); }
+
+    public String toString()
+    {
+	StringBuffer sb = new StringBuffer(255);
+	sb.append( super.toString() );
+	sb.append("[ ");
+	try { BeansUtils.appendPropNamesAndValues(sb, this, TO_STRING_IGNORE_PROPS); }
+	catch (Exception e)
+	    { sb.append( e.toString() ); }
+	sb.append(" ]");
+	return sb.toString();
+    }
 }
 

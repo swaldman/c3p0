@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -25,6 +25,7 @@ package com.mchange.v2.codegen.bean;
 
 import java.io.*;
 import java.util.*;
+import com.mchange.v2.log.*;
 import java.lang.reflect.Modifier;
 import com.mchange.v1.lang.ClassUtils;
 import com.mchange.v2.codegen.CodegenUtils;
@@ -32,6 +33,8 @@ import com.mchange.v2.codegen.IndentedWriter;
 
 public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 {
+    private final static MLogger logger = MLog.getLogger( SimplePropertyBeanGenerator.class );
+
     private boolean inner              = false;
     private int     java_version       = 130; //1.3.0
     private boolean force_unmodifiable = false;
@@ -136,8 +139,11 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 		    { superclassType = ClassUtils.forName( info.getSuperclassName(), gen, spc ); }
 		catch ( Exception e )
 		    {
-			System.err.println("WARNING: " + this.getClass().getName() + " could not resolve " +
-					   "superclass '" + info.getSuperclassName() + "'.");
+// 			System.err.println("WARNING: " + this.getClass().getName() + " could not resolve " +
+// 					   "superclass '" + info.getSuperclassName() + "'.");
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    logger.warning(this.getClass().getName() + " could not resolve superclass '" + info.getSuperclassName() + "'.");
+
 			superclassType = null;
 		    }
 	    }
@@ -150,8 +156,12 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 		    { interfaceTypes.add( ClassUtils.forName( name , gen, spc ) ); }
 		catch ( Exception e )
 		    {
-			System.err.println("WARNING: " + this.getClass().getName() + " could not resolve " +
-					   "interface '" + name + "'.");
+// 			System.err.println("WARNING: " + this.getClass().getName() + " could not resolve " +
+// 					   "interface '" + name + "'.");
+
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    logger.warning(this.getClass().getName() + " could not resolve interface '" + name + "'.");
+
 			interfaceTypes.add( null );
 		    }
 	    }
@@ -164,9 +174,13 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
 		    { propertyTypes[i] = ClassUtils.forName( name , gen, spc ); }
 		catch ( Exception e )
 		    {
-			e.printStackTrace();
-			System.err.println("WARNING: " + this.getClass().getName() + " could not resolve " +
-					   "property type '" + name + "'.");
+// 			e.printStackTrace();
+// 			System.err.println("WARNING: " + this.getClass().getName() + " could not resolve " +
+// 					   "property type '" + name + "'.");
+
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    logger.log( MLevel.WARNING, this.getClass().getName() + " could not resolve property type '" + name + "'.", e);
+
 			propertyTypes[i] = null;
 		    }
 	    }

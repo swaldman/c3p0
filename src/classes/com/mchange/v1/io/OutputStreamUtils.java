@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -23,17 +23,24 @@
 
 package com.mchange.v1.io;
 
+import com.mchange.v2.log.*;
 import java.io.OutputStream;
 import java.io.IOException;
 
 public final class OutputStreamUtils
 {
+    private final static MLogger logger = MLog.getLogger( OutputStreamUtils.class );
+
     public static void attemptClose(OutputStream os)
     {
       try
-	{if (os != null) os.close();}
+	  {if (os != null) os.close();}
       catch (IOException e)
-	  {e.printStackTrace();}
+	  {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "OutputStream close FAILED.", e );
+	      //e.printStackTrace();
+	  }
     }
 
   private OutputStreamUtils()

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5.2
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -27,6 +27,7 @@ import java.lang.reflect.*;
 import java.sql.*;
 import java.util.*;
 import javax.sql.*;
+import com.mchange.v2.log.*;
 import com.mchange.v2.sql.*;
 import com.mchange.v2.sql.filter.*;
 import com.mchange.v2.c3p0.*;
@@ -37,6 +38,8 @@ import com.mchange.v2.c3p0.util.ConnectionEventSupport;
 
 public final class C3P0PooledConnection implements PooledConnection, ClosableResource
 {
+    final static MLogger logger = MLog.getLogger( C3P0PooledConnection.class );
+
     final static ClassLoader CL = C3P0PooledConnection.class.getClassLoader();
     final static Class[]     PROXY_CTOR_ARGS = new Class[]{ InvocationHandler.class };
 
@@ -75,7 +78,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	    }
 	catch (Exception e)
 	    { 
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log(MLevel.SEVERE, "An Exception occurred in static initializer of" + C3P0PooledConnection.class.getName(), e);
 		throw new InternalError("Something is very wrong, or this is a pre 1.3 JVM." +
 					"We cannot set up dynamic proxies and/or methods!");
 	    }
@@ -149,9 +153,14 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		//new Exception("[DOUBLE_GET_TESTER] -- Double-Get Stack Trace").printStackTrace();
 		//origGet.printStackTrace();
 
-		System.err.println("c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
-				   "it had already provided a client with a Connection that has not yet been " +
-				   "closed. This probably indicates a bug in the connection pool!!!");
+// 		System.err.println("c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
+// 				   "it had already provided a client with a Connection that has not yet been " +
+// 				   "closed. This probably indicates a bug in the connection pool!!!");
+
+		logger.warning("c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
+			       "it had already provided a client with a Connection that has not yet been " +
+			       "closed. This probably indicates a bug in the connection pool!!!");
+
 		return exposedProxy;
 	    }
 	else
@@ -180,7 +189,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	    { throw e; }
 	catch (Exception e)
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log(MLevel.WARNING, "Failed to acquire connection!", e);
 		throw new SQLException("Failed to acquire connection!");
 	    }
     }
@@ -215,7 +225,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				if (known_invalid)
 				    debugOnlyLog.append( exc.toString() + ' ' );
 				else
-				    exc.printStackTrace();
+				    logger.log(MLevel.WARNING, "An exception occurred while cleaning up uncached active Statements.", exc);
+				    //exc.printStackTrace();
 			    }
 
 			try 
@@ -238,7 +249,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 					if (known_invalid)
 					    debugOnlyLog.append( e.toString() + ' ' );
 					else
-					    e.printStackTrace();
+					    logger.log(MLevel.WARNING, "An exception occurred.", exc);
+					    //e.printStackTrace();
 				    }
 				exc = e;
 			    }
@@ -251,7 +263,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 					if (known_invalid)
 					    debugOnlyLog.append( e.toString() + ' ' );
 					else
-					    e.printStackTrace();
+					    logger.log(MLevel.WARNING, "An exception occurred.", exc);
+					    //e.printStackTrace();
 				    }
 				exc = e;
 			    }
@@ -264,6 +277,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 					if (known_invalid)
 					    debugOnlyLog.append( e.toString() + ' ' );
 					else
+					    logger.log(MLevel.WARNING, "An exception occurred.", exc);
 					    e.printStackTrace();
 				    }
 				exc = e;
@@ -276,9 +290,14 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 					debugOnlyLog.append(" ]");
 					if (Debug.DEBUG)
 					    {
-						System.err.print("[DEBUG]" + this + ": while closing a PooledConnection known to be invalid, ");
-						System.err.println("  some exceptions occurred. This is probably not a problem:");
-						System.err.println( debugOnlyLog.toString() );
+// 						System.err.print("[DEBUG]" + this + ": while closing a PooledConnection known to be invalid, ");
+// 						System.err.println("  some exceptions occurred. This is probably not a problem:");
+// 						System.err.println( debugOnlyLog.toString() );
+
+
+						logger.fine(this + ": while closing a PooledConnection known to be invalid, " +
+							    "  some exceptions occurred. This is probably not a problem: " +
+							    debugOnlyLog.toString() );
 					    }
 				    }
 				else
@@ -286,7 +305,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 							   "to close() the PooledConnection: " + exc);
 			    }
 			if (Debug.TRACE == Debug.TRACE_MAX)
-			    System.err.println("C3P0PooledConnection closed. [" + this + ']');
+			    logger.fine("C3P0PooledConnection closed. [" + this + ']');
+			    //System.err.println("C3P0PooledConnection closed. [" + this + ']');
 		    }
 		finally
 		    { physicalConnection = null; }
@@ -326,7 +346,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 			catch (SQLException e)
 			    {
 				if (Debug.DEBUG)
-				    e.printStackTrace();
+				    logger.log(MLevel.WARNING, "An exception occurred while cleaning up a ResultSet.", e);
+				    //e.printStackTrace();
 				okay = false;
 			    }
 			finally 
@@ -362,7 +383,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 			Throwable t = e;
 			if (t instanceof InvocationTargetException)
 			    t = ((InvocationTargetException) e).getTargetException();
-			t.printStackTrace();
+			logger.log(MLevel.WARNING, "An exception occurred while cleaning up a resource.", t);
+			//t.printStackTrace();
 			okay = false;
 		    }
 		finally 
@@ -460,8 +482,12 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 
 	if (Debug.DEBUG && parentConnection == null)
 	    {
-		System.err.print("PROBABLE C3P0 BUG -- ");
-		System.err.println(this + ": created a proxy Statement when there is no active, exposed proxy Connection???");
+// 		System.err.print("PROBABLE C3P0 BUG -- ");
+// 		System.err.println(this + ": created a proxy Statement when there is no active, exposed proxy Connection???");
+
+		logger.warning("PROBABLE C3P0 BUG -- " +
+			       this + ": created a proxy Statement when there is no active, exposed proxy Connection???");
+
 	    }
 
 
@@ -827,16 +853,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				{
 				    ensureOkay();
 					    
-				    // we've disabled setting txn_known_resolved to true, ever, because
-				    // we failed to deal with the case that clients would work with previously
-				    // acquired Statements and ResultSets after a commit(), rollback(), or setAutoCommit().
-				    // the new non-reflective proxies have been modified to deal with this case.
-				    // here, with soon-to-be-deprecated in "traditional reflective proxies mode"
-				    // we are reverting to the conservative, always-presume-you-have-to-rollback
-				    // policy.
-
-				    //txn_known_resolved = ( mname.equals("commit") || mname.equals( "rollback" ) || mname.equals( "setAutoCommit" ) );
-				    txn_known_resolved = false; 
+				    txn_known_resolved = ( mname.equals("commit") || mname.equals( "rollback" ) || mname.equals( "setAutoCommit" ) );
 
 				    return m.invoke( activeConnection, args );
 				}
@@ -882,9 +899,12 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				    //origGet = null;
 				}
 			    else //else case -- DEBUG only
-				System.err.println("[DEBUG] WARNING: doSilentClose( ... ) called on a proxyConnection " +
-						   "other than the current exposed proxy for its PooledConnection. [exposedProxy: " +
-						   exposedProxy + ", proxyConnection: " + proxyConnection);
+				logger.warning("(c3p0 issue) doSilentClose( ... ) called on a proxyConnection " +
+					       "other than the current exposed proxy for its PooledConnection. [exposedProxy: " +
+					       exposedProxy + ", proxyConnection: " + proxyConnection);
+// 				System.err.println("[DEBUG] WARNING: doSilentClose( ... ) called on a proxyConnection " +
+// 						   "other than the current exposed proxy for its PooledConnection. [exposedProxy: " +
+// 						   exposedProxy + ", proxyConnection: " + proxyConnection);
 			}
 			    
 		    Exception out = null;
@@ -985,9 +1005,13 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		{
 		    if (Debug.DEBUG)
 			{
-			    System.err.print(C3P0PooledConnection.this + " will no longer be pooled because it has been " +
-					     "marked invalid by the following Exception: ");
-			    t.printStackTrace();
+// 			    System.err.print(C3P0PooledConnection.this + " will no longer be pooled because it has been " +
+// 					     "marked invalid by the following Exception: ");
+// 			    t.printStackTrace();
+
+			    logger.log(MLevel.INFO, 
+				       C3P0PooledConnection.this + " will no longer be pooled because it has been marked invalid by an Exception.",
+				       t );
 			}
 			    
 		    invalidatingException = sqle;
@@ -1057,8 +1081,10 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	try { this.close( true ); }
 	catch (SQLException e)
 	    {
-		System.err.print("Broken Connection Close Error: ");
-		e.printStackTrace(); 
+// 		System.err.print("Broken Connection Close Error: ");
+// 		e.printStackTrace(); 
+
+		logger.log(MLevel.WARNING, "Broken Connection Close Error. ", e);
 	    }
     }
 }

@@ -11,10 +11,14 @@
    <property name="srcdist.name" value="${c3p0.name}.src" />
    <property name="src.dir" value="src" />
    <property name="java.src.dir" value="${src.dir}/classes" />
+   <property name="rsrc.src.dir" value="${src.dir}/resources" />
    <property name="codegen.src.dir" value="${src.dir}/codegen" />
    <property name="doc.src.dir" value="${src.dir}/doc" />
    <property name="static.dist.src" value="${src.dir}/dist-static" />
+   <property name="relproj.dir" value="relproj" />
+   <property name="relproj.dist.dir" value="${relproj.dir}/dist" />
    <property name="test.props.dir" value="test-properties" />
+   <property name="test.logging.props.file" location="${test.props.dir}/logging.properties" />
    <property name="build.dir" value="build" />
    <property name="build.codegen.dir" value="${build.dir}/codegen" />
    <property name="build.classes.dir" value="${build.dir}/classes" />
@@ -30,10 +34,16 @@
    <property name="open.dist.doc.dir" value="${open.dist}/doc" />
    <property name="open.dist.lib.dir" value="${open.dist}/lib" />
 
-   <!-- j2ee.jar.base.dir should be set externally if desired  -->
-   <!-- we set thr property here only to keep classpaths valid -->
+   <!-- these properties should be set externally if desired  -->
+   <!-- we set them here only to keep classpaths valid -->
    <!-- when users do not set the path                         -->
    <property name="j2ee.jar.base.dir" value="" />
+   <property name="log4j.jar.file" value="" />
+
+   <!-- these properties should often be preempted in build.properties -->
+   <property name="c3p0.debug" value="false" />
+   <property name="c3p0.trace" value="5" />
+   
 
    <path id="codegen-classpath">
        <pathelement location="${build.classes.dir}" />
@@ -52,6 +62,7 @@
    <patternset id="dist-jar-classes"> <!-- excludes stuff only used by the code generator and by tests-->
        <exclude name="com/mchange/v2/codegen/bean/*.java" />
        <exclude name="com/mchange/v2/codegen/*.java" />
+       <exclude name="com/mchange/v2/debug/DebugGen.java" />
        <exclude name="com/mchange/v1/jvm/**" />
        <exclude name="com/mchange/v1/lang/**" />
        <exclude name="com/mchange/v1/xml/**" />
@@ -64,16 +75,21 @@
    </patternset>
 
    <path id="test-classpath">
+       <pathelement location="${test.props.dir}" />
+       <pathelement location="${log4j.jar.file}" />
        <pathelement location="${build.jar.file}" />
        <pathelement location="${test.classes.dir}" />
        <pathelement path="${j2ee.classpath}" />
        <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
        <pathelement location="${test.jdbc.driver.jar.file}" />
-       <pathelement location="${test.props.dir}" />
    </path>
 
    <target name="init">
-      <mkdir dir="${build.dir}" />
+     <tstamp>
+       <format property="c3p0.timestamp" pattern="dd-MMMM-yyyy HH:mm:ss Z"/>     
+     </tstamp>
+
+     <mkdir dir="${build.dir}" />
       <mkdir dir="${build.codegen.dir}" />
       <mkdir dir="${build.classes.dir}" />
       <mkdir dir="${build.apidocs.dir}" />
@@ -85,19 +101,70 @@
       <delete dir="${dist.dir}" />
    </target>
 
-   <target name="init-codegen" depends="init">
-      <javac srcdir="${java.src.dir}"
-             destdir="${build.classes.dir}" 
-             includes="com/mchange/v2/c3p0/codegen/**/*.java"
+   <target name="relproj" depends="init">
+     <ant dir="${relproj.dir}" target="dist" inheritAll="false" />
+   </target>
+
+   <target name="init-debuggen" depends="relproj">
+      <uptodate property="up-to-date-debugs" 
+                srcfile="build.properties"
+                targetfile="${build.codegen.dir}/com/mchange/Debug.java" />
+   </target>
+
+   <target name="debuggen" depends="init-debuggen" unless="up-to-date-debugs">
+      <java classname="com.mchange.v2.debug.DebugGen" fork="true" dir=".">
+	<sysproperty key="com.mchange.v2.log.MLog" value="com.mchange.v2.log.FallbackMLog" />
+	<classpath>
+	  <fileset dir="${relproj.dist.dir}">
+	    <include name="*.jar" />
+	  </fileset>
+	</classpath>
+        <arg value="--packages=com.mchange" />
+        <arg value="--codebase=src/classes" />
+        <arg value="--outputbase=${build.codegen.dir}" />
+        <arg value="--recursive" />
+        <arg value="--debug=${c3p0.debug}" />
+        <arg value="--trace=${c3p0.trace}" />
+      </java>
+   </target>
+
+   <target name="subst">
+      <copy todir="${build.codegen.dir}">
+         <fileset dir="${java.src.dir}">
+	   <include name="**/subst/**" />
+	 </fileset>
+         <filterchain>
+           <replacetokens>
+             <token key="c3p0.version"   value="${c3p0.version}"/>
+             <token key="c3p0.debug"     value="${c3p0.debug}"/>
+             <token key="c3p0.trace"     value="${c3p0.trace}"/>
+             <token key="c3p0.timestamp" value="${c3p0.timestamp}"/>
+           </replacetokens>
+         </filterchain>
+      </copy>
+   </target>
+
+   <target name="init-codegen" depends="debuggen,subst">
+      <javac destdir="${build.classes.dir}" 
+             includes="com/mchange/v2/c3p0/codegen/**/*.java,com/mchange/v2/log/*.java,com/mchange/v2/cfg/*.java"
+	     excludes="**/old/**,**/bad/**"
              classpathref="codegen-classpath"
-             debug="true" />
+             debug="true">
+          <src>
+             <pathelement location="${build.codegen.dir}" />
+             <pathelement location="${java.src.dir}" />
+          </src>
+      </javac>
+
       <uptodate property="up-to-date-proxies" 
                 srcfile="${java.src.dir}/com/mchange/v2/c3p0/codegen/JdbcProxyGenerator.java"
                 targetfile="${build.codegen.dir}/com/mchange/v2/c3p0/impl/NewProxyConnection.java" />
    </target>
 
+
    <target name="beangen" depends="init-codegen">
       <apply executable="java" dest="${build.codegen.dir}"> 
+        <arg value="-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog" />
         <arg value="-classpath" />
         <arg path="${codegen.classpath}" />
         <arg value="com.mchange.v2.c3p0.codegen.BeangenDataSourceGenerator" />
@@ -106,7 +173,7 @@
         <fileset dir="${codegen.src.dir}" includes="**/*.beangen-xml">
 	  <exclude name="**/bad/**" />
 	  <exclude name="**/old/**" />
-	  <exclude name="**/private/**" />
+	  <exclude name="private/**" />
 	</fileset>
         <mapper type="glob" from="*.beangen-xml" to="*.java" />
       </apply>
@@ -114,6 +181,7 @@
 
    <target name="newproxygen" depends="init-codegen" unless="up-to-date-proxies">
       <java classname="com.mchange.v2.c3p0.codegen.JdbcProxyGenerator" fork="true" dir=".">
+	<sysproperty key="com.mchange.v2.log.MLog" value="com.mchange.v2.log.FallbackMLog" />
 	<classpath refid="codegen-classpath" />
         <arg value="${build.codegen.dir}" />
       </java>
@@ -121,7 +189,7 @@
 
    <target name="codegen" depends="beangen,newproxygen" />
 
-   <target name="compile" depends="codegen">
+   <target name="compile-common" depends="codegen">
       <javac destdir="${build.classes.dir}" 
              classpathref="build-classpath" 
              debug="on">
@@ -133,7 +201,31 @@
              <pathelement location="${build.codegen.dir}" />
              <pathelement location="${java.src.dir}" />
           </src>
+	  <exclude name="**/subst/**" />
+	  <exclude name="com/mchange/v2/log/log4j/**" />
       </javac>
+   </target>
+
+   <target name="compile-log4j" depends="init" if="log4j.jar.file">
+      <javac destdir="${build.classes.dir}" 
+             debug="on">
+	  <classpath>
+	    <path refid="build-classpath" />
+	    <pathelement location="${log4j.jar.file}" />
+	  </classpath>
+          <sourcepath>
+             <pathelement location="${build.codegen.dir}" />
+             <pathelement location="${java.src.dir}" />
+          </sourcepath>
+          <src>
+             <pathelement location="${build.codegen.dir}" />
+             <pathelement location="${java.src.dir}" />
+          </src>
+	  <include name="com/mchange/v2/log/log4j/**" />
+      </javac>
+   </target>
+
+   <target name="compile" depends="codegen,compile-common,compile-log4j">
    </target>
 
    <target name="jar" depends="compile">
@@ -141,6 +233,7 @@
         <fileset dir="${build.classes.dir}">
           <patternset refid="dist-jar-classes"/>
         </fileset>
+        <fileset dir="${rsrc.src.dir}" />
       </jar>
    </target>
 
@@ -180,6 +273,7 @@
          classpathref="test-classpath" 
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <!-- <jvmarg value="-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" /> -->
            <!-- <jvmarg value="-verbose:class" /> -->
            <arg value="${test.jdbc.url}" />
@@ -194,6 +288,7 @@
          classpathref="test-classpath" 
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <!-- <jvmarg value="-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" /> -->
            <!-- <jvmarg value="-verbose:class" /> -->
            <arg value="${test.jdbc.url}" />
@@ -208,8 +303,11 @@
          classpathref="test-classpath" 
 	 fork="true">
            <!-- <jvmarg value="-Xrunhprof:cpu=times,file=/tmp/java.hprof,doe=y,format=a" /> -->
+           <!-- <jvmarg value="-server" /> -->
            <!-- <jvmarg value="-Xprof" /> -->
+           <!-- <jvmarg value="-verbose:class" /> -->
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -224,6 +322,7 @@
            <!-- <jvmarg value="-Xrunhprof:cpu=times,file=/tmp/java.hprof,doe=y,format=a" /> -->
            <!-- <jvmarg value="-Xprof" /> -->
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -236,6 +335,7 @@
          classpathref="test-classpath" 
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -248,6 +348,7 @@
          classpathref="test-classpath" 
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -260,6 +361,7 @@
          classpathref="test-classpath" 
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -272,6 +374,7 @@
          classpathref="test-classpath" 
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />

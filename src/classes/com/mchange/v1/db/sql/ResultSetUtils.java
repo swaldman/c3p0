@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -24,9 +24,12 @@
 package com.mchange.v1.db.sql;
 
 import java.sql.*;
+import com.mchange.v2.log.*;
 
 public final class ResultSetUtils
 {
+    private final static MLogger logger = MLog.getLogger( ResultSetUtils.class );
+
     /** 
      * @return false iff and Exception occurred while
      *         trying to close this object.
@@ -40,7 +43,9 @@ public final class ResultSetUtils
 	    }
         catch (SQLException e)
             {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "ResultSet close FAILED.", e );
 		return false;
 	    }
     }

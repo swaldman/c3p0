@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -29,6 +29,7 @@ import javax.xml.parsers.*;
 import org.w3c.dom.*;
 import com.mchange.v2.codegen.*;
 import com.mchange.v2.codegen.bean.*;
+import com.mchange.v2.c3p0.impl.*;
 
 import java.lang.reflect.Modifier;
 import com.mchange.v1.xml.DomParseUtils;
@@ -67,6 +68,9 @@ public class BeangenDataSourceGenerator
 		gen.addExtension( new PropsToStringGeneratorExtension() );
 		PropertyReferenceableExtension prex = new PropertyReferenceableExtension();
 		prex.setUseExplicitReferenceProperties( true );
+		// we use the string version to creating dependencies between the bean generator and c3p0 classes
+		//prex.setFactoryClassName( C3P0JavaBeanObjectFactory.class.getName() );
+		prex.setFactoryClassName( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
 		gen.addExtension( prex );
 
 		if (unmodifiableShadow( doc ) )

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -32,6 +32,9 @@ import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 
 import com.mchange.v1.db.sql.ConnectionUtils;
+import com.mchange.v2.log.MLevel;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
 import com.mchange.v2.c3p0.ConnectionTester;
 import com.mchange.v2.c3p0.QueryConnectionTester;
 import com.mchange.v2.c3p0.stmt.GooGooStatementCache;
@@ -43,6 +46,8 @@ import com.mchange.v2.sql.SqlUtils;
 
 public final class C3P0PooledConnectionPool
 {
+    final static MLogger logger = MLog.getLogger( C3P0PooledConnectionPool.class );
+
     ResourcePool rp;
     ConnectionEventListener cl = new ConnectionEventListenerImpl();
 
@@ -92,9 +97,13 @@ public final class C3P0PooledConnectionPool
 					((NewPooledConnection) out).initStatementCache(scache);
 				    else
 					{
-					    System.err.print("Warning! StatementPooling not ");
-					    System.err.print("implemented for external (non-c3p0) ");
-					    System.err.println("ConnectionPoolDataSources.");
+// 					    System.err.print("Warning! StatementPooling not ");
+// 					    System.err.print("implemented for external (non-c3p0) ");
+// 					    System.err.println("ConnectionPoolDataSources.");
+
+					    logger.warning("StatementPooling not " +
+							   "implemented for external (non-c3p0) " +
+							   "ConnectionPoolDataSources.");
 					}
 				}
 			    out.addConnectionEventListener( cl );
@@ -145,10 +154,15 @@ public final class C3P0PooledConnectionPool
 						status = ((QueryConnectionTester) connectionTester).activeCheckConnection( conn, testQuery );
 					    else
 						{
-						    System.err.println("[c3p0] WARNING: testQuery '" + testQuery +
-								       "' ignored. Please set a ConnectionTester that implements " +
-								       "com.mchange.v2.c3p0.advanced.QueryConnectionTester, or use the " +
-								       "DefaultConnectionTester, to test with the testQuery.");
+// 						    System.err.println("[c3p0] WARNING: testQuery '" + testQuery +
+// 								       "' ignored. Please set a ConnectionTester that implements " +
+// 								       "com.mchange.v2.c3p0.advanced.QueryConnectionTester, or use the " +
+// 								       "DefaultConnectionTester, to test with the testQuery.");
+
+						    logger.warning("[c3p0] testQuery '" + testQuery +
+								   "' ignored. Please set a ConnectionTester that implements " +
+								   "com.mchange.v2.c3p0.advanced.QueryConnectionTester, or use the " +
+								   "DefaultConnectionTester, to test with the testQuery.");
 						    status = connectionTester.activeCheckConnection( conn );
 						}
 					}
@@ -156,7 +170,8 @@ public final class C3P0PooledConnectionPool
 			    catch (SQLException e)
 				{
 				    if (Debug.DEBUG)
-					e.printStackTrace();
+					logger.log(MLevel.FINE, "A Connection test failed with an Exception.", e);
+					//e.printStackTrace();
 				    status = ConnectionTester.CONNECTION_IS_INVALID;
 				}
 			    finally
@@ -237,13 +252,19 @@ public final class C3P0PooledConnectionPool
 	    try
 		{ rp.checkinResource( evt.getSource() ); }
 	    catch (Exception e)
-		{ e.printStackTrace(); }
+		{ 
+		    //e.printStackTrace(); 
+		    logger.log( MLevel.WARNING, 
+				"An Exception occurred while trying to check a PooledConection into a ResourcePool.",
+				e );
+		}
 	}
 
 	public void connectionErrorOccurred(ConnectionEvent evt)
 	{
-	    System.err.println("CONNECTION ERROR OCCURRED!");
-	    System.err.println();
+// 	    System.err.println("CONNECTION ERROR OCCURRED!");
+// 	    System.err.println();
+	    logger.warning("CONNECTION ERROR OCCURRED!");
 	    try
 		{
 		    PooledConnection pc = (PooledConnection) evt.getSource();
@@ -273,8 +294,9 @@ public final class C3P0PooledConnectionPool
 		}
 	    catch ( ResourcePoolException e )
 		{
-		    System.err.println("Uh oh... our resource pool is probably broken!");
-		    e.printStackTrace();
+		    //System.err.println("Uh oh... our resource pool is probably broken!");
+		    //e.printStackTrace();
+		    logger.log(MLevel.WARNING, "Uh oh... our resource pool is probably broken!", e);
 		}
 	}
     }
@@ -284,7 +306,8 @@ public final class C3P0PooledConnectionPool
 	try { return rp.getPoolSize(); }
 	catch ( Exception e )
 	    { 
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log( MLevel.WARNING, null, e );
 		throw SqlUtils.toSQLException( e );
 	    }
     }
@@ -294,7 +317,8 @@ public final class C3P0PooledConnectionPool
 	try { return rp.getAvailableCount(); }
 	catch ( Exception e )
 	    { 
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log( MLevel.WARNING, null, e );
 		throw SqlUtils.toSQLException( e );
 	    }
     }
@@ -308,7 +332,8 @@ public final class C3P0PooledConnectionPool
 	    }
 	catch ( Exception e )
 	    { 
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log( MLevel.WARNING, null, e );
 		throw SqlUtils.toSQLException( e );
 	    }
     }
@@ -318,7 +343,8 @@ public final class C3P0PooledConnectionPool
 	try { return rp.getExcludedCount(); }
 	catch ( Exception e )
 	    { 
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log( MLevel.WARNING, null, e );
 		throw SqlUtils.toSQLException( e );
 	    }
     }
@@ -335,7 +361,8 @@ public final class C3P0PooledConnectionPool
 	try { rp.resetPool(); }
 	catch ( Exception e )
 	    { 
-		e.printStackTrace();
+		//e.printStackTrace();
+		logger.log( MLevel.WARNING, null, e );
 		throw SqlUtils.toSQLException( e );
 	    }
     }

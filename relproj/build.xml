@@ -1,0 +1,26 @@
+<project name="c3p0-relproj" default="dist">
+
+   <!-- ignore the CLASSPATH environment variable. force builds to specify classpaths -->
+   <property name="build.sysclasspath" value="ignore" />
+
+   <property name="dist.dir" value="dist" />
+   <property name="debuggen.proj.dir" value="debuggen" />
+
+   <target name="init">
+      <mkdir dir="${dist.dir}" />
+   </target>
+
+   <target name="clean">
+     <delete dir="${dist.dir}" />
+     <ant dir="${debuggen.proj.dir}" target="clean" inheritAll="false" />
+   </target>
+
+   <target name="dist">
+     <ant dir="${debuggen.proj.dir}" target="jar" inheritAll="false" />
+     <copy todir="${dist.dir}">
+       <fileset dir="${debuggen.proj.dir}/dist" />
+     </copy>
+   </target>
+
+</project> 
+

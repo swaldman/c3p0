@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -27,6 +27,7 @@ import java.beans.*;
 import java.io.*;
 import java.util.*;
 import javax.naming.*;
+import com.mchange.v2.log.*;
 import java.lang.reflect.Method;
 import com.mchange.v2.lang.Coerce;
 import com.mchange.v2.beans.BeansUtils;
@@ -35,6 +36,8 @@ import com.mchange.v2.ser.IndirectPolicy;
 
 public class JavaBeanReferenceMaker implements ReferenceMaker
 {
+    private final static MLogger logger = MLog.getLogger( JavaBeanReferenceMaker.class );
+
     final static String REF_PROPS_KEY = "com.mchange.v2.naming.JavaBeanReferenceMaker.REF_PROPS_KEY";
 
     final static Object[] EMPTY_ARGS = new Object[0];
@@ -92,9 +95,13 @@ public class JavaBeanReferenceMaker implements ReferenceMaker
 		    {
 			PropertyDescriptor pd = pds[i];
 			String propertyName = pd.getName();
-			
+			//System.err.println("Making Reference: " + propertyName);
+
 			if (using_ref_props && ! referenceProperties.contains( propertyName ))
-			    continue;
+			    {
+				//System.err.println("Not a ref_prop -- continuing.");
+				continue;
+			    }
 
 			Class  propertyType = pd.getPropertyType();
 			Method getter = pd.getReadMethod();
@@ -102,14 +109,16 @@ public class JavaBeanReferenceMaker implements ReferenceMaker
 			if (getter != null && setter != null) //only use properties that are both readable and writable
 			    {
 				Object val = getter.invoke( bean, EMPTY_ARGS );
-				if (propertyName == "factoryClassLocation")
+				//System.err.println( "val: " + val );
+				if (propertyName.equals("factoryClassLocation"))
 				    {
 					if (String.class != propertyType)
 					    throw new NamingException(this.getClass().getName() + " requires a factoryClassLocation property to be a string, " +
 								      propertyType.getName() + " is not valid.");
 					factoryClassLocation = (String) val;
 				    }
-				else if (val == null)
+
+				if (val == null)
 				    {
 					RefAddr addMe = new BinaryRefAddr( propertyName, NULL_TOKEN_BYTES );
 					refAddrs.add( addMe );
@@ -138,8 +147,14 @@ public class JavaBeanReferenceMaker implements ReferenceMaker
 				    }
 			    }
 			else
-			    System.err.println(this.getClass().getName() +
-					       ": Skipping " + propertyName + " because it is " + (setter == null ? "read-only." : "write-only."));
+			    {
+// 				System.err.println(this.getClass().getName() +
+// 						   ": Skipping " + propertyName + " because it is " + (setter == null ? "read-only." : "write-only."));
+
+				if ( logger.isLoggable( MLevel.WARNING ) )
+				    logger.warning(this.getClass().getName() + ": Skipping " + propertyName + 
+						   " because it is " + (setter == null ? "read-only." : "write-only."));
+			    }
 
 		    }
 		Reference out = new Reference( bean.getClass().getName(), factoryClassName, factoryClassLocation );
@@ -149,7 +164,10 @@ public class JavaBeanReferenceMaker implements ReferenceMaker
 	    }
 	catch ( Exception e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Exception trying to create Reference.", e);
+
 		throw new NamingException("Could not create reference from bean: " + e.toString() );
 	    }
     }

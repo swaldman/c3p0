@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -23,6 +23,7 @@
 
 package com.mchange.v2.c3p0;
 
+import com.mchange.v2.log.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
 import java.util.Arrays;
@@ -52,6 +53,8 @@ import com.mchange.v2.beans.BeansUtils;
  */
 public final class DataSources
 {
+    final static MLogger logger = MLog.getLogger( DataSources.class );
+
     final static Set WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS; //22 -- includes factory class location
     final static Set POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS; //2 -- includes factory class location, excludes pool-owner id token
 
@@ -169,30 +172,10 @@ public final class DataSources
 		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, wcpds, WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS );
 		
 		
-// 		wcpds.setMaxStatements( pcfg.getMaxStatements() );
-// 		wcpds.setInitialPoolSize( pcfg.getInitialPoolSize() );
-// 		wcpds.setMinPoolSize( pcfg.getMinPoolSize() );
-// 		wcpds.setMaxPoolSize( pcfg.getMaxPoolSize() );
-// 		wcpds.setIdleConnectionTestPeriod( pcfg.getIdleConnectionTestPeriod() );
-// 		wcpds.setMaxIdleTime( pcfg.getMaxIdleTime() );
-// 		wcpds.setPropertyCycle( pcfg.getPropertyCycle() );
-// 		wcpds.setAcquireIncrement( pcfg.getAcquireIncrement() );
-// 		wcpds.setConnectionTesterClassName( pcfg.getConnectionTesterClassName() );
-// 		wcpds.setTestConnectionOnCheckout( pcfg.isTestConnectionOnCheckout() );
-// 		wcpds.setAutoCommitOnClose( pcfg.isAutoCommitOnClose() );
-// 		wcpds.setCheckoutTimeout( pcfg.getCheckoutTimeout() );
-// 		wcpds.setAcquireRetryAttempts( pcfg.getAcquireRetryAttempts() );
-// 		wcpds.setAcquireRetryDelay( pcfg.getAcquireRetryAttempts() );
-// 		wcpds.setForceIgnoreUnresolvedTransactions( pcfg.isForceIgnoreUnresolvedTransactions() );
-// 		wcpds.setFactoryClassLocation( pcfg.getFactoryClassLocation() );
-		
 		PoolBackedDataSource nascent_pbds = new PoolBackedDataSource();
 		nascent_pbds.setConnectionPoolDataSource( wcpds );
 		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, nascent_pbds, POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS );
 
-// 		nascent_pbds.setNumHelperThreads( pcfg.getNumHelperThreads() );
-// 		nascent_pbds.setFactoryClassLocation( pcfg.getFactoryClassLocation() );
-		
 		return nascent_pbds;
 	    }
 // 	catch ( PropertyVetoException e )
@@ -203,8 +186,11 @@ public final class DataSources
 // 	    }
  	catch ( Exception e )
  	    {
- 		e.printStackTrace();
- 		throw new SQLException("Exception configuring pool-backed DataSource: " + e);
+ 		//e.printStackTrace();
+		SQLException sqle = SqlUtils.toSQLException("Exception configuring pool-backed DataSource: " + e, e);
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ) && e != sqle)
+		    logger.log( MLevel.FINE, "Converted exception to throwable SQLException", e );
+ 		throw sqle;
  	    }
     }
 

@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -28,10 +28,13 @@ import java.sql.*;
 import java.lang.reflect.*;
 import com.mchange.v2.async.AsynchronousRunner;
 import com.mchange.v2.sql.SqlUtils;
+import com.mchange.v2.log.*;
 import com.mchange.v1.db.sql.StatementUtils;
 
 public abstract class GooGooStatementCache
 {
+    private final static MLogger logger = MLog.getLogger( GooGooStatementCache.class );
+
     /* MT: protected by this's lock */
 
     // contains all statements in the cache, 
@@ -93,7 +96,8 @@ public abstract class GooGooStatementCache
 	else //okay, we can use an old one
 	    {
   		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-  		    System.err.println("-------------> CACHE HIT!");
+		    logger.finest(this.getClass().getName() + " ----> CACHE HIT");
+  		    //System.err.println("-------------> CACHE HIT!");
 
 		out = l.get(0);
 		l.remove(0);
@@ -106,8 +110,10 @@ public abstract class GooGooStatementCache
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-		System.err.print("checkoutStatement(): ");
-		printStats();
+ 		//System.err.print("checkoutStatement(): ");
+		//printStats();
+		if (logger.isLoggable(MLevel.FINEST))
+		    logger.finest("checkoutStatement: " + statsString());
 	    }
 
 	return out;
@@ -131,8 +137,10 @@ public abstract class GooGooStatementCache
 	    {
 		if (Debug.DEBUG)
 		    {
-			System.err.println("Problem with checked-in Statement, discarding.");
-			e.printStackTrace();
+// 			System.err.println("Problem with checked-in Statement, discarding.");
+// 			e.printStackTrace();
+			if (logger.isLoggable(MLevel.INFO))
+			    logger.log(MLevel.INFO, "Problem with checked-in Statement, discarding.", e);
 		    }
 		
 		// swaldman -- 2004-01-31: readd problem statement to checkedOut for consistency
@@ -156,8 +164,10 @@ public abstract class GooGooStatementCache
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-		System.err.print("checkinStatement(): ");
-		printStats();
+// 		System.err.print("checkinStatement(): ");
+// 		printStats();
+		if (logger.isLoggable(MLevel.FINEST))
+		    logger.finest("checkinStatement(): " + statsString());
 	    }
     }
 
@@ -180,8 +190,10 @@ public abstract class GooGooStatementCache
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-		System.err.print("checkinAll(): ");
-		printStats();
+// 		System.err.print("checkinAll(): ");
+// 		printStats();
+		if (logger.isLoggable(MLevel.FINEST))
+		    logger.log(MLevel.FINEST, "checkinAll(): " + statsString());
 	    }
     }
 
@@ -194,13 +206,19 @@ public abstract class GooGooStatementCache
 
   	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-		System.err.println("ENTER METHOD: closeAll( " + pcon + " )! -- " +
-				   "num_connections: " + cxnStmtMgr.getNumConnectionsWithCachedStatements());
-		System.err.print("Set of statements for connection: " + cSet);
-		if (cSet != null)
-		    System.err.println("; size: " + cSet.size());
-		else
-		    System.err.println();
+// 		System.err.println("ENTER METHOD: closeAll( " + pcon + " )! -- " +
+// 				   "num_connections: " + cxnStmtMgr.getNumConnectionsWithCachedStatements());
+// 		System.err.print("Set of statements for connection: " + cSet);
+// 		if (cSet != null)
+// 		    System.err.println("; size: " + cSet.size());
+// 		else
+// 		    System.err.println();
+		if (logger.isLoggable(MLevel.FINEST))
+		    {
+			logger.log(MLevel.FINEST, "ENTER METHOD: closeAll( " + pcon + " )! -- num_connections: " + 
+				   cxnStmtMgr.getNumConnectionsWithCachedStatements());
+			logger.log(MLevel.FINEST, "Set of statements for connection: " + cSet + (cSet != null ? "; size: " + cSet.size() : ""));
+		    }
 	    }
 
 	if (cSet != null)
@@ -217,8 +235,10 @@ public abstract class GooGooStatementCache
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-		System.err.print("closeAll(): ");
-		printStats();
+// 		System.err.print("closeAll(): ");
+// 		printStats();
+		if (logger.isLoggable(MLevel.FINEST))
+		    logger.finest("closeAll(): " + statsString());
 	    }
     }
 
@@ -273,15 +293,22 @@ public abstract class GooGooStatementCache
 	HashSet ks = keySet( key );
 	if (ks == null)
 	    keyToKeyRec.put( key, new KeyRec() );
-  	else if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-  	    System.err.println("-------> Multiply prepared statement! " + key.stmtText );
+  	else if (Debug.DEBUG)
+	    {
+		//System.err.println("-------> Multiply prepared statement! " + key.stmtText );
+		if (logger.isLoggable(MLevel.WARNING))
+		    logger.warning("-------> Multiply prepared statement! " + key.stmtText );
+	    }
 	keySet( key ).add( ps );
 	cxnStmtMgr.addStatementForConnection( ps, pConn );
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-		System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
-				   cxnStmtMgr.statementSet( pConn ).size());
+// 		System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
+// 				   cxnStmtMgr.statementSet( pConn ).size());
+		if (logger.isLoggable(MLevel.FINEST))
+		    logger.finest("cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
+				  cxnStmtMgr.statementSet( pConn ).size());
 	    }
 
 	++stmt_count;
@@ -310,7 +337,13 @@ public abstract class GooGooStatementCache
 
 	boolean check =	cxnStmtMgr.removeStatementForConnection( ps, pConn );
 	if (Debug.DEBUG && check == false)
-	    new Exception("WARNING: removed a statement that apparently wasn't in a statement set!!!").printStackTrace();
+	    {
+		//new Exception("WARNING: removed a statement that apparently wasn't in a statement set!!!").printStackTrace();
+		if (logger.isLoggable(MLevel.WARNING))
+		    logger.log(MLevel.WARNING, 
+			       this + " removed a statement that apparently wasn't in a statement set!!!",
+			       new Exception("LOG STACK TRACE"));
+	    }
 	--stmt_count;
     }
 
@@ -423,6 +456,28 @@ public abstract class GooGooStatementCache
 	System.err.println("; num keys: " + num_keys);
     }
 
+    private String statsString()
+    {
+	int total_size = this.countCachedStatements();
+	int checked_out_size = checkedOut.size();
+	int num_connections  = cxnStmtMgr.getNumConnectionsWithCachedStatements(); 
+	int num_keys = keyToKeyRec.size(); 
+
+	StringBuffer sb = new StringBuffer(255);
+	sb.append(this.getClass().getName());
+	sb.append(" stats -- ");
+	sb.append("total size: ");
+	sb.append(total_size);
+	sb.append("; checked out: ");
+	sb.append(checked_out_size);
+	sb.append("; num connections: ");
+	sb.append(num_connections);
+	sb.append("; num keys: ");
+	sb.append(num_keys);
+	return sb.toString();
+    }
+
+
     private static class KeyRec
     {
 	HashSet  allStmts       = new HashSet();
@@ -474,8 +529,12 @@ public abstract class GooGooStatementCache
 		    Long l = (Long) longsToStmts.firstKey();
 		    Object ps = longsToStmts.get( l );
 		    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-			System.err.println("CULLING: " + 
-					   ((StatementCacheKey) stmtToKey.get(ps)).stmtText);
+			{
+// 			    System.err.println("CULLING: " + 
+// 					       ((StatementCacheKey) stmtToKey.get(ps)).stmtText);
+			    if (logger.isLoggable(MLevel.FINEST))
+				logger.finest("CULLING: " + ((StatementCacheKey) stmtToKey.get(ps)).stmtText);
+			}
 		    // we do not undeathmarch the statement ourselves, because removeStatement( ... )
 		    // should remove from all deathmarches...
 		    removeStatement( ps, true ); 

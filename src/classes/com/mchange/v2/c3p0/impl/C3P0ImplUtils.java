@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -27,13 +27,21 @@ import java.beans.*;
 import java.lang.reflect.*;
 import java.sql.Connection;
 import java.sql.SQLException;
+import com.mchange.v2.log.MLevel;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
 import com.mchange.v2.sql.SqlUtils;
 
 public final class C3P0ImplUtils
 {
+    final static MLogger logger = MLog.getLogger( C3P0ImplUtils.class );
+
     public final static DbAuth NULL_AUTH = new DbAuth(null,null);
 
     public final static Object[] NOARGS = new Object[0]; 
+
+    public static String identityToken(Object o)
+    { return (o != null ? Integer.toString( System.identityHashCode( o ), 16 ) : null); }
 
     public static DbAuth findAuth(Object o)
 	throws SQLException
@@ -77,8 +85,8 @@ public final class C3P0ImplUtils
 	    }
 	catch (Exception e)
 	    {
-		if (Debug.DEBUG)
-		    e.printStackTrace();
+		if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
+		    logger.log( MLevel.FINE, "An exception occurred while trying to extract the default authentification info from a bean.", e );
 		throw SqlUtils.toSQLException(e);
 	    }
     }

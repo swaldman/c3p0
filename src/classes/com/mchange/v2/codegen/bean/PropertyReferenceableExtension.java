@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -25,6 +25,8 @@ package com.mchange.v2.codegen.bean;
 
 import java.util.*;
 import com.mchange.v2.codegen.IndentedWriter;
+import com.mchange.v2.naming.JavaBeanObjectFactory;
+import com.mchange.v2.naming.JavaBeanReferenceMaker;
 
 import java.io.IOException;
 
@@ -32,11 +34,27 @@ public class PropertyReferenceableExtension implements GeneratorExtension
 {
     boolean explicit_reference_properties = false;
 
+    String factoryClassName = JavaBeanObjectFactory.class.getName();
+
+    String javaBeanReferenceMakerClassName = JavaBeanReferenceMaker.class.getName();
+
     public void setUseExplicitReferenceProperties( boolean explicit_reference_properties )
     { this.explicit_reference_properties = explicit_reference_properties; }
 
     public boolean getUseExplicitReferenceProperties()
     { return explicit_reference_properties; }
+
+    public void setFactoryClassName( String factoryClassName )
+    { this.factoryClassName = factoryClassName; }
+
+    public String getFactoryClassName()
+    { return factoryClassName; }
+
+//     public void setJavaBeanReferenceMakerClassName( String javaBeanReferenceMakerClassName )
+//     { this.javaBeanReferenceMakerClassName = javaBeanReferenceMakerClassName; }
+
+//     public String getJavaBeanReferenceMakerClassName()
+//     { return javaBeanReferenceMakerClassName; }
 
     public Collection extraGeneralImports()
     { 
@@ -66,13 +84,13 @@ public class PropertyReferenceableExtension implements GeneratorExtension
     public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 	throws IOException
     {
-	iw.println("final static JavaBeanReferenceMaker referenceMaker = new JavaBeanReferenceMaker();");
+	iw.println("final static JavaBeanReferenceMaker referenceMaker = new " + javaBeanReferenceMakerClassName + "();");
 	iw.println();
 	iw.println("static"); 
 	iw.println("{"); 
 	iw.upIndent();
 	
-	iw.println("referenceMaker.setFactoryClassName( JavaBeanObjectFactory.class.getName() );");
+	iw.println("referenceMaker.setFactoryClassName( \"" + factoryClassName + "\" );");
 	if ( explicit_reference_properties )
 	    {
 		for( int i = 0, len = props.length; i < len; ++i)

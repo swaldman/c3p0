@@ -26,6 +26,26 @@
          text-decoration: underline;
          padding-bottom: 0.5em;
       }
+      dl.log_properties {
+         border-top: 2 solid black;
+         border-left: 2 solid black;
+         border-bottom: 2 solid black;
+         border-right: 2 solid black;
+         padding: 0.5em 0.5em 0.5em 0.5em;
+         font-size: smaller;
+	 background-color: #DDDDDD;
+      }
+      dl.log_properties dd {
+         padding-top: 0.5em;
+         padding-bottom: 0.5em;
+         /* font-size: smaller; */
+      }
+      dl.log_properties dt {
+         padding-top: 1em;
+         font-weight: bold;
+         font-family: monospace;
+	 color: black;
+      }
       div.example {
          white-space: pre;
          font-family: monospace;
@@ -84,9 +104,10 @@
       ol.contents ol li {
 	 font-size: smaller;
       }
-      span.noequiv_comment {
+      span.hibparam_comment {
          font-family: optima, helvetica, arial, sans-serif;
          font-style: italic;
+         text-decoration: underline;
       }
       span.toplink {
          font-size: 12;
@@ -159,7 +180,8 @@
 	  <li><a href="#configuring_statement_pooling">Configuring Statement Pooling</a></li>
 	  <li><a href="#configuring_recovery">Configuring Recovery From Database Outages</a></li>
 	  <li><a href="#configuring_unresolved">Configuring Unresolved Transaction Handling</a></li>
-	  <li><a href="#other_configuration">Other Configuration</a></li>
+	  <li><a href="#other_ds_configuration">Other DataSource Configuration</a></li>
+	  <li><a href="#configuring_logging">Configuring Logging</a></li>
       </a>
 	</ol>
       </li>
@@ -170,6 +192,7 @@
       <li><a href="#appendix_b">Appendix B: Configuring c3p0 pooled DataSources for Apache Tomcat</a></li>
       <li><a href="#appendix_c">Appendix C: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a></li>
       <li><a href="#appendix_d">Appendix D: Hibernate-specific notes</a></li>
+      <li><a href="#appendix_e">Appendix E: JBoss-specific notes</a></li>
     </ol>
       (See also the API Documentation <a href="apidocs/index.html">here</a>)
     <hr/>
@@ -177,7 +200,7 @@
     <div class="sectiontext">
       <p>
 	c3p0 was designed to be butt-simple to use. Just put
-	the jar file [<tt>lib/c3p0-@c3p0.version@.jar</tt>] in your applications
+	the jar file [<tt>lib/c3p0-@c3p0.version@.jar</tt>] in your application's
 	effective <tt>CLASSPATH</tt>, and make a DataSource like this:
       </p>
       <div class="example">
@@ -385,7 +408,7 @@ ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
 	all implement the interface
 	<a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>com.mchange.v2.c3p0.PooledDataSource</tt></a>, 
 	which makes available a number of methods for querying the status of
-	<tt>DataSource Connection</tt> pools. Below is sample code that queries a DataSource for its 
+	DataSource Connection pools. Below is sample code that queries a DataSource for its 
 	status:
       </p>
       <div class="example">
@@ -426,7 +449,7 @@ else
       <p>
 	<i>
 	  Most applications only acquire default-authenticated Connections from DataSources, and
-	  and can typically just use the <tt>getXXXDefaultUser()</tt> to gather Connection statistics.
+	  can typically just use the <tt>getXXXDefaultUser()</tt> to gather Connection statistics.
 	</i>
       </p>
       <h3>
@@ -838,7 +861,7 @@ c3p0.maxIdleTime=1800
 	unreproduceable behavior and database lockups can occur.
       </p>
       <h3>
-	<a name="other_configuration">Other Configuration</a>
+	<a name="other_ds_configuration">Other DataSource Configuration</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
       </h3>
       <p>
@@ -850,7 +873,81 @@ c3p0.maxIdleTime=1800
 	<li><a class="cfg_param" href="#numHelperThreads">numHelperThreads</a></li>
 	<li><a class="cfg_param" href="#usesTraditionalReflectiveProxies">usesTraditionalReflectiveProxies</a></li>
       </ul>
-      </a>
+      <h3>
+	<a name="configuring_logging">Configuring Logging</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 uses a custom logging library similar to jakarta commons-logging. Log messages can be directed to
+	the popular log4j logging library, to the standard logging facility introduced with jdk1.4, or to
+	<tt>System.err</tt>. Nearly all configuration should be done at the level of your preferred logging
+	library. There are a very few configuration options specific to c3p0's logging, and usually the defaults
+	will be fine. Logging-related parameters
+	may be placed in your <tt>c3p0.properties</tt> file, in a file called <tt>mchange-log.properties</tt> at
+	the top-level of your classpath, or they may be defined as System properties. See the 
+	<a href="#log_properties_box">box</a> below.
+      </p>
+      <p>
+	c3p0's logging behavior is affected by certain build-time options. If build-option <tt>c3p0.debug</tt> is set
+	to <tt>false</tt>, all messages at a logging level below INFO will be suppressed. Build-option <tt>c3p0.trace</tt> controls how fine-grained c3p0's below
+	INFO level reporting will be. For the moment, distributed
+	c3p0 binaries are compiled with <tt>debug</tt> set to <tt>true</tt> and <tt>trace</tt> set to its maximum level of <tt>10</tt>.
+	But binaries may eventually be
+	distributed with <tt>debug</tt> set to <tt>false</tt>. (For the moment, the performance impact of the logging level-checks seems
+	very small, and it's most flexible to compile in all the messages, and let your logging library control which are emitted.) When
+	c3p0 starts up, it emits the build-time values of debug and trace, along with the version and build time.
+      </p>
+      <dl class="log_properties">
+	<a name="log_properties_box" />
+	<dt><a name="com.mchange.v2.log.MLog" />com.mchange.v2.log.MLog</dt>
+	<dd>
+	  <div class="propdesc">
+	    Determines which library c3p0 will output log messages to. By default, if log4j is available,
+	    it will use that library, otherwise if jdk1.4 logging apis are available it will use those,
+	    and if neither are available, it will use a simple fallback that logs to <tt>System.err</tt>.
+	    If you want to directly control which library is used, you may set this property to one of:
+	    <ul>
+	      <li><tt>com.mchange.v2.log.log4j.Log4jMLog</tt></li>
+	      <li><tt>com.mchange.v2.log.jdk14logging.Jdk14MLog</tt></li>
+	      <li><tt>com.mchange.v2.log.FallbackMLog</tt></li>
+	    </ul>
+	    You may also set this property to a comma separated list of the above alternatives, to
+	    define an order of preference among logging libraries.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.log.NameTransformer" />com.mchange.v2.log.NameTransformer</dt>
+	<dd>
+	  <div class="propdesc">
+	    By default, c3p0 uses very fine-grained logging, in general with one logger for each
+	    c3p0 class. For a variety of reasons, some users may prefer fewer, more global loggers.
+	    You may opt for one-logger-per-package by setting <tt>com.mchange.v2.log.NameTransformer</tt>
+	    to the value <tt>com.mchange.v2.log.PackageNames</tt>. Advanced users can also define 
+	    other strategies for organizing the number and names of loggers by setting this variable
+	    to the fully-qualified class name of a custom implementation of the 
+	    <tt>com.mchange.v2.log.NameTransformer</tt> interface.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL" />com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</dt>
+	<dd>
+	  <div class="propdesc">
+	    If, whether by choice or by necessity, you are using c3p0's <tt>System.err</tt> fallback logger, you can
+	    use this parameter to control how detailed c3p0's logging should be. Any of the following values (taken
+	    from the jdk1.4 logging library) are acceptable:
+	    <ul>
+	      <li><tt>OFF</tt></li>
+	      <li><tt>SEVERE</tt></li>
+	      <li><tt>WARNING</tt></li>
+	      <li><tt>INFO</tt></li>
+	      <li><tt>CONFIG</tt></li>
+	      <li><tt>FINE</tt></li>
+	      <li><tt>FINER</tt></li>
+	      <li><tt>FINEST</tt></li>
+	      <li><tt>ALL</tt></li>
+	    </ul>
+	    This property defaults to <tt>INFO</tt>.
+	  </div>
+	</dd>
+      </dl>
     </div>
     <h2><a name="performance">Performance</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
@@ -1291,7 +1388,7 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
 	    <td>c3p0.idleConnectionTestPeriod</td><td>hibernate.c3p0.idle_test_period</td>
 	  </tr>
 	  <tr>
-	    <td>c3p0.initialPoolSize</td><td><span class="noequiv_comment">not available -- uses minimum size</span></td>
+	    <td>c3p0.initialPoolSize</td><td><span class="hibparam_comment">not available -- uses minimum size</span></td>
 	  </tr>
 	  <tr>
 	    <td>c3p0.maxIdleTime</td><td>hibernate.c3p0.timeout</td>
@@ -1304,13 +1401,84 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
 	  </tr>
 	  <tr>
 	    <td>c3p0.minPoolSize</td><td>hibernate.c3p0.min_size</td>
-	</tr>
+	  </tr>
+	  <tr>
+	    <td>c3p0.testConnectionsOnCheckout&nbsp;</td><td>hibernate.c3p0.validate <span class="hibparam_comment">hibernate 2.x only!</span></td>
+	  </tr>
 	</table>
       </div>
       <p>
 	Remember -- these, and <i>only these</i>, properties must be defined in your hibernate configuration, or else
 	they will be set to hibernate-specified defaults. All other configuration properties that you wish to set
 	should be defined in a <tt>c3p0.properties</tt>	file. (See <a href="#c3p0_properties">"Overriding c3p0 defaults via c3p0.properties"</a>.)
+      </p>
+    </div>
+    <hr/>
+    <h2><a name="appendix_e">Appendix E: JBoss-specific notes</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	To use c3p0 with JBoss:
+	<ol>
+	  <li>
+	    Place c3p0's jar file in the <tt>lib</tt> directory of your 
+	    jboss server instance (e.g. <tt>${JBOSS_HOME}/server/default/lib</tt>)
+	  </li>
+	  <li>
+	    Modify the file below, and save it as <tt>c3p0-service.xml</tt> in the 
+	    <tt>deploy</tt> directory of your jboss server (e.g. <tt>${JBOSS_HOME}/server/default/deploy</tt>).
+	    Note that parameters must be capitalized in this file, but otherwise they are defined as described
+	    above.
+	  </li>
+	</ol>
+      <div class="example">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE server&gt;
+
+&lt;server&gt;
+
+   &lt;mbean code="com.mchange.v2.c3p0.mbean.C3P0PooledDataSource"
+          name="jboss:service=C3P0PooledDataSource"&gt;
+     
+      &lt;attribute name="JndiName"&gt;java:PooledDS&lt;/attribute&gt;
+      &lt;attribute name="JdbcUrl"&gt;jdbc:postgresql://localhost/c3p0-test&lt;/attribute&gt;
+      &lt;attribute name="DriverClass"&gt;org.postgresql.Driver&lt;/attribute&gt;
+      &lt;attribute name="User"&gt;swaldman&lt;/attribute&gt;
+      &lt;attribute name="Password"&gt;test&lt;/attribute&gt;
+
+      &lt;!-- Uncomment and set any of the optional parameters below --&gt;
+      &lt;!-- See c3p0's docs for more info.                         --&gt;
+
+      &lt;!-- &lt;attribute name="AcquireIncrement"&gt;3&lt;/attribute&gt;                     --&gt;
+      &lt;!-- &lt;attribute name="AcquireRetryAttempts"&gt;30&lt;/attribute&gt;                --&gt;
+      &lt;!-- &lt;attribute name="AcquireRetryDelay"&gt;1000&lt;/attribute&gt;                 --&gt;
+      &lt;!-- &lt;attribute name="AutoCommitOnClose"&gt;false&lt;/attribute&gt;                --&gt;
+      &lt;!-- &lt;attribute name="AutomaticTestTable"&gt;&lt;/attribute&gt;                    --&gt;
+      &lt;!-- &lt;attribute name="BreakAfterAcquireFailure"&gt;false&lt;/attribute&gt;         --&gt;
+      &lt;!-- &lt;attribute name="CheckoutTimeout"&gt;0&lt;/attribute&gt;                      --&gt;
+      &lt;!-- &lt;attribute name="ConnectionTesterClassName"&gt;0&lt;/attribute&gt;            --&gt;
+      &lt;!-- &lt;attribute name="Description"&gt;A pooled c3p0 DataSource&lt;/attribute&gt;   --&gt;
+      &lt;!-- &lt;attribute name="FactoryClassLocation"&gt;&lt;/attribute&gt;                  --&gt;
+      &lt;!-- &lt;attribute name="ForceIgnoreUnresolvedTransactions"&gt;true&lt;/attribute&gt; --&gt;
+      &lt;!-- &lt;attribute name="IdleConnectionTestPeriod"&gt;-1&lt;/attribute&gt;            --&gt;
+      &lt;!-- &lt;attribute name="InitialPoolSize"&gt;3&lt;/attribute&gt;                      --&gt;
+      &lt;!-- &lt;attribute name="MaxIdleTime"&gt;0&lt;/attribute&gt;                          --&gt;
+      &lt;!-- &lt;attribute name="MaxPoolSize"&gt;15&lt;/attribute&gt;                         --&gt;
+      &lt;!-- &lt;attribute name="MaxStatements"&gt;0&lt;/attribute&gt;                        --&gt;
+      &lt;!-- &lt;attribute name="MaxStatementsPerConnection"&gt;0&lt;/attribute&gt;           --&gt;
+      &lt;!-- &lt;attribute name="MinPoolSize"&gt;0&lt;/attribute&gt;                          --&gt;
+      &lt;!-- &lt;attribute name="NumHelperThreads"&gt;3&lt;/attribute&gt;                     --&gt;
+      &lt;!-- &lt;attribute name="PreferredTestQuery"&gt;&lt;/attribute&gt;                    --&gt;
+      &lt;!-- &lt;attribute name="TestConnectionOnCheckin"&gt;false&lt;/attribute&gt;          --&gt;
+      &lt;!-- &lt;attribute name="TestConnectionOnCheckout"&gt;false&lt;/attribute&gt;         --&gt;
+      &lt;!-- &lt;attribute name="UsesTraditionalReflectiveProxies"&gt;false&lt;/attribute&gt; --&gt;
+
+
+      &lt;depends&gt;jboss:service=Naming&lt;/depends&gt;
+   &lt;/mbean&gt;
+
+&lt;/server&gt;
+      </div>
+      </p>
     </div>
     <hr/>
     <a href="#contents">Back to Contents</a>

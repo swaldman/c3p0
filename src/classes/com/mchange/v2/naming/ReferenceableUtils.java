@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -25,11 +25,16 @@ package com.mchange.v2.naming;
 
 import java.net.*;
 import javax.naming.*;
+import com.mchange.v2.log.MLevel;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
 import javax.naming.spi.ObjectFactory;
 import java.util.Hashtable;
 
 public final class ReferenceableUtils
 {
+    final static MLogger logger = MLog.getLogger( ReferenceableUtils.class );
+
     /* don't worry -- References can have duplicate RefAddrs (I think!) */
     final static String REFADDR_VERSION                = "version";
     final static String REFADDR_CLASSNAME              = "classname";
@@ -74,7 +79,12 @@ public final class ReferenceableUtils
 	    }
 	catch ( Exception e )
 	    {
-		if (Debug.DEBUG) e.printStackTrace();
+		if (Debug.DEBUG) 
+		    {
+			//e.printStackTrace();
+			if ( logger.isLoggable( MLevel.FINE ) )
+			    logger.log( MLevel.FINE, "Could not resolve Reference to Object!", e);
+		    }
 		NamingException ne = new NamingException("Could not resolve Reference to Object!");
 		ne.setRootCause( e );
 		throw ne;
@@ -130,7 +140,12 @@ public final class ReferenceableUtils
 	    }
 	catch (NumberFormatException e)
 	    {
-		if (Debug.DEBUG) e.printStackTrace();
+		if (Debug.DEBUG) 
+		    {
+			//e.printStackTrace();
+			if ( logger.isLoggable( MLevel.FINE ) )
+			    logger.log( MLevel.FINE, "Version or size nested reference was not a number!!!", e);
+		    }
 		throw new NamingException("Version or size nested reference was not a number!!!"); 
 	    }
     }

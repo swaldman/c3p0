@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -32,9 +32,12 @@ import java.lang.reflect.Method;
 import java.sql.*;
 import javax.sql.*;
 import com.mchange.v2.c3p0.impl.*;
+import com.mchange.v2.log.*;
 
 public final class WrapperConnectionPoolDataSource extends WrapperConnectionPoolDataSourceBase implements ConnectionPoolDataSource
 {
+    final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
+
     ConnectionTester connectionTester = C3P0Defaults.connectionTester();
 
     {
@@ -51,12 +54,17 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 			}
 		    catch ( Exception e )
 			{
-			    e.printStackTrace();
+			    //e.printStackTrace();
+			    if ( logger.isLoggable( MLevel.WARNING ) )
+				 logger.log( MLevel.WARNING, "Failed to create ConnectionTester of class " + val, e );
+
 			    throw new PropertyVetoException("Could not instantiate connection tester class with name '" + val + "'.", evt);
 			}
 		}
 	    };
 	this.addVetoableChangeListener( setConnectionTesterListener );
+
+	C3P0Registry.register( this );
     }
 
     //implementation of javax.sql.ConnectionPoolDataSource
@@ -124,7 +132,11 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getUser(); }
 	catch (SQLException e)
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, 
+				"An Exception occurred while trying to find the 'user' property from our nested DataSource." +
+				" Defaulting to no specified username.", e );
 		return null; 
 	    }
     }
@@ -134,7 +146,10 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getPassword(); }
 	catch (SQLException e)
 	    { 
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "An Exception occurred while trying to find the 'password' property from our nested DataSource." + 
+				" Defaulting to no specified password.", e );
 		return null; 
 	    }
     }

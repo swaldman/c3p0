@@ -1,24 +1,20 @@
-c3p0-0.8.5.2
-	-- Fixed a really embarrassing oversight, wherein cached PreparedStatements
-	   were being physically close()ed prior to their return to the cache! Tests
-	   on psql failed to reveal this, because psql-7.4 Statement.close() does nothing
-	   to invalidate the Statement! [Many thanks to tbayboy on hibernate's forum for
-	   discovering this issue, and to fassev, also on hibernate's forum, for correctly
-	   deducing the cause!]
-	-- Fixed an embarrassing oversight where operations of proxy Statements
-	   and ResultSets failed to mark transactions as potentially dirty, leading
-	   to the possibility that Connections with unresolved transactional work could
-	   be checked into the pool.
-	-- Modified c3p0 Statements to no longer permit calls to getConnection()
-	   after Statement close, and to null out the backreference to the
-	   parent Connection. [Thanks to Edward Bridges for pointing out the issue.]
+c3p0-0.9.0-test2
+	-- Documentation updates and improvements
+	-- Integrated configurable wrapper logging library, so that
+	   c3p0 can log to log4j or jdk14logging.
+c3p0-0.9.0-test1
+	-- First pass at documentation of JBoss integration.
+	-- Better one-per-JVM canonicalization (IdentityTokenized,
+	   IdentityTokenResolvable, C3P0Registry)
+	-- First implementation of MBean for JBoss compatability
+	-- Fixed JNDI ref-based DataSources
 c3p0-0.8.5.1
-	-- Fixed a really embarrassing bug that made Statement pooling worse than
-	   useless where users have set maxStatements but not maxStatementsPerConnection.
-	   maxStatementsPerConnection -- that is, 0 -- was being used in place of maxStatements
-	   on Statement cache initialization. [Thanks to Gwendal Tanguy for not only,
-	   calling attention to this issue, but tracking down the precise location of
-	   the bug!]
+        -- Fixed a really embarrassing bug that made Statement pooling worse than
+           useless where users have set maxStatements but not maxStatementsPerConnection.
+           maxStatementsPerConnection -- that is, 0 -- was being used in place of maxStatements
+           on Statement cache initialization. [Thanks to Gwendal Tanguy for not only,
+           calling attention to this issue, but tracking down the precise location of
+           the bug!]
 c3p0-0.8.5
 	-- Documentation updates and improvements
 	-- Fixed an issue where failures on reset() of a pooled Connection caused
@@ -27,7 +23,7 @@ c3p0-0.8.5
 	   calling attention to this issue.
 c3p0-0.8.5-pre9
 	-- Modified c3p0's behavior on detecting an apparently broken Connection.
-	   Previously c3p0 would very aggressivle close any Connections that, after
+	   Previously c3p0 would very aggressively close any Connections that, after
 	   an Exception, failed to pass a Connection test. This sometimes surprised
 	   and confused users, when Conections they expected to remain open were 
 	   closed from underneath them. Under normal circumstances, a Connection

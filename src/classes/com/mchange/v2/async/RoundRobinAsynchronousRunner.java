@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -23,6 +23,7 @@
 
 package com.mchange.v2.async;
 
+import com.mchange.v2.log.*;
 import com.mchange.v2.util.ResourceClosedException;
 
 /**
@@ -33,6 +34,8 @@ import com.mchange.v2.util.ResourceClosedException;
  */
 public class RoundRobinAsynchronousRunner implements AsynchronousRunner, Queuable
 {
+    private final static MLogger logger = MLog.getLogger( RoundRobinAsynchronousRunner.class );
+
     //MT: unchanging, individual elements are thread-safe
     final RunnableQueue[] rqs;
 
@@ -71,7 +74,12 @@ public class RoundRobinAsynchronousRunner implements AsynchronousRunner, Queuabl
 	    }
 	catch ( NullPointerException e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( Debug.DEBUG )
+		    {
+			if ( logger.isLoggable( MLevel.FINE ) )
+			    logger.log( MLevel.FINE, "NullPointerException while posting Runnable -- Probably we're closed.", e );
+		    }
 		this.close( true );
 		throw new ResourceClosedException("Attempted to use a RoundRobinAsynchronousRunner in a closed or broken state.");
 	    }
@@ -93,7 +101,12 @@ public class RoundRobinAsynchronousRunner implements AsynchronousRunner, Queuabl
 	    }
 	catch ( NullPointerException e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( Debug.DEBUG )
+		    {
+			if ( logger.isLoggable( MLevel.FINE ) )
+			    logger.log( MLevel.FINE, "NullPointerException in asRunnableQueue() -- Probably we're closed.", e );
+		    }
 		this.close( true );
 		throw new ResourceClosedException("Attempted to use a RoundRobinAsynchronousRunner in a closed or broken state.");
 	    }
@@ -115,7 +128,11 @@ public class RoundRobinAsynchronousRunner implements AsynchronousRunner, Queuabl
     {
 	try { rq.close( skip_remaining_tasks ); }
 	catch ( Exception e ) 
-	    { e.printStackTrace(); }
+	    { 
+		//e.printStackTrace(); 
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "RunnableQueue close FAILED.", e );
+	    }
     }
 
     class RunnableQueueView implements RunnableQueue

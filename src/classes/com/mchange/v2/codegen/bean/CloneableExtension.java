@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -32,6 +32,8 @@ public class CloneableExtension implements GeneratorExtension
     boolean export_public;
     boolean exception_swallowing;
 
+    String mLoggerName = null;
+
     public boolean isExportPublic()
     { return export_public; }
 
@@ -44,6 +46,12 @@ public class CloneableExtension implements GeneratorExtension
     public void setExceptionSwallowing(boolean exception_swallowing)
     { this.exception_swallowing = exception_swallowing; }
 
+    public String getMLoggerName()
+    { return mLoggerName; }
+
+    public void setMLoggerName( String mLoggerName )
+    { this.mLoggerName = mLoggerName; }
+
     public CloneableExtension(boolean export_public, boolean exception_swallowing)
     { 
 	this.export_public = export_public; 
@@ -54,7 +62,7 @@ public class CloneableExtension implements GeneratorExtension
     { this ( true, false ); }
 
     public Collection extraGeneralImports()
-    { return Collections.EMPTY_SET; }
+    { return (mLoggerName == null ? ((Collection) Collections.EMPTY_SET) : ((Collection) Arrays.asList( new String[] {"com.mchange.v2.log"} )) ); }
 
     public Collection extraSpecificImports()
     { return Collections.EMPTY_SET; }
@@ -92,7 +100,15 @@ public class CloneableExtension implements GeneratorExtension
 			iw.println("catch (CloneNotSupportedException e)");
 			iw.println("{");
 			iw.upIndent();
-			iw.println("e.printStackTrace();");
+			if (mLoggerName == null)
+			    iw.println("e.printStackTrace();");
+			else
+			    {
+				iw.println("if ( " + mLoggerName + ".isLoggable( MLevel.FINE ) )" );
+				iw.upIndent();
+				iw.println( mLoggerName + ".log( MLevel.FINE, \"Inconsistent clone() definitions between subclass and superclass! \", e );");
+				iw.downIndent();
+			    }
 			iw.println("throw new RuntimeException(\"Inconsistent clone() definitions between subclass and superclass! \" + e);" );
 			iw.downIndent();
 			iw.println("}");

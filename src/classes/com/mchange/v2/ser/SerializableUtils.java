@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.8.5
+ * Distributed as part of c3p0 v.0.9.0-pre2
  *
- * Copyright (C) 2004 Machinery For Change, Inc.
+ * Copyright (C) 2005 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
@@ -25,9 +25,12 @@ package com.mchange.v2.ser;
 
 import java.io.*;
 import com.mchange.v1.io.*;
+import com.mchange.v2.log.*;
 
 public final class SerializableUtils
 {
+    final static MLogger logger = MLog.getLogger( SerializableUtils.class );
+
     private SerializableUtils()
     {}
 
@@ -65,7 +68,9 @@ public final class SerializableUtils
 	    { throw e; }
 	catch ( Exception e )
 	    {
-		e.printStackTrace();
+		//e.printStackTrace();
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "An Exception occurred while serializing an Object to a byte[] with an Indirector.", e );
 		throw new NotSerializableException( e.toString() );
 	    }
     }
@@ -91,7 +96,9 @@ public final class SerializableUtils
 	}
 	catch (IOException e)
 	{
-	    e.printStackTrace();
+	    //e.printStackTrace();
+	    if ( logger.isLoggable( MLevel.SEVERE ) )
+		logger.log( MLevel.SEVERE, "An IOException occurred while writing into a ByteArrayOutputStream?!?", e );
 	    throw new Error("IOException writing to a byte array!");
 	}
     }
