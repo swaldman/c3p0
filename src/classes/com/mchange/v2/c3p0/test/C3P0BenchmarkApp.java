@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.2
+ * Distributed as part of c3p0 v.0.8.4.5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -34,7 +34,7 @@ public final class C3P0BenchmarkApp
     final static String EMPTY_TABLE_CREATE = "CREATE TABLE emptyyukyuk (a varchar(8), b varchar(8))";
     final static String EMPTY_TABLE_SELECT = "SELECT * FROM emptyyukyuk";
     final static String EMPTY_TABLE_DROP   = "DROP TABLE emptyyukyuk";
-
+    
     final static String EMPTY_TABLE_CONDITIONAL_SELECT = "SELECT * FROM emptyyukyuk where a = ?";
 
     final static String N_ENTRY_TABLE_CREATE = "CREATE TABLE n_entryyukyuk (a INTEGER)";
@@ -96,7 +96,7 @@ public final class C3P0BenchmarkApp
 		//pc.setMaxStatements(200);
 		//ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
 
-		create(ds_pooled);
+ 		create(ds_pooled);
 
 		System.out.println("Please wait. Tests can be very slow.");
 		List l = new ArrayList();
@@ -278,13 +278,13 @@ public final class C3P0BenchmarkApp
 	    
 	    Statement stmt = null;
 	    start = System.currentTimeMillis();
-	    try
+	    for (int i = 0; i < n; ++i)
 		{
-		    for (int i = 0; i < n; ++i)
-			stmt = con.createStatement();
+		    try
+			{ stmt = con.createStatement();	}
+		    finally
+			{ StatementUtils.attemptClose( stmt ); }
 		}
-	    finally
-		{ StatementUtils.attemptClose( stmt ); }
 	    end = System.currentTimeMillis();
 	    return end - start;
 	}
@@ -345,8 +345,19 @@ public final class C3P0BenchmarkApp
 		    for (int i = 0; i < n; ++i)
 			{
 			    try
-  				{ pstmt = con.prepareStatement(EMPTY_TABLE_CONDITIONAL_SELECT); }
-//  				{ pstmt = con.prepareStatement(N_ENTRY_TABLE_INSERT); }
+   				{ pstmt = con.prepareStatement(EMPTY_TABLE_CONDITIONAL_SELECT); }
+
+/*
+    Leftover random abuses from ad hoc testing...
+
+ 				{
+ 				    pstmt = con.prepareStatement(EMPTY_TABLE_CONDITIONAL_SELECT, 
+ 								 ResultSet.TYPE_SCROLL_SENSITIVE, 
+ 								 ResultSet.CONCUR_UPDATABLE, 
+ 								 ResultSet.HOLD_CURSORS_OVER_COMMIT);
+ 				}
+  				{ pstmt = con.prepareStatement(N_ENTRY_TABLE_INSERT); }
+*/
 			    finally
 				{ StatementUtils.attemptClose( pstmt ); }
 			}
@@ -371,6 +382,13 @@ public final class C3P0BenchmarkApp
 		{ 
 		    con = ds.getConnection();
 		    pstmt = con.prepareStatement(EMPTY_TABLE_SELECT);
+
+// 		    Leftover from ad-hoc testing...
+//
+// 		    pstmt = con.prepareStatement(EMPTY_TABLE_SELECT, 
+// 						 ResultSet.TYPE_SCROLL_SENSITIVE, 
+// 						 ResultSet.CONCUR_UPDATABLE, 
+// 						 ResultSet.HOLD_CURSORS_OVER_COMMIT);
 		    return test( pstmt , n );
 		}
 	    finally

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.2
+ * Distributed as part of c3p0 v.0.8.4.5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -34,7 +34,12 @@ public final class ObjectUtils
 	else
 	    return a.equals(b);
     }
-	    
+	
+    /**
+     *  Note -- if you are using Arrays.equals( ... ) or similar
+     *  and want a compatible hash method, see methods in 
+     * {@link com.mchange.v1.util.ArrayUtils#hashOrZeroArray ArrayUtils}.
+     */
     public static int hashOrZero(Object o)
     { return (o == null ? 0 : o.hashCode()); }
 

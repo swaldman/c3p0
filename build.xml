@@ -91,6 +91,7 @@
         <fileset dir="${codegen.src.dir}" includes="**/*.beangen-xml">
 	  <exclude name="**/bad/**" />
 	  <exclude name="**/old/**" />
+	  <exclude name="**/private/**" />
 	</fileset>
         <mapper type="glob" from="*.beangen-xml" to="*.java" />
       </apply>
@@ -226,11 +227,17 @@
            <exclude name="examples/*.class" />
            <exclude name="**/old/**" />
            <exclude name="**/bad/**" />
+           <exclude name="**/private/**" />
          </fileset>
       </copy>
       <mkdir dir="${open.dist.doc.dir}/apidocs" />
       <copy toDir="${open.dist.doc.dir}">
          <fileset dir="${doc.src.dir}" />
+	 <filterchain>
+           <replacetokens>
+              <token key="c3p0.version" value="${c3p0.version}"/>
+           </replacetokens>
+	 </filterchain>
       </copy>
       <copy toDir="${open.dist.doc.dir}/apidocs">
          <fileset dir="${build.apidocs.dir}" />
@@ -266,6 +273,7 @@
            <exclude name="**/*.class"/>
            <exclude name="**/old/**"/>
            <exclude name="**/bad/**"/>
+           <exclude name="**/private/**"/>
         </zipfileset>
       </zip>
       <tar destfile="${dist.dir}/${srcdist.name}.tar">
@@ -275,6 +283,7 @@
            <exclude name="**/*.class"/>
            <exclude name="**/old/**"/>
            <exclude name="**/bad/**"/>
+           <exclude name="**/private/**"/>
         </tarfileset>
       </tar>
       <gzip zipfile="${dist.dir}/${srcdist.name}.tgz" src="${dist.dir}/${srcdist.name}.tar" />

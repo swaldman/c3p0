@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.4.2
+ * Distributed as part of c3p0 v.0.8.4.5
  *
  * Copyright (C) 2003 Machinery For Change, Inc.
  *
@@ -532,6 +532,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 			public ResultSet getResultSet() throws SQLException
 			{ return wsh.wrap( super.getResultSet() ); }
 			
+			public ResultSet getGeneratedKeys() throws SQLException
+			{ return wsh.wrap( super.getGeneratedKeys() ); }
+			
 			public ResultSet executeQuery(String sql) throws SQLException
 			{ return wsh.wrap( super.executeQuery(sql) ); }
 			
@@ -554,6 +557,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 			public ResultSet getResultSet() throws SQLException
 			{ return wsh.wrap( super.getResultSet() ); }
 			
+			public ResultSet getGeneratedKeys() throws SQLException
+			{ return wsh.wrap( super.getGeneratedKeys() ); }
+			
 			public ResultSet executeQuery(String sql) throws SQLException
 			{ return wsh.wrap( super.executeQuery(sql) ); }
 			
@@ -575,6 +581,9 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 
 			public ResultSet getResultSet() throws SQLException
 			{ return wsh.wrap( super.getResultSet() ); }
+			
+			public ResultSet getGeneratedKeys() throws SQLException
+			{ return wsh.wrap( super.getGeneratedKeys() ); }
 			
 			public ResultSet executeQuery(String sql) throws SQLException
 			{ return wsh.wrap( super.executeQuery(sql) ); }
