@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -976,13 +976,33 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 		{
 		    if (Debug.DEBUG)
 			{
-			    System.err.print(C3P0PooledConnection.this + " invalidated by Exception: ");
+			    System.err.print(C3P0PooledConnection.this + " will no longer be pooled because it has been " +
+					     "marked invalid by the following Exception: ");
 			    t.printStackTrace();
 			}
 			    
 		    invalidatingException = sqle;
-		    if (! already_closed )
-			doSilentClose( proxyConnection, true );
+
+		    /*
+		      ------
+		      A users have complained that SQLExceptions ought not close their Connections underneath
+		      them under any circumstance. Signalling the Connection error after updating the Connection
+		      status should be sufficient from the pool's perspective, because the PooledConnection
+		      will be marked broken by the pool and will be destroyed on checkin. I think actually
+		      close()ing the Connection when it appears to be broken rather than waiting for users
+		      to close() it themselves is overly aggressive, so I'm commenting the old behavior out.
+		      The only potential downside to this approach is that users who do not close() in a finally
+		      clause properly might see their close()es skipped by exceptions that previously would
+		      have led to automatic close(). But relying on the automatic close() was never reliable
+		      (since it only ever happened when c3p0 determined a Connection to be absolutely broken),
+		      and is generally speaking a client error that c3p0 ought not be responsible for dealing
+		      with. I think it's right to leave this out. -- swaldman 2004-12-09
+		      ------
+		      
+		      if (! already_closed )
+		          doSilentClose( proxyConnection, true );
+		    */
+
 		    if (! connection_error_signaled)
 			{
 			    ces.fireConnectionErrorOccurred( sqle );

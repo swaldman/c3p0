@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -24,6 +24,7 @@
 package com.mchange.lang;
 
 import java.io.*;
+import com.mchange.v2.lang.VersionUtils;
 
 /**
  * @deprecated jdk 1.4 mow includes this idea as part of the standard 
@@ -53,10 +54,17 @@ public class PotentiallySecondaryException extends Exception implements Potentia
     public Throwable getNestedThrowable()
     {return nested;}
 
+    private void setNested(Throwable t)
+    {
+	this.nested = t;
+	if ( VersionUtils.isAtLeastJavaVersion14() )
+	    this.initCause( t );
+    }
+
     public void printStackTrace(PrintWriter pw)
     {
 	super.printStackTrace(pw);
-	if (nested != null)
+	if ( !VersionUtils.isAtLeastJavaVersion14() && nested != null)
 	    {
 		pw.println(NESTED_MSG);
 		nested.printStackTrace(pw);
@@ -66,7 +74,7 @@ public class PotentiallySecondaryException extends Exception implements Potentia
     public void printStackTrace(PrintStream ps)
     {
 	super.printStackTrace(ps);
-	if (nested != null)
+	if ( !VersionUtils.isAtLeastJavaVersion14() && nested != null)
 	    {
 		ps.println("NESTED_MSG");
 		nested.printStackTrace(ps);
@@ -74,5 +82,10 @@ public class PotentiallySecondaryException extends Exception implements Potentia
     }
 
     public void printStackTrace()
-    {printStackTrace(System.err);}
+    {
+	if ( VersionUtils.isAtLeastJavaVersion14() )
+	    super.printStackTrace();
+	else
+	    this.printStackTrace(System.err);
+    }
 }

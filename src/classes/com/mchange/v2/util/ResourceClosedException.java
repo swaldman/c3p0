@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -23,6 +23,8 @@
 
 package com.mchange.v2.util;
 
+import com.mchange.v2.lang.VersionUtils;
+
 public class ResourceClosedException extends RuntimeException
 {
     //retaining 1.3.x compatability for now
@@ -38,13 +40,13 @@ public class ResourceClosedException extends RuntimeException
     public ResourceClosedException(String msg, Throwable t)
     { 
 	super( msg ); 
-	this.rootCause = rootCause;
+	setRootCause( t );
     }
 
     public ResourceClosedException(Throwable t)
     { 
 	super(); 
-	this.rootCause = rootCause;
+	setRootCause( t );
     }
 
     public ResourceClosedException(String msg)
@@ -55,4 +57,11 @@ public class ResourceClosedException extends RuntimeException
 
     public Throwable getCause()
     { return rootCause; }
+
+    private void setRootCause( Throwable t )
+    {
+	this.rootCause = t;
+	if ( VersionUtils.isAtLeastJavaVersion14() )
+	    this.initCause( t );
+    }
 }

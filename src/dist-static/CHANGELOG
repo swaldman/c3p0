@@ -1,4 +1,32 @@
 c3p0-0.8.5-pre8
+	-- Modified c3p0's behavior on detecting an apparently broken Connection.
+	   Previously c3p would very aggressivle close any Connections that, after
+	   an Exception, failed to pass a Connection test. This sometimes surprised
+	   and confused users, when Conections they expected to remain open were 
+	   closed from underneath them. Under normal circumstances, a Connection
+	   which has failed its Connection test is broken anyway, so closing it
+	   does no harm. But under some circumstances, a Connection may fail its
+	   Connection test, but still be partly functional from the application's
+	   point of view. So, now c3p0 simply marks Connections that fail their
+	   Connection test following an Exception as broken, and excludes them from
+	   future re-entry into the pool, but leaves those Connections open for users 
+	   to continue working with them prior to their explicit close() of the
+	   Connection. [Thanks to Julian Legeny for calling attention to this issue.]
+	-- Modified c3p0's logging behavior to be a little bit less annoying. Rather than
+	   frequently printing duplicate stack traces to be sure root cause Exceptions are
+	   logged as well as converted, rethrown Exceptions, c3p0 now checks the Java 
+	   version, and uses the initCause() method to log the root cause in versions 1.4
+	   and above. Also, some Exceptions that were expected and thrown without information
+	   as to the cause now use the initCause() method to provide this in JDK 1.4 and
+	   above. [Thanks to Ruslan Gainutdinov, Anthiny Pereira, Carsten ????, and 
+	   Eric Hsieh for calling attention to these issues.]
+	-- Fixed bug whereby proxy wrappers were sometimes placed around null return values
+	   from native Objects, particularly Statement's getResultSets() method. [Thanks to 
+	   Ruslan Gainutdinov for calling attention to this issue.]
+        -- Fixed bug in NewProxyConnection whereby setTransactionIsolation was called even
+	   if the Connections' isolation level had not been changed from its default. [Thanks
+	   to Levent Aksu for reporting this bug.]
+c3p0-0.8.5-pre8
 	-- Added C3P0ProxyStatement and rawStatementOperations for accessing vendor-specific
 	   Statement API.
 	-- Fixed bug whereby recently added properties could not be configured properly

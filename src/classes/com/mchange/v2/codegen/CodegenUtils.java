@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -87,6 +87,9 @@ public final class CodegenUtils
          return false;
     }
 
+    /**
+     * @return fully qualified class name last element
+     */
     public static String fqcnLastElement(String fqcn)
     { return ClassUtils.fqcnLastElement( fqcn ); }
 

@@ -1,8 +1,5 @@
 some validation stuff in C3P0PooledConnectionPoolManager...
 
-Better pool stats API.
-API for raw Statement access
-
 JBoss integration.
 
 Create a dbms-dir level build.xml file, rather than having top-level

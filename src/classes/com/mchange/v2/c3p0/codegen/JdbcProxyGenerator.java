@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -53,6 +53,7 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    if ( ResultSet.class.isAssignableFrom( retType ) )
 		{
 		    iw.println("ResultSet innerResultSet = inner." + CodegenUtils.methodCall( method ) + ";");
+		    iw.println("if (innerResultSet == null) return null;");
 		    iw.println("return new NewProxyResultSet( innerResultSet, parentPooledConnection, inner, this );"); 
 		}
  	    else if ( mname.equals( "getConnection" ) )
@@ -179,6 +180,7 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    if ( ResultSet.class.isAssignableFrom( retType ) )
 		{
 		    iw.println("ResultSet innerResultSet = inner." + CodegenUtils.methodCall( method ) + ";");
+		    iw.println("if (innerResultSet == null) return null;");
 		    iw.println("parentPooledConnection.markActiveResultSetForStatement( inner, innerResultSet );");
 		    iw.println("return new NewProxyResultSet( innerResultSet, parentPooledConnection, inner, this );"); 
 		}
@@ -567,9 +569,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	iw.println("if ( this.isDetached() )");
 	iw.println("{");
 	iw.upIndent();
-	iw.println( "System.err.print(\042probably 'cuz we're closed -- \042);" );
-	iw.println( "exc.printStackTrace();" );
-	iw.println( "throw new SQLException(\042You can't operate on a closed connection!!!\042);");
+	//iw.println( "System.err.print(\042probably 'cuz we're closed -- \042);" );
+	//iw.println( "exc.printStackTrace();" );
+	iw.println( "throw SqlUtils.toSQLException(\042You can't operate on a closed connection!!!\042, exc);");
 	iw.downIndent();
 	iw.println("}");
 	iw.println( "else throw exc;" );
@@ -581,7 +583,7 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	iw.println("if (! this.isDetached())");
 	iw.println("{");
 	iw.upIndent();
-	iw.println( "exc.printStackTrace();" );
+	//iw.println( "exc.printStackTrace();" );
 	iw.println( "throw parentPooledConnection.handleThrowable( exc );" );
 	iw.downIndent();
 	iw.println("}");

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -208,7 +208,7 @@ public final class C3P0PooledConnectionPool
 	//System.err.println(this + " -- CHECKOUT");
         try { return (PooledConnection) rp.checkoutResource( checkoutTimeout ); }
 	catch (TimeoutException e)
-	    { throw new SQLException("An attempt by a client to checkout a Connection has timed out."); }
+	    { throw SqlUtils.toSQLException("An attempt by a client to checkout a Connection has timed out.", e); }
         catch (Exception e)
 	    { throw SqlUtils.toSQLException(e); }
     }

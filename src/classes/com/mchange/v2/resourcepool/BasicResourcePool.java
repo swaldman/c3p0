@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -177,7 +177,7 @@ class BasicResourcePool implements ResourcePool
 	    {
 		//this should never happen
 		e.printStackTrace();
-		throw new ResourcePoolException("Huh??? TimeoutException with no timeout set!!!");
+		throw new ResourcePoolException("Huh??? TimeoutException with no timeout set!!!", e);
 	    }
     }
 
@@ -251,7 +251,7 @@ class BasicResourcePool implements ResourcePool
 	catch ( InterruptedException e )
 	    {
 		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread " +
-				   "must have either interrupted the Thread attempting checkout or called close() on the pool.");
+				   "must have either interrupted the Thread attempting checkout, close() was called on the pool.");
 		e.printStackTrace();
 		throw e;
 	    }
@@ -278,6 +278,7 @@ class BasicResourcePool implements ResourcePool
 				   " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.");
 		e.printStackTrace();
 		this.unexpectedBreak();
+		throw e;
 	    }
     }
 
@@ -299,6 +300,7 @@ class BasicResourcePool implements ResourcePool
 				   " - checkinAll() -- even broken pools should allow checkins without exception. probable resource pool bug.");
 		e.printStackTrace();
 		this.unexpectedBreak();
+		throw e;
 	    }
     }
 

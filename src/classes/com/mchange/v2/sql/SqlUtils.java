@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.8.5-pre8
+ * Distributed as part of c3p0 v.0.8.5-pre9
  *
  * Copyright (C) 2004 Machinery For Change, Inc.
  *
@@ -28,6 +28,7 @@ import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import com.mchange.lang.ThrowableUtils;
+import com.mchange.v2.lang.VersionUtils;
 
 public final class SqlUtils
 {
@@ -53,13 +54,24 @@ public final class SqlUtils
     { return "{ts '" + tsdf.format( date ) + "'}";  }
 
     public static SQLException toSQLException(Throwable t)
+    { return toSQLException( "An SQLException was provoked by the following failure: " + t.toString(), t ); }
+
+    public static SQLException toSQLException(String msg, Throwable t)
     {
         if (t instanceof SQLException)
             return (SQLException) t;
         else
         { 
             if (Debug.DEBUG) t.printStackTrace();
-            return new SQLException( ThrowableUtils.extractStackTrace(t) ); 
+	    if ( VersionUtils.isAtLeastJavaVersion14() )
+		{
+		    SQLException out = new SQLException(msg);
+		    out.initCause( t );
+		    return out;
+		}
+	    else
+		return new SQLException( msg + System.getProperty( "line.separator" ) +
+					 "[Cause: " + ThrowableUtils.extractStackTrace(t) + ']'); 
         }
     }
     

@@ -21,27 +21,28 @@
  */
 
 
-/*
- * Created on Apr 6, 2004
- *
- * To change the template for this generated file go to
- * Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments
- */
-package com.mchange.v2.c3p0.impl;
+package com.mchange.v1.util;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.Set;
+import java.util.StringTokenizer;
 
-
-final class NullStatementSetManagedResultSet extends SetManagedResultSet
+public final class StringTokenizerUtils
 {
-NullStatementSetManagedResultSet(Set activeResultSets)
-{ super( activeResultSets ); }
+    public static String[] tokenizeToArray(String str, String delim, boolean returntokens)
+    {
+	StringTokenizer st = new StringTokenizer(str, delim, returntokens);
+	String[] strings = new String[st.countTokens()];
+	for (int i = 0; st.hasMoreTokens(); ++i)
+	   strings[i] = st.nextToken();
+	return strings;
+    }
 
-NullStatementSetManagedResultSet(ResultSet inner, Set activeResultSets)
-{ super( inner, activeResultSets); }
+    public static String[] tokenizeToArray(String str, String delim)
+    {return tokenizeToArray(str, delim, false);}
 
-public Statement getStatement()
-{ return null; }
+    public static String[] tokenizeToArray(String str)
+    {return tokenizeToArray(str, " \t\r\n");}
 }
+
+
+
+
