@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre2
+ * Distributed as part of c3p0 v.0.9.0-pre3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -407,7 +407,7 @@ public final class PoolConfig
 
 	// maxStatements
 	if ( maxStatementsStr != null )
-	    pcfg.setMaxStatements( Integer.parseInt( maxStatementsStr ) );
+	    pcfg.setMaxStatements( Integer.parseInt( maxStatementsStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setMaxStatements( defaults.getMaxStatements() );
 	else
@@ -415,7 +415,7 @@ public final class PoolConfig
 
 	// maxStatementsPerConnection
 	if ( maxStatementsPerConnectionStr != null )
-	    pcfg.setMaxStatementsPerConnection( Integer.parseInt( maxStatementsPerConnectionStr ) );
+	    pcfg.setMaxStatementsPerConnection( Integer.parseInt( maxStatementsPerConnectionStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setMaxStatementsPerConnection( defaults.getMaxStatementsPerConnection() );
 	else
@@ -423,7 +423,7 @@ public final class PoolConfig
 
 	// initialPoolSize
 	if ( initialPoolSizeStr != null )
-	    pcfg.setInitialPoolSize( Integer.parseInt( initialPoolSizeStr ) );
+	    pcfg.setInitialPoolSize( Integer.parseInt( initialPoolSizeStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setInitialPoolSize( defaults.getInitialPoolSize() );
 	else
@@ -431,7 +431,7 @@ public final class PoolConfig
 
 	// minPoolSize
 	if ( minPoolSizeStr != null )
-	    pcfg.setMinPoolSize( Integer.parseInt( minPoolSizeStr ) );
+	    pcfg.setMinPoolSize( Integer.parseInt( minPoolSizeStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setMinPoolSize( defaults.getMinPoolSize() );
 	else
@@ -439,7 +439,7 @@ public final class PoolConfig
 
 	// maxPoolSize
 	if ( maxPoolSizeStr != null )
-	    pcfg.setMaxPoolSize( Integer.parseInt( maxPoolSizeStr ) );
+	    pcfg.setMaxPoolSize( Integer.parseInt( maxPoolSizeStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setMaxPoolSize( defaults.getMaxPoolSize() );
 	else
@@ -447,7 +447,7 @@ public final class PoolConfig
 
 	// maxIdleTime
 	if ( idleConnectionTestPeriodStr != null )
-	    pcfg.setIdleConnectionTestPeriod( Integer.parseInt( idleConnectionTestPeriodStr ) );
+	    pcfg.setIdleConnectionTestPeriod( Integer.parseInt( idleConnectionTestPeriodStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setIdleConnectionTestPeriod( defaults.getIdleConnectionTestPeriod() );
 	else
@@ -455,7 +455,7 @@ public final class PoolConfig
 
 	// maxIdleTime
 	if ( maxIdleTimeStr != null )
-	    pcfg.setMaxIdleTime( Integer.parseInt( maxIdleTimeStr ) );
+	    pcfg.setMaxIdleTime( Integer.parseInt( maxIdleTimeStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setMaxIdleTime( defaults.getMaxIdleTime() );
 	else
@@ -463,7 +463,7 @@ public final class PoolConfig
 
 	// propertyCycle
 	if ( propertyCycleStr != null )
-	    pcfg.setPropertyCycle( Integer.parseInt( propertyCycleStr ) );
+	    pcfg.setPropertyCycle( Integer.parseInt( propertyCycleStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setPropertyCycle( defaults.getPropertyCycle() );
 	else
@@ -471,7 +471,7 @@ public final class PoolConfig
 
 	// checkoutTimeout
 	if ( checkoutTimeoutStr != null )
-	    pcfg.setCheckoutTimeout( Integer.parseInt( checkoutTimeoutStr ) );
+	    pcfg.setCheckoutTimeout( Integer.parseInt( checkoutTimeoutStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setCheckoutTimeout( defaults.getCheckoutTimeout() );
 	else
@@ -479,7 +479,7 @@ public final class PoolConfig
 
 	// acquireIncrement
 	if ( acquireIncrementStr != null )
-	    pcfg.setAcquireIncrement( Integer.parseInt( acquireIncrementStr ) );
+	    pcfg.setAcquireIncrement( Integer.parseInt( acquireIncrementStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setAcquireIncrement( defaults.getAcquireIncrement() );
 	else
@@ -487,7 +487,7 @@ public final class PoolConfig
 
 	// acquireRetryAttempts
 	if ( acquireRetryAttemptsStr != null )
-	    pcfg.setAcquireRetryAttempts( Integer.parseInt( acquireRetryAttemptsStr ) );
+	    pcfg.setAcquireRetryAttempts( Integer.parseInt( acquireRetryAttemptsStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setAcquireRetryAttempts( defaults.getAcquireRetryAttempts() );
 	else
@@ -495,7 +495,7 @@ public final class PoolConfig
 
 	// acquireRetryDelay
 	if ( acquireRetryDelayStr != null )
-	    pcfg.setAcquireRetryDelay( Integer.parseInt( acquireRetryDelayStr ) );
+	    pcfg.setAcquireRetryDelay( Integer.parseInt( acquireRetryDelayStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setAcquireRetryDelay( defaults.getAcquireRetryDelay() );
 	else
@@ -503,7 +503,7 @@ public final class PoolConfig
 
 	// breakAfterAcquireFailure
 	if ( breakAfterAcquireFailureStr != null )
-	    pcfg.setBreakAfterAcquireFailure( Boolean.valueOf(breakAfterAcquireFailureStr).booleanValue() );
+	    pcfg.setBreakAfterAcquireFailure( Boolean.valueOf(breakAfterAcquireFailureStr.trim()).booleanValue() );
 	else if (defaults != null)
 	    pcfg.setBreakAfterAcquireFailure( defaults.isBreakAfterAcquireFailure() );
 	else
@@ -511,7 +511,7 @@ public final class PoolConfig
 
 	// usesTraditionalReflectiveProxies
 	if ( usesTraditionalReflectiveProxiesStr != null )
-	    pcfg.setUsesTraditionalReflectiveProxies( Boolean.valueOf(usesTraditionalReflectiveProxiesStr).booleanValue() );
+	    pcfg.setUsesTraditionalReflectiveProxies( Boolean.valueOf(usesTraditionalReflectiveProxiesStr.trim()).booleanValue() );
 	else if (defaults != null)
 	    pcfg.setUsesTraditionalReflectiveProxies( defaults.isUsesTraditionalReflectiveProxies() );
 	else
@@ -519,7 +519,7 @@ public final class PoolConfig
 
 	// testConnectionOnCheckout
 	if ( testConnectionOnCheckoutStr != null )
-	    pcfg.setTestConnectionOnCheckout( Boolean.valueOf(testConnectionOnCheckoutStr).booleanValue() );
+	    pcfg.setTestConnectionOnCheckout( Boolean.valueOf(testConnectionOnCheckoutStr.trim()).booleanValue() );
 	else if (defaults != null)
 	    pcfg.setTestConnectionOnCheckout( defaults.isTestConnectionOnCheckout() );
 	else
@@ -527,7 +527,7 @@ public final class PoolConfig
 
 	// testConnectionOnCheckin
 	if ( testConnectionOnCheckinStr != null )
-	    pcfg.setTestConnectionOnCheckin( Boolean.valueOf(testConnectionOnCheckinStr).booleanValue() );
+	    pcfg.setTestConnectionOnCheckin( Boolean.valueOf(testConnectionOnCheckinStr.trim()).booleanValue() );
 	else if (defaults != null)
 	    pcfg.setTestConnectionOnCheckin( defaults.isTestConnectionOnCheckin() );
 	else
@@ -535,7 +535,7 @@ public final class PoolConfig
 
 	// autoCommitOnClose
 	if ( autoCommitOnCloseStr != null )
-	    pcfg.setAutoCommitOnClose( Boolean.valueOf(autoCommitOnCloseStr).booleanValue() );
+	    pcfg.setAutoCommitOnClose( Boolean.valueOf(autoCommitOnCloseStr.trim()).booleanValue() );
 	else if (defaults != null)
 	    pcfg.setAutoCommitOnClose( defaults.isAutoCommitOnClose() );
 	else
@@ -543,7 +543,7 @@ public final class PoolConfig
 
 	// forceIgnoreUnresolvedTransactions
 	if ( forceIgnoreUnresolvedTransactionsStr != null )
-	    pcfg.setForceIgnoreUnresolvedTransactions( Boolean.valueOf( forceIgnoreUnresolvedTransactionsStr ).booleanValue() );
+	    pcfg.setForceIgnoreUnresolvedTransactions( Boolean.valueOf( forceIgnoreUnresolvedTransactionsStr.trim() ).booleanValue() );
 	else if (defaults != null)
 	    pcfg.setForceIgnoreUnresolvedTransactions( defaults.isForceIgnoreUnresolvedTransactions() );
 	else
@@ -551,7 +551,7 @@ public final class PoolConfig
 
 	// connectionTesterClassName
 	if ( connectionTesterClassName != null )
-	    pcfg.setConnectionTesterClassName( connectionTesterClassName );
+	    pcfg.setConnectionTesterClassName( connectionTesterClassName.trim() );
 	else if (defaults != null)
 	    pcfg.setConnectionTesterClassName( defaults.getConnectionTesterClassName() );
 	else
@@ -559,7 +559,7 @@ public final class PoolConfig
 
 	// automaticTestTable
 	if ( automaticTestTable != null )
-	    pcfg.setAutomaticTestTable( automaticTestTable );
+	    pcfg.setAutomaticTestTable( automaticTestTable.trim() );
 	else if (defaults != null)
 	    pcfg.setAutomaticTestTable( defaults.getAutomaticTestTable() );
 	else
@@ -567,7 +567,7 @@ public final class PoolConfig
 
 	// numHelperThreads
 	if ( numHelperThreadsStr != null )
-	    pcfg.setNumHelperThreads( Integer.parseInt( numHelperThreadsStr ) );
+	    pcfg.setNumHelperThreads( Integer.parseInt( numHelperThreadsStr.trim() ) );
 	else if (defaults != null)
 	    pcfg.setNumHelperThreads( defaults.getNumHelperThreads() );
 	else
@@ -575,7 +575,7 @@ public final class PoolConfig
 
 	// preferredTestQuery
 	if ( preferredTestQuery != null )
-	    pcfg.setPreferredTestQuery( preferredTestQuery );
+	    pcfg.setPreferredTestQuery( preferredTestQuery.trim() );
 	else if (defaults != null)
 	    pcfg.setPreferredTestQuery( defaults.getPreferredTestQuery() );
 	else
@@ -583,7 +583,7 @@ public final class PoolConfig
 
 	// factoryClassLocation
 	if ( factoryClassLocation != null )
-	    pcfg.setFactoryClassLocation( factoryClassLocation );
+	    pcfg.setFactoryClassLocation( factoryClassLocation.trim() );
 	else if (defaults != null)
 	    pcfg.setFactoryClassLocation( defaults.getFactoryClassLocation() );
 	else

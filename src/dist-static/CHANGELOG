@@ -1,8 +1,30 @@
-c3p0-0.9.0-test2
+c3p0-0.9.0-pre3
+	-- Modified generated proxy classes to properly report the type of the closed Object
+	   if used after call to close().
+	-- Fixed a really embarrassing oversight, wherein cached PreparedStatements
+	   were being physically close()ed prior to their return to the cache! Tests
+	   on psql failed to reveal this, because psql-7.4 Statement.close() does nothing
+	   to invalidate the Statement! [Many thanks to tbayboy on hibernate's forum for
+	   discovering this issue, and to fassev, also on hibernate's forum, for correctly
+	   deducing the cause!]
+	-- Fixed an embarrassing oversight where operations of proxy Statements
+	   and ResultSets failed to mark transactions as potentially dirty, leading
+	   to the possibility that Connections with unresolved transactional work could
+	   be checked into the pool.
+	-- Modified c3p0 Statements to no longer permit calls to getConnection()
+	   after Statement close, and to null out the backreference to the
+	   parent Connection. [Thanks to Edward Bridges for pointing out the issue.]
+	-- NewPooledConnection threw a NullPointerException on close() of
+	   a ResultSet whose creating Statement had already been closed.
+	   Fixed. [Thanks to Edward Bridges for pointing out the problem.]
+	-- Modified PoolConfig to trim() read-in c3p0.properties to avoid
+	   NumberFormatExceptions if there is extra spacing in the file.
+	   [Thanks to johnchan for calling attention to this issue.]
+c3p0-0.9.0-pre2
 	-- Documentation updates and improvements
 	-- Integrated configurable wrapper logging library, so that
 	   c3p0 can log to log4j or jdk14logging.
-c3p0-0.9.0-test1
+c3p0-0.9.0-pre1
 	-- First pass at documentation of JBoss integration.
 	-- Better one-per-JVM canonicalization (IdentityTokenized,
 	   IdentityTokenResolvable, C3P0Registry)
@@ -133,7 +155,7 @@ c3p0-0.8.5-pre6
 	   issue.]
 	-- Modified code generators so that inner objects of all NewProxy classes
 	   go to null on object close(). Closed proxies should be hopelessly broken.
-	-- Added missing parameter "usesTraditionalRefelctiveProxies" 
+	-- Added missing parameter "usesTraditionalReflectiveProxies" 
 	   to ComboPooledDataSource
 	-- Fixed bug whereby CarefulRunnableQueue threads linger indefinitely, even
 	   though their close() method has been called. [Thanks to muirwa on the
@@ -158,7 +180,7 @@ c3p0-0.8.5-pre2
 	-- Defined AuthMaskedProperties object, and used this to prevent usernames
 	   and passwords from being dumped to logs (a security issue). [Thanks to Zac Jacobson
 	   for calling attention to this issue.]
-	-- Added made BasicResourcePool's refurbishment of checked-in resources
+	-- Made BasicResourcePool's refurbishment of checked-in resources
 	   asynchronous, and used this to add a test of the resource on check-in.
 	   But since the extra test may slow stuff down substantially, I've disabled it
 	   pending a testConnectionsOnCheckin config parameter.

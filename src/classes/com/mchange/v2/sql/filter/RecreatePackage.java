@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre2
+ * Distributed as part of c3p0 v.0.9.0-pre3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -28,6 +28,7 @@ import java.sql.*;
 import java.lang.reflect.*;
 import com.mchange.v2.codegen.intfc.*;
 import com.mchange.v1.lang.ClassUtils;
+import javax.sql.DataSource;
 
 public final class RecreatePackage
 {
@@ -39,7 +40,8 @@ public final class RecreatePackage
 	    DatabaseMetaData.class, 
 	    Statement.class, 
 	    PreparedStatement.class,
-	    CallableStatement.class
+	    CallableStatement.class,
+	    DataSource.class
 	};
 
     public static void main( String[] argv )

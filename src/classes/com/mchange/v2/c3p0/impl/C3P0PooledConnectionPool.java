@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre2
+ * Distributed as part of c3p0 v.0.9.0-pre3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -264,7 +264,8 @@ public final class C3P0PooledConnectionPool
 	{
 // 	    System.err.println("CONNECTION ERROR OCCURRED!");
 // 	    System.err.println();
-	    logger.warning("CONNECTION ERROR OCCURRED!");
+	    if ( logger.isLoggable( MLevel.FINE ) )
+		logger.fine("CONNECTION ERROR OCCURRED!");
 	    try
 		{
 		    PooledConnection pc = (PooledConnection) evt.getSource();

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre2
+ * Distributed as part of c3p0 v.0.9.0-pre3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -214,6 +214,9 @@ class BasicResourcePool implements ResourcePool
 		// an idle check and a checkout should be relatively rare. anyway, it should work just fine.
 		if ( idleCheckResources.contains( resc ) )
 		    {
+			if (Debug.DEBUG && logger.isLoggable( MLevel.FINER))
+			    logger.log( MLevel.FINER, 
+					"Resource we want to check out is in idleCheck! (waiting until idle-check completes.) [" + this + "]");
 			//System.err.println("c3p0-JENNIFER: INFO: Resource we want to check out is in idleCheck! (waiting until idle-check completes.)"  + " [" + this + "]");
 			unused.add( resc );
 
@@ -987,6 +990,8 @@ class BasicResourcePool implements ResourcePool
 		Object resc = ii.next();
 		if ( isExpired( resc ) )
 		    {
+			if (Debug.DEBUG && logger.isLoggable( MLevel.FINER ))
+			    logger.log( MLevel.FINER, "Removing expired resource: " + resc + " [" + this + "]");
 			//System.err.println("c3p0-JENNIFER: removing expired resource: " + resc + " [" + this + "]");
 			removeResource( resc );
 		    }
@@ -1021,6 +1026,17 @@ class BasicResourcePool implements ResourcePool
 // 		else
 // 		    System.err.println("c3p0-JENNIFER: resource age is okay: " + resc + " ---> age: " + age + "   max: " + max_resource_age + " [" + this + "]");
 
+		if ( Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINEST ) )
+		    {
+			if (expired)
+			    logger.log(MLevel.FINEST, 
+				       "EXPIRED resource: " + resc + " ---> age: " + age + 
+				       "   max: " + max_resource_age + " [" + this + "]");
+			else
+			    logger.log(MLevel.FINEST, 
+				       "resource age is okay: " + resc + " ---> age: " + age + 
+				       "   max: " + max_resource_age + " [" + this + "]");
+		    }
 		return expired;
 	    }
 	else
@@ -1090,14 +1106,14 @@ class BasicResourcePool implements ResourcePool
 
     private void trace()
     {
-	if ( logger.isLoggable( MLevel.FINE ) )
+	if ( logger.isLoggable( MLevel.FINEST ) )
 	    {
 		String exampleResStr = ( exampleResource == null ?
 					 "" :
-					 " Ex: " + exampleResource );
-		logger.fine(this + "  [managed: " + managed.size() + ", " +
-			    "unused: " + unused.size() + ", excluded: " +
-			    excluded.size() + ']' + exampleResStr );
+					 " (e.g. " + exampleResource +")");
+		logger.finest("trace " + this + " [managed: " + managed.size() + ", " +
+			      "unused: " + unused.size() + ", excluded: " +
+			      excluded.size() + ']' + exampleResStr );
 	    }
     }
 
@@ -1221,6 +1237,8 @@ class BasicResourcePool implements ResourcePool
 	    try
 		{
 		    //System.err.println("c3p0-JENNIFER: checking for expired resources - " + new Date() + " [" + BasicResourcePool.this + "]");
+		    if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINER ))
+			logger.log( MLevel.FINER, "Checking for expired resources - " + new Date() + " [" + BasicResourcePool.this + "]");
 		    synchronized ( BasicResourcePool.this )
 			{ cullExpiredAndUnused(); }
 		}
@@ -1274,6 +1292,8 @@ class BasicResourcePool implements ResourcePool
 	    try
 		{
 		    //System.err.println("c3p0-JENNIFER: refurbishing idle resources - " + new Date() + " [" + BasicResourcePool.this + "]");
+		    if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable(MLevel.FINER))
+			logger.log(MLevel.FINER, "Refurbishing idle resources - " + new Date() + " [" + BasicResourcePool.this + "]");
 		    synchronized ( BasicResourcePool.this )
 			{ checkIdleResources(); }
 		}

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre2
+ * Distributed as part of c3p0 v.0.9.0-pre3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -31,7 +31,7 @@ import com.mchange.v2.codegen.intfc.*;
 import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.C3P0ProxyStatement;
 
-public class JdbcProxyGenerator extends DelegatorGenerator
+public abstract class JdbcProxyGenerator extends DelegatorGenerator
 {
     JdbcProxyGenerator()
     {
@@ -43,8 +43,13 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	this.setMethodModifiers( Modifier.PUBLIC | Modifier.FINAL );
     }
 
+    abstract String getInnerTypeName();
+
     static final class NewProxyMetaDataGenerator extends JdbcProxyGenerator
     { 
+	String getInnerTypeName()
+	{ return "DatabaseMetaData"; }
+
 	protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
 	    String mname   = method.getName();
@@ -95,6 +100,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 
     static final class NewProxyResultSetGenerator extends JdbcProxyGenerator
     {
+	String getInnerTypeName()
+	{ return "ResultSet"; }
+
 	protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
 	    String mname   = method.getName();
@@ -153,6 +161,7 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println();
 	    iw.println("Object creator;");
 	    iw.println("Object creatorProxy;");
+	    iw.println("NewProxyConnection proxyConn;");
 	    iw.println();
 	    iw.print( CodegenUtils.fqcnLastElement( genclass ) );
 	    iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + " inner, NewPooledConnection parentPooledConnection, Object c, Object cProxy )");
@@ -161,13 +170,27 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println("this( inner, parentPooledConnection );");
 	    iw.println("this.creator      = c;");
 	    iw.println("this.creatorProxy = cProxy;");
+	    iw.println("if (creatorProxy instanceof NewProxyConnection) this.proxyConn = (NewProxyConnection) cProxy;");
 	    iw.downIndent();
 	    iw.println("}");
+	}
+
+	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	{
+	    iw.println("if (proxyConn != null) proxyConn.maybeDirtyTransaction();");
+	    iw.println();
+	    super.generatePreDelegateCode( intfcl, genclass, method, iw );
 	}
     }
 
     static final class NewProxyAnyStatementGenerator extends JdbcProxyGenerator
     {
+	String getInnerTypeName()
+	{ return "Statement"; }
+
+	private final static boolean DOUBLE_DETACH_DEBUG = false;
+	private final static boolean CONCURRENT_ACCESS_DEBUG = false;
+
 	{
 	    this.setExtraInterfaces( new Class[] { C3P0ProxyStatement.class } );
 	}
@@ -186,7 +209,14 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else if ( mname.equals("getConnection") )
 		{
+ 		    iw.println("if (! this.isDetached())");
+ 		    iw.upIndent();
 		    iw.println("return creatorProxy;");
+ 		    iw.downIndent();
+ 		    iw.println("else");
+ 		    iw.upIndent();
+ 		    iw.println("throw new SQLException(\"You cannot operate on a closed Statement!\");");
+ 		    iw.downIndent();
 		}
 	    else if ( mname.equals("close") )
 		{
@@ -199,13 +229,43 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.println("parentPooledConnection.checkinStatement( inner );");
 		    iw.downIndent();
 		    iw.println("else");
+		    iw.println("{");
 		    iw.upIndent();
 		    iw.println("parentPooledConnection.markInactiveUncachedStatement( inner );");
+
+		    iw.println("try{ inner.close(); }");
+		    iw.println("catch (Exception e )");
+		    iw.println("{");
+		    iw.upIndent();
+
+		    iw.println("if (logger.isLoggable( MLevel.WARNING ))");
+		    iw.upIndent();
+		    iw.println("logger.log( MLevel.WARNING, \042Exception on close of inner statement.\042, e);");
 		    iw.downIndent();
 
+		    //double-detach-debug only
+		    if (DOUBLE_DETACH_DEBUG)
+			{
+			    iw.println("if ( logger.isLoggable( MLevel.FINE ) )");
+			    iw.upIndent();
+			    iw.println("logger.log( MLevel.FINE, " +
+				       "doubleDetachRecorder.getDump(\042Exception on close of inner statement. From double-call of detach?\042), " +
+				       "e );");
+			    iw.downIndent();
+			}
+		    //end double-detach-debug only
+
+		    iw.println( "SQLException sqle = SqlUtils.toSQLException( e );" );
+		    iw.println( "throw sqle;" );
+		    iw.downIndent();
+		    iw.println("}");
+		    iw.downIndent();
+		    iw.println("}");
+
+		    iw.println();
 		    iw.println("this.detach();");
-		    iw.println("inner.close();");
 		    iw.println("this.inner = null;");
+		    iw.println("this.creatorProxy = null;");
 
 		    iw.downIndent();
 		    iw.println("}");
@@ -218,10 +278,93 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		super.generateDelegateCode( intfcl, genclass, method, iw );
 	}
 
+	protected void writeDetachBody(IndentedWriter iw) throws IOException //overrides JdbcProxyGenerator.writeDetachBody()
+	{
+	    // double-detach-debug only
+	    if (DOUBLE_DETACH_DEBUG)
+		{
+		    iw.println("doubleDetachRecorder.record();");
+		    iw.println("if (this.isDetached())");
+		    iw.upIndent();
+		    iw.println("logger.warning( doubleDetachRecorder.getDump(\042Double Detach.\042) );");
+		    iw.downIndent();
+		}
+	    // end double-detach-debug only
+
+	    super.writeDetachBody(iw);
+	}
+
+	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	{
+	    iw.println("maybeDirtyTransaction();");
+	    iw.println();
+
+	    // concurrent-access-debug only
+	    if (CONCURRENT_ACCESS_DEBUG)
+		{
+		    iw.println("Object record;");
+		    iw.println("synchronized (concurrentAccessRecorder)");
+		    iw.println("{");
+		    iw.upIndent();
+
+		    iw.println("record = concurrentAccessRecorder.record();");
+		    iw.println("int num_concurrent_clients = concurrentAccessRecorder.size();");
+		    iw.println("if (num_concurrent_clients != 1)");
+		    iw.upIndent();
+		    iw.println("logger.log(MLevel.WARNING, " +
+			       "concurrentAccessRecorder.getDump(\042Apparent concurrent access! (\042 + num_concurrent_clients + \042 clients.\042) );");
+		    iw.downIndent();
+		    iw.downIndent();
+		    iw.println("}");
+		    iw.println();
+		}
+	    // end concurrent-access-debug only
+
+	    super.generatePreDelegateCode( intfcl, genclass, method, iw );
+	}
+    
+	protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	{
+	    super.generatePostDelegateCode( intfcl, genclass, method, iw );
+
+	    // concurrent-access-debug only
+	    if (CONCURRENT_ACCESS_DEBUG)
+		{
+		    iw.println("finally");
+		    iw.println("{");
+		    iw.upIndent();
+		    iw.println("concurrentAccessRecorder.remove( record );");
+		    iw.downIndent();
+		    iw.println("}");
+		}
+	    // end concurrent-access-debug only
+	}
+
 	protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
 	{
 	    super.generateExtraDeclarations( intfcl, genclass, iw );
 	    iw.println();
+	    
+	    // concurrent-access-debug only!
+	    if (CONCURRENT_ACCESS_DEBUG)
+		{
+		    iw.println("com.mchange.v2.debug.ThreadNameStackTraceRecorder concurrentAccessRecorder");
+		    iw.upIndent();
+		    iw.println("= new com.mchange.v2.debug.ThreadNameStackTraceRecorder(\042Concurrent Access Recorder\042);");
+		    iw.downIndent();
+		}
+	    // end concurrent-access-debug only!
+
+	    // double-detach-debug-debug only!
+	    if (DOUBLE_DETACH_DEBUG)
+		{
+		    iw.println("com.mchange.v2.debug.ThreadNameStackTraceRecorder doubleDetachRecorder");
+		    iw.upIndent();
+		    iw.println("= new com.mchange.v2.debug.ThreadNameStackTraceRecorder(\042Double Detach Recorder\042);");
+		    iw.downIndent();
+		}
+	    // end-double-detach-debug-only!
+
 	    iw.println("boolean is_cached;");
 	    iw.println("NewProxyConnection creatorProxy;");
 	    iw.println();
@@ -240,6 +383,8 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 		       "throws IllegalAccessException, InvocationTargetException, SQLException");
 	    iw.println("{");
 	    iw.upIndent();
+	    iw.println("maybeDirtyTransaction();");
+	    iw.println();
 	    iw.println("if (target == C3P0ProxyStatement.RAW_STATEMENT) target = inner;");
 	    iw.println("for (int i = 0, len = args.length; i < len; ++i)");
 	    iw.upIndent();
@@ -258,6 +403,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println("return out;");
 	    iw.downIndent();
 	    iw.println("}");
+	    iw.println();
+	    iw.println("void maybeDirtyTransaction()");
+	    iw.println("{ creatorProxy.maybeDirtyTransaction(); }");
 	}
 
 	protected void generateExtraImports( IndentedWriter iw ) throws IOException
@@ -265,6 +413,8 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    super.generateExtraImports( iw );
 	    iw.println("import java.lang.reflect.InvocationTargetException;");
 	}
+
+
     }
 
 // 	protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
@@ -285,6 +435,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 
     static final class NewProxyConnectionGenerator extends JdbcProxyGenerator
     {
+	String getInnerTypeName()
+	{ return "Connection"; }
+
 	{
 	    this.setMethodModifiers( Modifier.PUBLIC | Modifier.SYNCHRONIZED );
 	    this.setExtraInterfaces( new Class[] { C3P0ProxyConnection.class } );
@@ -418,6 +571,8 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.downIndent();
 	    iw.println("{");
 	    iw.upIndent();
+	    iw.println("maybeDirtyTransaction();");
+	    iw.println();
 	    iw.println("if (inner == null)");
 	    iw.upIndent();
 	    iw.println("throw new SQLException(\"You cannot operate on a closed Connection!\");");
@@ -478,6 +633,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println("return out;");
 	    iw.downIndent();
 	    iw.println("}");
+	    iw.println();
+	    iw.println("synchronized void maybeDirtyTransaction()");
+	    iw.println("{ txn_known_resolved = false; }");
 
 	    super.generateExtraDeclarations( intfcl, genclass, iw );
 	}
@@ -552,14 +710,14 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	generateTryCloserAndCatch( iw );
     }
 
-    static void generateTryOpener( IndentedWriter iw ) throws IOException
+    void generateTryOpener( IndentedWriter iw ) throws IOException
     {
 	iw.println("try");
 	iw.println("{");
 	iw.upIndent();
     }
 
-    static void generateTryCloserAndCatch( IndentedWriter iw ) throws IOException
+    void generateTryCloserAndCatch( IndentedWriter iw ) throws IOException
     {
 	iw.downIndent();
 	iw.println("}");
@@ -571,7 +729,7 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	iw.upIndent();
 	//iw.println( "System.err.print(\042probably 'cuz we're closed -- \042);" );
 	//iw.println( "exc.printStackTrace();" );
-	iw.println( "throw SqlUtils.toSQLException(\042You can't operate on a closed connection!!!\042, exc);");
+	iw.println( "throw SqlUtils.toSQLException(\042You can't operate on a closed " + getInnerTypeName() + "!!!\042, exc);");
 	iw.downIndent();
 	iw.println("}");
 	iw.println( "else throw exc;" );
@@ -594,6 +752,9 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 
     protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
     {
+	iw.println("private final static MLogger logger = MLog.getLogger( \042" + genclass + "\042 );");
+	iw.println();
+
 	iw.println("NewPooledConnection parentPooledConnection;");
 	iw.println();
 
@@ -622,8 +783,10 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	iw.println("private void detach()");
 	iw.println("{");
 	iw.upIndent();
-	iw.println("parentPooledConnection.removeConnectionEventListener( cel );");
-	iw.println("parentPooledConnection = null;");
+
+	// factored out so we could define double-detach-debug versions...
+	writeDetachBody(iw);
+
 	iw.downIndent();
 	iw.println("}");
 	iw.println();
@@ -641,10 +804,17 @@ public class JdbcProxyGenerator extends DelegatorGenerator
 	iw.println("{ return (this.parentPooledConnection == null); }");
     }
 
+    protected void writeDetachBody(IndentedWriter iw) throws IOException
+    {
+	iw.println("parentPooledConnection.removeConnectionEventListener( cel );");
+	iw.println("parentPooledConnection = null;");
+    }
+
     protected void generateExtraImports( IndentedWriter iw ) throws IOException
     {
 	iw.println("import java.sql.*;");
 	iw.println("import javax.sql.*;");
+	iw.println("import com.mchange.v2.log.*;");
 	iw.println("import java.lang.reflect.Method;");
 	iw.println("import com.mchange.v2.sql.SqlUtils;");
     }

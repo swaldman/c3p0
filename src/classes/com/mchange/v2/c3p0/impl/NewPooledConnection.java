@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre2
+ * Distributed as part of c3p0 v.0.9.0-pre3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -170,7 +170,12 @@ public final class NewPooledConnection implements PooledConnection
     synchronized void markInactiveResultSetForStatement( Statement stmt, ResultSet rs )
     { 
 	Set rss = resultSets( stmt, false );
-	if ( ! rss.remove( rs ) )
+	if (rss == null)
+	    {
+		if (logger.isLoggable( MLevel.FINE ))
+		    logger.fine( "ResultSet " + rs + " was apparently closed after the Statement that created it had already been closed." );
+	    }
+	else if ( ! rss.remove( rs ) )
 	    throw new InternalError("Marking a ResultSet inactive that we did not know was opened!");
     }
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre2
+ * Distributed as part of c3p0 v.0.9.0-pre3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -115,14 +115,14 @@ public final class C3P0BenchmarkApp
 
 		System.out.println("Please wait. Tests can be very slow.");
 		List l = new ArrayList();
-    		l.add( new ConnectionAcquisitionTest() );
-       		l.add( new StatementCreateTest() );
-       		l.add( new StatementEmptyTableSelectTest() );
+       		l.add( new ConnectionAcquisitionTest() );
+  		l.add( new StatementCreateTest() );
+  		l.add( new StatementEmptyTableSelectTest() );
  		//l.add( new DataBaseMetaDataListNonexistentTablesTest() );
-       		l.add( new PreparedStatementEmptyTableSelectTest() );
-     		l.add( new PreparedStatementAcquireTest() );
-     		l.add( new ResultSetReadTest() );
-   		l.add( new FiveThreadPSQueryTestTest() );
+ 		l.add( new PreparedStatementEmptyTableSelectTest() );
+       		l.add( new PreparedStatementAcquireTest() );
+ 		l.add( new ResultSetReadTest() );
+    		l.add( new FiveThreadPSQueryTestTest() );
 		for (int i = 0, len = l.size(); i < len; ++i)
 		    ((Test) l.get(i)).perform( ds_unpooled, ds_pooled, NUM_ITERATIONS );
 	    }
@@ -524,6 +524,9 @@ public final class C3P0BenchmarkApp
 
     static class FiveThreadPSQueryTestTest extends Test
     {
+	// only for stupid test to simulate (illegal) concurrent access to a Statement
+// 	volatile Statement stmt;
+
   	FiveThreadPSQueryTestTest()
   	{ 
 	    super( "Five threads getting a connection, executing a query, " + 
@@ -558,6 +561,12 @@ public final class C3P0BenchmarkApp
 				    con.setAutoCommit( false );
 
 				    pstmt = con.prepareStatement( EMPTY_TABLE_CONDITIONAL_SELECT );
+
+// 				    if (Math.random() < 0.5)
+// 					stmt = pstmt;
+// 				    else if (stmt != null)
+// 					stmt.getResultSet();
+
 				    pstmt.setString(1, "boo");
 				    rs = pstmt.executeQuery();
 				    while( rs.next() )
@@ -589,7 +598,9 @@ public final class C3P0BenchmarkApp
 			    finally
 				{
 				    ResultSetUtils.attemptClose( rs ); 
-				    StatementUtils.attemptClose( pstmt ); 
+				    StatementUtils.attemptClose( pstmt );
+				    //try { System.err.println( pstmt.getConnection() ); } catch (Exception e) {e.printStackTrace();}
+				    //ResultSetUtils.attemptClose( rs ); 
 				    ConnectionUtils.attemptClose( con ); 
 				    con = null;
 				}
