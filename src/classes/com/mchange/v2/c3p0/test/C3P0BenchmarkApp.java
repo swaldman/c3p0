@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -115,13 +115,13 @@ public final class C3P0BenchmarkApp
 
 		System.out.println("Please wait. Tests can be very slow.");
 		List l = new ArrayList();
-		l.add( new ConnectionAcquisitionTest() );
-   		l.add( new StatementCreateTest() );
-   		l.add( new StatementEmptyTableSelectTest() );
-  		//l.add( new DataBaseMetaDataListNonexistentTablesTest() );
-  		l.add( new PreparedStatementEmptyTableSelectTest() );
-		l.add( new PreparedStatementAcquireTest() );
-  		l.add( new ResultSetReadTest() );
+ 		l.add( new ConnectionAcquisitionTest() );
+    		l.add( new StatementCreateTest() );
+    		l.add( new StatementEmptyTableSelectTest() );
+   		//l.add( new DataBaseMetaDataListNonexistentTablesTest() );
+   		l.add( new PreparedStatementEmptyTableSelectTest() );
+ 		l.add( new PreparedStatementAcquireTest() );
+   		l.add( new ResultSetReadTest() );
     		l.add( new FiveThreadPSQueryTestTest() );
 		for (int i = 0, len = l.size(); i < len; ++i)
 		    ((Test) l.get(i)).perform( ds_unpooled, ds_pooled, NUM_ITERATIONS );
@@ -566,6 +566,9 @@ public final class C3P0BenchmarkApp
 // 					stmt = pstmt;
 // 				    else if (stmt != null)
 // 					stmt.getResultSet();
+
+//  				    if (Math.random() < 0.1 && con instanceof C3P0ProxyConnection)
+//  					con.close();
 
 				    pstmt.setString(1, "boo");
 				    rs = pstmt.executeQuery();

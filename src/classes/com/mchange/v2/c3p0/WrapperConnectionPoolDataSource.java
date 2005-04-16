@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -38,7 +38,8 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 {
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
 
-    ConnectionTester connectionTester = C3P0Defaults.connectionTester();
+    //MT: protected by this' lock
+    ConnectionTester connectionTester = C3P0ImplUtils.defaultConnectionTester();
 
     {
 	VetoableChangeListener setConnectionTesterListener = new VetoableChangeListener()
@@ -155,7 +156,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     }
 
     //other code
-    private void recreateConnectionTester(String className) throws Exception
+    private synchronized void recreateConnectionTester(String className) throws Exception
     {
 	if (className != null)
 	    {
@@ -163,6 +164,6 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		this.connectionTester = ct;
 	    }
 	else
-	    this.connectionTester = C3P0Defaults.connectionTester();
+	    this.connectionTester = C3P0ImplUtils.defaultConnectionTester();
     }
 }

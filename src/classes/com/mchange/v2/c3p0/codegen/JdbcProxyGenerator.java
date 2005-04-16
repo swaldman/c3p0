@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -33,6 +33,8 @@ import com.mchange.v2.c3p0.C3P0ProxyStatement;
 
 public abstract class JdbcProxyGenerator extends DelegatorGenerator
 {
+    final static boolean PREMATURE_DETACH_DEBUG = false;
+
     JdbcProxyGenerator()
     {
 	this.setGenerateInnerSetter( false );
@@ -188,7 +190,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	String getInnerTypeName()
 	{ return "Statement"; }
 
-	private final static boolean DOUBLE_DETACH_DEBUG     = false;
 	private final static boolean CONCURRENT_ACCESS_DEBUG = false;
 
 	{
@@ -246,18 +247,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.println("logger.log( MLevel.WARNING, \042Exception on close of inner statement.\042, e);");
 		    iw.downIndent();
 
-		    //double-detach-debug only
-		    if (DOUBLE_DETACH_DEBUG)
-			{
-			    iw.println("if ( logger.isLoggable( MLevel.FINE ) )");
-			    iw.upIndent();
-			    iw.println("logger.log( MLevel.FINE, " +
-				       "doubleDetachRecorder.getDump(\042Exception on close of inner statement. From double-call of detach?\042), " +
-				       "e );");
-			    iw.downIndent();
-			}
-		    //end double-detach-debug only
-
 		    iw.println( "SQLException sqle = SqlUtils.toSQLException( e );" );
 		    iw.println( "throw sqle;" );
 		    iw.downIndent();
@@ -279,22 +268,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		}
 	    else
 		super.generateDelegateCode( intfcl, genclass, method, iw );
-	}
-
-	protected void writeDetachBody(IndentedWriter iw) throws IOException //overrides JdbcProxyGenerator.writeDetachBody()
-	{
-	    // double-detach-debug only
-	    if (DOUBLE_DETACH_DEBUG)
-		{
-		    iw.println("doubleDetachRecorder.record();");
-		    iw.println("if (this.isDetached())");
-		    iw.upIndent();
-		    iw.println("logger.warning( doubleDetachRecorder.getDump(\042Double Detach.\042) );");
-		    iw.downIndent();
-		}
-	    // end double-detach-debug only
-
-	    super.writeDetachBody(iw);
 	}
 
 	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
@@ -354,16 +327,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.downIndent();
 		}
 	    // end concurrent-access-debug only!
-
-	    // double-detach-debug-debug only!
-	    if (DOUBLE_DETACH_DEBUG)
-		{
-		    iw.println("com.mchange.v2.debug.ThreadNameStackTraceRecorder doubleDetachRecorder");
-		    iw.upIndent();
-		    iw.println("= new com.mchange.v2.debug.ThreadNameStackTraceRecorder(\042Double Detach Recorder\042);");
-		    iw.downIndent();
-		}
-	    // end-double-detach-debug-only!
 
 	    iw.println("boolean is_cached;");
 	    iw.println("NewProxyConnection creatorProxy;");
@@ -545,9 +508,21 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		    iw.downIndent();
 		    iw.println("}");
 		    iw.println("else if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))");
+		    iw.println("{");
 		    iw.upIndent();
 		    iw.println("logger.log( MLevel.FINE, this + \042: close() called more than once.\042 );");
+
+		    // premature-detach-debug-debug only!
+		    if (PREMATURE_DETACH_DEBUG)
+			{
+			    iw.println("prematureDetachRecorder.record();");
+			    iw.println("logger.warning( prematureDetachRecorder.getDump(\042Apparent multiple close of " + 
+				       getInnerTypeName() + ".\042) );");
+			}
+		    // end-premature-detach-debug-only!
+
 		    iw.downIndent();
+		    iw.println("}");
 		}
 	    else if ( mname.equals("isClosed") )
 		{
@@ -736,12 +711,35 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	if ( "close".equals( method.getName() ) )
 	    {
 		iw.println("if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))");
+		iw.println("{");
 		iw.upIndent();
 		iw.println("logger.log( MLevel.FINE, this + \042: close() called more than once.\042 );");
+
+		// premature-detach-debug-debug only!
+		if (PREMATURE_DETACH_DEBUG)
+		    {
+			iw.println("prematureDetachRecorder.record();");
+			iw.println("logger.warning( prematureDetachRecorder.getDump(\042Apparent multiple close of " + 
+				   getInnerTypeName() + ".\042) );");
+		    }
+		// end-premature-detach-debug-only!
+
 		iw.downIndent();
+		iw.println("}");
 	    }
 	else
-	    iw.println( "throw SqlUtils.toSQLException(\042You can't operate on a closed " + getInnerTypeName() + "!!!\042, exc);");
+	    {
+		// premature-detach-debug-debug only!
+		if (PREMATURE_DETACH_DEBUG)
+		    {
+			iw.println("prematureDetachRecorder.record();");
+			iw.println("logger.warning( prematureDetachRecorder.getDump(\042Use of already detached " + 
+				   getInnerTypeName() + ".\042) );");
+		    }
+		// end-premature-detach-debug-only!
+
+		iw.println( "throw SqlUtils.toSQLException(\042You can't operate on a closed " + getInnerTypeName() + "!!!\042, exc);");
+	    }
 	iw.downIndent();
 	iw.println("}");
 	iw.println( "else throw exc;" );
@@ -764,6 +762,16 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
     protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
     {
+	// premature-detach-debug-debug only!
+	if (PREMATURE_DETACH_DEBUG)
+	    {
+		iw.println("com.mchange.v2.debug.ThreadNameStackTraceRecorder prematureDetachRecorder");
+		iw.upIndent();
+		iw.println("= new com.mchange.v2.debug.ThreadNameStackTraceRecorder(\042Premature Detach Recorder\042);");
+		iw.downIndent();
+	    }
+	// end-premature-detach-debug-only!
+
 	iw.println("private final static MLogger logger = MLog.getLogger( \042" + genclass + "\042 );");
 	iw.println();
 
@@ -775,7 +783,9 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	iw.upIndent();
 
 	iw.println("public void connectionErrorOccurred(ConnectionEvent evt)");
-	iw.println("{ detach(); }");
+	iw.println("{ /* DON'T detach()... IGNORE -- this could be an ordinary error. Leave it to the PooledConnection to test, but leave proxies intact */ }");
+	//BAD puppy -- iw.println("{ detach(); }");
+
 	iw.println();
 	iw.println("public void connectionClosed(ConnectionEvent evt)");
 	iw.println("{ detach(); }");
@@ -796,7 +806,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	iw.println("{");
 	iw.upIndent();
 
-	// factored out so we could define double-detach-debug versions...
+	// factored out so we could define debug versions...
 	writeDetachBody(iw);
 
 	iw.downIndent();
@@ -818,6 +828,17 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
     protected void writeDetachBody(IndentedWriter iw) throws IOException
     {
+	// premature-detach-debug only
+	if (PREMATURE_DETACH_DEBUG)
+	    {
+		iw.println("prematureDetachRecorder.record();");
+		iw.println("if (this.isDetached())");
+		iw.upIndent();
+		iw.println("logger.warning( prematureDetachRecorder.getDump(\042Double Detach.\042) );");
+		iw.downIndent();
+	    }
+	// end premature-detach-debug only
+
 	iw.println("parentPooledConnection.removeConnectionEventListener( cel );");
 	iw.println("parentPooledConnection = null;");
     }

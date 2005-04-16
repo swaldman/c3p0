@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -253,7 +253,11 @@ public final class NewPooledConnection implements PooledConnection
 
     synchronized SQLException handleThrowable( Throwable t )
     {
+	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+	    logger.log( MLevel.FINER, this + " handling a throwable.", t );
+
 	SQLException sqle = SqlUtils.toSQLException( t );
+	//logger.warning("handle throwable ct: " + connectionTester);
 	int status = connectionTester.statusOnException( physicalConnection, sqle );
 	updateConnectionStatus( status ); 
 	if (status != ConnectionTester.CONNECTION_IS_OKAY)

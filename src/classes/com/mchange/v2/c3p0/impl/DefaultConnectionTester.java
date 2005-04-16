@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -62,6 +62,9 @@ public class DefaultConnectionTester implements QueryConnectionTester
     {
 // 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
 // 	    logger.finer("Entering DefaultConnectionTester.statusOnException(Connection c, Throwable t, String query) " + queryInfo(query));
+
+ 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
+ 	    logger.log(MLevel.FINER, "Testing a Connection in response to an Exception:", t);
 
 	try
 	    {

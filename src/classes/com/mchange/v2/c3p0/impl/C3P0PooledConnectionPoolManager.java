@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -152,21 +152,8 @@ public final class C3P0PooledConnectionPoolManager
     String preferredTestQuery                  = PoolConfig.defaultPreferredTestQuery(); 
     String automaticTestTable                  = PoolConfig.defaultAutomaticTestTable(); 
     DbAuth defaultAuth                         = C3P0ImplUtils.NULL_AUTH; 
-    ConnectionTester connectionTester;
+    ConnectionTester connectionTester          = C3P0ImplUtils.defaultConnectionTester();;
 
-    // connectionTester default setup is more than a one-liner...
-    {
-	try { connectionTester = (ConnectionTester) Class.forName( PoolConfig.defaultConnectionTesterClassName() ).newInstance(); }
-	catch ( Exception e )
-	    {
-		//e.printStackTrace();
-		logger.log(MLevel.WARNING, 
-			   "Could not load ConnectionTester " + PoolConfig.defaultConnectionTesterClassName() +
-			   ", using built in default.", 
-			   e);
-		connectionTester = C3P0Defaults.connectionTester();
-	    }
-    }
     /* MT: end unchanging after constructor completes */
 
     private synchronized void poolsInit()

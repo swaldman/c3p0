@@ -1,3 +1,13 @@
+c3p0-0.9.0-pre5
+	-- Proxy classes were overaggressively invalidating themselves in response to a signalled
+	   Connection error. This problem was very similar to the problem fixed in 0.8.5-pre9, except
+	   for rather than the PooledConnection too quickly closing its inner Connection, the proxies
+	   too quickly detached themselves from the pooled Connection, considering themselves broken,
+	   after a Connection error event. Users expect to be able to work with their Connections even
+	   after c3p0 has in its conservatism decided they no are no longer worthy of a place in the
+	   pool. [Thanks to "Geoff Fortytwo" for finding and helping to track down this issue.]
+	-- Fixed issue that prevented user-defined ConnectionTesters from being used.
+c3p0-0.9.0-pre4
 	-- Fixed NullPointerException on double-close of proxy Statements. [Thanks to Stephen Waud
 	   for finding this bug and tracking it down.]
 	-- Modified C3P0PooledConnectionPool to generate a more informative Exception (one that

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -59,7 +59,7 @@ public final class SqlUtils
     { return "{ts '" + tsdf.format( date ) + "'}";  }
 
     public static SQLException toSQLException(Throwable t)
-    { return toSQLException( "An SQLException was provoked by the following failure: " + t.toString(), t ); }
+    { return toSQLException(null, t ); }
 
     public static SQLException toSQLException(String msg, Throwable t)
     { return toSQLException(msg, null, t);}
@@ -67,7 +67,27 @@ public final class SqlUtils
     public static SQLException toSQLException(String msg, String sqlState, Throwable t)
     {
         if (t instanceof SQLException)
-            return (SQLException) t;
+	    {
+		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+		    {
+			SQLException s = (SQLException) t;
+			StringBuffer tmp = new StringBuffer(255);
+			tmp.append("Attempted to convert SQLException to SQLException. Leaving it alone.");
+			tmp.append(" [SQLState: ");
+			tmp.append( s.getSQLState() );
+			tmp.append("; errorCode: " );
+			tmp.append( s.getErrorCode() );
+			tmp.append(']');
+			if (msg != null)
+			    tmp.append(" Ignoring suggested message: '" + msg + "'.");
+			logger.log( MLevel.FINER, tmp.toString(), t );
+
+			SQLException s2;
+			while ((s2 = s.getNextException()) != null)
+			    logger.log( MLevel.FINER, "Nested SQLException or SQLWarning: ", t );
+		    }
+		return (SQLException) t;
+	    }
         else
         { 
             if (Debug.DEBUG) 
@@ -76,6 +96,9 @@ public final class SqlUtils
 		    if ( logger.isLoggable( MLevel.FINE ) )
 			logger.log( MLevel.FINE, "Converting Throwable to SQLException...", t );
 		}
+
+	    if (msg == null)
+		msg = "An SQLException was provoked by the following failure: " + t.toString();
 	    if ( VersionUtils.isAtLeastJavaVersion14() )
 		{
 		    SQLException out = new SQLException(msg);

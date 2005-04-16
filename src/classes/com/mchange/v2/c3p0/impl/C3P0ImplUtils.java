@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre4
+ * Distributed as part of c3p0 v.0.9.0-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -25,6 +25,7 @@ package com.mchange.v2.c3p0.impl;
 
 import java.beans.*;
 import java.lang.reflect.*;
+import com.mchange.v2.c3p0.*;
 import java.sql.Connection;
 import java.sql.SQLException;
 import com.mchange.v2.log.MLevel;
@@ -39,6 +40,10 @@ public final class C3P0ImplUtils
     public final static DbAuth NULL_AUTH = new DbAuth(null,null);
 
     public final static Object[] NOARGS = new Object[0]; 
+
+    //MT: protected by class' lock
+    static String connectionTesterClassName = null;
+    static ConnectionTester cachedTester = null;
 
     public static String identityToken(Object o)
     { return (o != null ? Integer.toString( System.identityHashCode( o ), 16 ) : null); }
@@ -104,6 +109,32 @@ public final class C3P0ImplUtils
 			pCon.rollback();
 		    }	
 		pCon.setAutoCommit( true ); //implies commit if not already rolled back.
+	    }
+    }
+
+    public synchronized static ConnectionTester defaultConnectionTester()
+    {
+	String dfltCxnTesterClassName = PoolConfig.defaultConnectionTesterClassName();
+	if ( connectionTesterClassName != null && connectionTesterClassName.equals(dfltCxnTesterClassName) )
+	    return cachedTester;
+	else
+	    {
+		try 
+		    { 
+			cachedTester = (ConnectionTester) Class.forName( dfltCxnTesterClassName ).newInstance(); 
+			connectionTesterClassName = cachedTester.getClass().getName();
+		    }
+		catch ( Exception e )
+		    {
+			//e.printStackTrace();
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    logger.log(MLevel.WARNING, 
+				       "Could not load ConnectionTester " + dfltCxnTesterClassName + ", using built in default.", 
+				       e);
+			cachedTester = C3P0Defaults.connectionTester();
+			connectionTesterClassName = cachedTester.getClass().getName();
+		    }
+		return cachedTester;
 	    }
     }
 
