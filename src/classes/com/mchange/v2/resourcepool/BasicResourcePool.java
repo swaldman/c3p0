@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -34,6 +34,7 @@ class BasicResourcePool implements ResourcePool
     private final static MLogger logger = MLog.getLogger( BasicResourcePool.class );
 
     final static int CULL_FREQUENCY_DIVISOR = 8;
+    final static int MAX_CULL_FREQUENCY = (15 * 60 * 1000); //15 mins
 
     //MT: unchanged post c'tor
     Manager mgr;
@@ -149,7 +150,7 @@ class BasicResourcePool implements ResourcePool
 
 		if (max_resource_age > 0)
 		    {
-			long cull_frequency = max_resource_age / CULL_FREQUENCY_DIVISOR ;
+			long cull_frequency = Math.min( max_resource_age / CULL_FREQUENCY_DIVISOR, MAX_CULL_FREQUENCY ) ;
 			this.cullTask = new CullTask();
 			cullAndIdleRefurbishTimer.schedule( cullTask, max_resource_age, cull_frequency );
 		    }
@@ -386,7 +387,7 @@ class BasicResourcePool implements ResourcePool
 	throws ResourcePoolException
     { return managed.size(); }
 
-    public synchronized void setPoolSize(final int sz)
+    public void setPoolSize(final int sz)
 	throws ResourcePoolException
     {
 	try
@@ -642,8 +643,27 @@ class BasicResourcePool implements ResourcePool
 		synchronized(this)
 		    { 
 			msz = managed.size(); 
-			if (msz < num)
-			    assimilateResource();
+		    }
+
+		if (msz < num)
+		    {
+			Object resc = mgr.acquireResource(); //not we acquire the resource while we DO NOT hold the lock!
+			boolean destroy = false;
+
+			synchronized(this)
+			    { 
+				msz = managed.size(); //double check that we still need the resc, after giving up the lock
+				if (msz < num)
+				    {
+					assimilateResource(resc); //assimilate resc if we do need it
+					++msz; //we can presume that if the assimilation succeeded, managed size is one larger, so we take note
+				    }
+				else
+				    destroy = true; // mark resc for destrction if we don't
+			    }
+
+			if (destroy)
+			    mgr.destroyResource( resc ); //destroy resc if superfluous, without holding the pool's lock
 		    }
 
 		//if there is a Thread waiting on
@@ -653,6 +673,53 @@ class BasicResourcePool implements ResourcePool
 	    }
 	while (msz < num);
     }
+
+    //oughtn't be called from a synchronized block, to minimize lock contention in acquireUntil()
+    private Exception doSetPoolSize(int sz)
+    {
+	try
+	    {
+		if (sz > max)
+		    {
+			throw new IllegalArgumentException("Requested size [" + sz + 
+							   "] is greater than max [" + max +
+							   "].");
+		    } 
+		else if (sz < min)
+		    {
+			throw new IllegalArgumentException("Requested size [" + sz + 
+							   "] is less than min [" + min +
+							   "].");
+		    }
+		int msz;
+		
+		synchronized ( this )
+		    { msz = managed.size(); }
+
+		if (sz > msz)
+		    acquireUntil( sz ); //in this case, the notifyAll() ends up happening in assimilateResource()
+		else if (sz < msz)
+		    {
+			synchronized ( this )
+			    {
+				int num_to_cull = msz - sz;
+				int usz = unused.size(); 
+				int num_from_unused = Math.min( num_to_cull, usz );
+				for (int i = 0; i < num_from_unused; ++i)
+				    removeResource( unused.get(0) );
+				int num_outstanding_to_cull = num_to_cull - num_from_unused;
+				Iterator ii = cloneOfManaged().keySet().iterator();
+				for (int i = 0; i < num_outstanding_to_cull; ++i)
+				    excludeResource( ii.next() );
+				this.notifyAll();
+			    }
+		    }
+		return null;
+	    }
+	catch (Exception e)
+	    { return e; }
+    }
+
 
 //      private void acquireUntil(int num) throws Exception
 //      {
@@ -805,45 +872,6 @@ class BasicResourcePool implements ResourcePool
 	destroyResource(resc);
     }
 
-    private Exception doSetPoolSize(int sz)
-    {
-	try
-	    {
-		if (sz > max)
-		    {
-			throw new IllegalArgumentException("Requested size [" + sz + 
-							   "] is greater than max [" + max +
-							   "].");
-		    } 
-		else if (sz < min)
-		    {
-			throw new IllegalArgumentException("Requested size [" + sz + 
-							   "] is less than min [" + min +
-							   "].");
-		    }
-		int msz = managed.size(); 
-		if (sz > msz)
-		    acquireUntil( sz );
-		else if (sz < msz)
-		    {
-			int num_to_cull = msz - sz;
-			int usz = unused.size(); 
-			int num_from_unused = Math.min( num_to_cull, usz );
-			for (int i = 0; i < num_from_unused; ++i)
-			    removeResource( unused.get(0) );
-			int num_outstanding_to_cull = num_to_cull - num_from_unused;
-			Iterator ii = cloneOfManaged().keySet().iterator();
-			for (int i = 0; i < num_outstanding_to_cull; ++i)
-			    excludeResource( ii.next() );
-		    }
-		return null;
-	    }
-	catch (Exception e)
-	    { return e; }
-	finally
-	    { this.notifyAll(); }
-    }
-
     private void postAcquireMore()
     { 
   	int msz = managed.size();
@@ -936,9 +964,8 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
-    private void assimilateResource() throws Exception
+    private void assimilateResource( Object resc ) throws Exception
     {
-	Object resc = mgr.acquireResource();
 	managed.put(resc, new Date());
 	unused.add(resc);
 	//System.err.println("assimilate resource... unused: " + unused.size());

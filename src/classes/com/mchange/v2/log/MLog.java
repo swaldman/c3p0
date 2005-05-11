@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -80,6 +80,8 @@ public abstract class MLog
 		e.printStackTrace();
 	    }
 	transformer = tmpt;
+
+	//System.err.println(mlog);
     }
 
     public static MLog findByClassnames( String[] classnames )

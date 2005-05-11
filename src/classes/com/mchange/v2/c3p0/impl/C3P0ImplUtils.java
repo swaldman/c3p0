@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -135,6 +135,22 @@ public final class C3P0ImplUtils
 			connectionTesterClassName = cachedTester.getClass().getName();
 		    }
 		return cachedTester;
+	    }
+    }
+
+    public static boolean supportsMethod(Object target, String mname, Class[] argTypes)
+    {
+	try {return (target.getClass().getMethod( mname, argTypes ) != null); }
+	catch ( NoSuchMethodException e )
+	    { return false; }
+	catch (SecurityException e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log(MLevel.FINE, 
+			       "We were denied access in a check of whether " + target + " supports method " + mname + 
+			       ". Prob means external clients have no access, returning false.",
+			       e);
+		return false;
 	    }
     }
 

@@ -22,11 +22,12 @@
    <property name="test.props.dir" value="test-properties" />
    <property name="test.logging.props.file" location="${test.props.dir}/logging.properties" />
    <property name="build.dir" value="build" />
-   <property name="build.codegen.dir"    value="${build.dir}/codegen" />
-   <property name="build.classes.dir"    value="${build.dir}/classes" />
-   <property name="build.apidocs.dir"    value="${build.dir}/apidocs" />
-   <property name="build.docwebapp.dir"  value="${build.dir}/docweb/docwebapp" />
-   <property name="build.docwebear.dir"  value="${build.dir}/docweb/docwebear" />
+   <property name="build.codegen.dir"     value="${build.dir}/codegen" />
+   <property name="build.classes.dir"     value="${build.dir}/classes" />
+   <property name="build.apidocs.dir"     value="${build.dir}/apidocs" />
+   <property name="build.docwebapp.dir"   value="${build.dir}/docweb/docwebapp" />
+   <property name="build.docwebear.dir"   value="${build.dir}/docweb/docwebear" />
+   <property name="build.testresults.dir" value="${build.dir}/testresults" />
    <property name="dbms.dir" value="dbms" />
    <property name="dbms.oracle.thin.antproj.dir" value="${dbms.dir}/oracle-thin" />
    <property name="dbms.oracle.thin.antproj.dist.dir" value="${dbms.oracle.thin.antproj.dir}/dist" />
@@ -45,7 +46,11 @@
    <!-- we set them here only to keep classpaths valid -->
    <!-- when users do not set the path                         -->
    <property name="j2ee.jar.base.dir" value="" />
+
+<!--
    <property name="log4j.jar.file" value="" />
+   <property name="junit.jar.file" value="" />
+  -->
 
    <!-- these properties should often be preempted in build.properties -->
    <property name="c3p0.debug" value="false" />
@@ -75,10 +80,14 @@
        <exclude name="com/mchange/v1/xml/**" />
        <exclude name="com/mchange/v2/c3p0/codegen/**" />
        <exclude name="com/mchange/v2/c3p0/test/**" />
+       <exclude name="**/junit/**" />
+       <exclude name="**/*JUnitTestCase.*" />
    </patternset>   
 
    <patternset id="test-only-classes">
        <include name="com/mchange/v2/c3p0/test/**" />
+       <include name="**/junit/**" />
+       <include name="**/*JUnitTestCase.class" />
    </patternset>
 
    <path id="test-classpath">
@@ -146,6 +155,13 @@
              <token key="c3p0.debug"     value="${c3p0.debug}"/>
              <token key="c3p0.trace"     value="${c3p0.trace}"/>
              <token key="c3p0.timestamp" value="${c3p0.timestamp}"/>
+
+	     <!-- NO LONGER USED THIS WAY junit test stuff only 
+	     <token key="test.jdbc.drivers" value="${test.jdbc.drivers}" />
+	     <token key="test.jdbc.url" value="${test.jdbc.url}" />
+	     <token key="test.jdbc.user" value="${test.jdbc.user}" />
+	     <token key="test.jdbc.password" value="${test.jdbc.password}" />
+	     -->
            </replacetokens>
          </filterchain>
       </copy>
@@ -208,8 +224,24 @@
              <pathelement location="${build.codegen.dir}" />
              <pathelement location="${java.src.dir}" />
           </src>
-	  <exclude name="**/subst/**" />
+	  <exclude name="**/junit/**" />
+	  <exclude name="**/*JUnitTestCase.*" />
+	  <exclude name="**/subst/**" /> 
 	  <exclude name="com/mchange/v2/log/log4j/**" />
+      </javac>
+   </target>
+
+   <target name="compile-subst" depends="codegen">
+      <javac destdir="${build.classes.dir}" 
+             classpathref="build-classpath" 
+             debug="on">
+          <sourcepath>
+             <pathelement location="${build.codegen.dir}" />
+          </sourcepath>
+          <src>
+             <pathelement location="${build.codegen.dir}" />
+          </src>
+	  <include name="**/subst/**" /> 
       </javac>
    </target>
 
@@ -232,7 +264,27 @@
       </javac>
    </target>
 
-   <target name="compile" depends="codegen,compile-common,compile-log4j">
+   <target name="compile-junit" depends="init" if="junit.jar.file">
+      <javac destdir="${build.classes.dir}" 
+             debug="on">
+	  <classpath>
+	    <path refid="build-classpath" />
+	    <pathelement path="${junit.jar.file}" />
+	  </classpath>
+          <sourcepath>
+             <pathelement location="${build.codegen.dir}" />
+             <pathelement location="${java.src.dir}" />
+          </sourcepath>
+          <src>
+             <pathelement location="${build.codegen.dir}" />
+             <pathelement location="${java.src.dir}" />
+          </src>
+	  <include name="**/junit/**" />
+	  <include name="**/*JUnitTestCase.*" />
+      </javac>
+   </target>
+
+   <target name="compile" depends="codegen,compile-common,compile-subst,compile-log4j,compile-junit">
    </target>
 
    <target name="jar" depends="compile">
@@ -399,6 +451,31 @@
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
        </java>
+   </target>
+
+   <target name="junit-tests" depends="test-init" if="junit.jar.file">
+     <mkdir dir="${build.testresults.dir}" />
+     <junit printsummary="true" showoutput="true" haltonfailure="true">
+       <classpath refid="test-classpath" />
+       <formatter type="plain"/>
+       <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
+       <sysproperty key="c3p0.test.jdbc.url" value="${test.jdbc.url}" />
+       <sysproperty key="c3p0.test.jdbc.user" value="${test.jdbc.user}" />
+       <sysproperty key="c3p0.test.jdbc.password" value="${test.jdbc.password}" />
+       <batchtest fork="yes" toDir="${build.testresults.dir}">
+	 <fileset dir="${build.classes.dir}">
+	   <include name="**/*JUnitTestCase.class"/>
+	 </fileset>
+       </batchtest>
+     </junit>
+
+     <!--
+	 <junit printsummary="withOutAndErr" >
+	   <test name="com.mchange.v2.c3p0.test.junit.MiscellaneousTopLevelJUnitTestCase"/>
+	   <classpath refid="test-classpath" />
+	   <formatter type="plain"/>
+	 </junit>
+	-->
    </target>
 
    <target name="javadocs" depends="init">

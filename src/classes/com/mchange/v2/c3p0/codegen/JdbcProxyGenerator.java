@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -496,6 +496,20 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		    super.generateDelegateCode( intfcl, genclass, method, iw );
 		    iw.println( "parentPooledConnection.markNewTxnIsolation( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
 		}
+	    else if ( mname.equals("setCatalog") )
+		{
+		    //do nothing with txn_known_resolved
+
+		    super.generateDelegateCode( intfcl, genclass, method, iw );
+		    iw.println( "parentPooledConnection.markNewCatalog( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
+		}
+	    else if ( mname.equals("setHoldability") )
+		{
+		    //do nothing with txn_known_resolved
+
+		    super.generateDelegateCode( intfcl, genclass, method, iw );
+		    iw.println( "parentPooledConnection.markNewHoldability( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
+		}
 	    else if ( mname.equals("close") )
 		{
 		    iw.println("if (! this.isDetached())");
@@ -775,7 +789,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	iw.println("private final static MLogger logger = MLog.getLogger( \042" + genclass + "\042 );");
 	iw.println();
 
-	iw.println("NewPooledConnection parentPooledConnection;");
+	iw.println("volatile NewPooledConnection parentPooledConnection;");
 	iw.println();
 
 	iw.println("ConnectionEventListener cel = new ConnectionEventListener()");

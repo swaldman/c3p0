@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -30,6 +30,7 @@ import com.mchange.v2.async.AsynchronousRunner;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.log.*;
 import com.mchange.v1.db.sql.StatementUtils;
+import com.mchange.v2.holders.ChangeNotifyingSynchronizedIntHolder; //req'd only for oracle bug workaround
 
 public abstract class GooGooStatementCache
 {
@@ -197,22 +198,34 @@ public abstract class GooGooStatementCache
 	    }
     }
 
-    public synchronized void closeAll(Connection pcon)
-	throws SQLException
+    /*
+     * we only selectively sync' parts of this method, because we wish to wait for
+     * Statements to be destroyed without holding up the StatementCache by keeping
+     * the lock.
+     *
+     * THIS IS BECAUSE ORACLE DEADLOCKS IF A STATEMENT IS CLOSING AT THE SAME TIME AS
+     * ITS PARENT CONNECTION IS CLOSING. (THIS IS AN ORACLE BUG, AND I _HATE_ DRAMATICALLY
+     * COMPLICATING MY CODE TO AVOID IT.)
+     *
+     * we have a double-lock acqusition here -- we acquire a counter's lock, than our own.
+     * the other thread that contends the counter's lock is the async task thread in the 
+     * destroy statement method. ensure that statement-destroying task does not acquire 
+     * this' lock prior to requiring the counter's lock to avoid deadlock.
+     *
+     * NOTE: plan on reverting this method to fully sync'ed, no counter or waiting on counter 
+     * involved if Oracle ever fixes their damned bug. See c3p0-0.9.0-pre5 for last simpler
+     * version.
+     */
+    public void closeAll(Connection pcon) throws SQLException
     {
 	//new Exception("closeAll()").printStackTrace();
 
-	Set cSet = cxnStmtMgr.statementSet( pcon );
+	Set cSet = null;
+	synchronized(this)
+	    { cSet = cxnStmtMgr.statementSet( pcon ); }
 
   	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-// 		System.err.println("ENTER METHOD: closeAll( " + pcon + " )! -- " +
-// 				   "num_connections: " + cxnStmtMgr.getNumConnectionsWithCachedStatements());
-// 		System.err.print("Set of statements for connection: " + cSet);
-// 		if (cSet != null)
-// 		    System.err.println("; size: " + cSet.size());
-// 		else
-// 		    System.err.println();
 		if (logger.isLoggable(MLevel.FINEST))
 		    {
 			logger.log(MLevel.FINEST, "ENTER METHOD: closeAll( " + pcon + " )! -- num_connections: " + 
@@ -221,22 +234,44 @@ public abstract class GooGooStatementCache
 		    }
 	    }
 
-	if (cSet != null)
+	ChangeNotifyingSynchronizedIntHolder counter = new ChangeNotifyingSynchronizedIntHolder(0, true);
+	synchronized ( counter )
 	    {
-		//the removeStatement(...) removes from cSet, so we can't be iterating over cSet directly
-		Set stmtSet = new HashSet( cSet );
-		//System.err.println("SIZE FOR CONNECTION SET: " + stmtSet.size());
-		for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
+		if (cSet != null)
 		    {
-			Object stmt = ii.next();
-			removeStatement( stmt, true );
+			//the removeStatement(...) removes from cSet, so we can't be iterating over cSet directly
+			Set stmtSet = new HashSet( cSet );
+			int sz = stmtSet.size();
+			//System.err.println("SIZE FOR CONNECTION SET: " + stmtSet.size());
+			for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
+			    {
+				Object stmt = ii.next();
+
+				synchronized ( this )
+				    { removeStatement( stmt, true, counter ); }
+			    }
+			try
+			    {
+				while (counter.getValue() < sz) 
+				    {
+					//System.err.println( "counter.getValue(): " + counter.getValue() + "; sz: " + sz );
+					counter.wait();
+				    }
+				//System.err.println( "FINAL: counter.getValue(): " + counter.getValue() + "; sz: " + sz );
+			    }
+			catch (InterruptedException e)
+			    {
+				if (logger.isLoggable(MLevel.WARNING))
+				    logger.warning("Unexpected interupt(). [A thread closing all Statements for a Connection in a Statement cache" +
+						   " will no longer wait for all Statements to close, but will move on and let them close() asynchronously." +
+						   " This is harmless in general, but may lead to a transient deadlock (which the thread pool will notice " +
+						   " and resolve) under Oracle, due to an Oracle bug.");
+			    }
 		    }
 	    }
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 	    {
-// 		System.err.print("closeAll(): ");
-// 		printStats();
 		if (logger.isLoggable(MLevel.FINEST))
 		    logger.finest("closeAll(): " + statsString());
 	    }
@@ -259,12 +294,44 @@ public abstract class GooGooStatementCache
     /* non-public methods that needn't be called with this' lock below */
      
     private void destroyStatement( final Object pstmt )
+    { destroyStatement( pstmt, null ); }
+
+    /*
+     * ORACLE BUG WORKAROUND ( counter crap ) -- see closeAll(Connection c)
+     *
+     * NOTE: plan on reverting this method to fully sync'ed, no counter or waiting on counter 
+     * involved if Oracle ever fixes their damned bug. See c3p0-0.9.0-pre5 for last simpler
+     * version.
+     */
+    private void destroyStatement( final Object pstmt, final ChangeNotifyingSynchronizedIntHolder counter )
     {
- 	Runnable r = new Runnable()
- 	    {
- 		public void run()
- 		{  StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
- 	    };
+ 	Runnable r;
+	if (counter == null)
+	    {
+		r = new Runnable()
+		    {
+			public void run()
+			{ StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
+		    };
+	    }
+	else
+	    {
+		r = new Runnable()
+		    {
+			// this methd MUSTN'T try to obtain this' lock prior to obtaining the 
+			// counter's lock, or a potential deadlock may result. 
+			//
+			// See closeAll(Connection c) comments.
+			public void run()
+			{ 
+			    synchronized( counter )
+				{
+				    StatementUtils.attemptClose( (PreparedStatement) pstmt ); 
+				    counter.increment();
+				}
+			}
+		    };
+	    }
 	blockingTaskAsyncRunner.postRunnable(r);
     }
 
@@ -317,6 +384,16 @@ public abstract class GooGooStatementCache
     }
 
     private void removeStatement( Object ps , boolean force_destroy )
+    { removeStatement( ps, force_destroy, null ); }
+
+    /*
+     * ORACLE BUG WORKAROUND ( counter crap ) -- see closeAll(Connection c)
+     *
+     * NOTE: plan on reverting this method to fully sync'ed, no counter or waiting on counter 
+     * involved if Oracle ever fixes their damned bug. See c3p0-0.9.0-pre5 for last simpler
+     * version.
+     */
+    private void removeStatement( Object ps , boolean force_destroy, ChangeNotifyingSynchronizedIntHolder counter )
     {
 	StatementCacheKey sck = (StatementCacheKey) stmtToKey.remove( ps );
 	removeFromKeySet( sck, ps );
@@ -326,13 +403,15 @@ public abstract class GooGooStatementCache
 	    {
 		removeStatementFromDeathmarches( ps, pConn );
 		removeFromCheckoutQueue( sck , ps );
-		destroyStatement( ps );
+		destroyStatement( ps, counter );
 	    }
 	else
 	    {
 		checkedOut.remove( ps ); // usually we let it defer destruction until check-in!
 		if (force_destroy)       // but occasionally we want the statement assuredly gone.
-		    destroyStatement( ps );
+		    {
+			destroyStatement( ps, counter );
+		    }
 	    }
 
 	boolean check =	cxnStmtMgr.removeStatementForConnection( ps, pConn );

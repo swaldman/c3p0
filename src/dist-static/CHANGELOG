@@ -1,3 +1,26 @@
+c3p0-0.9.0-pre6
+	-- Modified thread pool's strategy for dealing with deadlocks to prevent OutOfMemoryErrors
+	   from sudden spawning of multiple threads to clear backlogged tasks. [Thanks to Greg Whalin
+	   for calling attention to this problem.]
+	-- Fixed bugs in debug reporting of nested Exceptions/Warnings when converting or
+	   rethrowing SQLExceptions [thanks to an anonymous sourceforge poster for finding this]
+	-- modified BasicResourcePool to shorten the period during which the pool's lock
+	   is held during resource acquisition 
+	-- maxIdleTime is generally enforced every (maxIdleTime / 8) seconds. Added logic to ensure that 
+	   even for very long maxIdleTimes, the longest maxIdleTime will ever go unenforced is 15 minutes.
+	-- Very tentative initial support in build for JUnit tests
+	-- Fixed documentation typos and added sample config for Tomcat 5.5. [Thanks to David Newcomb 
+	   for finding the typos and to Carl F. Hall for the sample config!]
+	-- ProxyConnections were not properly resetting readOnly, holdability, catalog, and typeMap
+	   properties on Connection close. Fixed. [Thanks to Andy (bjorkmann?) for calling attention
+	   to this bug.]
+	-- Added a complicated workaround to issues that may occur when a Connection
+	   and its child statements simultaneously try to close. GooGooStatementCache's closeAll(Connection c)
+	   method now wait()s for all Statements to close prior to returning, avoiding such issues (Oracle deadlock,
+	   mysql NullPointerException), though dramatically complicating the code. Grrr. Theoretically, drivers should
+	   be robust to the simultaneous closing of Statements and Connections, but they're not, so
+	   my code gets to be more complicated. [Thanks to Juan Perez, Daniel Edberg, and Damien Evans for calling 
+	   attention to this issue.]
 c3p0-0.9.0-pre5
 	-- Proxy classes were overaggressively invalidating themselves in response to a signalled
 	   Connection error. This problem was very similar to the problem fixed in 0.8.5-pre9, except

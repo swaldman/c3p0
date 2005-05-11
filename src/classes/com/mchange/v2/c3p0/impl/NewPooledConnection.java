@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -32,6 +32,7 @@ import com.mchange.v2.c3p0.util.*;
 import com.mchange.v2.log.*;
 
 import java.lang.reflect.Method;
+import com.mchange.v2.lang.ObjectUtils;
 import com.mchange.v2.sql.SqlUtils;
 
 public final class NewPooledConnection implements PooledConnection
@@ -43,7 +44,11 @@ public final class NewPooledConnection implements PooledConnection
     final ConnectionTester       connectionTester;
     final boolean                autoCommitOnClose;
     final boolean                forceIgnoreUnresolvedTransactions;
+    final boolean                supports_setTypeMap;
+    final boolean                supports_setHoldability;
     final int                    dflt_txn_isolation;
+    final String                 dflt_catalog;
+    final int                    dflt_holdability;
     final ConnectionEventSupport ces;
 
     //MT:  protected by this' lock
@@ -59,6 +64,8 @@ public final class NewPooledConnection implements PooledConnection
     //MT: thread-safe, volatile
     volatile NewProxyConnection exposedProxy = null;
     volatile boolean isolation_lvl_nondefault = false; 
+    volatile boolean catalog_nondefault       = false; 
+    volatile boolean holdability_nondefault   = false; 
 
     // public API
     public NewPooledConnection(Connection con, 
@@ -70,7 +77,11 @@ public final class NewPooledConnection implements PooledConnection
 	this.connectionTester                  = connectionTester;
 	this.autoCommitOnClose                 = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
+	this.supports_setTypeMap               = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
+	this.supports_setHoldability           = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ Integer.class });
 	this.dflt_txn_isolation                = con.getTransactionIsolation();
+	this.dflt_catalog                      = con.getCatalog();
+	this.dflt_holdability                  = (supports_setHoldability ? con.getHoldability() : ResultSet.CLOSE_CURSORS_AT_COMMIT);
 	this.ces                               = new ConnectionEventSupport(this);
     }
 
@@ -141,6 +152,16 @@ public final class NewPooledConnection implements PooledConnection
     { 
 	this.isolation_lvl_nondefault = (lvl != dflt_txn_isolation); 
 	//System.err.println("isolation_lvl_nondefault: " + isolation_lvl_nondefault);
+    }
+
+    void markNewCatalog( String catalog ) //intentionally unsync'd -- catalog_nondefault is marked volatile
+    { 
+	this.catalog_nondefault = ObjectUtils.eqOrBothNull(catalog, dflt_catalog); 
+    }
+
+    void markNewHoldability( int holdability ) //intentionally unsync'd -- holdability_nondefault is marked volatile
+    { 
+	this.holdability_nondefault = (holdability != dflt_holdability); 
     }
 
     synchronized Object checkoutStatement( Method stmtProducingMethod, Object[] args ) throws SQLException
@@ -245,6 +266,32 @@ public final class NewPooledConnection implements PooledConnection
 		physicalConnection.setTransactionIsolation( dflt_txn_isolation );
 		isolation_lvl_nondefault = false; 
 		//System.err.println("reset txn isolation: " + dflt_txn_isolation);
+	    }
+	if (catalog_nondefault)
+	    {
+		physicalConnection.setCatalog( dflt_catalog );
+		catalog_nondefault = false; 
+	    }
+	if (holdability_nondefault) //this cannot go to true if holdability is not supported, so we don't have to check.
+	    {
+		physicalConnection.setHoldability( dflt_holdability );
+		holdability_nondefault = false; 
+	    }
+
+	try
+	    { physicalConnection.setReadOnly( false ); }
+	catch ( Throwable t )
+	    {
+		if (logger.isLoggable( MLevel.FINE ))
+		    logger.log(MLevel.FINE, "A Throwable occurred while trying to reset the readOnly property of our Connection to false!", t);
+	    }
+
+	try
+	    { if (supports_setTypeMap) physicalConnection.setTypeMap( Collections.EMPTY_MAP ); }
+	catch ( Throwable t )
+	    {
+		if (logger.isLoggable( MLevel.FINE ))
+		    logger.log(MLevel.FINE, "A Throwable occurred while trying to reset the typeMap property of our Connection to Collections.EMPTY_MAP!", t);
 	    }
     }
 
@@ -533,5 +580,4 @@ public final class NewPooledConnection implements PooledConnection
 		    }
 	    }
     }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -82,9 +82,9 @@ public final class SqlUtils
 			    tmp.append(" Ignoring suggested message: '" + msg + "'.");
 			logger.log( MLevel.FINER, tmp.toString(), t );
 
-			SQLException s2;
-			while ((s2 = s.getNextException()) != null)
-			    logger.log( MLevel.FINER, "Nested SQLException or SQLWarning: ", t );
+			SQLException s2 = s;
+			while ((s2 = s2.getNextException()) != null)
+			    logger.log( MLevel.FINER, "Nested SQLException or SQLWarning: ", s2 );
 		    }
 		return (SQLException) t;
 	    }

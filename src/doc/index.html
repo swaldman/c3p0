@@ -734,7 +734,7 @@ c3p0.maxIdleTime=1800
 	if the query target table does not exist in your database table <i>prior to initialization of your DataSource</i>. (Advanced
 	users may define any kind of Connection testing they wish, by implementing the interface 
 	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> or 
-	<a href="apidocs/com/mchange/v2/c3p0/advanced/QueryConnectionTester.html">QueryConnectionTester</a>, and supplying the
+	<a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>, and supplying the
 	fully qualified name of the class as <tt>connectionTesterClassName</tt>.)
       </p>
       <p>
@@ -1075,7 +1075,7 @@ c3p0.maxIdleTime=1800
 	    test the Connection. If <tt>automaticTestTable</tt> is provided, c3p0 will generate its own test query, therefore
 	    any <tt>preferredTestQuery</tt> set will be ignored. You should not work with the named table after c3p0 creates
 	    it; it should be strictly for c3p0's use in testing your Connection. (If you define your own ConnectionTester, it
-	    must implement the <a href="apidocs/com/mchange/v2/c3p0/advanced/QueryConnectionTester.html">QueryConnectionTester</a>
+	    must implement the <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>
 	    interface for this parameter to be useful.) [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
 	  </div>
 	</dd>
@@ -1083,7 +1083,7 @@ c3p0.maxIdleTime=1800
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
-	    If true, a pooled DataSource will declare itself broken and be permanently closeed if
+	    If true, a pooled DataSource will declare itself broken and be permanently closed if
 	    a Connection cannot be obtained from the database after making <tt>acquireRetryAttempts</tt> to acquire one.
 	    If false, failure to obtain a Connection will cause all Threads waiting for the pool to acquire a Connection
 	    to throw an Exception, but the DataSource will remain valid, and will attempt to acquire again following
@@ -1229,7 +1229,7 @@ c3p0.maxIdleTime=1800
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
 	    Defines the query that will be executed for all connection tests, if the default ConnectionTester (or some
-	    other implementation of <a href="apidocs/com/mchange/v2/c3p0/advanced/QueryConnectionTester.html">QueryConnectionTester</a>) 
+	    other implementation of <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>) 
 	    is being used. Defining a <tt>preferredTestQuery</tt>
 	    that will execute quickly in your database may dramatically speed up Connection tests. (If no <tt>preferredTestQuery</tt>
 	    is set, the default ConnectionTester executes a <tt>getTables()</tt> call on the Connection's DatabaseMetaData.
@@ -1288,7 +1288,7 @@ c3p0.maxIdleTime=1800
     <div class="sectiontext">
       <p>
 	You can easily configure Apache's Tomcat web application server to use c3p0 pooled DataSources. 
-	Below is a sample config to get you started. It's a fragment of Tomcat's <tt>conf/server.xml</tt> file,
+	Below is a Tomcat 5.0  sample config to get you started. It's a fragment of Tomcat's <tt>conf/server.xml</tt> file,
 	which should be modified to suit and placed inside a <tt>&lt;Context&gt;</tt> element.
       </p>
       <div class="example">
@@ -1327,6 +1327,21 @@ c3p0.maxIdleTime=1800
     &lt;value&gt;5&lt;/value&gt;
   &lt;/parameter&gt;
 &lt;/ResourceParams&gt;
+      </div>
+      <p>For Tomcat 5.5, try something like the following (thanks to Carl F. Hall for the sample!):</p>
+      <div class="example">
+	&lt;Resource auth="Container"
+	          description="DB Connection"
+		  driverClass="com.mysql.jdbc.Driver"
+		  maxPoolSize="4"
+		  minPoolSize="2"
+		  acquireIncrement="1"
+		  name="jdbc/TestDB"
+		  user="test"
+		  password="ready2go"
+		  factory="org.apache.naming.factory.BeanFactory"
+		  type="com.mchange.v2.c3p0.ComboPooledDataSource"
+		  jdbcUrl="jdbc:mysql://localhost:3306/test?autoReconnect=true" /&gt;
       </div>
       <p>
 	The rest is standard J2EE stuff: You'll need to declare your DataSource reference in your <tt>web.xml</tt>

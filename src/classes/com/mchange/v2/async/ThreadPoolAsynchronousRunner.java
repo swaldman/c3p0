@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -36,6 +36,8 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
     final static int DFLT_DEADLOCK_DETECTOR_INTERVAL              = 10000; //milliseconds
     final static int DFLT_INTERRUPT_DELAY_AFTER_APPARENT_DEADLOCK = 60000; //milliseconds
     final static int DFLT_MAX_INDIVIDUAL_TASK_TIME                = 0;     //milliseconds, <= 0 means don't enforce a max task time
+
+    final static int DFLT_MAX_EMERGENCY_THREADS                   = 10;
 
     int deadlock_detector_interval;
     int interrupt_delay_after_apparent_deadlock;
@@ -278,7 +280,7 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 				if (logger.isLoggable(MLevel.WARNING))
 				    logger.log(MLevel.WARNING, 
 					       "Task " + pt.getCurrentTask() + " (in deadlocked PoolThread) failed to complete in maximum time " +
-					       max_individual_task_time + "ms. Trying interrupt().");
+					       interrupt_delay_after_apparent_deadlock + "ms. Trying interrupt().");
 				pt.interrupt();
 				ii.remove();
 			    }
@@ -438,32 +440,37 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 		}
 	    if (run_stray_tasks)
 		{
+		    AsynchronousRunner ar = new ThreadPerTaskAsynchronousRunner( DFLT_MAX_EMERGENCY_THREADS, max_individual_task_time );
 		    for ( Iterator ii = current.iterator(); ii.hasNext(); )
-			{
-			    final Runnable r = (Runnable) ii.next();
-			    final Thread t = new Thread( r );
-			    t.start();
-			    if (max_individual_task_time > 0)
-				{
-				    TimerTask maxIndividualTaskTimeEnforcer = new TimerTask() 
-					{ 
-					    public void run() 
-					    { 
-						if (logger.isLoggable(MLevel.WARNING))
-						    logger.log(MLevel.WARNING, 
-							       "Task " + t + " (in one-off task Thread created after deadlock) failed to complete in maximum time " +
-							       max_individual_task_time + "ms. Trying interrupt().");
-						t.interrupt();
-					    } 
-					};
-				    myTimer.schedule( maxIndividualTaskTimeEnforcer, max_individual_task_time );
-				}
-			}
+			ar.postRunnable( (Runnable) ii.next() );
+		    ar.close( false );
 		    last = null;
 		}
 	    else
 		last = current;
 	}
+    }
+
+    //not currently used...
+    private void runInEmergencyThread( final Runnable r )
+    {
+	final Thread t = new Thread( r );
+	t.start();
+	if (max_individual_task_time > 0)
+	    {
+		TimerTask maxIndividualTaskTimeEnforcer = new TimerTask() 
+		    { 
+			public void run() 
+			{ 
+			    if (logger.isLoggable(MLevel.WARNING))
+				logger.log(MLevel.WARNING, 
+					   "Task " + t + " (in one-off task Thread created after deadlock) failed to complete in maximum time " +
+					   max_individual_task_time + " ms. Trying interrupt().");
+			    t.interrupt();
+			} 
+		    };
+		myTimer.schedule( maxIndividualTaskTimeEnforcer, max_individual_task_time );
+	    }
     }
 
     class ReplacedThreadInterruptor extends TimerTask

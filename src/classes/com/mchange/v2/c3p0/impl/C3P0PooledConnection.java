@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre5
+ * Distributed as part of c3p0 v.0.9.0-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -35,6 +35,7 @@ import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v1.util.ClosableResource;
 import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.util.ConnectionEventSupport;
+import com.mchange.v2.lang.ObjectUtils;
 
 public final class C3P0PooledConnection implements PooledConnection, ClosableResource
 {
@@ -89,7 +90,11 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     final ConnectionTester connectionTester;
     final boolean autoCommitOnClose;
     final boolean forceIgnoreUnresolvedTransactions;
+    final boolean supports_setTypeMap;
+    final boolean supports_setHoldability;
     final int dflt_txn_isolation;
+    final String dflt_catalog;
+    final int dflt_holdability;
 
     //MT: thread-safe
     final ConnectionEventSupport ces = new ConnectionEventSupport(this);
@@ -116,6 +121,8 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     //MT: Thread-safe, assigned
     volatile GooGooStatementCache scache;
     volatile boolean isolation_lvl_nondefault = false;
+    volatile boolean catalog_nondefault       = false; 
+    volatile boolean holdability_nondefault   = false; 
 
     public C3P0PooledConnection(Connection con, 
 				ConnectionTester connectionTester,
@@ -126,7 +133,11 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	this.connectionTester = connectionTester;
 	this.autoCommitOnClose = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
+	this.supports_setTypeMap = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
+	this.supports_setHoldability = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ Integer.class });
 	this.dflt_txn_isolation = con.getTransactionIsolation();
+	this.dflt_catalog = con.getCatalog();
+	this.dflt_holdability = (supports_setHoldability ? con.getHoldability() : ResultSet.CLOSE_CURSORS_AT_COMMIT);
     }
 
     Connection getPhysicalConnection()
@@ -330,6 +341,32 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	    {
 		physicalConnection.setTransactionIsolation( dflt_txn_isolation );
 		isolation_lvl_nondefault = false; 
+	    }
+	if (catalog_nondefault)
+	    {
+		physicalConnection.setCatalog( dflt_catalog );
+		catalog_nondefault = false; 
+	    }
+	if (holdability_nondefault) //we don't test if holdability is supported, 'cuz it can never go nondefault if it's not.
+	    {
+		physicalConnection.setHoldability( dflt_holdability );
+		holdability_nondefault = false; 
+	    }
+
+	try
+	    { physicalConnection.setReadOnly( false ); }
+	catch ( Throwable t )
+	    {
+		if (logger.isLoggable( MLevel.FINE ))
+		    logger.log(MLevel.FINE, "A Throwable occurred while trying to reset the readOnly property of our Connection to false!", t);
+	    }
+
+	try
+	    { if (supports_setTypeMap) physicalConnection.setTypeMap( Collections.EMPTY_MAP ); }
+	catch ( Throwable t )
+	    {
+		if (logger.isLoggable( MLevel.FINE ))
+		    logger.log(MLevel.FINE, "A Throwable occurred while trying to reset the typeMap property of our Connection to Collections.EMPTY_MAP!", t);
 	    }
     }
 
@@ -757,6 +794,32 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 				    isolation_lvl_nondefault = (lvl != dflt_txn_isolation);
 
 				    //System.err.println("updated txn isolation to " + lvl + ", nondefault level? " + isolation_lvl_nondefault);
+
+				    return null;
+				}
+			    else if (mname.equals("setCatalog"))
+				{
+				    ensureOkay();
+
+				    //don't modify txn_known_resolved
+
+				    m.invoke( activeConnection, args );
+
+				    String catalog = (String) args[0];
+				    catalog_nondefault = ObjectUtils.eqOrBothNull(catalog, dflt_catalog);
+
+				    return null;
+				}
+			    else if (mname.equals("setHoldability"))
+				{
+				    ensureOkay();
+
+				    //don't modify txn_known_resolved
+
+				    m.invoke( activeConnection, args ); //will throw an exception if setHoldability() not supported...
+
+				    int holdability = ((Integer) args[0]).intValue();
+				    holdability_nondefault = (holdability != dflt_holdability);
 
 				    return null;
 				}
