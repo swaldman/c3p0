@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre6
+ * Distributed as part of c3p0 v.0.9.0
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -443,11 +443,17 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 		    AsynchronousRunner ar = new ThreadPerTaskAsynchronousRunner( DFLT_MAX_EMERGENCY_THREADS, max_individual_task_time );
 		    for ( Iterator ii = current.iterator(); ii.hasNext(); )
 			ar.postRunnable( (Runnable) ii.next() );
-		    ar.close( false );
+		    ar.close( false ); //tell the emergency runner to close itself when its tasks are complete
 		    last = null;
 		}
 	    else
 		last = current;
+
+	    // under some circumstances, these lists seem to hold onto a lot of memory... presumably this
+	    // is when long pending task lists build up for some reason... nevertheless, let's dereference
+	    // things as soon as possible. [Thanks to Venkatesh Seetharamaiah for calling attention to this
+	    // issue, and for documenting the source of object retention.]
+	    current = null;
 	}
     }
 

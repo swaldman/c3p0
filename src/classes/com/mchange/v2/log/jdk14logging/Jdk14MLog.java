@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre6
+ * Distributed as part of c3p0 v.0.9.0
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -31,7 +31,12 @@ public final class Jdk14MLog extends MLog
 {
     private static String[] UNKNOWN_ARRAY = new String[] {"UNKNOWN_CLASS", "UNKNOWN_METHOD"};
 
+    private final static String CHECK_CLASS = "java.util.logging.Logger";
+
     MLogger global = null;
+
+    public Jdk14MLog() throws ClassNotFoundException
+    { Class.forName( CHECK_CLASS ); }
 
     public MLogger getMLogger(String name)
     {

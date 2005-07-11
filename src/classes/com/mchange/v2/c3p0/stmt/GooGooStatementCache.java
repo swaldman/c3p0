@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre6
+ * Distributed as part of c3p0 v.0.9.0
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -205,16 +205,14 @@ public abstract class GooGooStatementCache
      *
      * THIS IS BECAUSE ORACLE DEADLOCKS IF A STATEMENT IS CLOSING AT THE SAME TIME AS
      * ITS PARENT CONNECTION IS CLOSING. (THIS IS AN ORACLE BUG, AND I _HATE_ DRAMATICALLY
-     * COMPLICATING MY CODE TO AVOID IT.)
+     * COMPLICATING MY CODE TO AVOID IT.) Oh, okay. That's a bit overdone. Lots of drivers
+     * don't like the old behavior.
      *
      * we have a double-lock acqusition here -- we acquire a counter's lock, than our own.
      * the other thread that contends the counter's lock is the async task thread in the 
      * destroy statement method. ensure that statement-destroying task does not acquire 
      * this' lock prior to requiring the counter's lock to avoid deadlock.
      *
-     * NOTE: plan on reverting this method to fully sync'ed, no counter or waiting on counter 
-     * involved if Oracle ever fixes their damned bug. See c3p0-0.9.0-pre5 for last simpler
-     * version.
      */
     public void closeAll(Connection pcon) throws SQLException
     {
@@ -360,11 +358,17 @@ public abstract class GooGooStatementCache
 	HashSet ks = keySet( key );
 	if (ks == null)
 	    keyToKeyRec.put( key, new KeyRec() );
-  	else if (Debug.DEBUG)
+  	else 
 	    {
 		//System.err.println("-------> Multiply prepared statement! " + key.stmtText );
-		if (logger.isLoggable(MLevel.WARNING))
-		    logger.warning("-------> Multiply prepared statement! " + key.stmtText );
+		if (logger.isLoggable(MLevel.INFO))
+		    logger.info("Multiply prepared statement! " + key.stmtText );
+		if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
+		    logger.fine("(The same statement has already been prepared by this Connection, " +
+				"and that other instance has not yet been closed, so the statement pool " +
+				"has to prepare a second PreparedStatement object rather than reusing " +
+				"the previously-cached Statement. The new Statement will be cached, in case " +
+				"you frequently need multiple copies of this Statement.)");
 	    }
 	keySet( key ).add( ps );
 	cxnStmtMgr.addStatementForConnection( ps, pConn );
@@ -387,11 +391,7 @@ public abstract class GooGooStatementCache
     { removeStatement( ps, force_destroy, null ); }
 
     /*
-     * ORACLE BUG WORKAROUND ( counter crap ) -- see closeAll(Connection c)
-     *
-     * NOTE: plan on reverting this method to fully sync'ed, no counter or waiting on counter 
-     * involved if Oracle ever fixes their damned bug. See c3p0-0.9.0-pre5 for last simpler
-     * version.
+     * SIMULTANEOUS CLOSE OF STATEMENT AND CONNECTION BUG WORKAROUND ( counter crap ) -- see closeAll(Connection c)
      */
     private void removeStatement( Object ps , boolean force_destroy, ChangeNotifyingSynchronizedIntHolder counter )
     {

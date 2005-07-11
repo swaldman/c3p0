@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre6
+ * Distributed as part of c3p0 v.0.9.0
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -113,13 +113,14 @@ public final class PSLoadPoolBackedDataSource
 				{
 				    con = ds.getConnection();
 				    boolean select = random.nextBoolean();
+				    //boolean select = true; //CHURNSELECTTEST
 				    if (select)
 					executeSelect( con );
 				    else
 					executeInsert( con );
 				}
-// 			    catch (Exception e)
-// 				{ e.printStackTrace(); }
+ 			    catch (Exception e)
+ 				{ e.printStackTrace(); }
 			    finally
 				{ ConnectionUtils.attemptClose( con ); }
 

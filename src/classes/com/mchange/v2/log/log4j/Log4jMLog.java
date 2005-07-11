@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre6
+ * Distributed as part of c3p0 v.0.9.0
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -30,7 +30,12 @@ import org.apache.log4j.*;
 
 public final class Log4jMLog extends MLog
 {
+    final static String CHECK_CLASS = "org.apache.log4j.Logger";
+
     MLogger global = null;
+
+    public Log4jMLog() throws ClassNotFoundException
+    { Class.forName( CHECK_CLASS ); }
 
     public MLogger getMLogger(String name)
     {

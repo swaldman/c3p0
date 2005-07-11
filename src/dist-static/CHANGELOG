@@ -1,3 +1,20 @@
+c3p0-0.9.0
+	-- under some circumstances, the current list of ThreadPoolAsynchronousRunner's deadlock detector
+	   seems to hold onto a lot of memory... presumably this is when long pending task lists build up 
+	   for some reason... nevertheless, we now dereference the "current" list in between deadlocker detector
+	   invocations. The "last" list has to be retained between invocations, but the "current" list need
+	   not be. [Thanks to Venkatesh Seetharamaiah for calling attention to this
+	   issue, and for documenting the apparent source of object retention.]
+	-- modified log4j and jdk14logging MLog implementations to test for library classes upon
+	   classload (MLog class only tests for the presence of the mlog implementations, which
+	   doesn't notice if their dependant classes aren't there -- dependent classes must test
+	   for the presence of the libraries.)
+	-- Modified GooGooStatementCache to warn as INFO (and with a descriptive message in debug)
+	   of multple PreparedStatement preparation. [Thanks to mxnmatch on hibernate's forum for 
+	   calling attention to this issue.]
+	-- Modified BasicResourcePool to not warn on expected InterruptExceptions that occur if
+	   clients are waiting for a Connection when the pool is closed. [Thanks to Blunted on
+	   hibernate's forum for calling attention to this issue.]
 c3p0-0.9.0-pre6
 	-- Modified thread pool's strategy for dealing with deadlocks to prevent OutOfMemoryErrors
 	   from sudden spawning of multiple threads to clear backlogged tasks. [Thanks to Greg Whalin

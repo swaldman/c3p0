@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre6
+ * Distributed as part of c3p0 v.0.9.0
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -23,6 +23,8 @@
 
 package com.mchange.v2.log;
 
+import java.util.List;
+import java.util.ArrayList;
 import com.mchange.v1.util.StringTokenizerUtils;
 import com.mchange.v2.cfg.MultiPropertiesConfig;
 
@@ -32,6 +34,8 @@ public abstract class MLog
     final static MLog mlog;
 
     final static MultiPropertiesConfig CONFIG;
+
+    final static MLogger logger;
 
     static
     {
@@ -65,6 +69,16 @@ public abstract class MLog
 	if (warn)
 	    info("Using " + mlog.getClass().getName() + " -- Named logger's not supported, everything goes to System.err.");
 
+	logger = mlog.getLogger( MLog.class );
+	String loggerDesc = mlog.getClass().getName();
+	if ("com.mchange.v2.log.jdk14logging.Jdk14MLog".equals( loggerDesc ))
+	    loggerDesc = "java 1.4+ standard";
+	else if ("com.mchange.v2.log.log4j.Log4jMLog".equals( loggerDesc ))
+	    loggerDesc = "log4j";
+	
+	if (logger.isLoggable( MLevel.INFO ))
+	    logger.log( MLevel.INFO, "MLog clients using " + loggerDesc + " logging.");
+
 	NameTransformer tmpt = null;
 	String tClassName = CONFIG.getProperty("com.mchange.v2.log.NameTransformer");
 	if (tClassName == null)
@@ -86,15 +100,22 @@ public abstract class MLog
 
     public static MLog findByClassnames( String[] classnames )
     {
+	List attempts = null;
 	for (int i = 0, len = classnames.length; i < len; ++i)
 	    {
 		try { return (MLog) Class.forName( classnames[i] ).newInstance(); }
 		catch (Exception e)
 		    { 
-			System.err.println("com.mchange.v2.log.MLog '" + classnames[i] + "' could not be loaded!"); 
-			e.printStackTrace();
+			if (attempts == null)
+			    attempts = new ArrayList();
+			attempts.add( classnames[i] );
+// 			System.err.println("com.mchange.v2.log.MLog '" + classnames[i] + "' could not be loaded!"); 
+// 			e.printStackTrace();
 		    }
 	    }
+	System.err.println("Tried without success to load the following MLog classes:");
+	for (int i = 0, len = attempts.size(); i < len; ++i)
+	    System.err.println("\t" + attempts.get(i));
 	return null;
     }
 

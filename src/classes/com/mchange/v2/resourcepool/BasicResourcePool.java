@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0-pre6
+ * Distributed as part of c3p0 v.0.9.0
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -264,12 +264,27 @@ class BasicResourcePool implements ResourcePool
 // 		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread " +
 // 				   "must have either interrupted the Thread attempting checkout, or close() was called on the pool.");
 // 		e.printStackTrace();
-		if (logger.isLoggable( MLevel.WARNING ))
+		if (broken)
 		    {
-			logger.log(MLevel.WARNING, 
-				   this + " -- an attempt to checkout a resource was interrupted: some other thread " +
-				   "must have either interrupted the Thread attempting checkout, or close() was called on the pool.",
-				   e );
+			if (logger.isLoggable( MLevel.FINER ))
+			    logger.log(MLevel.FINER, 
+				       this + " -- an attempt to checkout a resource was interrupted, because the pool is now closed. " +
+				       "[Thread: " + Thread.currentThread().getName() + ']',
+				       e );
+			else if (logger.isLoggable( MLevel.INFO ))
+			    logger.log(MLevel.INFO, 
+				       this + " -- an attempt to checkout a resource was interrupted, because the pool is now closed. " +
+				       "[Thread: " + Thread.currentThread().getName() + ']');
+		    }
+		else
+		    {
+			if (logger.isLoggable( MLevel.WARNING ))
+			    {
+				logger.log(MLevel.WARNING, 
+					   this + " -- an attempt to checkout a resource was interrupted, and the pool is still live: some other thread " +
+					   "must have either interrupted the Thread attempting checkout!",
+					   e );
+			    }
 		    }
 		throw e;
 	    }
