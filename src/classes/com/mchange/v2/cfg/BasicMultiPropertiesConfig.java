@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -146,8 +146,35 @@ public class BasicMultiPropertiesConfig extends MultiPropertiesConfig
 		    }
 		for (Iterator ii = p.keySet().iterator(); ii.hasNext(); )
 		    {
-			String key = (String) ii.next();
-			String val = (String) p.get( key );
+			Object kObj = ii.next();
+			if (!(kObj instanceof String))
+			    {
+				// note that we can not use the MLog library here, because initialization
+				// of that library depends on this function.
+				System.err.println( BasicMultiPropertiesConfig.class.getName() + ": " +
+						    "Properties object found at resource path " +
+						    ("/".equals(rp) ? "[system properties]" : "'" + rp + "'") +
+						    "' contains a key that is not a String: " +
+						    kObj);
+				System.err.println("Skipping...");
+				continue;
+			    }
+			Object vObj = p.get( kObj );
+			if (vObj != null && !(vObj instanceof String))
+			    {
+				// note that we can not use the MLog library here, because initialization
+				// of that library depends on this function.
+				System.err.println( BasicMultiPropertiesConfig.class.getName() + ": " +
+						    "Properties object found at resource path " +
+						    ("/".equals(rp) ? "[system properties]" : "'" + rp + "'") +
+						    " contains a value that is not a String: " +
+						    vObj);
+				System.err.println("Skipping...");
+				continue;
+			    }
+
+			String key = (String) kObj;
+			String val = (String) vObj;
 			out.put( key, val );
 		    }
 	    }
@@ -169,7 +196,21 @@ public class BasicMultiPropertiesConfig extends MultiPropertiesConfig
 		    }
 		for (Iterator jj = p.keySet().iterator(); jj.hasNext(); )
 		    {
-			String key = (String) jj.next();
+			Object kObj = jj.next();
+			if (! (kObj instanceof String))
+			    {
+				// note that we can not use the MLog library here, because initialization
+				// of that library depends on this function.
+				System.err.println( BasicMultiPropertiesConfig.class.getName() + ": " +
+						    "Properties object found at resource path " +
+						    ("/".equals(rp) ? "[system properties]" : "'" + rp + "'") +
+						    "' contains a key that is not a String: " +
+						    kObj);
+				System.err.println("Skipping...");
+				continue;
+			    }
+
+			String key = (String) kObj;
 			String prefix = extractPrefix( key );
 			while (prefix != null)
 			    {

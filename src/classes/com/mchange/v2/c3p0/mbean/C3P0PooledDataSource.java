@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -385,7 +385,7 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     public void create() throws Exception
     { }
 
-    // the mbean works with out this, but if called we start populating the pool early
+    // the mbean works without this, but if called we start populating the pool early
     public void start() throws Exception
     { 
 	//System.err.println("Bound C3P0 PooledDataSource to name '" + jndiName + "'. Starting..."); 

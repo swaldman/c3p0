@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -115,7 +115,12 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     }
 
     public synchronized String getUser()
-    { return properties.getProperty( SqlUtils.DRIVER_MANAGER_USER_PROPERTY ); }
+    {
+// 	System.err.println("getUser() -- DriverManagerDataSource@" + System.identityHashCode( this ) + 
+// 			   " using Properties@" + System.identityHashCode( properties ));
+// 	new Exception("STACK TRACE DUMP").printStackTrace();
+	return properties.getProperty( SqlUtils.DRIVER_MANAGER_USER_PROPERTY ); 
+    }
 
     public synchronized void setPassword(String password)
     {

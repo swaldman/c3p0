@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -121,20 +121,48 @@ public final class C3P0PooledConnectionPool
 			{
 			    if ( testConnectionOnCheckout )
 				{
-				    //System.err.println("testing connection on checkout...");
-				    testPooledConnection( resc );
+				    if ( logger.isLoggable( MLevel.FINER ) )
+					finerLoggingTestPooledConnection( resc, "CHECKOUT" );
+				    else
+					testPooledConnection( resc );
 				}
 			}
 
 			public void refurbishResourceOnCheckin( Object resc ) throws Exception
 			{
 			    if ( testConnectionOnCheckin )
-				{ testPooledConnection( resc ); }
+				{ 
+				    if ( logger.isLoggable( MLevel.FINER ) )
+					finerLoggingTestPooledConnection( resc, "CHECKIN" );
+				    else
+					testPooledConnection( resc );
+				}
 			}
 
 			public void refurbishIdleResource( Object resc ) throws Exception
-			{ testPooledConnection( resc ); }
+			{ 
+			    if ( logger.isLoggable( MLevel.FINER ) )
+				finerLoggingTestPooledConnection( resc, "IDLE CHECK" );
+			    else
+				testPooledConnection( resc );
+			}
 			
+			private void finerLoggingTestPooledConnection(Object resc, String testImpetus) throws Exception
+			{
+			    logger.finer("Testing PooledConnection [" + resc + "] on " + testImpetus + ".");
+			    try
+				{
+				    testPooledConnection( resc );
+				    logger.finer("Test of PooledConnection [" + resc + "] on "+testImpetus+" has SUCCEEDED.");
+				}
+			    catch (Exception e)
+				{
+				    logger.log(MLevel.FINER, "Test of PooledConnection [" + resc + "] on "+testImpetus+" has FAILED.", e);
+				    e.fillInStackTrace();
+				    throw e;
+				}
+			}
+
 			private void testPooledConnection(Object resc) throws Exception
 			{ 
 			    PooledConnection pc = (PooledConnection) resc;

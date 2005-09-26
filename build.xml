@@ -76,6 +76,7 @@
 
    <patternset id="init-codegen-classes"> 
      <include name="com/mchange/v2/c3p0/codegen/**/*.java" />  
+     <include name="com/mchange/v2/codegen/**/*.java" />  
      <include name="com/mchange/v2/log/*.java" />  
      <include name="com/mchange/v2/log/*.java" />  
      <include name="com/mchange/v2/cfg/*.java" />

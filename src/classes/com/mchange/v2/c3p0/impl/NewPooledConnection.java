@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -44,11 +44,14 @@ public final class NewPooledConnection implements PooledConnection
     final ConnectionTester       connectionTester;
     final boolean                autoCommitOnClose;
     final boolean                forceIgnoreUnresolvedTransactions;
-    final boolean                supports_setTypeMap;
     final boolean                supports_setHoldability;
+    final boolean                supports_setReadOnly;
+    final boolean                supports_setTypeMap;
     final int                    dflt_txn_isolation;
     final String                 dflt_catalog;
     final int                    dflt_holdability;
+    final boolean                dflt_readOnly;
+    final Map                    dflt_typeMap;
     final ConnectionEventSupport ces;
 
     //MT:  protected by this' lock
@@ -66,6 +69,8 @@ public final class NewPooledConnection implements PooledConnection
     volatile boolean isolation_lvl_nondefault = false; 
     volatile boolean catalog_nondefault       = false; 
     volatile boolean holdability_nondefault   = false; 
+    volatile boolean readOnly_nondefault      = false; 
+    volatile boolean typeMap_nondefault       = false; 
 
     // public API
     public NewPooledConnection(Connection con, 
@@ -77,11 +82,14 @@ public final class NewPooledConnection implements PooledConnection
 	this.connectionTester                  = connectionTester;
 	this.autoCommitOnClose                 = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
-	this.supports_setTypeMap               = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
 	this.supports_setHoldability           = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ Integer.class });
+	this.supports_setReadOnly              = C3P0ImplUtils.supportsMethod(con, "setReadOnly", new Class[]{ Boolean.class });
+	this.supports_setTypeMap               = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
 	this.dflt_txn_isolation                = con.getTransactionIsolation();
 	this.dflt_catalog                      = con.getCatalog();
 	this.dflt_holdability                  = (supports_setHoldability ? con.getHoldability() : ResultSet.CLOSE_CURSORS_AT_COMMIT);
+	this.dflt_readOnly                     = (supports_setReadOnly ? con.isReadOnly() : false);
+	this.dflt_typeMap                      = (supports_setTypeMap && con.getTypeMap() == null ? null : Collections.EMPTY_MAP);
 	this.ces                               = new ConnectionEventSupport(this);
     }
 
@@ -162,6 +170,16 @@ public final class NewPooledConnection implements PooledConnection
     void markNewHoldability( int holdability ) //intentionally unsync'd -- holdability_nondefault is marked volatile
     { 
 	this.holdability_nondefault = (holdability != dflt_holdability); 
+    }
+
+    void markNewReadOnly( boolean readOnly ) //intentionally unsync'd -- readOnly_nondefault is marked volatile
+    { 
+	this.readOnly_nondefault = (readOnly != dflt_readOnly); 
+    }
+
+    void markNewTypeMap( Map typeMap ) //intentionally unsync'd -- typeMap_nondefault is marked volatile
+    { 
+	this.typeMap_nondefault = (typeMap != dflt_typeMap);
     }
 
     synchronized Object checkoutStatement( Method stmtProducingMethod, Object[] args ) throws SQLException
@@ -277,21 +295,15 @@ public final class NewPooledConnection implements PooledConnection
 		physicalConnection.setHoldability( dflt_holdability );
 		holdability_nondefault = false; 
 	    }
-
-	try
-	    { physicalConnection.setReadOnly( false ); }
-	catch ( Throwable t )
+	if (readOnly_nondefault)
 	    {
-		if (logger.isLoggable( MLevel.FINE ))
-		    logger.log(MLevel.FINE, "A Throwable occurred while trying to reset the readOnly property of our Connection to false!", t);
+		physicalConnection.setReadOnly( dflt_readOnly );
+		readOnly_nondefault = false; 
 	    }
-
-	try
-	    { if (supports_setTypeMap) physicalConnection.setTypeMap( Collections.EMPTY_MAP ); }
-	catch ( Throwable t )
+	if (typeMap_nondefault)
 	    {
-		if (logger.isLoggable( MLevel.FINE ))
-		    logger.log(MLevel.FINE, "A Throwable occurred while trying to reset the typeMap property of our Connection to Collections.EMPTY_MAP!", t);
+		physicalConnection.setTypeMap( dflt_typeMap );
+		typeMap_nondefault = false;
 	    }
     }
 

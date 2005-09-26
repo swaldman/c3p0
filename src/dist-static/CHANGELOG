@@ -1,3 +1,22 @@
+c3p0-0.9.0.2
+	-- added debug-level logging of connection tests and results
+	-- tightened up means by which the readOnly and typeMap properties of Connections are reset,
+	   so that users don't see disconcerting Exceptions at debug log levels if their drivers don't
+	   support these parameters.
+	-- fixed problem in BasicResourcePool that left the immediately-close-checked-out-connections option
+	   in the close() method ineffective, meaning Connections checked-out from a pool would
+ 	   leak unless clients remembered to check them into pool for destruction.
+        -- fixed bug wherein connection-testing on checking occured in a thread holding the pool's
+	   lock, leading to pool hangs or deadlocks if a connection hangs. [Thanks to Tobias Jenkner
+	   for calling attention to this problem!]
+c3p0-0.9.0.1
+        -- modify BasicPropertiesConfig to not throw class cast Exceptions in the rare case that
+	   a Properties object (presumably System properties rather than a file derived props Object)
+	   contains (via the Map/Hastable API) non-String keys or values. [Thanks to Prima Upot for
+	   calling attention to this issue.]
+	-- fixed a build issue where some classes required for code generation were not necessarily
+	   compiled prior to the code generation step, causing builds to fail. [Thanks to James
+	   Neville for calling attention to this issue.]
 c3p0-0.9.0
 	-- under some circumstances, the current list of ThreadPoolAsynchronousRunner's deadlock detector
 	   seems to hold onto a lot of memory... presumably this is when long pending task lists build up 

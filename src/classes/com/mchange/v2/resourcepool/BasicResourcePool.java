@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -809,10 +809,12 @@ class BasicResourcePool implements ResourcePool
 			try
 			    {
 				Object resc = ii.next();
-				if (unused.contains( resc )) //same logic as _markBroken(...), but removes have to be synchronous
-				    removeResource(resc, true);
-				else
-				    excludeResource( resc );
+				removeResource( resc, true );
+
+// 				if (unused.contains( resc )) //same logic as _markBroken(...), but removes have to be synchronous
+// 				    removeResource(resc, true);
+// 				else
+// 				    excludeResource( resc );
 			    }
 			catch (Exception e)
 			    {
@@ -857,9 +859,9 @@ class BasicResourcePool implements ResourcePool
 		    {
 			public void run()
 			{
+			    boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
 			    synchronized( BasicResourcePool.this )
 				{
-				    boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
 				    if ( resc_okay )
 					{
 					    unused.add( resc );

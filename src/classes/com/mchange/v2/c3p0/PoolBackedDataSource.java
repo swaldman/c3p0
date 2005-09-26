@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -206,7 +206,7 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 
 	is_closed = true;
 
-	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable(MLevel.FINEST))
 	    {
 // 		System.err.println( this.getClass().getName() + '@' + Integer.toHexString( System.identityHashCode( this ) ) +
 // 				    " has been closed. force_destroy == " + force_destroy );
@@ -214,7 +214,7 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
  		logger.log(MLevel.FINEST, 
 			   this.getClass().getName() + '@' + Integer.toHexString( System.identityHashCode( this ) ) +
 			   " has been closed. force_destroy == " + force_destroy,
-			   new Exception("Debug -- PoolBackedDataSource.close() stack trace."));
+			   new Exception("DEBUG STACK TRACE for PoolBackedDataSource.close()."));
 	    }
     }
 

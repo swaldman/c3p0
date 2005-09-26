@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -490,9 +490,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		{
 		    //do nothing with txn_known_resolved
 
-		    //iw.println("System.err.println(\042setTransactionIsolation( \042 + " + CodegenUtils.generatedArgumentName( 0 ) + " + \042 )\042);");
-		    //iw.println();
-
 		    super.generateDelegateCode( intfcl, genclass, method, iw );
 		    iw.println( "parentPooledConnection.markNewTxnIsolation( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
 		}
@@ -509,6 +506,20 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
 		    super.generateDelegateCode( intfcl, genclass, method, iw );
 		    iw.println( "parentPooledConnection.markNewHoldability( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
+		}
+	    else if ( mname.equals("setReadOnly") )
+		{
+		    //do nothing with txn_known_resolved
+
+		    super.generateDelegateCode( intfcl, genclass, method, iw );
+		    iw.println( "parentPooledConnection.markNewReadOnly( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
+		}
+	    else if ( mname.equals("setTypeMap") )
+		{
+		    //do nothing with txn_known_resolved
+
+		    super.generateDelegateCode( intfcl, genclass, method, iw );
+		    iw.println( "parentPooledConnection.markNewTypeMap( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
 		}
 	    else if ( mname.equals("close") )
 		{

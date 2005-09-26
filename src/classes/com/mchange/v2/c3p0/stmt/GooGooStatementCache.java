@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -263,7 +263,7 @@ public abstract class GooGooStatementCache
 				    logger.warning("Unexpected interupt(). [A thread closing all Statements for a Connection in a Statement cache" +
 						   " will no longer wait for all Statements to close, but will move on and let them close() asynchronously." +
 						   " This is harmless in general, but may lead to a transient deadlock (which the thread pool will notice " +
-						   " and resolve) under Oracle, due to an Oracle bug.");
+						   " and resolve) under some database drivers.]");
 			    }
 		    }
 	    }

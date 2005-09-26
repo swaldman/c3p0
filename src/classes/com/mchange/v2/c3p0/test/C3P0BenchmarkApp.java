@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -53,6 +53,9 @@ public final class C3P0BenchmarkApp
 //      com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).info("this is some info.");
 // 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.WARNING, "this is a warning.", new Exception("test"));
 // 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.FINE, "this is fine.");
+
+// 	System.getProperties().put("sprong", java.awt.Color.blue);
+// 	System.getProperties().put(java.awt.Color.blue, "sprong");
 
 
 	DataSource ds_unpooled = null;
@@ -126,10 +129,12 @@ public final class C3P0BenchmarkApp
 		for (int i = 0, len = l.size(); i < len; ++i)
 		    ((Test) l.get(i)).perform( ds_unpooled, ds_pooled, NUM_ITERATIONS );
 	    }
-	catch( Exception e )
+	catch( Throwable t )
 	    {
-		System.err.print("Aborting tests on Exception -- ");
-		e.printStackTrace(); 
+		System.err.print("Aborting tests on Throwable -- ");
+		t.printStackTrace(); 
+		if (t instanceof Error)
+		    throw (Error) t;
 	    }
 	finally
 	    {

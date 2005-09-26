@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0
+ * Distributed as part of c3p0 v.0.9.0.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -56,6 +56,22 @@ public final class BeansUtils
 	if ( out == null )
 	    out = PropertyEditorManager.findEditor( pd.getPropertyType() );
 	return out;
+    }
+
+    public static boolean equalsByAccessibleProperties( Object bean0, Object bean1 )
+	throws IntrospectionException
+    { return equalsByAccessibleProperties( bean0, bean1, Collections.EMPTY_SET ); }
+
+    public static boolean equalsByAccessibleProperties( Object bean0, Object bean1, Collection ignoreProps )
+	throws IntrospectionException
+    {
+	Map m0 = new HashMap();
+	Map m1 = new HashMap();
+	extractAccessiblePropertiesToMap( m0, bean0, ignoreProps );
+	extractAccessiblePropertiesToMap( m1, bean1, ignoreProps );
+	//System.err.println("Map0 -> " + m0);
+	//System.err.println("Map1 -> " + m1);
+	return m0.equals(m1);
     }
 
     public static void overwriteAccessibleProperties( Object sourceBean, Object destBean )
