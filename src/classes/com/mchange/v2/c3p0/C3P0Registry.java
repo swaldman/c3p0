@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.2
+ * Distributed as part of c3p0 v.0.9.0.3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -99,8 +99,15 @@ public final class C3P0Registry
 
 	if (idt.getIdentityToken() == null)
 	    throw new RuntimeException("[c3p0 issue] The identityToken of a registered object should be set prior to registration.");
-	if (idtCoalescer.coalesce(idt) != idt)
-	    throw new RuntimeException("[c3p0 bug] Only brand new IdentityTokenized's, with their identities just set, should be registered!!!");
+	Object coalesceCheck = idtCoalescer.coalesce(idt);
+	if (coalesceCheck != idt)
+	    throw new RuntimeException("[c3p0 bug] Only brand new IdentityTokenized's, with their" +
+				       " identities just set, should be registered!!!" +
+				       " Attempted to register " + idt + " (with identity token " +
+				       idt.getIdentityToken() + ");" +
+				       " Coalesced to " + coalesceCheck + "(with identity token " +
+				       ((IdentityTokenized) coalesceCheck).getIdentityToken() + ").");
+
 // 	System.err.println("[c3p0-registry] registered " + idt.getClass().getName() + 
 // 			   "; natural identity: " + C3P0ImplUtils.identityToken( idt ) +
 // 			   "; set identity: " + idt.getIdentityToken());

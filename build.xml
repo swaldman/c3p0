@@ -306,6 +306,14 @@
 
    <target name="jar" depends="compile">
       <jar destfile="${build.jar.file}">
+	<manifest>
+	  <attribute name="Extension-Name" value="com.mchange.v2.c3p0" />
+	  <attribute name="Specification-Vendor" value="Machinery For Change, Inc." />
+	  <attribute name="Specification-Version" value="1.0" />
+	  <attribute name="Implementation-Vendor-Id" value="com.mchange" />
+	  <attribute name="Implementation-Vendor" value="Machinery For Change, Inc." />
+	  <attribute name="Implementation-Version" value="${c3p0.version}" />
+	</manifest>
         <fileset dir="${build.classes.dir}">
           <patternset refid="dist-jar-classes"/>
         </fileset>
@@ -350,6 +358,9 @@
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <!-- <jvmarg value="-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" /> -->
            <!-- <jvmarg value="-verbose:class" /> -->
            <arg value="${test.jdbc.url}" />
@@ -365,6 +376,9 @@
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <!-- <jvmarg value="-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" /> -->
            <!-- <jvmarg value="-verbose:class" /> -->
            <arg value="${test.jdbc.url}" />
@@ -384,6 +398,9 @@
            <!-- <jvmarg value="-verbose:class" /> -->
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -399,6 +416,9 @@
            <!-- <jvmarg value="-Xprof" /> -->
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -412,6 +432,9 @@
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -425,6 +448,9 @@
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -438,6 +464,9 @@
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -451,6 +480,9 @@
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -464,6 +496,9 @@
 	 fork="true">
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+	   <syspropertyset>
+	     <propertyref builtin="commandline" />
+	   </syspropertyset>
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -479,6 +514,9 @@
        <sysproperty key="c3p0.test.jdbc.url" value="${test.jdbc.url}" />
        <sysproperty key="c3p0.test.jdbc.user" value="${test.jdbc.user}" />
        <sysproperty key="c3p0.test.jdbc.password" value="${test.jdbc.password}" />
+       <syspropertyset>
+	 <propertyref builtin="commandline" />
+       </syspropertyset>
        <batchtest fork="yes" toDir="${build.testresults.dir}">
 	 <fileset dir="${build.classes.dir}">
 	   <include name="**/*JUnitTestCase.class"/>

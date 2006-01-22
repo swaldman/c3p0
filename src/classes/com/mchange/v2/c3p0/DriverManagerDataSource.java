@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.2
+ * Distributed as part of c3p0 v.0.9.0.3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -75,10 +75,22 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     }
 
     public synchronized Connection getConnection() throws SQLException
-    { return driver().connect( jdbcUrl, properties ); }
+    { 
+	Connection out = driver().connect( jdbcUrl, properties ); 
+	if (out == null)
+	    throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
+				   "driver [" + driver() + "].");
+	return out;
+    }
 
     public synchronized Connection getConnection(String username, String password) throws SQLException
-    { return driver().connect( jdbcUrl, overrideProps(username, password) );  }
+    { 
+	Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );  
+	if (out == null)
+	    throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
+				   "driver [" + driver() + "].");
+	return out;
+    }
 
     public PrintWriter getLogWriter() throws SQLException
     { return DriverManager.getLogWriter(); }

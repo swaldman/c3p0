@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.2
+ * Distributed as part of c3p0 v.0.9.0.3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -33,6 +33,8 @@ import java.util.Properties;
 import javax.sql.DataSource;
 import javax.naming.InitialContext;
 import javax.naming.Name;
+import javax.naming.Context;
+import javax.naming.NameAlreadyBoundException;
 import javax.naming.NamingException;
 
 public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
@@ -53,7 +55,23 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 	    ictx.unbind( unbindName );
 	
 	if (jndiName != null)
-	    ictx.rebind( jndiName, combods );
+	{
+	    // Thanks to David D. Kilzer for this code to auto-create
+	    // subcontext paths!
+	    Name name = ictx.getNameParser( jndiName ).parse( jndiName );
+	    Context ctx = ictx;
+	    for (int i = 0, max = name.size() - 1; i < max; i++)
+	    {
+		try
+		{ ctx = ctx.createSubcontext( name.get( i ) ); }
+		catch (NameAlreadyBoundException ignore)
+		{ ctx = (Context) ctx.lookup( name.get( i ) ); }
+	    }
+
+ 	    ictx.rebind( jndiName, combods );
+	}
+
+
     }
 
     // Jndi Setup Names

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.2
+ * Distributed as part of c3p0 v.0.9.0.3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -34,6 +34,9 @@ import javax.sql.*;
 import com.mchange.v2.c3p0.impl.*;
 import com.mchange.v2.log.*;
 
+// MT: Most methods are left unsynchronized, because getNestedDataSource() is synchronized, and for most methods, that's
+//     the critical part. Previous oversynchronization led to hangs, when getting the Connection for one Thread happened
+//     to hang, blocking access to getPooledConnection() for all Threads.
 public final class WrapperConnectionPoolDataSource extends WrapperConnectionPoolDataSourceBase implements ConnectionPoolDataSource
 {
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
@@ -68,11 +71,18 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	C3P0Registry.register( this );
     }
 
-    //implementation of javax.sql.ConnectionPoolDataSource
-    public synchronized PooledConnection getPooledConnection()
+    // implementation of javax.sql.ConnectionPoolDataSource
+    //
+    // getNestedDataSource() is sync'ed, which is enough. Unsync'ed this method,
+    // because when sync'ed a hang in retrieving one connection blocks all
+    //
+    public PooledConnection getPooledConnection()
 	throws SQLException
     { 
 	Connection conn = getNestedDataSource().getConnection();
+	if (conn == null)
+	    throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
+				   "DataSource: " + getNestedDataSource());
 	if ( this.isUsesTraditionalReflectiveProxies() )
 	    {
 		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
@@ -90,10 +100,16 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    }
     } 
  
-    public synchronized PooledConnection getPooledConnection(String user, String password)
+    // getNestedDataSource() is sync'ed, which is enough. Unsync'ed this method,
+    // because when sync'ed a hang in retrieving one connection blocks all
+    //
+    public PooledConnection getPooledConnection(String user, String password)
 	throws SQLException
     { 
 	Connection conn = getNestedDataSource().getConnection(user, password);
+	if (conn == null)
+	    throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
+				   "DataSource: " + getNestedDataSource());
 	if ( this.isUsesTraditionalReflectiveProxies() )
 	    {
 		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
@@ -111,24 +127,25 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    }
     }
  
-    public synchronized PrintWriter getLogWriter()
+    public PrintWriter getLogWriter()
 	throws SQLException
     { return getNestedDataSource().getLogWriter(); }
 
-    public synchronized void setLogWriter(PrintWriter out)
+    public void setLogWriter(PrintWriter out)
 	throws SQLException
     { getNestedDataSource().setLogWriter( out ); }
 
-    public synchronized void setLoginTimeout(int seconds)
+    public void setLoginTimeout(int seconds)
 	throws SQLException
     { getNestedDataSource().setLoginTimeout( seconds ); }
 
-    public synchronized int getLoginTimeout()
+    public int getLoginTimeout()
 	throws SQLException
     { return getNestedDataSource().getLoginTimeout(); }
 
     //"virtual properties"
-    public synchronized String getUser()
+
+    public String getUser()
     { 
 	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getUser(); }
 	catch (SQLException e)
@@ -142,7 +159,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    }
     }
 
-    public synchronized String getPassword()
+    public String getPassword()
     { 
 	try { return C3P0ImplUtils.findAuth( this.getNestedDataSource() ).getPassword(); }
 	catch (SQLException e)

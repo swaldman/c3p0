@@ -1,3 +1,39 @@
+c3p0-0.9.0.3
+	-- Added code to mbean C3P0PooledDataSource to automatically create JNDI
+	   subcontexts if a JNDI name is specified for which the full path has not
+           been created (analogous to mkdir -p in UNIX). [Thanks to David D. Kilzer
+	   for noticing the issue, and for submitting the fix!]
+	-- Added logic to GooGooStatementCache to ensure that multiple threads do not
+	   try to close the same PreparedStatement, in order to try to resolve longstanding
+	   PreparedStatement.close() freeze issues. [Thanks to cardgames on sourceforge for
+	   noticing that the freezes seem to occur when several threads are trying to close()
+	   just one statement!]
+	-- Added some checks in DriverManagerDataSource (as well as WrapperConnectionPoolDataSource)
+	   so that a mismatch between JDBC URL and driver does not lead to null Connection
+	   references and downstrem NullPointerExceptions. [Thanks to Richard Maher for
+	   calling attention to this issue.]
+	-- Undid some unnecessary synchronization in WrapperConnectionPoolDataSource,
+	   which would cause deadlocks when the acquisition of a Connection from the 
+	   underlying driver froze for some Thread. (Other threads would then block
+	   trying to access the WrapperConnectionPoolDataSource.) [Thanks to Fabian 
+	   Gonzales for calling attention to this issue, and for providing a VM thread
+	   stack dump to help chase it down!]
+	-- modified BasicMultiPropertiesConfig to never attempt to read the resource "/",
+	   representing (in this case) System properties, as a stream, which under some
+	   classloaders caused ClassCastExceptions. [Thanks to Joost Schouten for calling
+	   attention to this issue.]
+	-- fixed initial check of the readOnly and typeMap properties of Connections,
+	   so that users don't see disconcerting Exceptions at debug log levels if their drivers don't
+	   support these parameters.
+	-- Added jar attributes Extension-Name, Specification-Vendor, Specification-Version,
+	   Implementation-Vendor-Id, Implementation-Vendor, and Implementation-Version
+           [per request of Pascal Grange].
+	-- Added some extra debugging information for peculiar situation where an IdentityTokenized
+	   is constructed and registered with C3P0Registry, but coalesces to a different Object. 
+	   This should never happen, as freshly constructed IdentityTokenizeds should have String
+	   versions of their identity hashcodes as tokens, and upon their registration, no copies 
+	   should yet have been created and registered. [Thanks to Jose Rodriguez for noting this 
+	   issue.]
 c3p0-0.9.0.2
 	-- added debug-level logging of connection tests and results
 	-- tightened up means by which the readOnly and typeMap properties of Connections are reset,

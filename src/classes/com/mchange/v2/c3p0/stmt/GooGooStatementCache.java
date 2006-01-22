@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.2
+ * Distributed as part of c3p0 v.0.9.0.3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -55,13 +55,26 @@ public abstract class GooGooStatementCache
     // but not currently available for checkout, nor for
     // culling in case of overflow
     HashSet checkedOut = new HashSet();
+
     
     int stmt_count;
 
     /* MT: end protected by this' lock */
 
-    //MT: protected by its own lock
+    /* MT: protected by its own lock */
+
     AsynchronousRunner blockingTaskAsyncRunner;
+
+    // This set is used to ensure that multiple threads
+    // do not try to remove the same statement from the
+    // cache, if for example a Statement is both deathmarched
+    // away and its parent Connection is closed.
+    //
+    // ALL ACCESS SHOULD BE EXPLICITLY SYNCHRONIZED
+    // ON removalPending's lock!
+    HashSet removalPending = new HashSet();
+
+    /* MT: end protected by its own lock */
 
     public GooGooStatementCache(AsynchronousRunner blockingTaskAsyncRunner)
     { 
@@ -316,7 +329,7 @@ public abstract class GooGooStatementCache
 	    {
 		r = new Runnable()
 		    {
-			// this methd MUSTN'T try to obtain this' lock prior to obtaining the 
+			// this method MUSTN'T try to obtain this' lock prior to obtaining the 
 			// counter's lock, or a potential deadlock may result. 
 			//
 			// See closeAll(Connection c) comments.
@@ -395,6 +408,14 @@ public abstract class GooGooStatementCache
      */
     private void removeStatement( Object ps , boolean force_destroy, ChangeNotifyingSynchronizedIntHolder counter )
     {
+	synchronized (removalPending)
+	    {
+		if ( removalPending.contains( ps ) )
+		    return;
+		else
+		    removalPending.add(ps);
+	    }
+
 	StatementCacheKey sck = (StatementCacheKey) stmtToKey.remove( ps );
 	removeFromKeySet( sck, ps );
 	Connection pConn = sck.physicalConnection;
@@ -424,6 +445,9 @@ public abstract class GooGooStatementCache
 			       new Exception("LOG STACK TRACE"));
 	    }
 	--stmt_count;
+
+	synchronized (removalPending)
+	    { removalPending.remove(ps); }
     }
 
     private Object acquireStatement(final Connection pConn, 

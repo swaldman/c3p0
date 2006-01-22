@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.2
+ * Distributed as part of c3p0 v.0.9.0.3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -44,54 +44,84 @@ public class BasicMultiPropertiesConfig extends MultiPropertiesConfig
 	for( int i = 0, len = resourcePaths.length; i < len; ++i )
 	    {
 		String rp = resourcePaths[i];
-		Properties p = new Properties();
-		InputStream pis = MultiPropertiesConfig.class.getResourceAsStream( rp );
-		if ( pis != null )
+		if ("/".equals(rp))
 		    {
 			try
 			    {
-				p.load( pis );
-				propsByResourcePaths.put( rp, p );
+				propsByResourcePaths.put( rp, System.getProperties() );
 				goodPaths.add( rp );
 			    }
-			catch (IOException e)
+			catch (SecurityException e)
 			    {
 				if (logger != null)
 				    {
 					if ( logger.isLoggable( MLevel.WARNING ) )
 					    logger.log( MLevel.WARNING, 
-							"An IOException occurred while loading configuration properties from resource path '" + rp + "'.",
+							"Read of system Properties blocked -- " +
+							"ignoring any configuration via System properties, and using Empty Properties! " +
+							"(But any configuration via a resource properties files is still okay!)",
 							e );
 				    }
 				else
-				    e.printStackTrace(); 
-			    }
-			finally
-			    {
-				try { if ( pis != null ) pis.close(); }
-				catch (IOException e) 
-				    { 
-					if (logger != null)
-					    {
-						if ( logger.isLoggable( MLevel.WARNING ) )
-						    logger.log( MLevel.WARNING, 
-								"An IOException occurred while closing InputStream from resource path '" + rp + "'.",
-								e );
-					    }
-					else
-					    e.printStackTrace(); 
+				    {
+					System.err.println("Read of system Properties blocked -- " +
+							   "ignoring any configuration via System properties, and using Empty Properties! " +
+							   "(But any configuration via a resource properties files is still okay!)");
+					e.printStackTrace(); 
 				    }
 			    }
 		    }
 		else
 		    {
-			if (logger != null)
+			Properties p = new Properties();
+			InputStream pis = MultiPropertiesConfig.class.getResourceAsStream( rp );
+			if ( pis != null )
 			    {
-				if ( logger.isLoggable( MLevel.FINE ) )
-				    logger.fine( "Configuration properties not found at ResourcePath '" + rp + "'. [logger name: " + logger.getName() + ']' );
+				try
+				    {
+					p.load( pis );
+					propsByResourcePaths.put( rp, p );
+					goodPaths.add( rp );
+				    }
+				catch (IOException e)
+				    {
+					if (logger != null)
+					    {
+						if ( logger.isLoggable( MLevel.WARNING ) )
+						    logger.log( MLevel.WARNING, 
+								"An IOException occurred while loading configuration properties from resource path '" + rp + "'.",
+								e );
+					    }
+					else
+					    e.printStackTrace(); 
+				    }
+				finally
+				    {
+					try { if ( pis != null ) pis.close(); }
+					catch (IOException e) 
+					    { 
+						if (logger != null)
+						    {
+							if ( logger.isLoggable( MLevel.WARNING ) )
+							    logger.log( MLevel.WARNING, 
+									"An IOException occurred while closing InputStream from resource path '" + rp + "'.",
+									e );
+						    }
+						else
+						    e.printStackTrace(); 
+					    }
+				    }
 			    }
+			else
+			    {
+				if (logger != null)
+				    {
+					if ( logger.isLoggable( MLevel.FINE ) )
+					    logger.fine( "Configuration properties not found at ResourcePath '" + rp + "'. [logger name: " + logger.getName() + ']' );
+				    }
 // 			else if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 // 			    System.err.println("Configuration properties not found at ResourcePath '" + rp + "'." );
+			    }
 		    }
 	    }
 	
@@ -115,20 +145,27 @@ public class BasicMultiPropertiesConfig extends MultiPropertiesConfig
     {
 	//System.err.println("findProps( " + rp + ", ... )");
 	Properties p;
-	if ( "/".equals( rp ) )
-	    {
-		try { p = System.getProperties(); }
-		catch ( SecurityException e )
-		    {
-			System.err.println(BasicMultiPropertiesConfig.class.getName() +
-					   " Read of system Properties blocked -- ignoring any configuration via System properties, and using Empty Properties! " +
-					   "(But any configuration via a resource properties files is still okay!)"); 
-			p = new Properties(); 
-		    }
-	    }
-	else
-	    p = (Properties) pbrp.get( rp );
-	//System.err.println( p );
+	
+	// MOVED THIS LOGIC INTO CONSTRUCTOR ABOVE, TO TREAT SYSTEM PROPS UNIFORMLY
+	// WITH THE REST, AND TO AVOID UNINTENTIONAL ATTEMPTS TO READ RESOURCE "/"
+	// AS STREAM -- swaldman, 2006-01-19
+	
+// 	if ( "/".equals( rp ) )
+// 	    {
+// 		try { p = System.getProperties(); }
+// 		catch ( SecurityException e )
+// 		    {
+// 			System.err.println(BasicMultiPropertiesConfig.class.getName() +
+// 					   " Read of system Properties blocked -- ignoring any configuration via System properties, and using Empty Properties! " +
+// 					   "(But any configuration via a resource properties files is still okay!)"); 
+// 			p = new Properties(); 
+// 		    }
+// 	    }
+// 	else
+	p = (Properties) pbrp.get( rp );
+	
+// 	System.err.println( p );
+
 	return p;
     }
 

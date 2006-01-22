@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.2
+ * Distributed as part of c3p0 v.0.9.0.3
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -88,9 +88,41 @@ public final class NewPooledConnection implements PooledConnection
 	this.dflt_txn_isolation                = con.getTransactionIsolation();
 	this.dflt_catalog                      = con.getCatalog();
 	this.dflt_holdability                  = (supports_setHoldability ? con.getHoldability() : ResultSet.CLOSE_CURSORS_AT_COMMIT);
-	this.dflt_readOnly                     = (supports_setReadOnly ? con.isReadOnly() : false);
-	this.dflt_typeMap                      = (supports_setTypeMap && con.getTypeMap() == null ? null : Collections.EMPTY_MAP);
+	this.dflt_readOnly                     = (supports_setReadOnly ? carefulCheckReadOnly(con) : false);
+	this.dflt_typeMap                      = (supports_setTypeMap && (carefulCheckTypeMap(con) == null) ? null : Collections.EMPTY_MAP);
 	this.ces                               = new ConnectionEventSupport(this);
+    }
+
+    private static boolean carefulCheckReadOnly(Connection con)
+    {
+	try { return con.isReadOnly(); }
+	catch (Exception e)
+	    {
+		if (false)
+		    {
+			if (logger.isLoggable(MLevel.FINER))
+			    logger.log(MLevel.FINER, con + " threw an Exception when we tried to check its default " +
+				       "read only state. This is not usually a problem! It just means the Connection " +
+				       "doesn't support the readOnly property, and c3p0 works around this.", e);
+		    }
+		return false;
+	    }
+    }
+
+    private static Map carefulCheckTypeMap(Connection con)
+    {
+	try { return con.getTypeMap(); }
+	catch (Exception e)
+	    {
+		if (false)
+		    {
+			if (logger.isLoggable(MLevel.FINER))
+			    logger.log(MLevel.FINER, con + " threw an Exception when we tried to check its default " +
+				       "type map. This is not usually a problem! It just means the Connection " +
+				       "doesn't support the typeMap property, and c3p0 works around this.", e);
+		    }
+		return null;
+	    }
     }
 
     public synchronized Connection getConnection() throws SQLException
