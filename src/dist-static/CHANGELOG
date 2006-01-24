@@ -1,3 +1,9 @@
+c3p0-0.9.0.4
+	-- In a subtle but major modification of BasicResourcePool, changed checkin/checkout
+	   behavior from FIFO to LIFO to increase the likelihood that unnecessary Connections
+	   pooled at peak times idle long enough to expire. [Many thanks to Vlad Ilyushchenko
+	   and hontvari on sourceforge for noticing this important issue and suggesting the 
+	   fix.]
 c3p0-0.9.0.3
 	-- Added code to mbean C3P0PooledDataSource to automatically create JNDI
 	   subcontexts if a JNDI name is specified for which the full path has not

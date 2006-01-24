@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.3
+ * Distributed as part of c3p0 v.0.9.0.4
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -219,7 +219,7 @@ class BasicResourcePool implements ResourcePool
 			    logger.log( MLevel.FINER, 
 					"Resource we want to check out is in idleCheck! (waiting until idle-check completes.) [" + this + "]");
 			//System.err.println("c3p0-JENNIFER: INFO: Resource we want to check out is in idleCheck! (waiting until idle-check completes.)"  + " [" + this + "]");
-			unused.add( resc );
+			unused.add(0, resc );
 
 			// we'll wait for "something to happen" -- probably an idle check to
 			// complete -- then we'll try again and hope for the best.
@@ -864,7 +864,7 @@ class BasicResourcePool implements ResourcePool
 				{
 				    if ( resc_okay )
 					{
-					    unused.add( resc );
+					    unused.add(0,  resc );
 					    if (! age_is_absolute ) //we need to reset the clock, 'cuz we are counting idle time
 						managed.put( resc, new Date() );
 					}
@@ -984,7 +984,7 @@ class BasicResourcePool implements ResourcePool
     private void assimilateResource( Object resc ) throws Exception
     {
 	managed.put(resc, new Date());
-	unused.add(resc);
+	unused.add(0, resc);
 	//System.err.println("assimilate resource... unused: " + unused.size());
 	asyncFireResourceAcquired( resc, managed.size(), unused.size(), excluded.size() );
 	this.notifyAll();
