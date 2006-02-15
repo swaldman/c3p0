@@ -10,6 +10,7 @@
    <property name="bindist.name" value="${c3p0.name}.bin" />
    <property name="srcdist.name" value="${c3p0.name}.src" />
    <property name="src.dir" value="src" />
+   <property name="empty.src.dir" value="${src.dir}/empty" />
    <property name="java.src.dir" value="${src.dir}/classes" />
    <property name="rsrc.src.dir" value="${src.dir}/resources" />
    <property name="codegen.src.dir" value="${src.dir}/codegen" />
@@ -45,8 +46,8 @@
    <!-- these properties should be set externally if desired  -->
    <!-- we set them here only to keep classpaths valid -->
    <!-- when users do not set the path                         -->
-   <property name="j2ee.jar.base.dir" value="" />
-   <property name="j2ee.jar.dir"      value="" />
+   <property name="j2ee.jar.base.dir" value="${empty.src.dir}" />
+   <property name="j2ee.jar.dir"      value="${empty.src.dir}" />
 
 <!--
    <property name="log4j.jar.file" value="" />
@@ -88,8 +89,13 @@
        <exclude name="com/mchange/v2/codegen/bean/*.java" />
        <exclude name="com/mchange/v2/codegen/*.java" />
        <exclude name="com/mchange/v2/debug/DebugGen.java" />
+       <exclude name="com/mchange/v1/lang/ClassUtils.java" />
+       <exclude name="com/mchange/v1/lang/GentleThread.java" />
+       <exclude name="com/mchange/v1/lang/NullUtils.java" />
+       <exclude name="com/mchange/v1/lang/Synchronizer.java" />
+       <exclude name="com/mchange/v1/lang/TVLUtils.java" />
        <exclude name="com/mchange/v1/jvm/**" />
-       <exclude name="com/mchange/v1/lang/**" />
+       <exclude name="com/mchange/v1/lang/holders/**" />
        <exclude name="com/mchange/v2/c3p0/codegen/**" />
        <exclude name="com/mchange/v2/c3p0/test/**" />
        <exclude name="**/junit/**" />
@@ -106,13 +112,13 @@
 
    <path id="test-classpath">
        <pathelement location="${test.props.dir}" />
-       <!-- <pathelement location="${log4j.jar.file}" /> -->
        <pathelement location="${build.jar.file}" />
        <pathelement location="${test.classes.dir}" />
        <pathelement path="${j2ee.classpath}" />
        <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
        <fileset dir="${j2ee.jar.dir}" includes="*.jar" />
        <pathelement location="${test.jdbc.driver.jar.file}" />
+       <!-- <pathelement location="${log4j.jar.file}" /> -->
    </path>
 
    <target name="init">
@@ -347,6 +353,8 @@
              <patternset refid="test-only-classes"/>
         </fileset>
       </copy>
+     <property name="testcp" refid="test-classpath" />
+     <echo message="test-classpath: ${testcp}" />
    </target>
 
    <target name="stats-test" depends="test-init">

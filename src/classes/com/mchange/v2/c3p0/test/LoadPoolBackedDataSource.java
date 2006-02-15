@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5
+ * Distributed as part of c3p0 v.0.9.1-pre5a
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -116,7 +116,7 @@ public final class LoadPoolBackedDataSource
 			stmt.executeUpdate("DROP TABLE testpbds");
 			System.err.println( "LoadPoolBackedDataSource -- TEST SCHEMA DROPPED" );
 		    }
-		catch (SQLException e)
+		catch (Exception e)
 		    {
 			e.printStackTrace();
 		    }

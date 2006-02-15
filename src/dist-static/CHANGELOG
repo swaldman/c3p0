@@ -1,3 +1,9 @@
+c3p0-0.9.1-pre5a
+	-- "test-classpath" was erroneously specified in build.xml to include some
+	   extra jar files, which rendered undetectable (to my tests) the fact
+	   that com.mchange.v1.lang.BooleanUtils was not jarred up into 
+	   c3p0-0.9.1-pre5.jar as it needed to be. Very, very embarrrassing. [Thanks
+	   to Goksel Uyulmaz for calling attention to this gaffe.]
 c3p0-0.9.1-pre5
 	-- reorganized synchronization of getConnection() in DriverManagerDataSource, 
 	   so that a lock-up in one Connection acquisition attempt does not prevent 
