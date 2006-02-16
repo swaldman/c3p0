@@ -1,12 +1,10 @@
 #
-# example file, using config files expected by various 
-# mchange libraries.
-#
 # note that later files "shadow" earlier ones, and that
 # the name '/' is reserved as a special token for
 # System properties.
 #
 
+/mchange-commons.properties
 /mchange-log.properties
 /c3p0.properties
 /

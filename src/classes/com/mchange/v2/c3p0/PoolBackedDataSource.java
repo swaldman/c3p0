@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -37,7 +37,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 
 public final class PoolBackedDataSource extends PoolBackedDataSourceBase implements PooledDataSource
 {
@@ -56,7 +58,7 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
     //MT: end protected by this' lock
 
     public PoolBackedDataSource()
-    { this( null ); }
+    { this( (ComboPooledDataSource) null ); }
 
     PoolBackedDataSource( ComboPooledDataSource parent )
     {
@@ -73,6 +75,26 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 
 	C3P0Registry.register( this );
     }
+
+    public PoolBackedDataSource(String configName)
+    { 
+	this();
+	
+	try
+	    {
+		if (configName != null)
+		    C3P0Config.bindNamedConfigToBean( this, configName ); 
+	    }
+	catch (Exception e)
+	    {
+		if (logger.isLoggable( MLevel.WARNING ))
+		    logger.log( MLevel.WARNING, 
+				"Error binding PoolBackedDataSource to named-config '" + configName + 
+				"'. Some default-config values may be used.", 
+				e);
+	    }
+    }
+
 
     ComboPooledDataSource owner()
     { return parent; }
@@ -189,41 +211,36 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 
     public synchronized void hardReset()
     {
-	C3P0PooledConnectionPoolManager forceDestroyMe = poolManager;
 	resetPoolManager(); 
-	forceDestroyMe.forceDestroy();
     }
 
-    public void close()
-    { close( false ); }
-
-    public synchronized void close(boolean force_destroy)
+    public synchronized void close()
     { 
-	C3P0PooledConnectionPoolManager forceDestroyMe = (force_destroy ? poolManager : null );
 	resetPoolManager(); 
-	if ( force_destroy )
-	    forceDestroyMe.forceDestroy();
-
 	is_closed = true;
 
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable(MLevel.FINEST))
 	    {
-// 		System.err.println( this.getClass().getName() + '@' + Integer.toHexString( System.identityHashCode( this ) ) +
-// 				    " has been closed. force_destroy == " + force_destroy );
-// 		new Exception("Debug -- PoolBackedDataSource.close() stack trace:").printStackTrace();
  		logger.log(MLevel.FINEST, 
 			   this.getClass().getName() + '@' + Integer.toHexString( System.identityHashCode( this ) ) +
-			   " has been closed. force_destroy == " + force_destroy,
+			   " has been closed. ",
 			   new Exception("DEBUG STACK TRACE for PoolBackedDataSource.close()."));
 	    }
     }
+
+    /**
+     * @deprecated the force_destroy argument is now meaningless, as pools are no longer
+     *             potentially shared between multiple DataSources.
+     */
+    public void close(boolean force_destroy)
+    { close(); }
 
     //other code
     public synchronized void resetPoolManager() //used by other, wrapping datasources in package, and in mbean package
     {
 	if ( poolManager != null )
 	    {
-		poolManager.unregisterActiveClient( this );
+		poolManager.close();
 		poolManager = null;
 	    }
      }
@@ -244,15 +261,7 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 	if (poolManager == null)
 	    {
 		ConnectionPoolDataSource cpds = assertCpds();
-		String cpdsIdTkn = (cpds instanceof IdentityTokenized ? ((IdentityTokenized) cpds).getIdentityToken() : C3P0ImplUtils.identityToken( cpds ));
-		poolManager = C3P0PooledConnectionPoolManager.find(this.getIdentityToken(), 
-								   cpds,
-								   cpdsIdTkn,
-								   this.getNumHelperThreads());
-		poolManager.registerActiveClient( this );
-// 		if (Debug.DEBUG && Debug.TRACE > Debug.TRACE_NONE)
-// 		    System.err.println("Initializing c3p0 pool... " + this.toString() /* + "; using pool manager: " + poolManager */);
-		//new Exception("PRINT STACK TRACE").printStackTrace();
+		poolManager = new C3P0PooledConnectionPoolManager(cpds, null, null, this.getNumHelperThreads());
 		if (logger.isLoggable(MLevel.INFO))
 		    logger.info("Initializing c3p0 pool... " + 
 				(parent == null ? this.toString() : parent.toString()) /* + "; using pool manager: " + poolManager */);

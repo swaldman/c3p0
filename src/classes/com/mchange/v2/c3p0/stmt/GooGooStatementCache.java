@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -136,7 +136,13 @@ public abstract class GooGooStatementCache
     public synchronized void checkinStatement( Object pstmt )
 	throws SQLException
     {
-	if (! checkedOut.remove( pstmt ) )
+	if (checkedOut == null) //we're closed
+	    {
+		synchronousDestroyStatement( pstmt );
+
+		return;
+	    }
+	else if (! checkedOut.remove( pstmt ) )
 	    {
 		if (! ourResource( pstmt ) ) //this is not our resource, or it is an overload statement
 		    destroyStatement( pstmt ); // so we just destroy
@@ -229,78 +235,104 @@ public abstract class GooGooStatementCache
      */
     public void closeAll(Connection pcon) throws SQLException
     {
-	//new Exception("closeAll()").printStackTrace();
+// 	System.err.println( this + ": closeAll( " + pcon + " )" );
 
-	Set cSet = null;
-	synchronized(this)
-	    { cSet = cxnStmtMgr.statementSet( pcon ); }
+// 	new Exception("closeAll()").printStackTrace();
 
-  	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+	if (! this.isClosed())
 	    {
-		if (logger.isLoggable(MLevel.FINEST))
+		Set cSet = null;
+		synchronized(this)
+		    { cSet = cxnStmtMgr.statementSet( pcon ); }
+		
+		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 		    {
-			logger.log(MLevel.FINEST, "ENTER METHOD: closeAll( " + pcon + " )! -- num_connections: " + 
-				   cxnStmtMgr.getNumConnectionsWithCachedStatements());
-			logger.log(MLevel.FINEST, "Set of statements for connection: " + cSet + (cSet != null ? "; size: " + cSet.size() : ""));
-		    }
-	    }
-
-	ChangeNotifyingSynchronizedIntHolder counter = new ChangeNotifyingSynchronizedIntHolder(0, true);
-	synchronized ( counter )
-	    {
-		if (cSet != null)
-		    {
-			//the removeStatement(...) removes from cSet, so we can't be iterating over cSet directly
-			Set stmtSet = new HashSet( cSet );
-			int sz = stmtSet.size();
-			//System.err.println("SIZE FOR CONNECTION SET: " + stmtSet.size());
-			for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
+			if (logger.isLoggable(MLevel.FINEST))
 			    {
-				Object stmt = ii.next();
-
-				synchronized ( this )
-				    { removeStatement( stmt, true, counter ); }
+				logger.log(MLevel.FINEST, "ENTER METHOD: closeAll( " + pcon + " )! -- num_connections: " + 
+					   cxnStmtMgr.getNumConnectionsWithCachedStatements());
+				logger.log(MLevel.FINEST, "Set of statements for connection: " + cSet + (cSet != null ? "; size: " + cSet.size() : ""));
 			    }
-			try
+		    }
+		
+		ChangeNotifyingSynchronizedIntHolder counter = new ChangeNotifyingSynchronizedIntHolder(0, true);
+		synchronized ( counter )
+		    {
+			if (cSet != null)
 			    {
-				while (counter.getValue() < sz) 
+				//the removeStatement(...) removes from cSet, so we can't be iterating over cSet directly
+				Set stmtSet = new HashSet( cSet );
+				int sz = stmtSet.size();
+				//System.err.println("SIZE FOR CONNECTION SET: " + stmtSet.size());
+				for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
 				    {
-					//System.err.println( "counter.getValue(): " + counter.getValue() + "; sz: " + sz );
-					counter.wait();
+					Object stmt = ii.next();
+					
+					synchronized ( this )
+					    { removeStatement( stmt, true, counter ); }
 				    }
-				//System.err.println( "FINAL: counter.getValue(): " + counter.getValue() + "; sz: " + sz );
-			    }
-			catch (InterruptedException e)
-			    {
-				if (logger.isLoggable(MLevel.WARNING))
-				    logger.warning("Unexpected interupt(). [A thread closing all Statements for a Connection in a Statement cache" +
-						   " will no longer wait for all Statements to close, but will move on and let them close() asynchronously." +
-						   " This is harmless in general, but may lead to a transient deadlock (which the thread pool will notice " +
-						   " and resolve) under some database drivers.]");
+				try
+				    {
+					while (counter.getValue() < sz) 
+					    {
+						//System.err.println( "counter.getValue(): " + counter.getValue() + "; sz: " + sz );
+						counter.wait();
+					    }
+					//System.err.println( "FINAL: counter.getValue(): " + counter.getValue() + "; sz: " + sz );
+				    }
+				catch (InterruptedException e)
+				    {
+					if (logger.isLoggable(MLevel.WARNING))
+					    logger.warning("Unexpected interupt(). [A thread closing all Statements for a Connection in a Statement cache" +
+							   " will no longer wait for all Statements to close, but will move on and let them close() asynchronously." +
+							   " This is harmless in general, but may lead to a transient deadlock (which the thread pool will notice " +
+							   " and resolve) under some database drivers.]");
+				    }
 			    }
 		    }
-	    }
 
-	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-	    {
-		if (logger.isLoggable(MLevel.FINEST))
-		    logger.finest("closeAll(): " + statsString());
+		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+		    {
+			if (logger.isLoggable(MLevel.FINEST))
+			    logger.finest("closeAll(): " + statsString());
+		    }
 	    }
+// 	else
+// 	    {
+// 		if (logger.isLoggable(MLevel.FINE))
+// 		    logger.log(MLevel.FINE, 
+// 			       this + ":  call to closeAll() when statment cache is already closed! [not harmful! debug only!]", 
+// 			       new Exception("DUPLICATE CLOSE DEBUG STACK TRACE."));
+// 	    }
     }
 
     public synchronized void close() 
 	throws SQLException
     {
-	for (Iterator ii = stmtToKey.keySet().iterator(); ii.hasNext(); )
-	    synchronousDestroyStatement( ii.next() );
+	//System.err.println( this + ": close()" );
 
-	cxnStmtMgr       = null;
-	stmtToKey        = null;
-	keyToKeyRec      = null;
-	checkedOut       = null;
-	stmt_count       = -1;
+	if (! isClosed())
+	    {
+		for (Iterator ii = stmtToKey.keySet().iterator(); ii.hasNext(); )
+		    synchronousDestroyStatement( ii.next() );
+		
+		cxnStmtMgr       = null;
+		stmtToKey        = null;
+		keyToKeyRec      = null;
+		checkedOut       = null;
+		stmt_count       = -1;
+	    }
+	else
+	    {
+		if (logger.isLoggable(MLevel.FINE))
+		    logger.log(MLevel.FINE, this + ": duplicate call to close() [not harmful! -- debug only!]", new Exception("DUPLICATE CLOSE DEBUG STACK TRACE."));
+	    }
+
     }
 
+
+    public synchronized boolean isClosed()
+    { return cxnStmtMgr == null; }
 
     /* non-public methods that needn't be called with this' lock below */
      

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -448,7 +448,12 @@ public final class NewPooledConnection implements PooledConnection
 		try
 		    { physicalConnection.close(); }
 		catch ( SQLException e )
-		    { closeExceptions.add(e); }
+		    {
+			if (logger.isLoggable( MLevel.FINER ))
+			    logger.log( MLevel.FINER, "Failed to close physical Connection: " + physicalConnection, e );
+
+			closeExceptions.add(e); 
+		    }
 		
 		// update our state to bad status and closed, and log any exceptions
 		if ( connection_status == ConnectionTester.CONNECTION_IS_OKAY )
@@ -464,7 +469,7 @@ public final class NewPooledConnection implements PooledConnection
 		else
 		    {
 			this.invalidatingException = cause;
-			if (Debug.TRACE == Debug.TRACE_MAX)
+			if (Debug.TRACE >= Debug.TRACE_MED)
 			    logCloseExceptions( cause, closeExceptions );
 			else
 			    logCloseExceptions( cause, null );

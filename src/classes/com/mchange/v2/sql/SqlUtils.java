@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -68,7 +68,9 @@ public final class SqlUtils
     {
         if (t instanceof SQLException)
 	    {
-		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+		if (Debug.DEBUG && 
+		    Debug.TRACE == Debug.TRACE_MAX && 
+		    logger.isLoggable( MLevel.FINER ))
 		    {
 			SQLException s = (SQLException) t;
 			StringBuffer tmp = new StringBuffer(255);

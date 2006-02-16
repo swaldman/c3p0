@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -43,6 +43,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 {
     final static MLogger logger = MLog.getLogger( DriverManagerDataSource.class );
 
+    //MT: protected by this' lock
     Driver driver;
 
     {
@@ -74,7 +75,11 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	C3P0Registry.register( this );
     }
 
-    public synchronized Connection getConnection() throws SQLException
+    // should NOT be sync'ed -- driver() is sync'ed and that's enough
+    // sync'ing the method creates the danger that one freeze on connect
+    // blocks access to the entire DataSource
+
+    public Connection getConnection() throws SQLException
     { 
 	Connection out = driver().connect( jdbcUrl, properties ); 
 	if (out == null)
@@ -83,7 +88,11 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	return out;
     }
 
-    public synchronized Connection getConnection(String username, String password) throws SQLException
+    // should NOT be sync'ed -- driver() is sync'ed and that's enough
+    // sync'ing the method creates the danger that one freeze on connect
+    // blocks access to the entire DataSource
+
+    public Connection getConnection(String username, String password) throws SQLException
     { 
 	Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );  
 	if (out == null)
@@ -108,7 +117,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     public synchronized void setJdbcUrl(String jdbcUrl)
     {
 	super.setJdbcUrl( jdbcUrl );
-	this.driver = null;
+	clearDriver();
     }
 
     //"virtual properties"
@@ -168,13 +177,16 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	return overriding;
     }
 
-    private Driver driver() throws SQLException
+    private synchronized Driver driver() throws SQLException
     {
 	//System.err.println( "driver() <-- " + this );
 	if (driver == null)
 	    driver = DriverManager.getDriver( jdbcUrl );
 	return driver;
     }
+
+    private synchronized void clearDriver()
+    { driver = null; }
 
     private static boolean eqOrBothNull( Object a, Object b )
     { return (a == b || (a != null && a.equals(b))); }

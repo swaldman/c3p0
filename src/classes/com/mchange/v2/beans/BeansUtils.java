@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -27,6 +27,8 @@ import java.beans.*;
 import java.lang.reflect.*;
 import java.util.*;
 import com.mchange.v2.log.*;
+
+import com.mchange.v2.lang.Coerce;
 
 public final class BeansUtils
 {
@@ -129,7 +131,7 @@ public final class BeansUtils
 	    {
 		//e.printStackTrace();
 		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
-		    logger.log( MLevel.FINE, "Converting exception to throwable IntrospectionException", e );
+		    logger.log( MLevel.FINE, "Converting exception to throwable IntrospectionException" );
 		    
 		throw new IntrospectionException( e.getMessage() );
 	    }
@@ -142,83 +144,177 @@ public final class BeansUtils
     public static void overwriteAccessiblePropertiesFromMap( Map sourceMap, Object destBean, boolean skip_nulls, Collection ignoreProps )
 	throws IntrospectionException
     {
+	overwriteAccessiblePropertiesFromMap( sourceMap, 
+					      destBean, 
+					      skip_nulls, 
+					      ignoreProps, 
+					      false,
+					      MLevel.WARNING,
+					      MLevel.WARNING,
+					      true);
+    }
+    
+    public static void overwriteAccessiblePropertiesFromMap( Map sourceMap, 
+							     Object destBean, 
+							     boolean skip_nulls, 
+							     Collection ignoreProps, 
+							     boolean coerce_strings,
+							     MLevel cantWriteLevel,
+							     MLevel cantCoerceLevel,
+							     boolean die_on_one_prop_failure)
+	throws IntrospectionException
+    {
+	if (cantWriteLevel == null)
+	    cantWriteLevel = MLevel.WARNING;
+	if (cantCoerceLevel == null)
+	    cantCoerceLevel = MLevel.WARNING;
+
+	Set sourceMapProps = sourceMap.keySet();
+
 	String propName = null;
-	try
+	BeanInfo beanInfo = Introspector.getBeanInfo( destBean.getClass(), Object.class ); //so we don't see message about getClass()
+	PropertyDescriptor[] pds = beanInfo.getPropertyDescriptors();
+	//System.err.println("ignoreProps: " + ignoreProps );
+	for( int i = 0, len = pds.length; i < len; ++i)
 	    {
-		BeanInfo beanInfo = Introspector.getBeanInfo( destBean.getClass(), Object.class ); //so we don't see message about getClass()
-		PropertyDescriptor[] pds = beanInfo.getPropertyDescriptors();
-		//System.err.println("ignoreProps: " + ignoreProps );
-		for( int i = 0, len = pds.length; i < len; ++i)
+		PropertyDescriptor pd = pds[i];
+		propName = pd.getName();
+
+		if (! sourceMapProps.contains( propName ))
+		    continue;
+		
+		if ( ignoreProps != null && ignoreProps.contains( propName ) )
 		    {
-			PropertyDescriptor pd = pds[i];
-			propName = pd.getName();
-			if ( ignoreProps.contains( propName ) )
-			    {
-				//System.err.println("ignoring: " + propName);
-				continue;
-			    }
-			//else
-			//    System.err.println("not ignoring: " + propName);
+			//System.err.println("ignoring: " + propName);
+			continue;
+		    }
+		//else
+		//    System.err.println("not ignoring: " + propName);
+		
+		Object propVal = sourceMap.get( propName );
+		if (propVal == null)
+		    {
+			if (skip_nulls) continue;
+			//do we need to worry about primitives here?
+		    }
+		
+		Method setter = pd.getWriteMethod();
+		boolean rethrow = false;
+		
+		Class propType = pd.getPropertyType();;
 
-			Object propVal = sourceMap.get( propName );
-			if (propVal == null)
-			    {
-				if (skip_nulls) continue;
-				//do we need to worry about primitives here?
-			    }
-
-			Method setter = pd.getWriteMethod();
-
+// 		try
+// 		    {
+		
 			if ( setter == null )
 			    {
 				if ( pd instanceof IndexedPropertyDescriptor )
 				    {
-// 					System.err.println("WARNING: BeansUtils.overwriteAccessiblePropertiesFromMap() does not");
-// 					System.err.println("support indexed properties that do not provide single-valued");
-// 					System.err.println("array getters and setters! [The indexed methods provide no means");
-// 					System.err.println("of modifying the size of the array in the destination bean if");
-// 					System.err.println("it does not match the source.]");
-
-					if ( logger.isLoggable( MLevel.WARNING ) )
-					    logger.warning("BeansUtils.overwriteAccessiblePropertiesFromMap() does not" +
-							   " support indexed properties that do not provide single-valued" +
-							   " array getters and setters! [The indexed methods provide no means" +
-							   " of modifying the size of the array in the destination bean if" +
-							   " it does not match the source.]");
-
+					if ( logger.isLoggable( MLevel.FINER ) )
+					    logger.finer("BeansUtils.overwriteAccessiblePropertiesFromMap() does not" +
+							 " support indexed properties that do not provide single-valued" +
+							 " array getters and setters! [The indexed methods provide no means" +
+							 " of modifying the size of the array in the destination bean if" +
+							 " it does not match the source.]");
+					
 				    }
-
-				//System.err.println("Property inaccessible for overwriting: " + pd.getName());
-				if (logger.isLoggable( MLevel.INFO ))
-				    logger.info("Property inaccessible for overwriting: " + pd.getName());
+				
+				if ( logger.isLoggable( cantWriteLevel ))
+				    {
+					String msg = "Property inaccessible for overwriting: " + propName; 
+					logger.log( cantWriteLevel, msg );
+					if (die_on_one_prop_failure)
+					    {
+						rethrow = true;
+						throw new IntrospectionException( msg );
+					    }
+				    }
+				
 			    }
 			else
 			    {
-				//System.err.println("invoking method: " + setter);
-				setter.invoke( destBean, new Object[] { propVal } );
+				if (coerce_strings &&
+				    propVal != null && 
+				    propVal.getClass() == String.class && 
+				    (propType = pd.getPropertyType()) != String.class &&
+				    Coerce.canCoerce( propType ))
+				    {
+					Object coercedPropVal;
+					try
+					    { 
+						coercedPropVal = Coerce.toObject( (String) propVal, propType ); 
+						System.err.println(propName + "-> coercedPropVal: " + coercedPropVal);
+						setter.invoke( destBean, new Object[] { coercedPropVal } );
+					    }
+					catch (IllegalArgumentException e) 
+					    {
+						// thrown by Coerce.toObject()
+						// recall that NumberFormatException inherits from IllegalArgumentException
+						String msg = 
+						    "Failed to coerce property: " + propName +
+						    " [propVal: " + propVal + "; propType: " + propType + "]";
+						if ( logger.isLoggable( cantCoerceLevel ) )
+						    logger.log( cantCoerceLevel, msg, e );
+						if (die_on_one_prop_failure)
+						    {
+							rethrow = true;
+							throw new IntrospectionException( msg );
+						    }
+					    }
+					catch (Exception e)
+					    {
+						String msg = 
+						    "Failed to set property: " + propName +
+						    " [propVal: " + propVal + "; propType: " + propType + "]";
+						if ( logger.isLoggable( cantWriteLevel ) )
+						    logger.log( cantWriteLevel, msg, e );
+						if (die_on_one_prop_failure)
+						    {
+							rethrow = true;
+							throw new IntrospectionException( msg );
+						    }
+					    }
+				    }
+				else
+				    {
+					try
+					    {
+						//System.err.println("invoking method: " + setter);
+						setter.invoke( destBean, new Object[] { propVal } );
+					    }
+					catch (Exception e)
+					    {
+						String msg = 
+						    "Failed to set property: " + propName +
+						    " [propVal: " + propVal + "; propType: " + propType + "]";
+						if ( logger.isLoggable( cantWriteLevel ) )
+						    logger.log( cantWriteLevel, msg, e );
+						if (die_on_one_prop_failure)
+						    {
+							rethrow = true;
+							throw new IntrospectionException( msg );
+						    }
+					    }
+				    }
 			    }
-		    }
-	    }
-	catch ( IntrospectionException e )
-	    {
-// 		if (propName != null)
-// 		    System.err.println("Problem occurred while overwriting property: " + propName);
-		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.warning("Problem occurred while overwriting property: " + propName);
-		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
-		    logger.logp( MLevel.FINE, 
-				 BeansUtils.class.getName(),
-				 "overwriteAccessiblePropertiesFromMap( Map sourceMap, Object destBean, boolean skip_nulls, Collection ignoreProps )",
-				 (propName != null ? "Problem occurred while overwriting property: " + propName : "") + " throwing...",
-				 e );
-		throw e; 
-	    }
-	catch ( Exception e )
-	    {
-		//e.printStackTrace();
-		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ))
-		    logger.log( MLevel.FINE, "Converting exception to throwable IntrospectionException [propName: " + propName + "]", e );
-		throw new IntrospectionException( e.toString() + (propName == null ? "" : " [" + propName + ']') );
+// 		    }
+// 		catch (Exception e)
+// 		    {
+// 			if (e instanceof IntrospectionException && rethrow)
+// 			    throw (IntrospectionException) e;
+// 			else
+// 			    {
+// 				String msg = 
+// 				    "An exception occurred while trying to set property '" + propName +
+// 				    "' to value '" + propVal + "'. ";
+// 				logger.log(MLevel.WARNING, msg, e);
+// 				if (die_on_one_prop_failure)
+// 				    {
+// 					rethrow = true;
+// 					throw new IntrospectionException( msg + e.toString());
+// 				    }
+// 			    }
+// 		    }
 	    }
     }
 

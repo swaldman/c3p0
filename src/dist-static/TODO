@@ -1,7 +1,9 @@
-better control over Connection distribution order (thanks Peter Fassev)
+maxExcessConnectionIdleTime [to implement behavior navin_m on sf suggests.]
 
-Create a dbms-dir level build.xml file, rather than having top-level
-manage subdirectories.
+A shortcut in acquire tasks that bails before attempting an acquire if the acquisition
+is no longer necessary.
+
+Make visible rootCause exceptions when Connection test fails. (Looks implemented, but I don't see them. Debug.)
 
 Less confusing hibernate ConnectionProvider.
 

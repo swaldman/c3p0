@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -54,6 +54,7 @@ import com.mchange.v2.log.MLogger;
  *
  *  <p><i>Please see c3p0's main documentation for a description of all available parameters.</i></p>
  *
+ *  @deprecated as of c3p0-0.9.1. To manipulate config programmaticall, please use ComboPooledDataSource
  *
  */
 public final class PoolConfig

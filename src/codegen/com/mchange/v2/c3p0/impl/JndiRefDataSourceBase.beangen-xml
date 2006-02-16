@@ -5,6 +5,7 @@
   <imports>
      <specific>java.util.Hashtable</specific>
      <specific>javax.naming.Name</specific>
+     <specific>com.mchange.v2.c3p0.cfg.C3P0Config</specific>
   </imports>
   <output-class>JndiRefDataSourceBase</output-class>
   <extends>IdentityTokenResolvable</extends>
@@ -43,6 +44,7 @@
     <property>
        <type>String</type>
        <name>factoryClassLocation</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("factoryClassLocation", C3P0Defaults.factoryClassLocation())</default-value>
        <bound />
     </property>
   </properties>

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -65,7 +65,11 @@ public class BeangenDataSourceGenerator
 		SimplePropertyBeanGenerator gen = new SimplePropertyBeanGenerator();
 		gen.setGeneratorName( BeangenDataSourceGenerator.class.getName() );
 		gen.addExtension( new IndirectingSerializableExtension("com.mchange.v2.naming.ReferenceIndirector") );
-		gen.addExtension( new PropsToStringGeneratorExtension() );
+
+		PropsToStringGeneratorExtension tsge = new PropsToStringGeneratorExtension();
+		tsge.setExcludePropertyNames( Arrays.asList( new String[] {"userOverridesAsString","overrideDefaultUser","overrideDefaultPassword"} ) );
+		gen.addExtension( tsge );
+
 		PropertyReferenceableExtension prex = new PropertyReferenceableExtension();
 		prex.setUseExplicitReferenceProperties( true );
 		// we use the string version to creating dependencies between the bean generator and c3p0 classes

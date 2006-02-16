@@ -4,7 +4,7 @@
   <package>com.mchange.v2.c3p0.impl</package>
   <imports>
      <specific>javax.sql.DataSource</specific>
-     <specific>com.mchange.v2.c3p0.PoolConfig</specific>
+     <specific>com.mchange.v2.c3p0.cfg.C3P0Config</specific>
   </imports>
   <modifiers>
      <modifier>public</modifier>
@@ -23,95 +23,91 @@
     <property>
        <type>int</type>
        <name>maxStatements</name>
-       <default-value>PoolConfig.defaultMaxStatements()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("maxStatements", C3P0Defaults.maxStatements())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>maxStatementsPerConnection</name>
-       <default-value>PoolConfig.defaultMaxStatementsPerConnection()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("maxStatementsPerConnection", C3P0Defaults.maxStatementsPerConnection())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>initialPoolSize</name>
-       <default-value>PoolConfig.defaultInitialPoolSize()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("initialPoolSize", C3P0Defaults.initialPoolSize())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>minPoolSize</name>
-       <default-value>PoolConfig.defaultMinPoolSize()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("minPoolSize", C3P0Defaults.minPoolSize())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>maxPoolSize</name>
-       <default-value>PoolConfig.defaultMaxPoolSize()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("maxPoolSize", C3P0Defaults.maxPoolSize())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>idleConnectionTestPeriod</name>
-       <default-value>PoolConfig.defaultIdleConnectionTestPeriod()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("idleConnectionTestPeriod", C3P0Defaults.idleConnectionTestPeriod())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>maxIdleTime</name>
-       <default-value>PoolConfig.defaultMaxIdleTime()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("maxIdleTime", C3P0Defaults.maxIdleTime())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>propertyCycle</name>
-       <default-value>PoolConfig.defaultPropertyCycle()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("propertyCycle", C3P0Defaults.propertyCycle())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>acquireIncrement</name>
-       <default-value>PoolConfig.defaultAcquireIncrement()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("acquireIncrement", C3P0Defaults.acquireIncrement())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>acquireRetryAttempts</name>
-       <default-value>PoolConfig.defaultAcquireRetryAttempts()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("acquireRetryAttempts", C3P0Defaults.acquireRetryAttempts())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>acquireRetryDelay</name>
-       <default-value>PoolConfig.defaultAcquireRetryDelay()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("acquireRetryDelay", C3P0Defaults.acquireRetryDelay())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
        <name>automaticTestTable</name>
-       <default-value>
-          PoolConfig.defaultAutomaticTestTable();
-       </default-value>
+       <default-value>C3P0Config.initializeStringPropertyVar("automaticTestTable", C3P0Defaults.automaticTestTable())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
        <name>connectionTesterClassName</name>
-       <default-value>
-          PoolConfig.defaultConnectionTesterClassName();
-       </default-value>
+       <default-value>C3P0Config.initializeStringPropertyVar("connectionTesterClassName", C3P0Defaults.connectionTesterClassName())</default-value>
        <constrained/>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
@@ -119,62 +115,78 @@
     <property>
        <type>boolean</type>
        <name>testConnectionOnCheckout</name>
-       <default-value>
-          PoolConfig.defaultTestConnectionOnCheckout()
-       </default-value>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("testConnectionOnCheckout", C3P0Defaults.testConnectionOnCheckout())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>testConnectionOnCheckin</name>
-       <default-value>
-          PoolConfig.defaultTestConnectionOnCheckin()
-       </default-value>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("testConnectionOnCheckin", C3P0Defaults.testConnectionOnCheckin())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
        <name>preferredTestQuery</name>
-       <default-value>
-          PoolConfig.defaultPreferredTestQuery()
-       </default-value>
+       <default-value>C3P0Config.initializeStringPropertyVar("preferredTestQuery", C3P0Defaults.preferredTestQuery())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>autoCommitOnClose</name>
-       <default-value>PoolConfig.defaultAutoCommitOnClose()</default-value>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("autoCommitOnClose", C3P0Defaults.autoCommitOnClose())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>forceIgnoreUnresolvedTransactions</name>
-       <default-value>PoolConfig.defaultForceIgnoreUnresolvedTransactions()</default-value>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("forceIgnoreUnresolvedTransactions", C3P0Defaults.forceIgnoreUnresolvedTransactions())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>int</type>
        <name>checkoutTimeout</name>
-       <default-value>PoolConfig.defaultCheckoutTimeout()</default-value>
+       <default-value>C3P0Config.initializeIntPropertyVar("checkoutTimeout", C3P0Defaults.checkoutTimeout())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>breakAfterAcquireFailure</name>
-       <default-value>PoolConfig.defaultBreakAfterAcquireFailure()</default-value>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("breakAfterAcquireFailure", C3P0Defaults.breakAfterAcquireFailure())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
        <type>boolean</type>
        <name>usesTraditionalReflectiveProxies</name>
-       <default-value>PoolConfig.defaultUsesTraditionalReflectiveProxies()</default-value>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("usesTraditionalReflectiveProxies", C3P0Defaults.usesTraditionalReflectiveProxies())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>overrideDefaultUser</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("overrideDefaultUser", C3P0Defaults.overrideDefaultUser())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>overrideDefaultPassword</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("overrideDefaultPassword", C3P0Defaults.overrideDefaultPassword())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>userOverridesAsString</name>
+       <default-value>C3P0Config.initializeUserOverridesAsString()</default-value>
+       <constrained/>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
@@ -189,7 +201,7 @@
     <property>
        <type>String</type>
        <name>factoryClassLocation</name>
-       <default-value>PoolConfig.defaultFactoryClassLocation()</default-value>
+       <default-value>C3P0Config.initializeStringPropertyVar("factoryClassLocation", C3P0Defaults.factoryClassLocation())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>

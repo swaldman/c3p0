@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -28,11 +28,14 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 import javax.naming.*;
+import com.mchange.v2.log.*;
 import com.mchange.v2.naming.*;
 import com.mchange.v2.c3p0.impl.*;
-import com.mchange.v2.beans.BeansUtils;
 
-// WrapperConnectionPoolDataSource properties -- count: 21
+import com.mchange.v2.beans.BeansUtils;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
+
+// WrapperConnectionPoolDataSource properties -- count: 24
 //
 // 	("checkoutTimeout");
 // 	("acquireIncrement");
@@ -55,6 +58,9 @@ import com.mchange.v2.beans.BeansUtils;
 // 	("usesTraditionalReflectiveProxies");
 // 	("preferredTestQuery");
 // 	("automaticTestTable");
+// 	("userOverridesAsString");
+// 	("overrideDefaultUser");
+// 	("overrideDefaultPassword");
 
 
 /**
@@ -62,9 +68,12 @@ import com.mchange.v2.beans.BeansUtils;
  */
 public final class ComboPooledDataSource extends IdentityTokenResolvable implements PooledDataSource, Serializable, Referenceable
 {
+    final static MLogger logger = MLog.getLogger( ComboPooledDataSource.class );
+
     final static Set TO_STRING_IGNORE_PROPS = new HashSet( Arrays.asList( new String[] { 
 									      "connection",
 									      "logWriter",
+									      "loginTimeout",
 									      "numBusyConnections",
 									      "numBusyConnectionsAllUsers",
 									      "numBusyConnectionsDefaultUser",
@@ -78,9 +87,13 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 									      "numUnclosedOrphanedConnectionsAllUsers",
 									      "numUnclosedOrphanedConnectionsDefaultUser",
 									      "numUserPools",
+									      "overrideDefaultUser",
+									      "overrideDefaultPassword",
 									      "password",
 									      "reference",
-									      "user" } ) );
+									      "user",
+									      "userOverridesAsString"
+									  } ) );
 
     // not reassigned post-ctor; mutable elements protected by their own locks
     // when (very rarely) necessery, we sync pbds -> wcpds -> dmds
@@ -102,6 +115,26 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 
 	this.identityToken = C3P0ImplUtils.identityToken( this );
 	C3P0Registry.register( this );
+    }
+
+    public ComboPooledDataSource()
+    {}
+
+    public ComboPooledDataSource(String configName)
+    {
+	try
+	    {
+		if (configName != null)
+		    C3P0Config.bindNamedConfigToBean( this, configName ); 
+	    }
+	catch (Exception e)
+	    {
+		if (logger.isLoggable( MLevel.WARNING ))
+		    logger.log( MLevel.WARNING, 
+				"Error binding ComboPooledDataSource to named-config '" + configName + 
+				"'. Some default-config values may be used.", 
+				e);
+	    }
     }
 
     // DriverManagerDataSourceProperties  (count: 4)
@@ -340,6 +373,30 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	    }
     }
 	
+    public String getOverrideDefaultUser()
+    { return wcpds.getOverrideDefaultUser(); }
+	
+    public void setOverrideDefaultUser(String overrideDefaultUser)
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setOverrideDefaultUser( overrideDefaultUser ); 
+		pbds.resetPoolManager();
+	    }
+    }
+	
+    public String getOverrideDefaultPassword()
+    { return wcpds.getOverrideDefaultPassword(); }
+	
+    public void setOverrideDefaultPassword(String overrideDefaultPassword)
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setOverrideDefaultPassword( overrideDefaultPassword ); 
+		pbds.resetPoolManager();
+	    }
+    }
+	
     public int getPropertyCycle()
     { return wcpds.getPropertyCycle(); }
 	
@@ -412,6 +469,18 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	    }
     }
 
+    public String getUserOverridesAsString()
+    { return wcpds.getUserOverridesAsString(); }
+	
+    public void setUserOverridesAsString( String userOverridesAsString ) throws PropertyVetoException
+    { 
+	synchronized ( pbds )
+	    {
+		wcpds.setUserOverridesAsString( userOverridesAsString ); 
+		pbds.resetPoolManager();
+	    }
+    }
+
     // PoolBackedDataSource properties (count: 1)
     public int getNumHelperThreads()
     { return pbds.getNumHelperThreads(); }
@@ -462,7 +531,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	referenceMaker.addReferenceProperty("jdbcUrl");
 	referenceMaker.addReferenceProperty("properties");
 
-	// WrapperConnectionPoolDataSource properties (count: 21)
+	// WrapperConnectionPoolDataSource properties (count: 22)
 	referenceMaker.addReferenceProperty("checkoutTimeout");
 	referenceMaker.addReferenceProperty("acquireIncrement");
 	referenceMaker.addReferenceProperty("acquireRetryAttempts");
@@ -484,6 +553,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	referenceMaker.addReferenceProperty("usesTraditionalReflectiveProxies");
 	referenceMaker.addReferenceProperty("preferredTestQuery");
 	referenceMaker.addReferenceProperty("automaticTestTable");
+	referenceMaker.addReferenceProperty("userOverridesAsString");
 
 	// PoolBackedDataSource properties (count: 2)
 	referenceMaker.addReferenceProperty("numHelperThreads");
@@ -620,6 +690,11 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	catch (Exception e)
 	    { sb.append( e.toString() ); }
 	sb.append(" ]");
+
+// 	Map userOverrides = wcpds.getUserOverrides();
+// 	if (userOverrides != null)
+// 	    sb.append("; userOverrides: " + userOverrides.toString());
+
 	return sb.toString();
     }
 }

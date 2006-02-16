@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -23,8 +23,12 @@
 
 package com.mchange.v2.c3p0.impl;
 
+import java.lang.reflect.*;
+import java.util.*;
 import com.mchange.v2.c3p0.ConnectionTester;
 
+// all public static methods should have the name of a c3p0 config property and
+// return its default value
 public final class C3P0Defaults
 {
     private final static int MAX_STATEMENTS                = 0;
@@ -51,9 +55,30 @@ public final class C3P0Defaults
 
     private final static int NUM_HELPER_THREADS = 3;
 
-    private final static String AUTOMATIC_TEST_TABLE   = null;
-    private final static String PREFERRED_TEST_QUERY   = null;
-    private final static String FACTORY_CLASS_LOCATION = null;
+    private final static String AUTOMATIC_TEST_TABLE      = null;
+    private final static String OVERRIDE_DEFAULT_USER     = null;
+    private final static String OVERRIDE_DEFAULT_PASSWORD = null;
+    private final static String PREFERRED_TEST_QUERY      = null;
+    private final static String FACTORY_CLASS_LOCATION    = null;
+    private final static String USER_OVERRIDES_AS_STRING  = null;
+
+    private static Set KNOWN_PROPERTIES;
+
+    static
+    {
+	Method[] methods = C3P0Defaults.class.getMethods();
+	Set s = new HashSet();
+	for (int i = 0, len = methods.length; i < len; ++i)
+	    {
+		Method m = methods[i];
+		if (Modifier.isStatic( m.getModifiers() ) && m.getParameterTypes().length == 0)
+		    s.add( m.getName() );
+	    }
+	KNOWN_PROPERTIES = Collections.unmodifiableSet( s );
+    }
+
+    public static boolean isKnownProperty( String s )
+    { return KNOWN_PROPERTIES.contains( s ); }
 
     public static int maxStatements()
     { return MAX_STATEMENTS; }
@@ -124,7 +149,16 @@ public final class C3P0Defaults
     public static String preferredTestQuery()
     { return PREFERRED_TEST_QUERY; }
 
+    public static String userOverridesAsString()
+    { return USER_OVERRIDES_AS_STRING; }
+
     public static String factoryClassLocation()
     { return FACTORY_CLASS_LOCATION; }
+
+    public static String overrideDefaultUser()
+    { return OVERRIDE_DEFAULT_USER; }
+
+    public static String overrideDefaultPassword()
+    { return OVERRIDE_DEFAULT_PASSWORD; }
 }
 

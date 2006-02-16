@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -24,10 +24,15 @@
 package com.mchange.v2.c3p0.impl;
 
 import java.beans.*;
+import java.util.*;
 import java.lang.reflect.*;
 import com.mchange.v2.c3p0.*;
+
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import com.mchange.lang.ByteUtils;
+import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
@@ -56,6 +61,10 @@ public final class C3P0ImplUtils
 
 	String user = null;
 	String password = null;
+
+	String overrideDefaultUser    = null;
+	String overrideDefaultPassword = null;
+
 	try
 	    {
 		BeanInfo bi = Introspector.getBeanInfo( o.getClass() );
@@ -80,13 +89,19 @@ public final class C3P0ImplUtils
 					    user = value;
 					else if ("password".equals(propName))
 					    password = value;
+					else if ("overrideDefaultUser".equals(propName))
+					    overrideDefaultUser = value;
+					else if ("overrideDefaultPassword".equals(propName))
+					    overrideDefaultPassword = value;
 				    }
 			    }
 		    }
-		if (user == null)
-		    return NULL_AUTH;
-		else
+		if (overrideDefaultUser != null)
+		    return new DbAuth( overrideDefaultUser, overrideDefaultPassword );
+		else if (user != null)
 		    return new DbAuth( user, password );
+		else
+		    return NULL_AUTH;
 	    }
 	catch (Exception e)
 	    {
@@ -152,6 +167,30 @@ public final class C3P0ImplUtils
 			       e);
 		return false;
 	    }
+    }
+
+    private final static String HASM_HEADER = "HexAsciiSerializedMap";
+
+    public static String createUserOverridesAsString( Map userOverrides ) throws IOException
+    {
+	StringBuffer sb = new StringBuffer();
+	sb.append(HASM_HEADER);
+	sb.append('[');
+	sb.append( ByteUtils.toHexAscii( SerializableUtils.toByteArray( userOverrides ) ) );
+	sb.append(']');
+	return sb.toString();
+    }
+
+    public static Map parseUserOverridesAsString( String userOverridesAsString ) throws IOException, ClassNotFoundException
+    { 
+	if (userOverridesAsString != null)
+	    {
+		String hexAscii = userOverridesAsString.substring(HASM_HEADER.length() + 1, userOverridesAsString.length() - 1);
+		byte[] serBytes = ByteUtils.fromHexAscii( hexAscii );
+		return Collections.unmodifiableMap( (Map) SerializableUtils.fromByteArray( serBytes ) );
+	    }
+	else
+	    return Collections.EMPTY_MAP;
     }
 
     private C3P0ImplUtils()

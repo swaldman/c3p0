@@ -1,3 +1,62 @@
+c3p0-0.9.1-pre5
+	-- reorganized synchronization of getConnection() in DriverManagerDataSource, 
+	   so that a lock-up in one Connection acquisition attempt does not prevent 
+	   other threads from accessing the DataSource. [Thanks to Fabian Gonzalez
+	   for calling attention to this occasional deadlock.]
+c3p0-0.9.1-pre4
+	-- added overrideDefaultUser and overrideDefaultPassword parameters, and
+	   a pooledDataSource( ) factory method which specifies override 
+	   authentification info, regardless of the user and password properties
+	   set on the DataSource.
+	-- Reimplemented resource acquisition in BasicResourcePool so that each
+	   Connection acquisition is a separate asynchronous task, to avoid tying
+	   up the pool with very long, multiple acquisition tasks. Ended up being
+	   a total rewrite of pool size management. Pools should be much more
+	   conservative in acquiring new Connections. They won't grow to maxPoolSize
+	   as easily as before. This is a big change. We'll see how it holds up as 
+	   people beat the crap out of it.
+c3p0-0.9.1-pre3
+	-- Added some extra logging of resource destruction, to help debug cases
+	   where the resources are removed from the pool, but appear not to have
+	   been properly cleaned up.
+	-- Finished implementation of new C3P0Config, added constructor methods to 
+	   various DataSource implementations that accept a configName parameter for 
+	   named configurations, and modified the DataSources class to use the new
+	   configuration approach instead of PoolConfig wherever possible.
+c3p0-0.9.1-pre2
+	-- Continued implementation of new C3P0Config, including XML parsing
+	   and setting of default values. Still have to test XML config, and
+	   implement named and per-user configs.
+	-- Changed policy of BasicResourcePool to keep accidentally overacquired
+	   resources so long as the pool is kept below maxPoolSize, rather than
+	   immediately discarding Connections beyond the number we intended to
+	   acquire.
+	-- Fixed two issues whereby checking in resources to closed pools (both
+	   Connection and Statement pools) provoked Exceptions. Check-ins should
+	   succeed, even to close()ed pools, with resources silently destroyed if
+	   the pools ae closed. [Thanks to Chris Kessel for finding both of these
+	   issues.]
+	-- Modified to a one-statement-cache-per-pool model, rather than a 
+	   global-statement-cache-for-all-pools, consistent with the general
+	   philosophy that config parameters are on a per-auth-pool basis. 
+        -- Fixed a deadlock which could occur if a pool is closed at the same time as
+           one of its Connections is closed. One thread gets the pool's lock, then tries
+           to get a PooledConnections lock to close it. An ordinary client closes a
+           Connection, which acquires the PooledConnection's lock, and then tries to
+           check back in to the pool, requiring the pool's lock. Broke the deadlock by
+           making the destruction of resources on pool close asynchronous, by a Thread
+	   without the resource pool's lock.. [Many thanks to Roger Westerlund for 
+	   sending a full thread-stack dump capturing this deadlock!]
+	-- Completed transformation to one C3P0PooledConnectionPoolManager per
+	   PoolBackedDataSource model.
+c3p0-0.9.1-pre1
+	[This is a half-assed internal release... it compiles and works, but mostly
+	it's just a checkpoint as c3p0 undergoes significant transformations.]
+	-- Deprecated PoolConfig, and began implementation of new C3P0Config approach
+	   to configuration.
+	-- Partial transformation of C3P0PooledConnectionPoolManager from shared-manager
+	   for several DataSources model to simple one-pool-per-DataSource model enabled
+	   by canonicalization of DataSources.
 c3p0-0.9.0.4
 	-- In a subtle but major modification of BasicResourcePool, changed checkin/checkout
 	   behavior from FIFO to LIFO to increase the likelihood that unnecessary Connections

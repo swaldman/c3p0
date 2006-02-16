@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -26,7 +26,7 @@ package com.mchange.v2.c3p0;
 import java.util.*;
 import com.mchange.v2.coalesce.*;
 import com.mchange.v2.log.*;
-import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
+import com.mchange.v2.c3p0.impl.*;
 import com.mchange.v2.c3p0.impl.IdentityTokenized;
 import com.mchange.v2.c3p0.subst.C3P0Substitutions;
 
@@ -39,28 +39,7 @@ public final class C3P0Registry
     static boolean banner_printed = false;
 
     //MT: thread-safe, immutable
-    private static CoalesceChecker CC = new CoalesceChecker()
-	{
-	    public boolean checkCoalesce( Object a, Object b )
-	    {
-		IdentityTokenized aa = (IdentityTokenized) a;
-		IdentityTokenized bb = (IdentityTokenized) b;
-
-		String ta = aa.getIdentityToken();
-		String tb = bb.getIdentityToken();
-
-		if (ta == null || tb == null)
-		    throw new NullPointerException( "[c3p0 bug] An IdentityTokenized object has no identity token set?!?! " + (ta == null ? ta : tb) );
-		else
-		    return ta.equals(tb);
-	    }
-
-	    public int coalesceHash( Object a )
-	    { 
-		String t = ((IdentityTokenized) a).getIdentityToken();
-		return (t != null ? t.hashCode() : 0); 
-	    }
-	};
+    private static CoalesceChecker CC = IdentityTokenizedCoalesceChecker.INSTANCE;
 
     //MT: protected by its own lock
     //a strong, synchronized coalescer
@@ -68,6 +47,37 @@ public final class C3P0Registry
 
     //MT: protected by class' lock
     private static HashSet topLevelPooledDataSources = new HashSet();
+
+    //MT: protected by its own lock
+    private static Map classNamesToConnectionTesters = Collections.synchronizedMap( new HashMap() );
+
+    static
+    {
+	classNamesToConnectionTesters.put(C3P0Defaults.connectionTesterClassName(), C3P0Defaults.connectionTester());
+    }
+
+    public static ConnectionTester getConnectionTester( String className )
+    {
+	try
+	    {
+		ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
+		if (out == null)
+		    { 
+			out = (ConnectionTester) Class.forName( className ).newInstance();
+			classNamesToConnectionTesters.put( className, out );
+		    }
+		return out;
+	    }
+	catch (Exception e)
+	    {
+		if (logger.isLoggable( MLevel.WARNING ))
+		    logger.log( MLevel.WARNING, 
+				"Could not create for find ConnectionTester with class name '" +
+				className + "'. Using default.",
+				e );
+		return C3P0Defaults.connectionTester();
+	    }
+    }
 
     private static synchronized void banner()
     {

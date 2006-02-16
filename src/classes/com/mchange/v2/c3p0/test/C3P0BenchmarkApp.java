@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -106,13 +106,15 @@ public final class C3P0BenchmarkApp
 // 		PoolConfig pc = new PoolConfig();
 // 		pc.setMaxStatements(200);
 // 		pc.setCheckoutTimeout(500);
-// 		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
+//  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
+//  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, "foo", "goo" );
 
-		ComboPooledDataSource cpds = new ComboPooledDataSource();
-		cpds.setJdbcUrl( jdbc_url );
-		cpds.setUser( username );
-		cpds.setPassword( password );
-		ds_pooled = cpds;
+		//ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
+ 		ComboPooledDataSource cpds = new ComboPooledDataSource();
+ 		cpds.setJdbcUrl( jdbc_url );
+ 		cpds.setUser( username );
+ 		cpds.setPassword( password );
+ 		ds_pooled = cpds;
 
  		create(ds_pooled);
 

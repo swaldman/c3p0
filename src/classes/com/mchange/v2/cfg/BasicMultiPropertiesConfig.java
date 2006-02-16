@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -270,10 +270,16 @@ public class BasicMultiPropertiesConfig extends MultiPropertiesConfig
     { return (String[]) rps.clone(); }
 
     public Properties getPropertiesByResourcePath(String path)
-    { return ((Properties) propsByResourcePaths.get( path )); }
+    { 
+	Properties out = ((Properties) propsByResourcePaths.get( path )); 
+	return (out == null ? new Properties() : out);
+    }
 
     public Properties getPropertiesByPrefix(String pfx)
-    { return ((Properties) propsByPrefixes.get( pfx )); }
+    {
+	Properties out = ((Properties) propsByPrefixes.get( pfx ));
+	return (out == null ? new Properties() : out);
+    }
 
     public String getProperty( String key )
     { return propsByKey.getProperty( key ); }

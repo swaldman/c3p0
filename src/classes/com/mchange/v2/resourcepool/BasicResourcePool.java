@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -39,9 +39,9 @@ class BasicResourcePool implements ResourcePool
     //MT: unchanged post c'tor
     Manager mgr;
     BasicResourcePoolFactory factory;
+    AsynchronousRunner       taskRunner;
 
     //MT: protected by this' lock
-    AsynchronousRunner       taskRunner;
     RunnableQueue            asyncEventQueue;
     Timer                    cullAndIdleRefurbishTimer;
     TimerTask                cullTask;
@@ -49,11 +49,13 @@ class BasicResourcePool implements ResourcePool
     HashSet                  acquireWaiters = new HashSet();
     HashSet                  otherWaiters = new HashSet();
 
+    int     target_pool_size;
+
     /*  keys are all valid, managed resources, value is a Date */ 
-    HashMap  managed  = new HashMap();
+    HashMap  managed = new HashMap();
 
     /* all valid, managed resources currently available for checkout */
-    LinkedList unused   = new LinkedList();
+    LinkedList unused = new LinkedList();
 
     /* resources which have been invalidated somehow, but which are */
     /* still checked out and in use.                                */
@@ -98,8 +100,25 @@ class BasicResourcePool implements ResourcePool
     // members below are changing but protected 
     // by their own locks
     //
+
+    int pending_acquires;
+    int pending_removes;
     
-    SynchronizedIntHolder pendingAcquiresCounter = new SynchronizedIntHolder();
+//     SynchronizedIntHolder pendingAcquiresCounter = new SynchronizedIntHolder();
+//     SynchronizedIntHolder pendingRemovesCounter  = new SynchronizedIntHolder();
+// 	{
+// 	    public synchronized void increment() 
+// 	    {
+// 		super.increment();
+// 		System.err.println("increment() --> " + getValue()); 
+// 	    }
+
+// 	    public synchronized void decrement() 
+// 	    {
+// 		super.decrement();
+// 		System.err.println("decrement() --> " + getValue()); 
+// 	    }
+// 	};
 
     //
     // end changing but protected members
@@ -143,7 +162,10 @@ class BasicResourcePool implements ResourcePool
 		this.asyncEventQueue            = asyncEventQueue;
 		this.cullAndIdleRefurbishTimer  = cullAndIdleRefurbishTimer;
 
-		pendingAcquiresCounter.setValue( 0 );
+		this.pending_acquires = 0;
+		this.pending_removes  = 0;
+
+		this.target_pool_size = Math.max(start, min);
 
 		//start acquiring our initial resources
 		ensureStartResources();
@@ -186,6 +208,64 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
+    // must be called from synchronized method, idempotent
+    private void _recheckResizePool()
+    {
+	if (! broken)
+	    {
+		int msz = managed.size();
+		//int expected_size = msz + pending_acquires - pending_removes;
+
+// 		System.err.print("target: " + target_pool_size);
+// 		System.err.println(" (msz: " + msz + "; pending_acquires: " + pending_acquires + "; pending_removes: " + pending_removes + ')');
+		//new Exception( "_recheckResizePool() STACK TRACE" ).printStackTrace();
+
+		int shrink_count;
+		int expand_count;
+
+		if ((shrink_count = msz - pending_removes - target_pool_size) > 0)
+		    shrinkPool( shrink_count );
+		else if ((expand_count = target_pool_size - (msz + pending_acquires)) > 0)
+		    expandPool( expand_count );
+	    }
+    }
+
+    private synchronized void incrementPendingAcquires()
+    { 
+	++pending_acquires; 
+	//new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
+    }
+
+    private synchronized void incrementPendingRemoves()
+    { 
+	++pending_removes; 
+	//new Exception("REMOVE SOURCE STACK TRACE").printStackTrace();
+    }
+
+    private synchronized void decrementPendingAcquires()
+    { --pending_acquires; }
+
+    private synchronized void decrementPendingRemoves()
+    { --pending_removes; }
+
+    // idempotent
+    private synchronized void recheckResizePool()
+    { _recheckResizePool(); }
+
+    // must be called from synchronized method
+    private void expandPool(int count)
+    {
+	for (int i = 0; i < count; ++i)
+	    taskRunner.postRunnable( new AcquireTask() );
+    }
+
+    // must be called from synchronized method
+    private void shrinkPool(int count)
+    {
+	for (int i = 0; i < count; ++i)
+	    taskRunner.postRunnable( new RemoveTask() ); 
+    }
+
     /*
      * This function recursively calls itself... under nonpathological
      * situations, it shouldn't be a problem, but if resources can never
@@ -203,9 +283,14 @@ class BasicResourcePool implements ResourcePool
 		int available = unused.size();
 		if (available == 0)
 		    {
-			int msz = managed.size();
-			if (msz < max) postAcquireMore();
-			awaitAcquire(timeout); //throws timeout exception
+ 			int msz = managed.size();
+ 			if (msz < max && msz >= target_pool_size)
+			    {
+				target_pool_size = Math.max( Math.min( max, target_pool_size + inc ), min );
+				//System.err.println("updated target_pool_size: " + target_pool_size);
+				_recheckResizePool();
+			    }
+			awaitAvailable(timeout); //throws timeout exception
 		    }
 
  		Object  resc = unused.get(0);
@@ -402,29 +487,6 @@ class BasicResourcePool implements ResourcePool
 	throws ResourcePoolException
     { return managed.size(); }
 
-    public void setPoolSize(final int sz)
-	throws ResourcePoolException
-    {
-	try
-	    {
-		Exception exc = doSetPoolSize(sz);
-		if (exc != null)
-		    {
-			if (exc instanceof RuntimeException)
-			    throw (RuntimeException) exc;
-			else
-			    throw ResourcePoolUtils.convertThrowable(exc);
-		    }
-	    }
-	catch ( ResourceClosedException e ) // one of our async threads died
-	    {
-		//e.printStackTrace();
-		if ( logger.isLoggable( MLevel.SEVERE ) )
-		    logger.log( MLevel.SEVERE, "Apparent pool break.", e );
-		this.unexpectedBreak();
-	    }
-    }
-
 //      //i don't think i like the async, no-guarantees approach
 //      public synchronized void requestResize( int req_sz )
 //      {
@@ -536,19 +598,6 @@ class BasicResourcePool implements ResourcePool
 	close( false );
     }
 
-    private void postAcquireUntil(int num) 
-    {
-// 	System.err.println("...postAcquireUntil( " +  num + " )"); 
-// 	new Exception("...dumping stack trace").printStackTrace();
-	taskRunner.postRunnable(new AcquireTask(num)); 
-    }
-
-    private void postRemoveTowards(int num) 
-    {
-	//System.err.println("...postRemoveTowards(" + num + ")");
-	taskRunner.postRunnable(new RemoveTask(num)); 
-    }
-
     private boolean canFireEvents()
     { return (! broken && asyncEventQueue != null); }
 
@@ -622,16 +671,27 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 	
+    // needn't be called from a sync'ed method
     private void destroyResource(final Object resc)
     { destroyResource( resc, false ); }
     
+    // needn't be called from a sync'ed method
     private void destroyResource(final Object resc, boolean synchronous)
     {
 	Runnable r = new Runnable()
 	    {
 		public void run()
 		{
-		    try { mgr.destroyResource(resc); }
+		    try 
+			{ 
+			    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+				logger.log(MLevel.FINER, "Preparing to destroy resource: " + resc);
+
+			    mgr.destroyResource(resc); 
+
+			    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+				logger.log(MLevel.FINER, "Successfully destroyed resource: " + resc);
+			}
 		    catch ( Exception e )
 			{
 			    if ( logger.isLoggable( MLevel.WARNING ) )
@@ -642,97 +702,86 @@ class BasicResourcePool implements ResourcePool
 			}
 		}
 	    };
-	if ( synchronous )
+	if ( synchronous || broken ) //if we're broken, our taskRunner may be dead, so we destroy synchronously
 	    r.run();
 	else
-	    taskRunner.postRunnable( r );
-    }
-
-    //this method NEED NOT be invoked from a synchronized
-    //block!!!!
-    private void acquireUntil(int num) throws Exception
-    {
-	int msz;
-	do
 	    {
-		synchronized(this)
-		    { 
-			msz = managed.size(); 
-		    }
-
-		if (msz < num)
+		try { taskRunner.postRunnable( r ); }
+		catch (Exception e)
 		    {
-			Object resc = mgr.acquireResource(); //not we acquire the resource while we DO NOT hold the lock!
-			boolean destroy = false;
-
-			synchronized(this)
-			    { 
-				msz = managed.size(); //double check that we still need the resc, after giving up the lock
-				if (msz < num)
-				    {
-					assimilateResource(resc); //assimilate resc if we do need it
-					++msz; //we can presume that if the assimilation succeeded, managed size is one larger, so we take note
-				    }
-				else
-				    destroy = true; // mark resc for destrction if we don't
-			    }
-
-			if (destroy)
-			    mgr.destroyResource( resc ); //destroy resc if superfluous, without holding the pool's lock
+			if (logger.isLoggable(MLevel.FINER))
+			    logger.log( MLevel.FINER, 
+					"AsynchronousRunner refused to accept task to destroy resource. " +
+					"It is probably shared, and has probably been closed underneath us. " +
+					"Reverting to synchronous destruction. This is not usually a problem.",
+					e );
+			destroyResource( resc, true );
 		    }
-
-		//if there is a Thread waiting on
-		//this resource, try give it up before
-		//acquiring more!
-		Thread.currentThread().yield();
 	    }
-	while (msz < num);
     }
 
-    //oughtn't be called from a synchronized block, to minimize lock contention in acquireUntil()
-    private Exception doSetPoolSize(int sz)
+
+    //this method SHOULD NOT be invoked from a synchronized
+    //block!!!!
+    private void doAcquire() throws Exception
+    {
+	Object resc = mgr.acquireResource(); //note we acquire the resource while we DO NOT hold the pool's lock!
+	boolean destroy = false;
+	int msz;
+
+	synchronized(this) //assimilate resc if we do need it
+	    {
+		msz = managed.size();
+		if (msz < target_pool_size)
+		    assimilateResource(resc); 
+		else
+		    destroy = true;
+	    }
+
+	if (destroy)
+	    {
+		mgr.destroyResource( resc ); //destroy resc if superfluous, without holding the pool's lock
+		if (logger.isLoggable( MLevel.FINER))
+		    logger.log(MLevel.FINER, "destroying overacquired resource: " + resc);
+	    }
+
+    }
+
+    public synchronized void setPoolSize( int sz ) throws ResourcePoolException
     {
 	try
 	    {
-		if (sz > max)
-		    {
-			throw new IllegalArgumentException("Requested size [" + sz + 
-							   "] is greater than max [" + max +
-							   "].");
-		    } 
-		else if (sz < min)
-		    {
-			throw new IllegalArgumentException("Requested size [" + sz + 
-							   "] is less than min [" + min +
-							   "].");
-		    }
-		int msz;
-		
-		synchronized ( this )
-		    { msz = managed.size(); }
-
-		if (sz > msz)
-		    acquireUntil( sz ); //in this case, the notifyAll() ends up happening in assimilateResource()
-		else if (sz < msz)
-		    {
-			synchronized ( this )
-			    {
-				int num_to_cull = msz - sz;
-				int usz = unused.size(); 
-				int num_from_unused = Math.min( num_to_cull, usz );
-				for (int i = 0; i < num_from_unused; ++i)
-				    removeResource( unused.get(0) );
-				int num_outstanding_to_cull = num_to_cull - num_from_unused;
-				Iterator ii = cloneOfManaged().keySet().iterator();
-				for (int i = 0; i < num_outstanding_to_cull; ++i)
-				    excludeResource( ii.next() );
-				this.notifyAll();
-			    }
-		    }
-		return null;
+		setTargetPoolSize( sz );
+		while ( managed.size() != sz )
+		    this.wait();
 	    }
 	catch (Exception e)
-	    { return e; }
+	    {
+		String msg = "An exception occurred while trying to set the pool size!";
+		if ( logger.isLoggable( MLevel.FINER ) )
+		    logger.log( MLevel.FINER, msg, e );
+		throw ResourcePoolUtils.convertThrowable( msg, e );
+	    }
+    }
+
+    public synchronized void setTargetPoolSize(int sz)
+    {
+	if (sz > max)
+	    {
+		throw new IllegalArgumentException("Requested size [" + sz + 
+						   "] is greater than max [" + max +
+						   "].");
+	    } 
+	else if (sz < min)
+	    {
+		throw new IllegalArgumentException("Requested size [" + sz + 
+						   "] is less than min [" + min +
+						   "].");
+	    }
+
+	this.target_pool_size = sz;
+
+	_recheckResizePool();
     }
 
 
@@ -789,9 +838,9 @@ class BasicResourcePool implements ResourcePool
     //DEBUG
     //Exception firstClose = null;
 
+    // should be called from sync'ed methods
     private void close( boolean close_checked_out_resources )
     {
-
 	if (! broken ) //ignore repeated calls to close
 	    {
 		//DEBUG
@@ -799,39 +848,55 @@ class BasicResourcePool implements ResourcePool
 		//firstClose.printStackTrace();
 		
 		this.broken = true;
-		Collection cleanupResources = ( close_checked_out_resources ? (Collection) cloneOfManaged().keySet() : (Collection) cloneOfUnused() );
+		final Collection cleanupResources = ( close_checked_out_resources ? (Collection) cloneOfManaged().keySet() : (Collection) cloneOfUnused() );
 		if ( cullTask != null )
 		    cullTask.cancel();
 		if (idleRefurbishTask != null)
 		    idleRefurbishTask.cancel();
-		for (Iterator ii = cleanupResources.iterator(); ii.hasNext();)
+		
+ 		// we destroy resources asynchronously, but with a dedicated one-off Thread, rather than
+ 		// our asynchronous runner, because our asynchrous runner may be shutting down. The
+ 		// destruction is asynchrounous because destroying a resource might require the resource's
+ 		// lock, and we already have the pool's lock. But client threads may well have the resource's
+ 		// lock while they try to check-in to the pool. The async destruction of resources avoids
+ 		// the possibility of deadlock.
+		
+ 		managed.keySet().removeAll( cleanupResources );
+ 		unused.removeAll( cleanupResources );
+ 		Thread resourceDestroyer = new Thread("Resource Destroyer in BasicResourcePool.close()")
 		    {
-			try
-			    {
-				Object resc = ii.next();
-				removeResource( resc, true );
+			public void run()
+ 			{
+ 			    for (Iterator ii = cleanupResources.iterator(); ii.hasNext();)
+ 				{
+ 				    try
+ 					{
+ 					    Object resc = ii.next();
+					    //System.err.println("Destroying resource... " + resc);
 
-// 				if (unused.contains( resc )) //same logic as _markBroken(...), but removes have to be synchronous
-// 				    removeResource(resc, true);
-// 				else
-// 				    excludeResource( resc );
-			    }
-			catch (Exception e)
-			    {
-				if (Debug.DEBUG) 
-				    {
-					//e.printStackTrace();
-					if ( logger.isLoggable( MLevel.FINE ) )
-					    logger.log( MLevel.FINE, "BasicResourcePool -- A resource couldn't be cleaned up on close()", e );
-				    }
-			    }
-		    }
+ 					    destroyResource( resc, true );
+ 					}
+ 				    catch (Exception e)
+ 					{
+ 					    if (Debug.DEBUG) 
+ 						{
+ 						    //e.printStackTrace();
+ 						    if ( logger.isLoggable( MLevel.FINE ) )
+ 							logger.log( MLevel.FINE, "BasicResourcePool -- A resource couldn't be cleaned up on close()", e );
+ 						}
+ 					}
+ 				}
+ 			}
+		    };
+ 		resourceDestroyer.start();
+		
 		for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
 		    ((Thread) ii.next()).interrupt();
 		for (Iterator ii = otherWaiters.iterator(); ii.hasNext(); )
 		    ((Thread) ii.next()).interrupt();
 		if (factory != null)
 		    factory.markBroken( this );
+
 		// System.err.println(this + " closed.");
 	    }
 	else
@@ -889,44 +954,10 @@ class BasicResourcePool implements ResourcePool
 	destroyResource(resc);
     }
 
-    private void postAcquireMore()
-    { 
-  	int msz = managed.size();
-	int pending_acquires = pendingAcquiresCounter.getValue();
-
-	// we want to get at least inc more, and we want enough 
-	// so we get one for each request for more resources. Previous
-	// requests are accounted for in pending_acquires; we add one
-	// for this request.
-
-	int num_desired = msz + Math.max( inc, pending_acquires + 1 );
-	postAcquireUntil( Math.min( num_desired, max ) );
-    }
-
-    // by the semantics of wait( timeout ), 0 waits forever
-//     private void awaitIdleCheck(long timeout) throws InterruptedException, TimeoutException
-//     {
-// 	Thread t = Thread.currentThread();
-// 	interruptableWaiters.add( t );
-
-// 	int num_in_check;
-// 	long start = ( timeout > 0 ? System.currentTimeMillis() : -1);
-// 	while( (num_in_check = idleCheckResources.size()) != 0)
-// 	    {
-// 		this.wait(timeout);
-// 		if ( idleCheckResources.size() < num_in_check ) //okay, what we were waiting for happened...
-// 		    return;
-// 		else if (timeout > 0 && System.currentTimeMillis() - start > timeout)
-// 		    throw new TimeoutException("internal -- timeout at awaitIdleCheck()");
-// 	    }
-
-// 	interruptableWaiters.remove( t );
-//     }
-
     /*
      * by the semantics of wait(), a timeout of zero means forever.
      */
-    private void awaitAcquire(long timeout) throws InterruptedException, TimeoutException, ResourcePoolException
+    private void awaitAvailable(long timeout) throws InterruptedException, TimeoutException, ResourcePoolException
     {
 	if (force_kill_acquires)
 	    throw new ResourcePoolException("A ResourcePool cannot acquire a new resource -- the factory or source appears to be down.");
@@ -962,12 +993,12 @@ class BasicResourcePool implements ResourcePool
 			// fairly pathological situations where the pool is being
 			// externally forced to a very low (even zero) size, but 
 			// since I've seen it, I've fixed it.
-			if (pendingAcquiresCounter.getValue() == 0)
-			    postAcquireMore();
+			if (pending_acquires == 0 && managed.size() < max)
+			    recheckResizePool();
 			
 			this.wait(timeout);
 			if (timeout > 0 && System.currentTimeMillis() - start > timeout)
-			    throw new TimeoutException("internal -- timeout at awaitAcquire()");
+			    throw new TimeoutException("internal -- timeout at awaitAvailable()");
 			if (force_kill_acquires)
 			    throw new CannotAcquireResourceException("A ResourcePool could not acquire a resource from its primary factory or source.");
 			ensureNotBroken();
@@ -991,6 +1022,36 @@ class BasicResourcePool implements ResourcePool
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 	if (Debug.DEBUG && exampleResource == null)
 	    exampleResource = resc;
+    }
+
+    // should NOT be called from synchronized method
+    private void synchronousRemoveArbitraryResource()
+    { 
+	Object removeMe = null;
+
+	synchronized ( this )
+	    {
+		if (unused.size() > 0)
+		    {
+			removeMe = unused.get(0);
+			managed.remove(removeMe);
+			unused.remove(removeMe);
+		    }
+		else
+		    {
+			Set checkedOut = cloneOfManaged().keySet();
+			if ( checkedOut.isEmpty() )
+			    {
+				unexpectedBreak();
+				logger.severe("A pool from which a resource is requested to be removed appears to have no managed resources?!");
+			    }
+			else
+			    excludeResource( checkedOut.iterator().next() );
+		    }
+	    }
+
+	if (removeMe != null)
+	    destroyResource( removeMe, true );
     }
 
     private void removeResource(Object resc)
@@ -1039,6 +1100,9 @@ class BasicResourcePool implements ResourcePool
 		    {
 			if (Debug.DEBUG && logger.isLoggable( MLevel.FINER ))
 			    logger.log( MLevel.FINER, "Removing expired resource: " + resc + " [" + this + "]");
+
+			target_pool_size = Math.max( min, target_pool_size - 1 ); //idling out a resource resources the target size to match
+
 			//System.err.println("c3p0-JENNIFER: removing expired resource: " + resc + " [" + this + "]");
 			removeResource( resc );
 		    }
@@ -1068,11 +1132,6 @@ class BasicResourcePool implements ResourcePool
 		long age = now - d.getTime();
 		boolean expired = ( age > max_resource_age );
 
-// 		if (expired)
-// 		    System.err.println("c3p0-JENNIFER: EXPIRED resource: " + resc + " ---> age: " + age + "   max: " + max_resource_age + " [" + this + "]");
-// 		else
-// 		    System.err.println("c3p0-JENNIFER: resource age is okay: " + resc + " ---> age: " + age + "   max: " + max_resource_age + " [" + this + "]");
-
 		if ( Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINEST ) )
 		    {
 			if (expired)
@@ -1097,13 +1156,10 @@ class BasicResourcePool implements ResourcePool
 //     { return unused.size() - idleCheckResources.size(); }
 
     private void ensureStartResources()
-    { this.postAcquireUntil( Math.max(start, min) ); }
+    { recheckResizePool(); }
 
     private void ensureMinResources()
-    {
-	if (managed.size() < min)
-	    this.postAcquireUntil( min ); 
-    }
+    { recheckResizePool(); }
 
     private boolean attemptRefurbishResourceOnCheckout( Object resc )
     {
@@ -1154,13 +1210,13 @@ class BasicResourcePool implements ResourcePool
     private void trace()
     {
 	if ( logger.isLoggable( MLevel.FINEST ) )
-	    {
-		String exampleResStr = ( exampleResource == null ?
-					 "" :
-					 " (e.g. " + exampleResource +")");
-		logger.finest("trace " + this + " [managed: " + managed.size() + ", " +
-			      "unused: " + unused.size() + ", excluded: " +
-			      excluded.size() + ']' + exampleResStr );
+ 	    {
+   		String exampleResStr = ( exampleResource == null ?
+   					 "" :
+   					 " (e.g. " + exampleResource +")");
+   		logger.finest("trace " + this + " [managed: " + managed.size() + ", " +
+   			      "unused: " + unused.size() + ", excluded: " +
+   			      excluded.size() + ']' + exampleResStr );
 	    }
     }
 
@@ -1182,12 +1238,9 @@ class BasicResourcePool implements ResourcePool
 	boolean success = false;
 	int     num;
 
-	public AcquireTask(int num)
-	{ 
-	    this.num = num; 
-	    pendingAcquiresCounter.increment();
-	}
-	
+	public AcquireTask() 
+	{ incrementPendingAcquires(); }
+
 	public void run()
 	{
 	    try
@@ -1200,11 +1253,10 @@ class BasicResourcePool implements ResourcePool
 					Thread.sleep(acq_attempt_delay); 
 				    
 				    //we don't want this call to be sync'd
-				    //on the pool, so that a waiting Thread
-				    //can pull the first resource we acquire
-				    //without awaiting them all.
-				    acquireUntil( num );
-				    
+				    //on the pool, so that resource acquisition
+				    //does not interfere with other pool clients.
+				    BasicResourcePool.this.doAcquire();
+
 				    success = true;
 				}
 			    catch (Exception e)
@@ -1237,6 +1289,8 @@ class BasicResourcePool implements ResourcePool
 			    else
 				forceKillAcquires();
 			}
+		    else
+			recheckResizePool();
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
@@ -1259,9 +1313,11 @@ class BasicResourcePool implements ResourcePool
 
 // 		    System.err.println(BasicResourcePool.this + " -- Thread unexpectedly interrupted while waiting for stale acquisition attempts to die.");
 // 		    e.printStackTrace();
+
+		    recheckResizePool();
 		}
 	    finally
-		{ pendingAcquiresCounter.decrement(); }
+		{ decrementPendingAcquires(); }
 	}
 
 	private boolean shouldTry(int attempt_num)
@@ -1277,13 +1333,37 @@ class BasicResourcePool implements ResourcePool
 	}
     }
 
+    /*
+     *  task we post to separate thread to remove
+     *  unspecified pooled resources
+     *
+     *  TODO: do removal and destruction synchronously
+     *        but carefully not synchronized during the
+     *        destruction of the resource.
+     */
+    class RemoveTask implements Runnable
+    {
+	public RemoveTask() 
+	{ incrementPendingRemoves(); }
+
+	public void run()
+	{
+	    try
+		{
+		    synchronousRemoveArbitraryResource();
+		    recheckResizePool();
+		}
+	    finally
+		{ decrementPendingRemoves(); }
+	}
+    }
+
     class CullTask extends TimerTask
     {
 	public void run()
 	{
 	    try
 		{
-		    //System.err.println("c3p0-JENNIFER: checking for expired resources - " + new Date() + " [" + BasicResourcePool.this + "]");
 		    if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINER ))
 			logger.log( MLevel.FINER, "Checking for expired resources - " + new Date() + " [" + BasicResourcePool.this + "]");
 		    synchronized ( BasicResourcePool.this )
@@ -1291,34 +1371,6 @@ class BasicResourcePool implements ResourcePool
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
-// 		    e.printStackTrace();
-		    if ( Debug.DEBUG )
-			{
-			    if ( logger.isLoggable( MLevel.FINE ) )
-				logger.log( MLevel.FINE, "a resource pool async thread died.", e );
-			}
-		    unexpectedBreak();
-		}
-	}
-    }
-
-    class RemoveTask implements Runnable
-    {
-	int     num;
-
-	public RemoveTask(int num)
-	{ this.num = num; }
-	
-	public void run()
-	{ 
-	    try
-		{
-		    synchronized ( BasicResourcePool.this )
-			{ removeTowards( num ); }	
-		}
-	    catch ( ResourceClosedException e ) // one of our async threads died
-		{
-// 		    e.printStackTrace();
 		    if ( Debug.DEBUG )
 			{
 			    if ( logger.isLoggable( MLevel.FINE ) )

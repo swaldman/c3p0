@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.0.4
+ * Distributed as part of c3p0 v.0.9.1-pre5
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -28,7 +28,9 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.sql.SQLException;
@@ -60,6 +62,11 @@ public final class DataSources
 
     static
     {
+	// As of c3p0-0.9.1
+	//
+	// This list is no longer updated, as the PoolConfig approach to setting up DataSources
+	// is now deprecated. (This was getting to be hard to maintain as new config properties
+	// were added.)
 	String[] props = new String[]
 	{
 	    "checkoutTimeout", //1 
@@ -88,6 +95,11 @@ public final class DataSources
 
 	WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS = Collections.unmodifiableSet( new HashSet( Arrays.asList( props ) ) );
 
+	// As of c3p0-0.9.1
+	//
+	// This list is no longer updated, as the PoolConfig approach to setting up DataSources
+	// is now deprecated. (This was getting to be hard to maintain as new config properties
+	// were added.)
 	props = new String[]
 	{
 	    "numHelperThreads",
@@ -140,7 +152,7 @@ public final class DataSources
      *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource ) throws SQLException
-    { return pooledDataSource( unpooledDataSource, PoolConfig.DEFAULTS ); }
+    { return pooledDataSource( unpooledDataSource, null, (Map) null ); }
 
     /**
      * <p>Creates a pooled version of an unpooled DataSource using default configuration information 
@@ -151,15 +163,22 @@ public final class DataSources
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource, int statement_cache_size ) throws SQLException
     {
-	PoolConfig pcfg = new PoolConfig();
-	pcfg.setMaxStatements( statement_cache_size );
-	return pooledDataSource( unpooledDataSource, pcfg );
+// 	PoolConfig pcfg = new PoolConfig();
+// 	pcfg.setMaxStatements( statement_cache_size );
+
+	Map overrideProps = new HashMap();
+	overrideProps.put( "maxStatements", new Integer( statement_cache_size ) );
+	return pooledDataSource( unpooledDataSource, null, overrideProps );
     }
 
     /**
      * <p>Creates a pooled version of an unpooled DataSource using configuration 
      *    information supplied explicitly by a {@link com.mchange.v2.c3p0.PoolConfig}.
+     *
      *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
+     *
+     *  @deprecated if you want to set properties programmatically, please construct a ComboPooledDataSource and
+     *              set its properties rather than using PoolConfig
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource, PoolConfig pcfg ) throws SQLException
     {
@@ -171,10 +190,71 @@ public final class DataSources
 		// set PoolConfig info -- WrapperConnectionPoolDataSource properties 
 		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, wcpds, WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS );
 		
-		
 		PoolBackedDataSource nascent_pbds = new PoolBackedDataSource();
 		nascent_pbds.setConnectionPoolDataSource( wcpds );
 		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, nascent_pbds, POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS );
+
+		return nascent_pbds;
+	    }
+// 	catch ( PropertyVetoException e )
+// 	    {
+// 		e.printStackTrace();
+// 		PropertyChangeEvent evt = e.getPropertyChangeEvent();
+// 		throw new SQLException("Illegal value attempted for property " + evt.getPropertyName() + ": " + evt.getNewValue());
+// 	    }
+ 	catch ( Exception e )
+ 	    {
+ 		//e.printStackTrace();
+		SQLException sqle = SqlUtils.toSQLException("Exception configuring pool-backed DataSource: " + e, e);
+		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ) && e != sqle)
+		    logger.log( MLevel.FINE, "Converted exception to throwable SQLException", e );
+ 		throw sqle;
+ 	    }
+    }
+
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, String overrideDefaultUser, String overrideDefaultPassword ) throws SQLException
+    {
+	Map overrideProps;
+
+	if (overrideDefaultUser != null)
+	    {
+		overrideProps = new HashMap();
+		overrideProps.put( "overrideDefaultUser", overrideDefaultUser );
+		overrideProps.put( "overrideDefaultPassword", overrideDefaultPassword );
+	    }
+	else
+	    overrideProps = null;
+
+	return pooledDataSource( unpooledDataSource, null, overrideProps );
+    }
+
+    private static DataSource pooledDataSource( DataSource unpooledDataSource, String configName, Map overrideProps ) throws SQLException
+    {
+	try
+	    {
+		WrapperConnectionPoolDataSource wcpds = new WrapperConnectionPoolDataSource(configName);
+		wcpds.setNestedDataSource( unpooledDataSource );
+		if (overrideProps != null)
+		    BeansUtils.overwriteAccessiblePropertiesFromMap( overrideProps, 
+								     wcpds, 
+								     false,
+								     null,
+								     true,
+								     MLevel.WARNING,
+								     MLevel.WARNING,
+								     false);
+		
+		PoolBackedDataSource nascent_pbds = new PoolBackedDataSource(configName);
+		nascent_pbds.setConnectionPoolDataSource( wcpds );
+		if (overrideProps != null)
+		    BeansUtils.overwriteAccessiblePropertiesFromMap( overrideProps, 
+								     wcpds, 
+								     false,
+								     null,
+								     true,
+								     MLevel.WARNING,
+								     MLevel.WARNING,
+								     false);
 
 		return nascent_pbds;
 	    }
@@ -200,16 +280,19 @@ public final class DataSources
      *
      *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      *  @see com.mchange.v2.c3p0.PoolConfig
+     *
+     *  @deprecated if you want to set properties programmatically, please construct a ComboPooledDataSource and
+     *              set its properties rather prociding a Properties Object
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource, Properties props ) throws SQLException
-    { return pooledDataSource( unpooledDataSource, new PoolConfig( props ) ); }
+    { 
+	//return pooledDataSource( unpooledDataSource, new PoolConfig( props ) ); 
+	return pooledDataSource( unpooledDataSource, null, props );
+    }
 
     /**
-     * <p>Immediately releases any unshared resources (Threads and database Connections) that are
-     *    held uniquely by any DataSource created by the DataSources class. Any resources shared 
-     *    with other, undestroyed DataSources
-     *    will remain open. If this method is not called, resources will be cleaned up when
-     *    the DataSource is unreferenced and finalized.</p>
+     * <p>Immediately releases resources (Threads and database Connections) that are
+     *    held by a C3P0 DataSource.
      *
      * <p>Only DataSources created by the poolingDataSource() method hold any
      *    non-memory resources. Calling this method on unpooled DataSources is
@@ -227,20 +310,11 @@ public final class DataSources
 
 
     /**
-     * <p>Should be used only with great caution. Immediately destroys any pool and cleans up all resources
-     *    this DataSource may be using, <u><i>even if other DataSources are sharing that
-     *    pool!</i></u> In general, it is difficult to know whether a pool is being shared by
-     *    multiple DataSources. It may depend upon whether or not a JNDI implementation returns
-     *    a single instance or multiple copies upon lookup (which is undefined by the JNDI spec).</p>
-     *
-     * <p>In general, this method should be used only when you wish to wind down all c3p0 pools
-     *    in a ClassLoader. For example, when shutting down and restarting a web application
-     *    that uses c3p0, you may wish to kill all threads making use of classes loaded by a 
-     *    web-app specific ClassLoader, so that the ClassLoader can be cleanly garbage collected.
-     *    In this case, you may wish to use force destroy. Otherwise, it is much safer to use
-     *    the simple destroy() method, which will not shut down pools that may still be in use.</p>
-     *
-     * <p><b>To close a pool normally, use the simple destroy method instead of forceDestroy.</b></p>
+     *   @deprecated forceDestroy() is no longer meaningful, as a set of pools is now
+     *               directly associated with a DataSource, and not potentially shared.
+     *               (This simplification was made possible by canonicalization of 
+     *               JNDI-looked-up DataSources within a virtual machine.) Just use
+     *               DataSources.destroy().
      *
      *   @see #destroy
      */
