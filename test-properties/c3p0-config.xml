@@ -7,7 +7,7 @@
     <property name="maxIdleTime">30</property>
     <property name="maxPoolSize">25</property>
     <property name="minPoolSize">10</property>
-    <property name="maxStatements">200</property>
+    <property name="maxStatements">0</property>
 
     <user-overrides user="swaldman">
     </user-overrides>

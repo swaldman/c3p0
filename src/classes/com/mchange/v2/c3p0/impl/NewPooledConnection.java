@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -295,7 +295,6 @@ public final class NewPooledConnection implements PooledConnection
 			    }
 		    }
 		reset( txn_known_resolved );
-		fireConnectionClosed();
 	    }
 	catch (SQLException e) //Connection failed to reset!
 	    {
@@ -305,6 +304,10 @@ public final class NewPooledConnection implements PooledConnection
 
 		updateConnectionStatus( ConnectionTester.CONNECTION_IS_INVALID );
 		fireConnectionErrorOccurred( e );
+	    }
+	finally
+	    {
+		fireConnectionClosed();
 	    }
     }
 

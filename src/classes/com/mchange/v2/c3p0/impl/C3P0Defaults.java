@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -58,9 +58,11 @@ public final class C3P0Defaults
     private final static String AUTOMATIC_TEST_TABLE      = null;
     private final static String OVERRIDE_DEFAULT_USER     = null;
     private final static String OVERRIDE_DEFAULT_PASSWORD = null;
+    private final static String PASSWORD                  = null;
     private final static String PREFERRED_TEST_QUERY      = null;
     private final static String FACTORY_CLASS_LOCATION    = null;
     private final static String USER_OVERRIDES_AS_STRING  = null;
+    private final static String USER                      = null;
 
     private static Set KNOWN_PROPERTIES;
 
@@ -76,6 +78,9 @@ public final class C3P0Defaults
 	    }
 	KNOWN_PROPERTIES = Collections.unmodifiableSet( s );
     }
+
+    public static Set getKnownProperties()
+    { return KNOWN_PROPERTIES; }
 
     public static boolean isKnownProperty( String s )
     { return KNOWN_PROPERTIES.contains( s ); }
@@ -160,5 +165,11 @@ public final class C3P0Defaults
 
     public static String overrideDefaultPassword()
     { return OVERRIDE_DEFAULT_PASSWORD; }
+
+    public static String user()
+    { return USER; }
+
+    public static String password()
+    { return PASSWORD; }
 }
 

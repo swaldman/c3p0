@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -111,6 +111,10 @@ import java.util.Collection;
  */
 public interface PooledDataSource extends DataSource
 {
+    public String getIdentityToken();
+    public String getDataSourceName();
+    public void setDataSourceName(String dataSourceName);
+
     /** @deprecated use getNumConnectionsDefaultUser() */
     public int getNumConnections() throws SQLException;
 
@@ -170,9 +174,7 @@ public interface PooledDataSource extends DataSource
 
     public int getNumUserPools() throws SQLException;
 
-// leaving getAllUsers() unimplemented for the moment out of security considerations
-//
-//     public Collection getAllUsers() throws SQLException;
+    public Collection getAllUsers() throws SQLException;
 
     /**
      * Destroys all pooled and checked-out Connections associated with

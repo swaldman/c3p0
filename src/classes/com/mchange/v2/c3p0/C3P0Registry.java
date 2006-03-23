@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -125,8 +125,31 @@ public final class C3P0Registry
 	addToTopLevelPooledDataSources(idt);
     }
 
-    public static Set getPooledDataSources()
+    public synchronized static Set getPooledDataSources()
     { return (Set) topLevelPooledDataSources.clone(); }
+
+    public synchronized static Set pooledDataSourcesByName( String dataSourceName )
+    {
+	Set out = new HashSet();
+	for (Iterator ii = topLevelPooledDataSources.iterator(); ii.hasNext(); )
+	    {
+		PooledDataSource pds = (PooledDataSource) ii.next();
+		if ( pds.getDataSourceName().equals( dataSourceName ) )
+		    out.add( pds );
+	    }
+	return out;
+    }
+
+    public synchronized static PooledDataSource pooledDataSourceByName( String dataSourceName )
+    {
+	for (Iterator ii = topLevelPooledDataSources.iterator(); ii.hasNext(); )
+	    {
+		PooledDataSource pds = (PooledDataSource) ii.next();
+		if ( pds.getDataSourceName().equals( dataSourceName ) )
+		    return pds;
+	    }
+	return null;
+    }
 
     public static Object coalesce( IdentityTokenized idt )
     { 

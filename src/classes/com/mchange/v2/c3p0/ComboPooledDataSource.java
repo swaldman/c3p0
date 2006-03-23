@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -125,7 +125,11 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	try
 	    {
 		if (configName != null)
-		    C3P0Config.bindNamedConfigToBean( this, configName ); 
+		    {
+			C3P0Config.bindNamedConfigToBean( this, configName ); 
+			if ( this.getDataSourceName().equals( this.getIdentityToken() ) ) //dataSourceName has not been specified in config
+			    this.setDataSourceName( configName );
+		    }
 	    }
 	catch (Exception e)
 	    {
@@ -201,7 +205,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setCheckoutTimeout( checkoutTimeout ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -213,7 +217,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setAcquireIncrement( acquireIncrement ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -225,7 +229,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -237,7 +241,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -249,7 +253,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setAutoCommitOnClose( autoCommitOnClose ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -261,7 +265,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -273,7 +277,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setAutomaticTestTable( automaticTestTable ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -285,7 +289,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -297,7 +301,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
     
@@ -309,7 +313,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setInitialPoolSize( initialPoolSize ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 
@@ -321,7 +325,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setMaxIdleTime( maxIdleTime ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -333,7 +337,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setMaxPoolSize( maxPoolSize ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -345,7 +349,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setMaxStatements( maxStatements ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -357,7 +361,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setMaxStatementsPerConnection( maxStatementsPerConnection ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -369,7 +373,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setMinPoolSize( minPoolSize ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -381,7 +385,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setOverrideDefaultUser( overrideDefaultUser ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -393,7 +397,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setOverrideDefaultPassword( overrideDefaultPassword ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -405,7 +409,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setPropertyCycle( propertyCycle ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
     
@@ -417,7 +421,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
     
@@ -429,7 +433,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -441,7 +445,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setTestConnectionOnCheckin( testConnectionOnCheckin ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 	
@@ -453,7 +457,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 
@@ -465,7 +469,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setPreferredTestQuery( preferredTestQuery ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 
@@ -477,11 +481,17 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	synchronized ( pbds )
 	    {
 		wcpds.setUserOverridesAsString( userOverridesAsString ); 
-		pbds.resetPoolManager();
+		pbds.resetPoolManager( false );
 	    }
     }
 
-    // PoolBackedDataSource properties (count: 1)
+    // PoolBackedDataSource properties (count: 2)
+    public String getDataSourceName()
+    { return pbds.getDataSourceName(); }
+	
+    public void setDataSourceName( String name )
+    { pbds.setDataSourceName( name ); }
+
     public int getNumHelperThreads()
     { return pbds.getNumHelperThreads(); }
 	
@@ -556,8 +566,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	referenceMaker.addReferenceProperty("userOverridesAsString");
 
 	// PoolBackedDataSource properties (count: 2)
+	referenceMaker.addReferenceProperty("dataSourceName");
 	referenceMaker.addReferenceProperty("numHelperThreads");
-	referenceMaker.addReferenceProperty("poolOwnerIdentityToken");
 
 	// identity token
 	referenceMaker.addReferenceProperty("identityToken");
@@ -667,10 +677,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
     { return pbds.getNumUserPools(); }
 
 
-    //     Not implemented due to security concerns
-    //
-    //     public Collection getAllUsers() throws SQLException
-    //     { return pbds.getAllUsers(); }
+    public Collection getAllUsers() throws SQLException
+    { return pbds.getAllUsers(); }
 
     public void hardReset() throws SQLException
     { pbds.hardReset(); }

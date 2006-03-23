@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -25,6 +25,7 @@ package com.mchange.v2.c3p0.cfg;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.Properties;
 import com.mchange.v2.cfg.MultiPropertiesConfig;
 
 public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
@@ -36,6 +37,10 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	C3P0Config out;
 
 	HashMap flatDefaults = C3P0ConfigUtils.extractHardcodedC3P0Defaults();
+
+	// this includes System properties, but we have to check for System properties
+	// again, since we want system properties to override unspecified user, default-config
+	// properties in the XML
 	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
 
 	String cfgFile = MultiPropertiesConfig.readVmConfig().getProperty( XML_CFG_FILE_KEY );
@@ -66,6 +71,11 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 			    { e.printStackTrace(); }
 		    }
 	    }
+
+	// overwrite default, unspecified user config with System properties
+	// defined values
+	Properties sysPropConfig = C3P0ConfigUtils.findAllC3P0SystemProperties();
+	out.defaultConfig.props.putAll( sysPropConfig );
 
 	return out;
     }

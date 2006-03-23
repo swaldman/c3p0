@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -37,6 +37,7 @@ import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.impl.DriverManagerDataSourceBase;
 
 public final class DriverManagerDataSource extends DriverManagerDataSourceBase implements DataSource
@@ -71,6 +72,15 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		}
 	    };
 	this.addVetoableChangeListener( registerDriverListener );
+
+	String user = C3P0Config.initializeStringPropertyVar("user", null);
+	String password = C3P0Config.initializeStringPropertyVar("password", null);
+
+	if (user != null)
+	    this.setUser( user );
+
+	if (password != null)
+	    this.setPassword( password );
 
 	C3P0Registry.register( this );
     }

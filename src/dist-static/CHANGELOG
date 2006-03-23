@@ -1,3 +1,33 @@
+c3p0-0.9.1-pre6
+	-- Wrote a stub of a status-monitoring servlet. Not yet documented, or
+	   even usefully functional, but hopefully will be soon.
+	-- Updated documentation to include new config file format, including
+	   named and per-user config. Docs could still use some work, but the
+	   functionality is now described.
+	-- For consistency, the parameters user and password our now configurable
+	   via config files and System properties.
+	-- Modified DefaultC3P0ConfigFinder to properly give greater precedance to
+	   System properties than to XML-defined unspecified user, default config
+	   values.
+	-- Added WARNING logging of create SQL and original database Exception when
+	   creation of an automaticTestTable fails. [Thanks to Alexander Grivnin.]
+	-- Added logic so that the Exception assoicated with the last failed acquisition
+	   attempt in a round of attempts is logged along with the failure if the 
+	   acquisition attempts. [Thanks to Barthel Steckemetz and Patrick Eger for
+	   calling attention to this issue.]
+	-- Fixed a problem whereby modifying the config of a ComboPooledDataSource
+	   programmatically, while in use, causes previously checked-out Connections
+	   to be close()ed underneath the user. Changing configs midstream still 
+	   causes a complete resetting of the pool (because the pool holds most
+	   config params as immutable to avoid having to synchronized for every
+	   config param read), but old Connections from superceded pools will remain
+	   valid until they are rechecked into the pool. [Thanks to hhu for noticing
+	   this problem!]
+        -- Fixed a resource leak whereby Connections which could not be reset after
+	   client-initiated close() were properly "excluded" from future inclusion
+	   in the pool, but never checked back into the pool to be destroyed. (Excluded
+           resources are simply marked for destruction rather than reassimilation on
+           checkin.) [Many thanks to Levi Purvis for tracking this down!]
 c3p0-0.9.1-pre5a
 	-- "test-classpath" was erroneously specified in build.xml to include some
 	   extra jar files, which rendered undetectable (to my tests) the fact

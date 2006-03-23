@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -86,13 +86,16 @@ public final class C3P0PooledConnectionPoolManager
 	this.authsToPools = new HashMap();
     }
 
-    private synchronized void poolsDestroy()
+    private void poolsDestroy()
+    { poolsDestroy( true ); }
+
+    private synchronized void poolsDestroy( boolean close_outstanding_connections )
     {
 	//System.err.println("poolsDestroy() -- " + this);
 	for (Iterator ii = authsToPools.values().iterator(); ii.hasNext(); )
 	    {
 		try
-		    { ((C3P0PooledConnectionPool) ii.next()).close(); }
+		    { ((C3P0PooledConnectionPool) ii.next()).close( close_outstanding_connections ); }
 		catch ( Exception e )
 		    { 
 			//e.printStackTrace(); 
@@ -202,12 +205,8 @@ public final class C3P0PooledConnectionPoolManager
 	return out;
     }
 
-//
-// best from a security perspective if we keep these to ourselves...
-//
-
-//     public synchronized Set getManagedAuths()
-//     { return Collections.unmodifiableSet( authsToPools.keySet() ); }
+    public synchronized Set getManagedAuths()
+    { return Collections.unmodifiableSet( authsToPools.keySet() ); }
 
     public synchronized int getNumManagedAuths()
     { return authsToPools.size(); }
@@ -254,11 +253,14 @@ public final class C3P0PooledConnectionPoolManager
 	    ((C3P0PooledConnectionPool) ii.next()).reset();
     }
 
-    public synchronized void close()
+    public void close()
+    { this.close( true ); }
+
+    public synchronized void close( boolean close_outstanding_connections )
     {
 	// System.err.println("close()ing " + this);
 	if (authsToPools != null)
-	    poolsDestroy();
+	    poolsDestroy( close_outstanding_connections );
     }
 
     protected synchronized void finalize()
@@ -273,15 +275,18 @@ public final class C3P0PooledConnectionPoolManager
 
 	if (userName != null)
 	    {
-		Map specificUserOverrides = (Map) userOverrides.get( userName );
+		//userOverrides are usually config file defined, unless rarely used forceUserOverrides is supplied!
+		Map specificUserOverrides = (Map) userOverrides.get( userName ); 
 		if (specificUserOverrides != null)
 		    out = specificUserOverrides.get( propName );
 	    }
 
-	if (out == null && flatPropertyOverrides != null)
+	if (out == null && flatPropertyOverrides != null) //flatPropertyOverrides is a rarely used mechanism for forcing a config
 	    out = flatPropertyOverrides.get( propName );
 
-	if (out == null)
+	//if the ConnectionPoolDataSource has config parameter defined as a property use it 
+	//(unless there was a user-specific or force override found above)
+	if (out == null) 
 	    {
 		try
 		    {
@@ -304,8 +309,11 @@ public final class C3P0PooledConnectionPoolManager
 		    }
 	    }
 
+	//if the ConnectionPoolDataSource DID NOT have config parameter defined as a property
+	//(and there was no user-specific or force override)
+	//use config-defined default
 	if (out == null)
-	    out = C3P0Config.getDefaultUserProperty( propName, null );
+	    out = C3P0Config.getUnspecifiedUserProperty( propName, null );
 
 	return out;
     }
@@ -595,8 +603,21 @@ public final class C3P0PooledConnectionPoolManager
 		    }
 		else
 		    {
-			createStmt = c.prepareStatement("CREATE TABLE " + quotedTableName + " ( a CHAR(1) )");
-			createStmt.executeUpdate();
+			String createSql = "CREATE TABLE " + quotedTableName + " ( a CHAR(1) )";
+			try
+			    {
+				createStmt = c.prepareStatement( createSql );
+				createStmt.executeUpdate();
+			    }
+			catch (SQLException e)
+			    {
+				if (logger.isLoggable( MLevel.WARNING ))
+				    logger.log(MLevel.WARNING, 
+					       "An attempt to create an automatic test table failed. Create SQL: " +
+					       createSql,
+					       e );
+				throw e;
+			    }
 		    }
 		return out;
 	    }

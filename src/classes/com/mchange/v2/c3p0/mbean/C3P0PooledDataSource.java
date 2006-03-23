@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -323,6 +323,15 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     }
 
     // PoolBackedDataSource properties (count: 2)
+    public String getDataSourceName()
+    { return combods.getDataSourceName(); }
+	
+    public void setDataSourceName( String name ) throws NamingException
+    { 
+	combods.setDataSourceName( name ); 
+	rebind();
+    }
+
     public int getNumHelperThreads()
     { return combods.getNumHelperThreads(); }
 	

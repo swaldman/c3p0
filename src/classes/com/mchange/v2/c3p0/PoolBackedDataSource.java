@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -83,7 +83,11 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 	try
 	    {
 		if (configName != null)
-		    C3P0Config.bindNamedConfigToBean( this, configName ); 
+		    {
+			C3P0Config.bindNamedConfigToBean( this, configName ); 
+			if ( this.getDataSourceName().equals( this.getIdentityToken() ) ) //dataSourceName has not been specified in config
+			    this.setDataSourceName( configName );
+		    }
 	    }
 	catch (Exception e)
 	    {
@@ -196,18 +200,14 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
     public int getNumUserPools() throws SQLException
     { return getPoolManager().getNumManagedAuths(); }
 
-//
-// leaving getAllUsers() unimplemented for the moment out of security considerations
-//
-
-//     public Collection getAllUsers() throws SQLException
-//     {
-// 	LinkedList out = new LinkedList();
-// 	Set auths = getPoolManager().getManagedAuths();
-// 	for ( Iterator ii = auths.iterator(); ii.hasNext(); )
-// 	    out.add( ((DbAuth) ii.next()).getUser() );
-// 	return Collections.unmodifiableList( out );
-//     }
+    public Collection getAllUsers() throws SQLException
+    {
+ 	LinkedList out = new LinkedList();
+	Set auths = getPoolManager().getManagedAuths();
+ 	for ( Iterator ii = auths.iterator(); ii.hasNext(); )
+ 	    out.add( ((DbAuth) ii.next()).getUser() );
+ 	return Collections.unmodifiableList( out );
+    }
 
     public synchronized void hardReset()
     {
@@ -237,10 +237,13 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 
     //other code
     public synchronized void resetPoolManager() //used by other, wrapping datasources in package, and in mbean package
+    { resetPoolManager( true ); }
+
+    public synchronized void resetPoolManager( boolean close_checked_out_connections ) //used by other, wrapping datasources in package, and in mbean package
     {
 	if ( poolManager != null )
 	    {
-		poolManager.close();
+		poolManager.close( close_checked_out_connections );
 		poolManager = null;
 	    }
      }
@@ -268,7 +271,6 @@ public final class PoolBackedDataSource extends PoolBackedDataSourceBase impleme
 	    }
         return poolManager;	    
      }
-
     
     // Serialization stuff
     private static final long serialVersionUID = 1;

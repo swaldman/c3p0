@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -363,6 +363,9 @@ public final class C3P0PooledConnectionPool
     }
     
     public void close() throws SQLException
+    { close( true ); }
+
+    public void close( boolean close_outstanding_connections ) throws SQLException
     { 
 	// System.err.println(this + " closing.");
 	Exception throwMe = null;
@@ -372,7 +375,7 @@ public final class C3P0PooledConnectionPool
 	    { throwMe = e; }
 
         try 
-	    { rp.close(); }
+	    { rp.close( close_outstanding_connections ); }
         catch (ResourcePoolException e)
 	    {
 		if ( throwMe != null && logger.isLoggable( MLevel.WARNING ) )

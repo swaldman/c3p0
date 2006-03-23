@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -838,8 +838,7 @@ class BasicResourcePool implements ResourcePool
     //DEBUG
     //Exception firstClose = null;
 
-    // should be called from sync'ed methods
-    private void close( boolean close_checked_out_resources )
+    public synchronized void close( boolean close_checked_out_resources )
     {
 	if (! broken ) //ignore repeated calls to close
 	    {
@@ -1245,6 +1244,7 @@ class BasicResourcePool implements ResourcePool
 	{
 	    try
 		{
+		    Exception lastException = null;
 		    for (int i = 0; shouldTry( i ); ++i)
 			{
 			    try
@@ -1267,6 +1267,7 @@ class BasicResourcePool implements ResourcePool
 					    if (logger.isLoggable( MLevel.FINE ))
 						logger.log( MLevel.FINE, "An exception occurred while acquiring a resource.", e );
 					}
+				    lastException = e;
 				}
 			}
 		    if (!success) 
@@ -1277,13 +1278,15 @@ class BasicResourcePool implements ResourcePool
 						this + " -- Acquisition Attempt Failed!!! Clearing pending acquires. " +
 						"While trying to acquire a needed new resource, we failed " +
 						"to succeed more than the maximum number of allowed " +
-						"acquisition attempts (" + num_acq_attempts + ")." );
+						"acquisition attempts (" + num_acq_attempts + "). " + 
+						(lastException == null ? "" : "Last acquisition attempt exception: "),
+						lastException);
 				}
 			    if (break_on_acquisition_failure)
 				{
 				    //System.err.println("\tTHE RESOURCE POOL IS PERMANENTLY BROKEN!");
 				    if ( logger.isLoggable( MLevel.SEVERE ) )
-					logger.severe("THE RESOURCE POOL IS PERMANENTLY BROKEN! [" + this + "]");
+					logger.severe("A RESOURCE POOL IS PERMANENTLY BROKEN! [" + this + "]");
 				    unexpectedBreak();
 				}
 			    else

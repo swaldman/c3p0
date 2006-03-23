@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -123,7 +123,7 @@ public final class C3P0Config
 	    }
     }
 
-    public static String getDefaultUserProperty( String propKey, String configName )
+    public static String getUnspecifiedUserProperty( String propKey, String configName )
     {
 	  String out = null;
 
@@ -144,7 +144,7 @@ public final class C3P0Config
 	  return out;
     }
 
-    public static Map getDefaultUserProperties(String configName)
+    public static Map getUnspecifiedUserProperties(String configName)
     {
 	Map out = new HashMap();
 
@@ -194,7 +194,7 @@ public final class C3P0Config
 
     public static void bindNamedConfigToBean(Object bean, String configName) throws IntrospectionException
     {
-	Map defaultUserProps = C3P0Config.getDefaultUserProperties( configName );
+	Map defaultUserProps = C3P0Config.getUnspecifiedUserProperties( configName );
 	BeansUtils.overwriteAccessiblePropertiesFromMap( defaultUserProps, 
 							 bean, 
 							 false, 
@@ -244,7 +244,7 @@ public final class C3P0Config
 
     public static String initializeStringPropertyVar(String propKey, String dflt)
     {
-	String out = getDefaultUserProperty( propKey, null );
+	String out = getUnspecifiedUserProperty( propKey, null );
 	if (out == null) out = dflt;
 	return out;
     }
@@ -254,7 +254,7 @@ public final class C3P0Config
 	boolean set = false;
 	int out = -1;
 
-	String outStr = getDefaultUserProperty( propKey, null );
+	String outStr = getUnspecifiedUserProperty( propKey, null );
 	if (outStr != null)
 	    {
 		try 
@@ -281,7 +281,7 @@ public final class C3P0Config
 	boolean set = false;
 	boolean out = false;
 
-	String outStr = getDefaultUserProperty( propKey, null );
+	String outStr = getUnspecifiedUserProperty( propKey, null );
 	if (outStr != null)
 	    {
 		try 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -57,6 +57,31 @@ public final class C3P0ConfigUtils
     }
     
     final static MLogger logger = MLog.getLogger( C3P0ConfigUtils.class );
+
+//     final static HashSet extractHardcodedC3P0PropertyNames()
+//     {
+// 	HashSet out = new HashSet();
+
+// 	try
+// 	    {
+
+// 		Method[] methods = C3P0Defaults.class.getMethods();
+// 		for (int i = 0, len = methods.length; i < len; ++i)
+// 		    {
+// 			Method m = methods[i];
+// 			int mods = m.getModifiers();
+// 			if ((mods & Modifier.PUBLIC) != 0 && (mods & Modifier.STATIC) != 0 && m.getParameterTypes().length == 0)
+// 			    out.add( m.getName() );
+// 		    }
+
+// 	    }
+// 	catch (Exception e)
+// 	    {
+// 		logger.log( MLevel.WARNING, "Failed to extract hardcoded property names!?", e );
+// 	    }
+	
+// 	return out;
+//     }
 
     public static HashMap extractHardcodedC3P0Defaults(boolean stringify)
     {
@@ -245,6 +270,28 @@ public final class C3P0ConfigUtils
 
     private static Properties findAllC3P0Properties()
     { return MultiPropertiesConfig.readVmConfig().getPropertiesByPrefix("c3p0"); }
+
+    static Properties findAllC3P0SystemProperties()
+    {
+	Properties out = new Properties();
+
+	SecurityException sampleExc = null;
+	try
+	    {
+		for (Iterator ii = C3P0Defaults.getKnownProperties().iterator(); ii.hasNext(); )
+		    {
+			String key = (String) ii.next();
+			String prefixedKey = "c3p0." + key;
+			String value = System.getProperty( prefixedKey );
+			if (value != null && value.trim().length() > 0)
+			    out.put( key, value );
+		    }
+	    }
+	catch (SecurityException e)
+	    { sampleExc = e; }
+
+	return out;
+    }
 
     private C3P0ConfigUtils()
     {}

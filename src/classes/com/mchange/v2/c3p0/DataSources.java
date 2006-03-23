@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre5a
+ * Distributed as part of c3p0 v.0.9.1-pre6
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -113,7 +114,11 @@ public final class DataSources
      * Defines an unpooled DataSource on the specified JDBC URL.
      */
     public static DataSource unpooledDataSource(String jdbcUrl) throws SQLException
-    { return unpooledDataSource( jdbcUrl, new Properties() ); }
+    { 
+	DriverManagerDataSource out = new DriverManagerDataSource();
+	out.setJdbcUrl( jdbcUrl );
+	return out;
+    }
 
     /**
      * Defines an unpooled DataSource on the specified JDBC URL, authenticating with a username and password.
@@ -212,6 +217,7 @@ public final class DataSources
  	    }
     }
 
+    /*
     public static DataSource pooledDataSource( DataSource unpooledDataSource, String overrideDefaultUser, String overrideDefaultPassword ) throws SQLException
     {
 	Map overrideProps;
@@ -227,8 +233,15 @@ public final class DataSources
 
 	return pooledDataSource( unpooledDataSource, null, overrideProps );
     }
+    */
 
-    private static DataSource pooledDataSource( DataSource unpooledDataSource, String configName, Map overrideProps ) throws SQLException
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, String configName ) throws SQLException
+    { return pooledDataSource( unpooledDataSource, configName, null ); }
+
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, Map overrideProps ) throws SQLException
+    { return pooledDataSource( unpooledDataSource, null, overrideProps ); }
+
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, String configName, Map overrideProps ) throws SQLException
     {
 	try
 	    {
@@ -280,14 +293,20 @@ public final class DataSources
      *
      *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
      *  @see com.mchange.v2.c3p0.PoolConfig
-     *
-     *  @deprecated if you want to set properties programmatically, please construct a ComboPooledDataSource and
-     *              set its properties rather prociding a Properties Object
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource, Properties props ) throws SQLException
     { 
 	//return pooledDataSource( unpooledDataSource, new PoolConfig( props ) ); 
-	return pooledDataSource( unpooledDataSource, null, props );
+
+	Properties peeledProps = new Properties();
+	for (Iterator ii = props.keySet().iterator(); ii.hasNext(); )
+	    {
+		String propKey = (String) ii.next();
+		String propVal = props.getProperty( propKey );
+		String peeledKey = (propKey.startsWith("c3p0.") ? propKey.substring(5) : propKey );
+		peeledProps.put( peeledKey, propVal );
+	    }
+	return pooledDataSource( unpooledDataSource, null, peeledProps );
     }
 
     /**
