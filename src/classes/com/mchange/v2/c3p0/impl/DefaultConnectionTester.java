@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -26,11 +26,11 @@ package com.mchange.v2.c3p0.impl;
 import java.sql.*;
 import java.util.*;
 import com.mchange.v2.log.*;
-import com.mchange.v2.c3p0.QueryConnectionTester;
+import com.mchange.v2.c3p0.FullQueryConnectionTester;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
-public class DefaultConnectionTester implements QueryConnectionTester
+public class DefaultConnectionTester implements FullQueryConnectionTester
 {
     final static MLogger logger = MLog.getLogger( DefaultConnectionTester.class );
 

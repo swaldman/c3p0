@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -46,16 +46,21 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
 					     true );
     }
 
-    int     start                     = -1;   //default to min
-    int     min                       = 1;
-    int     max                       = 12;
-    int     inc                       = 3;
-    int     retry_attempts            = -1;   //by default, retry acquisitions forever
-    int     retry_delay               = 1000; //1 second
-    long    idle_resource_test_period = -1;   //milliseconds, by default we don't test idle resources
-    long    max_age                   = -1;   //milliseconds, by default resources never expire
-    boolean age_is_absolute              = true;
-    boolean break_on_acquisition_failure = true;
+    int     start                         = -1;   //default to min
+    int     min                           = 1;
+    int     max                           = 12;
+    int     inc                           = 3;
+    int     retry_attempts                = -1;   //by default, retry acquisitions forever
+    int     retry_delay                   = 1000; //1 second
+    long    idle_resource_test_period     = -1;   //milliseconds, by default we don't test idle resources
+    long    max_age                       = -1;   //milliseconds, by default resources never expire
+    long    max_idle_time                 = -1;   //milliseconds, by default resources never expire
+    long    excess_max_idle_time          = -1;   //milliseconds, by default resources never expire
+    long    destroy_overdue_resc_time     = -1;   //milliseconds
+    long    expiration_enforcement_delay  = -1;   //automatic, we come up with a reasonable default based on time params
+
+    boolean break_on_acquisition_failure    = true;
+    boolean debug_store_checkout_stacktrace = false;
 
     AsynchronousRunner taskRunner;
     boolean            taskRunner_is_external;
@@ -271,19 +276,37 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
 	throws ResourcePoolException
     { return max_age; }
 
-    /**
-     *  Sets whether or not maxAge should be interpreted
-     *  as the maximum age since the resource was first acquired 
-     *  (age_is_absolute == true) or since the resource was last
-     *  checked in (age_is_absolute == false).
-     */
-    public synchronized void setAgeIsAbsolute( boolean age_is_absolute )
+    public synchronized void setResourceMaxIdleTime( long millis )
 	throws ResourcePoolException
-    { this.age_is_absolute = age_is_absolute; }
+    { this.max_idle_time = millis; }
 
-    public synchronized boolean getAgeIsAbsolute()
+    public synchronized long getResourceMaxIdleTime()
 	throws ResourcePoolException
-    { return age_is_absolute; }
+    { return max_idle_time; }
+
+    public synchronized void setExcessResourceMaxIdleTime( long millis )
+	throws ResourcePoolException
+    { this.excess_max_idle_time = millis; }
+
+    public synchronized long getExcessResourceMaxIdleTime()
+	throws ResourcePoolException
+    { return excess_max_idle_time; }
+
+    public synchronized long getDestroyOverdueResourceTime()
+	throws ResourcePoolException
+    { return destroy_overdue_resc_time; }
+
+    public synchronized void setDestroyOverdueResourceTime( long millis )
+	throws ResourcePoolException
+    { this.destroy_overdue_resc_time = millis; }
+
+    public synchronized void setExpirationEnforcementDelay( long expiration_enforcement_delay )
+	throws ResourcePoolException
+    { this.expiration_enforcement_delay = expiration_enforcement_delay; }
+
+    public synchronized long getExpirationEnforcementDelay()
+	throws ResourcePoolException
+    { return expiration_enforcement_delay; }
 
     public synchronized void setBreakOnAcquisitionFailure( boolean break_on_acquisition_failure )
 	throws ResourcePoolException
@@ -293,6 +316,14 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
 	throws ResourcePoolException
     { return break_on_acquisition_failure; }
 
+    public synchronized void setDebugStoreCheckoutStackTrace( boolean debug_store_checkout_stacktrace )
+	throws ResourcePoolException
+    { this.debug_store_checkout_stacktrace = debug_store_checkout_stacktrace; }
+
+    public synchronized boolean getDebugStoreCheckoutStackTrace()
+	throws ResourcePoolException
+    { return debug_store_checkout_stacktrace; }
+
     public synchronized ResourcePool createPool(ResourcePool.Manager mgr)
 	throws ResourcePoolException
     {
@@ -300,10 +331,20 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
 	    createThreadResources();
 	//System.err.println("Created liveChildren: " + liveChildren);
 	ResourcePool child = new BasicResourcePool( mgr, 
-						    start, min, max, inc, 
-						    retry_attempts, retry_delay, 
+						    start, 
+						    min, 
+						    max, 
+						    inc, 
+						    retry_attempts, 
+						    retry_delay, 
 						    idle_resource_test_period,
-						    max_age, age_is_absolute, break_on_acquisition_failure,
+						    max_age, 
+						    max_idle_time,
+						    excess_max_idle_time,
+						    destroy_overdue_resc_time,
+						    expiration_enforcement_delay,
+						    break_on_acquisition_failure,
+						    debug_store_checkout_stacktrace,
 						    taskRunner,
 						    asyncEventQueue,
 						    timer,

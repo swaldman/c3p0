@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -113,9 +113,12 @@ public class JavaBeanObjectFactory implements ObjectFactory
 	return out;
     }
 
+    protected Object createBlankInstance(Class beanClass) throws Exception
+    { return beanClass.newInstance(); }
+
     protected Object findBean(Class beanClass, Map propertyMap, Set refProps ) throws Exception
     {
-	Object bean = beanClass.newInstance();
+	Object bean = createBlankInstance( beanClass );
 	BeanInfo bi = Introspector.getBeanInfo( bean.getClass() );
 	PropertyDescriptor[] pds = bi.getPropertyDescriptors();
 	

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -26,6 +26,7 @@ package com.mchange.v2.resourcepool;
 import java.util.*;
 import com.mchange.v2.async.*;
 import com.mchange.v2.log.*;
+import com.mchange.v2.lang.ThreadUtils;
 import com.mchange.v2.holders.SynchronizedIntHolder;
 import com.mchange.v2.util.ResourceClosedException;
 
@@ -33,25 +34,50 @@ class BasicResourcePool implements ResourcePool
 {
     private final static MLogger logger = MLog.getLogger( BasicResourcePool.class );
 
-    final static int CULL_FREQUENCY_DIVISOR = 8;
-    final static int MAX_CULL_FREQUENCY = (15 * 60 * 1000); //15 mins
+    final static int AUTO_CULL_FREQUENCY_DIVISOR = 4;
+    final static int AUTO_MAX_CULL_FREQUENCY = (15 * 60 * 1000); //15 mins
+    final static int AUTO_MIN_CULL_FREQUENCY = (1 * 1000); //15 mins
 
     //MT: unchanged post c'tor
-    Manager mgr;
-    BasicResourcePoolFactory factory;
-    AsynchronousRunner       taskRunner;
+    final Manager mgr;
+
+    final int start;
+    final int min;
+    final int max;
+    final int inc;
+
+    final int num_acq_attempts;
+    final int acq_attempt_delay;
+
+    final long check_idle_resources_delay;       //milliseconds
+    final long max_resource_age;                 //milliseconds
+    final long max_idle_time;                    //milliseconds
+    final long excess_max_idle_time;             //milliseconds
+    final long destroy_unreturned_resc_time;     //milliseconds
+    final long expiration_enforcement_delay;     //milliseconds
+
+    final boolean break_on_acquisition_failure;
+    final boolean debug_store_checkout_exceptions;
+
+    //MT: not-reassigned, thread-safe, and independent
+    final BasicResourcePoolFactory factory;
+    final AsynchronousRunner       taskRunner;
+    final RunnableQueue            asyncEventQueue;
+    final ResourcePoolEventSupport rpes;
 
     //MT: protected by this' lock
-    RunnableQueue            asyncEventQueue;
     Timer                    cullAndIdleRefurbishTimer;
     TimerTask                cullTask;
     TimerTask                idleRefurbishTask;
     HashSet                  acquireWaiters = new HashSet();
     HashSet                  otherWaiters = new HashSet();
 
-    int     target_pool_size;
+    int pending_acquires;
+    int pending_removes;
 
-    /*  keys are all valid, managed resources, value is a Date */ 
+    int target_pool_size;
+
+    /*  keys are all valid, managed resources, value is a PunchCard */ 
     HashMap  managed = new HashMap();
 
     /* all valid, managed resources currently available for checkout */
@@ -61,9 +87,9 @@ class BasicResourcePool implements ResourcePool
     /* still checked out and in use.                                */
     HashSet  excluded = new HashSet();
 
-    Set idleCheckResources = new HashSet();
+    Map formerResources = new WeakHashMap();
 
-    ResourcePoolEventSupport rpes = new ResourcePoolEventSupport(this);
+    Set idleCheckResources = new HashSet();
 
     boolean force_kill_acquires = false;
 
@@ -72,58 +98,11 @@ class BasicResourcePool implements ResourcePool
     //DEBUG only!
     Object exampleResource;
 
-    //
-    // members below are unchanging
-    //
+    private void addToFormerResources( Object resc )
+    { formerResources.put( resc, null ); }
 
-    int start;
-    int min;
-    int max;
-    int inc;
-
-    int num_acq_attempts;
-    int acq_attempt_delay;
-
-    long check_idle_resources_delay; //milliseconds
-    long max_resource_age;           //milliseconds
-    boolean age_is_absolute;
-
-    boolean break_on_acquisition_failure;
-
-    //
-    // end unchanging members
-    //
-
-    // ---
-
-    //
-    // members below are changing but protected 
-    // by their own locks
-    //
-
-    int pending_acquires;
-    int pending_removes;
-    
-//     SynchronizedIntHolder pendingAcquiresCounter = new SynchronizedIntHolder();
-//     SynchronizedIntHolder pendingRemovesCounter  = new SynchronizedIntHolder();
-// 	{
-// 	    public synchronized void increment() 
-// 	    {
-// 		super.increment();
-// 		System.err.println("increment() --> " + getValue()); 
-// 	    }
-
-// 	    public synchronized void decrement() 
-// 	    {
-// 		super.decrement();
-// 		System.err.println("decrement() --> " + getValue()); 
-// 	    }
-// 	};
-
-    //
-    // end changing but protected members
-    //
-
+    private boolean isFormerResource( Object resc )
+    { return formerResources.keySet().contains( resc ); }
 
     /**
      * @param factory may be null
@@ -137,8 +116,12 @@ class BasicResourcePool implements ResourcePool
 			     int                      acq_attempt_delay,
 			     long                     check_idle_resources_delay,
 			     long                     max_resource_age,
-			     boolean                  age_is_absolute,
+			     long                     max_idle_time,
+			     long                     excess_max_idle_time,
+			     long                     destroy_unreturned_resc_time,
+			     long                     expiration_enforcement_delay,
 			     boolean                  break_on_acquisition_failure,
+			     boolean                  debug_store_checkout_exceptions,
 			     AsynchronousRunner       taskRunner,
 			     RunnableQueue            asyncEventQueue,
 			     Timer                    cullAndIdleRefurbishTimer,
@@ -147,40 +130,55 @@ class BasicResourcePool implements ResourcePool
     {
 	try
 	    {
-		this.mgr                        = mgr;
-		this.start                      = start;
-		this.min                        = min;
-		this.max                        = max;
-		this.inc                        = inc;
-		this.num_acq_attempts           = num_acq_attempts;
-		this.acq_attempt_delay          = acq_attempt_delay;
-		this.check_idle_resources_delay = check_idle_resources_delay;
-		this.max_resource_age           = max_resource_age;
-		this.age_is_absolute            = age_is_absolute;
-		this.factory                    = factory;
-		this.taskRunner                 = taskRunner;
-		this.asyncEventQueue            = asyncEventQueue;
-		this.cullAndIdleRefurbishTimer  = cullAndIdleRefurbishTimer;
+		this.mgr                              = mgr;
+		this.start                            = start;
+		this.min                              = min;
+		this.max                              = max;
+		this.inc                              = inc;
+		this.num_acq_attempts                 = num_acq_attempts;
+		this.acq_attempt_delay                = acq_attempt_delay;
+		this.check_idle_resources_delay       = check_idle_resources_delay;
+		this.max_resource_age                 = max_resource_age;
+		this.max_idle_time                    = max_idle_time;
+		this.excess_max_idle_time             = excess_max_idle_time;
+		this.destroy_unreturned_resc_time     = destroy_unreturned_resc_time;
+		//this.expiration_enforcement_delay     = expiration_enforcement_delay; -- set up below
+		this.break_on_acquisition_failure     = break_on_acquisition_failure;
+		this.debug_store_checkout_exceptions  = (debug_store_checkout_exceptions && destroy_unreturned_resc_time > 0);
+		this.taskRunner                       = taskRunner;
+		this.asyncEventQueue                  = asyncEventQueue;
+		this.cullAndIdleRefurbishTimer        = cullAndIdleRefurbishTimer;
+		this.factory                          = factory;
 
 		this.pending_acquires = 0;
 		this.pending_removes  = 0;
 
 		this.target_pool_size = Math.max(start, min);
 
+		if (asyncEventQueue != null)
+		    this.rpes = new ResourcePoolEventSupport(this);
+		else
+		    this.rpes = null;
+
 		//start acquiring our initial resources
 		ensureStartResources();
 
-		if (max_resource_age > 0)
+		if (mustEnforceExpiration())
 		    {
-			long cull_frequency = Math.min( max_resource_age / CULL_FREQUENCY_DIVISOR, MAX_CULL_FREQUENCY ) ;
+			if (expiration_enforcement_delay <= 0)
+			    this.expiration_enforcement_delay = automaticExpirationEnforcementDelay();
+			else
+			    this.expiration_enforcement_delay = expiration_enforcement_delay;
+
 			this.cullTask = new CullTask();
-			cullAndIdleRefurbishTimer.schedule( cullTask, max_resource_age, cull_frequency );
+			//System.err.println("minExpirationTime(): " + minExpirationTime());
+			//System.err.println("this.expiration_enforcement_delay: " + this.expiration_enforcement_delay);
+			cullAndIdleRefurbishTimer.schedule( cullTask, minExpirationTime(), this.expiration_enforcement_delay );
 		    }
 		else
-		    age_is_absolute = false; // there's no point keeping track of
-		                             // the absolute age of things if we 
-		                             // aren't even culling.
+		    this.expiration_enforcement_delay = expiration_enforcement_delay;
 
+		//System.err.println("this.check_idle_resources_delay: " + this.check_idle_resources_delay);
 		if (check_idle_resources_delay > 0)
 		    {
 			this.idleRefurbishTask = new CheckIdleResourcesTask();
@@ -188,10 +186,78 @@ class BasicResourcePool implements ResourcePool
 							    check_idle_resources_delay, 
 							    check_idle_resources_delay );
 		    }
+
+		if ( logger.isLoggable( MLevel.FINER ) )
+		    logger.finer( this + " config: [start -> " + this.start + "; min -> " + this.min + "; max -> " + this.max + "; inc -> " + this.inc +
+				  "; num_acq_attempts -> " + this.num_acq_attempts + "; acq_attempt_delay -> " + this.acq_attempt_delay +
+				  "; check_idle_resources_delay -> " + this.check_idle_resources_delay + "; mox_resource_age -> " + this.max_resource_age +
+				  "; max_idle_time -> " + this.max_idle_time + "; excess_max_idle_time -> " + this.excess_max_idle_time +
+				  "; destroy_unreturned_resc_time -> " + this.destroy_unreturned_resc_time +
+				  "; expiration_enforcement_delay -> " + this.expiration_enforcement_delay + 
+				  "; break_on_acquisition_failure -> " + this.break_on_acquisition_failure + 
+				  "; debug_store_checkout_exceptions -> " + this.debug_store_checkout_exceptions + 
+				  "]");
+
 	    }
 	catch (Exception e)
-	    { throw ResourcePoolUtils.convertThrowable( e ); }
+	    {
+// 		if ( logger.isLoggable( MLevel.WARNING) )
+// 		    logger.log( MLevel.WARNING, "Could not create resource pool due to Exception!", e );
+
+		throw ResourcePoolUtils.convertThrowable( e ); 
+	    }
     }
+
+//     private boolean timerRequired()
+//     { return mustEnforceExpiration() || mustTestIdleResources(); }
+
+    // no need to sync
+    private boolean mustTestIdleResources()
+    { return check_idle_resources_delay > 0; }
+
+    // no need to sync
+    private boolean mustEnforceExpiration()
+    {
+	return 
+	    max_resource_age > 0 ||
+	    max_idle_time > 0 ||
+	    excess_max_idle_time > 0 ||
+	    destroy_unreturned_resc_time > 0;
+    }
+
+    // no need to sync
+    private long minExpirationTime()
+    {
+	long out = Long.MAX_VALUE;
+	if (max_resource_age > 0)
+	    out = Math.min( out, max_resource_age );
+	if (max_idle_time > 0)
+	    out = Math.min( out, max_idle_time );
+	if (excess_max_idle_time > 0)
+	    out = Math.min( out, excess_max_idle_time );
+	if (destroy_unreturned_resc_time > 0)
+	    out = Math.min( out, expiration_enforcement_delay );
+	return out;
+    }
+    
+    private long automaticExpirationEnforcementDelay()
+    {
+	long out = minExpirationTime();
+	out /= AUTO_CULL_FREQUENCY_DIVISOR;
+	out = Math.min( out, AUTO_MAX_CULL_FREQUENCY );
+	out = Math.max( out, AUTO_MIN_CULL_FREQUENCY );
+	return out;
+    }
+
+    public long getEffectiveExpirationEnforcementDelay()
+    { return expiration_enforcement_delay; }
+
+    private synchronized boolean isBroken()
+    { return broken; }
+
+    // no need to sync
+    private boolean supportsEvents()
+    { return asyncEventQueue != null; }
 
     public Object checkoutResource() 
 	throws ResourcePoolException, InterruptedException
@@ -211,6 +277,8 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method, idempotent
     private void _recheckResizePool()
     {
+// 	assert Thread.holdsLock(this);
+
 	if (! broken)
 	    {
 		int msz = managed.size();
@@ -255,6 +323,8 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method
     private void expandPool(int count)
     {
+// 	assert Thread.holdsLock(this);
+
 	for (int i = 0; i < count; ++i)
 	    taskRunner.postRunnable( new AcquireTask() );
     }
@@ -262,6 +332,8 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method
     private void shrinkPool(int count)
     {
+// 	assert Thread.holdsLock(this);
+
 	for (int i = 0; i < count; ++i)
 	    taskRunner.postRunnable( new RemoveTask() ); 
     }
@@ -273,18 +345,58 @@ class BasicResourcePool implements ResourcePool
      *
      * by the semantics of wait(), a timeout of zero means forever.
      */
-    public synchronized Object checkoutResource( long timeout )
+    public Object checkoutResource( long timeout )
+	throws TimeoutException, ResourcePoolException, InterruptedException
+    {
+	Object resc = prelimCheckoutResource( timeout );
+
+	boolean refurb = attemptRefurbishResourceOnCheckout( resc );
+
+	synchronized( this )
+	    {
+		if (!refurb)
+		    {
+			removeResource( resc );
+			ensureMinResources();
+			return checkoutResource( timeout );
+		    }
+		else
+		    {
+			asyncFireResourceCheckedOut( resc, managed.size(), unused.size(), excluded.size() );
+			if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
+
+			PunchCard card = (PunchCard) managed.get( resc );
+			if (card == null) //the resource has been removed!
+			    {
+				if (logger.isLoggable( MLevel.FINE ))
+				    logger.fine("Resource " + resc + " was removed from the pool while it was being checked out " +
+						" or refurbished for checkout.");
+				return checkoutResource( timeout );
+			    }
+			else
+			    {
+				card.checkout_time = System.currentTimeMillis();
+				if (debug_store_checkout_exceptions)
+				    card.checkoutStackTraceException = new Exception("DEBUG ONLY: Overdue resource check-out stack trace.");
+
+				return resc;
+			    }
+		    }
+	    }
+    }
+
+    private synchronized Object prelimCheckoutResource( long timeout )
 	throws TimeoutException, ResourcePoolException, InterruptedException
     {
 	try
 	    {
 		ensureNotBroken();
-
+	
 		int available = unused.size();
 		if (available == 0)
 		    {
- 			int msz = managed.size();
- 			if (msz < max && msz >= target_pool_size)
+			int msz = managed.size();
+			if (msz < max && msz >= target_pool_size)
 			    {
 				target_pool_size = Math.max( Math.min( max, target_pool_size + inc ), min );
 				//System.err.println("updated target_pool_size: " + target_pool_size);
@@ -292,10 +404,9 @@ class BasicResourcePool implements ResourcePool
 			    }
 			awaitAvailable(timeout); //throws timeout exception
 		    }
-
- 		Object  resc = unused.get(0);
- 		unused.remove(0);
-
+		
+		Object  resc = unused.get(0);
+		
 		// this is a hack -- but "doing it right" adds a lot of complexity, and collisions between
 		// an idle check and a checkout should be relatively rare. anyway, it should work just fine.
 		if ( idleCheckResources.contains( resc ) )
@@ -303,9 +414,10 @@ class BasicResourcePool implements ResourcePool
 			if (Debug.DEBUG && logger.isLoggable( MLevel.FINER))
 			    logger.log( MLevel.FINER, 
 					"Resource we want to check out is in idleCheck! (waiting until idle-check completes.) [" + this + "]");
-			//System.err.println("c3p0-JENNIFER: INFO: Resource we want to check out is in idleCheck! (waiting until idle-check completes.)"  + " [" + this + "]");
-			unused.add(0, resc );
-
+			
+			// we'll move remove() to after the if, so we don't have to add back
+			// unused.add(0, resc );
+			
 			// we'll wait for "something to happen" -- probably an idle check to
 			// complete -- then we'll try again and hope for the best.
 			Thread t = Thread.currentThread();
@@ -317,20 +429,17 @@ class BasicResourcePool implements ResourcePool
 			    }
 			finally
 			    { otherWaiters.remove( t ); }
-			return checkoutResource( timeout );
+			return prelimCheckoutResource( timeout );
 		    }
-
-		
-		if (isExpired( resc ) || !attemptRefurbishResourceOnCheckout( resc ))
+		else if ( shouldExpire( resc ) )
 		    {
 			removeResource( resc );
 			ensureMinResources();
-			return checkoutResource( timeout );
+			return prelimCheckoutResource( timeout );
 		    }
 		else
 		    {
-			asyncFireResourceCheckedOut( resc, managed.size(), unused.size(), excluded.size() );
-			if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
+			unused.remove(0);
 			return resc;
 		    }
 	    }
@@ -340,15 +449,15 @@ class BasicResourcePool implements ResourcePool
 		//e.printStackTrace();
 		if (logger.isLoggable( MLevel.SEVERE ))
 		    logger.log( MLevel.SEVERE, this + " -- the pool was found to be closed or broken during an attempt to check out a resource.", e );
-
+		
 		this.unexpectedBreak();
 		throw e;
 	    }
 	catch ( InterruptedException e )
 	    {
-// 		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread " +
-// 				   "must have either interrupted the Thread attempting checkout, or close() was called on the pool.");
-// 		e.printStackTrace();
+		// 		System.err.println(this + " -- an attempt to checkout a resource was interrupted: some other thread " +
+		// 				   "must have either interrupted the Thread attempting checkout, or close() was called on the pool.");
+		// 		e.printStackTrace();
 		if (broken)
 		    {
 			if (logger.isLoggable( MLevel.FINER ))
@@ -374,7 +483,7 @@ class BasicResourcePool implements ResourcePool
 		throw e;
 	    }
     }
-
+	
     public synchronized void checkinResource( Object resc ) 
 	throws ResourcePoolException
     {
@@ -386,6 +495,12 @@ class BasicResourcePool implements ResourcePool
 		    doCheckinManaged( resc );
 		else if (excluded.contains(resc))
 		    doCheckinExcluded( resc );
+		else if ( isFormerResource(resc) )
+		    {
+			if ( logger.isLoggable( MLevel.FINER ) )
+			    logger.finer("Resource " + resc + " checked-in after having been checked-in already, or checked-in after " +
+					 " having being destroyed for being checked-out too long.");
+		    }
 		else
 		    throw new ResourcePoolException("ResourcePool" + (broken ? " [BROKEN!]" : "") + ": Tried to check-in a foreign resource!");
 		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
@@ -546,18 +661,20 @@ class BasicResourcePool implements ResourcePool
 	    this.close();
     }
 
+    //no need to sync
     public void addResourcePoolListener(ResourcePoolListener rpl)
     { 
-	if ( asyncEventQueue == null )
+	if ( ! supportsEvents() )
 	    throw new RuntimeException(this + " does not support ResourcePoolEvents. " +
 				       "Probably it was constructed by a BasicResourceFactory configured not to support such events.");
 	else
 	    rpes.addResourcePoolListener(rpl); 
     }
 
+    //no need to sync
     public void removeResourcePoolListener(ResourcePoolListener rpl)
     { 
-	if ( asyncEventQueue == null )
+	if ( ! supportsEvents() )
 	    throw new RuntimeException(this + " does not support ResourcePoolEvents. " +
 				       "Probably it was constructed by a BasicResourceFactory configured not to support such events.");
 	else
@@ -598,9 +715,11 @@ class BasicResourcePool implements ResourcePool
 	close( false );
     }
 
+    // no need to sync
     private boolean canFireEvents()
-    { return (! broken && asyncEventQueue != null); }
+    { return ( asyncEventQueue != null && !isBroken() ); }
 
+    // no need to sync
     private void asyncFireResourceAcquired( final Object       resc,
 					    final int          pool_size,
 					    final int          available_size,
@@ -617,6 +736,7 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
+    // no need to sync
     private void asyncFireResourceCheckedIn( final Object       resc,
 					     final int          pool_size,
 					     final int          available_size,
@@ -633,6 +753,7 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
+    // no need to sync
     private void asyncFireResourceCheckedOut( final Object       resc,
 					      final int          pool_size,
 					      final int          available_size,
@@ -649,6 +770,7 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
+    // no need to sync
     private void asyncFireResourceRemoved( final Object       resc,
 					   final boolean      checked_out_resource,
 					   final int          pool_size,
@@ -678,32 +800,42 @@ class BasicResourcePool implements ResourcePool
     // needn't be called from a sync'ed method
     private void destroyResource(final Object resc, boolean synchronous)
     {
-	Runnable r = new Runnable()
+	class DestroyResourceTask implements Runnable
+	{
+	    public void run()
 	    {
-		public void run()
-		{
-		    try 
-			{ 
-			    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
-				logger.log(MLevel.FINER, "Preparing to destroy resource: " + resc);
-
-			    mgr.destroyResource(resc); 
-
-			    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
-				logger.log(MLevel.FINER, "Successfully destroyed resource: " + resc);
-			}
-		    catch ( Exception e )
-			{
-			    if ( logger.isLoggable( MLevel.WARNING ) )
-				logger.log( MLevel.WARNING, "Failed to destroy resource: " + resc, e );
-
-// 			    System.err.println("Failed to destroy resource: " + resc);
-// 			    e.printStackTrace();
-			}
+		try 
+		    { 
+			if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+			    logger.log(MLevel.FINER, "Preparing to destroy resource: " + resc);
+			
+			mgr.destroyResource(resc); 
+			
+			if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+			    logger.log(MLevel.FINER, "Successfully destroyed resource: " + resc);
+		    }
+		catch ( Exception e )
+		    {
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    logger.log( MLevel.WARNING, "Failed to destroy resource: " + resc, e );
+			
+			// System.err.println("Failed to destroy resource: " + resc);
+			// e.printStackTrace();
+		    }
 		}
-	    };
+	}
+
+	Runnable r = new DestroyResourceTask();
 	if ( synchronous || broken ) //if we're broken, our taskRunner may be dead, so we destroy synchronously
-	    r.run();
+	    {
+		if ( logger.isLoggable(MLevel.FINEST) && !broken && Boolean.TRUE.equals( ThreadUtils.reflectiveHoldsLock( this ) ) )
+		    logger.log( MLevel.FINEST, 
+				this + ": Destroyiong a resource on an active pool, synchronousy while holding pool's lock! " +
+				"(not a bug, but a potential bottleneck... is there a good reason for this?)", 
+				new Exception("DEBUG STACK TRACE") );
+
+		r.run();
+	    }
 	else
 	    {
 		try { taskRunner.postRunnable( r ); }
@@ -725,6 +857,8 @@ class BasicResourcePool implements ResourcePool
     //block!!!!
     private void doAcquire() throws Exception
     {
+// 	assert !Thread.holdsLock( this );
+
 	Object resc = mgr.acquireResource(); //note we acquire the resource while we DO NOT hold the pool's lock!
 	boolean destroy = false;
 	int msz;
@@ -812,8 +946,11 @@ class BasicResourcePool implements ResourcePool
 //     private int actuallyAvailable()
 //     { return unused.size() - idleCheckResources.size(); }
 
+    // must own this' lock
     private void markBrokenNoEnsureMinResources(Object resc) 
     {
+// 	assert Thread.holdsLock( this );
+
 	try
 	    { 
 		_markBroken( resc ); 
@@ -827,9 +964,12 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
+    // must own this' lock
     private void _markBroken( Object resc )
     {
-	if ( unused.contains( resc ) )
+// 	assert Thread.holdsLock( this );
+
+ 	if ( unused.contains( resc ) )
 	    removeResource( resc ); 
 	else
 	    excludeResource( resc );
@@ -912,6 +1052,8 @@ class BasicResourcePool implements ResourcePool
 
     private void doCheckinManaged( final Object resc ) throws ResourcePoolException
     {
+// 	assert Thread.holdsLock( this );
+
 	if (unused.contains(resc))
 	    {
 		if ( Debug.DEBUG )
@@ -919,36 +1061,46 @@ class BasicResourcePool implements ResourcePool
 	    }
 	else
 	    {
-		Runnable doMe = new Runnable()
+		class RefurbishCheckinResourceTask implements Runnable
+		{
+		    public void run()
 		    {
-			public void run()
-			{
-			    boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
-			    synchronized( BasicResourcePool.this )
-				{
-				    if ( resc_okay )
-					{
-					    unused.add(0,  resc );
-					    if (! age_is_absolute ) //we need to reset the clock, 'cuz we are counting idle time
-						managed.put( resc, new Date() );
-					}
-				    else
-					{
-					    removeResource( resc );
-					    ensureMinResources();
-					}
-				    
-				    asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
-				    BasicResourcePool.this.notifyAll();
-				}
-			}
-		    };
+			boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
+			synchronized( BasicResourcePool.this )
+			    {
+				PunchCard card = (PunchCard) managed.get( resc );
+
+				if ( resc_okay && card != null) //we have to check that the resource is still in the pool
+				    {
+					unused.add(0,  resc );
+					
+					card.last_checkin_time = System.currentTimeMillis();
+					card.checkout_time = -1;
+				    }
+				else
+				    {
+					removeResource( resc );
+					ensureMinResources();
+
+					if (card == null && logger.isLoggable( MLevel.FINE ))
+					    logger.fine("Resource " + resc + " was removed from the pool during its refurbishment for checkin.");
+				    }
+				
+				asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
+				BasicResourcePool.this.notifyAll();
+			    }
+		    }
+		}
+
+		Runnable doMe = new RefurbishCheckinResourceTask();
 		taskRunner.postRunnable( doMe );
 	    }
     }
 
     private void doCheckinExcluded( Object resc )
     {
+// 	assert Thread.holdsLock( this );
+
 	excluded.remove(resc);
 	destroyResource(resc);
     }
@@ -958,6 +1110,8 @@ class BasicResourcePool implements ResourcePool
      */
     private void awaitAvailable(long timeout) throws InterruptedException, TimeoutException, ResourcePoolException
     {
+// 	assert Thread.holdsLock( this );
+
 	if (force_kill_acquires)
 	    throw new ResourcePoolException("A ResourcePool cannot acquire a new resource -- the factory or source appears to be down.");
 
@@ -997,7 +1151,7 @@ class BasicResourcePool implements ResourcePool
 			
 			this.wait(timeout);
 			if (timeout > 0 && System.currentTimeMillis() - start > timeout)
-			    throw new TimeoutException("internal -- timeout at awaitAvailable()");
+			    throw new TimeoutException("The pool timed out while waiting to acquire a resource -- timeout at awaitAvailable()");
 			if (force_kill_acquires)
 			    throw new CannotAcquireResourceException("A ResourcePool could not acquire a resource from its primary factory or source.");
 			ensureNotBroken();
@@ -1013,7 +1167,9 @@ class BasicResourcePool implements ResourcePool
 
     private void assimilateResource( Object resc ) throws Exception
     {
-	managed.put(resc, new Date());
+// 	assert Thread.holdsLock( this );
+
+	managed.put(resc, new PunchCard());
 	unused.add(0, resc);
 	//System.err.println("assimilate resource... unused: " + unused.size());
 	asyncFireResourceAcquired( resc, managed.size(), unused.size(), excluded.size() );
@@ -1026,6 +1182,8 @@ class BasicResourcePool implements ResourcePool
     // should NOT be called from synchronized method
     private void synchronousRemoveArbitraryResource()
     { 
+// 	assert !Thread.holdsLock( this );
+
 	Object removeMe = null;
 
 	synchronized ( this )
@@ -1058,10 +1216,34 @@ class BasicResourcePool implements ResourcePool
 
     private void removeResource(Object resc, boolean synchronous)
     {
-	managed.remove(resc);
+// 	assert Thread.holdsLock( this );
+
+	PunchCard pc = (PunchCard) managed.remove(resc);
+
+	if (pc != null)
+	    {
+		if ( pc.checkout_time > 0 && !broken) //this is a checked-out resource in an active pool, must be overdue if we are removing it
+		    {
+			if (logger.isLoggable( MLevel.INFO ) )
+			    {
+				logger.info("A checked-out resource is overdue, and will be destroyed: " + resc);
+				if (pc.checkoutStackTraceException != null)
+				    {
+					logger.log( MLevel.INFO,
+						    "Logging the stack trace by which the overdue resource was checked-out.",
+						    pc.checkoutStackTraceException );
+				    }
+			    }
+		    }
+	    }
+	else if ( logger.isLoggable( MLevel.FINE ) )
+	    logger.fine("Resource " + resc + " was removed twice. (Lotsa reasons a resource can be removed, sometimes simultaneously. It's okay)");
+
 	unused.remove(resc);
 	destroyResource(resc, synchronous);
+	addToFormerResources( resc );
 	asyncFireResourceRemoved( resc, false, managed.size(), unused.size(), excluded.size() );
+
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 	//System.err.println("RESOURCE REMOVED!");
     }
@@ -1070,6 +1252,8 @@ class BasicResourcePool implements ResourcePool
     //out resource from the pool
     private void excludeResource(Object resc)
     {
+// 	assert Thread.holdsLock( this );
+
 	managed.remove(resc);
 	excluded.add(resc);
 	if (Debug.DEBUG && unused.contains(resc) )
@@ -1079,6 +1263,8 @@ class BasicResourcePool implements ResourcePool
 
     private void removeTowards( int new_sz )
     {
+// 	assert Thread.holdsLock( this );
+
 	int num_to_remove = managed.size() - new_sz;
 	int count = 0;
 	for (Iterator ii = cloneOfUnused().iterator(); 
@@ -1090,27 +1276,40 @@ class BasicResourcePool implements ResourcePool
 	    }
     }
 
-    private void cullExpiredAndUnused()
+    private void cullExpired()
     {
-	for ( Iterator ii = cloneOfUnused().iterator(); ii.hasNext(); )
+// 	assert Thread.holdsLock( this );
+
+	if ( logger.isLoggable( MLevel.FINER ) )
+	    logger.log( MLevel.FINER, "BEGIN check for expired resources.  [" + this + "]");
+
+	// if we do not time-out checkedout resources, we only need to test unused resources
+	Collection checkMe = ( destroy_unreturned_resc_time > 0 ? (Collection) cloneOfManaged().keySet() : cloneOfUnused() );
+
+	for ( Iterator ii = checkMe.iterator(); ii.hasNext(); )
 	    {
 		Object resc = ii.next();
-		if ( isExpired( resc ) )
+		if ( shouldExpire( resc ) )
 		    {
-			if (Debug.DEBUG && logger.isLoggable( MLevel.FINER ))
+			if ( logger.isLoggable( MLevel.FINER ) )
 			    logger.log( MLevel.FINER, "Removing expired resource: " + resc + " [" + this + "]");
 
-			target_pool_size = Math.max( min, target_pool_size - 1 ); //idling out a resource resources the target size to match
+			target_pool_size = Math.max( min, target_pool_size - 1 ); //expiring a resource resources the target size to match
 
-			//System.err.println("c3p0-JENNIFER: removing expired resource: " + resc + " [" + this + "]");
 			removeResource( resc );
+
+			if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 		    }
 	    }
+	if ( logger.isLoggable( MLevel.FINER ) )
+	    logger.log( MLevel.FINER, "FINISHED check for expired resources.  [" + this + "]");
 	ensureMinResources();
     }
 
     private void checkIdleResources()
     {
+// 	assert Thread.holdsLock( this );
+
 	List u = cloneOfUnused();
 	for ( Iterator ii = u.iterator(); ii.hasNext(); )
 	    {
@@ -1122,31 +1321,76 @@ class BasicResourcePool implements ResourcePool
 	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
     }
 
-    private boolean isExpired( Object resc )
+    private boolean shouldExpire( Object resc )
     {
-	if (max_resource_age > 0)
-	    {
-		Date d = (Date) managed.get( resc );
-		long now = System.currentTimeMillis();
-		long age = now - d.getTime();
-		boolean expired = ( age > max_resource_age );
+// 	assert Thread.holdsLock( this );
 
-		if ( Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINEST ) )
-		    {
-			if (expired)
-			    logger.log(MLevel.FINEST, 
-				       "EXPIRED resource: " + resc + " ---> age: " + age + 
-				       "   max: " + max_resource_age + " [" + this + "]");
-			else
-			    logger.log(MLevel.FINEST, 
-				       "resource age is okay: " + resc + " ---> age: " + age + 
-				       "   max: " + max_resource_age + " [" + this + "]");
-		    }
-		return expired;
+	boolean expired = false;
+
+	PunchCard pc = (PunchCard) managed.get( resc );
+
+	// the resource has already been removed
+	// we return true, because removing twice does no harm
+	// (false should work as well, but true seems safer.
+	//  we certainly don't want to do anything else with
+	//  this resource.)
+	if (pc == null) 
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.fine( "Resource " + resc + " was being tested for expiration, but has already been removed from the pool.");
+		return true;
 	    }
-	else
-	    return false; 
+
+	long now = System.currentTimeMillis();
+
+	if (pc.checkout_time < 0) //resource is not checked out
+	    {
+		long idle_age = now - pc.last_checkin_time;
+		if (excess_max_idle_time > 0)
+		    {
+			int msz = managed.size();
+			expired = (msz > min && idle_age > excess_max_idle_time);
+			if ( expired && logger.isLoggable( MLevel.FINER ) )
+			    logger.log(MLevel.FINER, 
+				       "EXPIRED excess idle resource: " + resc + 
+				       " ---> idle_time: " + idle_age + 
+				       "; excess_max_idle_time: " + excess_max_idle_time +
+				       "; pool_size: " + msz +
+				       "; min_pool_size: " + min +
+				       " [" + this + "]");
+		    }
+		if (!expired && max_idle_time > 0)
+		    {
+			expired = idle_age > max_idle_time;
+			if ( expired && logger.isLoggable( MLevel.FINER ) )
+			    logger.log(MLevel.FINER, 
+				       "EXPIRED idle resource: " + resc + 
+				       " ---> idle_time: " + idle_age + 
+				       "; max_idle_time: " + max_idle_time +
+				       " [" + this + "]");
+		    }
+		if (!expired && max_resource_age > 0)
+		    {
+			long abs_age = now - pc.acquisition_time;
+			expired = ( abs_age > max_resource_age );
+			
+			if ( expired && logger.isLoggable( MLevel.FINER ) )
+			    logger.log(MLevel.FINER, 
+				       "EXPIRED old resource: " + resc + 
+				       " ---> absolute_age: " + abs_age + 
+				       "; max_absolute_age: " + max_resource_age +
+				       " [" + this + "]");
+		    }
+	    }
+	else //resource is checked out
+	    {
+		long checkout_age = now - pc.checkout_time;
+		expired = checkout_age > destroy_unreturned_resc_time;
+	    }
+
+	return expired; 
     }
+
 
 //     private boolean resourcesInIdleCheck()
 //     { return idleCheckresources.size() > 0; }
@@ -1154,14 +1398,19 @@ class BasicResourcePool implements ResourcePool
 //     private int countAvailable()
 //     { return unused.size() - idleCheckResources.size(); }
 
+
+    // we needn't hold this' lock
     private void ensureStartResources()
     { recheckResizePool(); }
 
+    // we needn't hold this' lock
     private void ensureMinResources()
     { recheckResizePool(); }
 
     private boolean attemptRefurbishResourceOnCheckout( Object resc )
     {
+// 	assert !Thread.holdsLock( this );
+
 	try
 	    { 
 		mgr.refurbishResourceOnCheckout(resc); 
@@ -1182,6 +1431,8 @@ class BasicResourcePool implements ResourcePool
 
     private boolean attemptRefurbishResourceOnCheckin( Object resc )
     {
+// 	assert !Thread.holdsLock( this );
+
 	try
 	    { 
 		mgr.refurbishResourceOnCheckin(resc); 
@@ -1202,12 +1453,16 @@ class BasicResourcePool implements ResourcePool
 
     private void ensureNotBroken() throws ResourcePoolException
     {
+// 	assert Thread.holdsLock( this );
+
 	if (broken) 
 	    throw new ResourcePoolException("Attempted to use a closed or broken resource pool");
     }
 
     private void trace()
     {
+// 	assert Thread.holdsLock( this );
+
 	if ( logger.isLoggable( MLevel.FINEST ) )
  	    {
    		String exampleResStr = ( exampleResource == null ?
@@ -1220,13 +1475,25 @@ class BasicResourcePool implements ResourcePool
     }
 
     private final HashMap cloneOfManaged()
-    { return (HashMap) managed.clone(); }
+    { 
+// 	assert Thread.holdsLock( this );
+
+	return (HashMap) managed.clone(); 
+    }
 
     private final LinkedList cloneOfUnused()
-    { return (LinkedList) unused.clone(); }
+    { 
+// 	assert Thread.holdsLock( this );
+
+	return (LinkedList) unused.clone(); 
+    }
 
     private final HashSet cloneOfExcluded()
-    { return (HashSet) excluded.clone(); }
+    { 
+// 	assert Thread.holdsLock( this );
+
+	return (HashSet) excluded.clone(); 
+    }
 
     /*
      *  task we post to separate thread to acquire
@@ -1235,7 +1502,6 @@ class BasicResourcePool implements ResourcePool
     class AcquireTask implements Runnable
     {
 	boolean success = false;
-	int     num;
 
 	public AcquireTask() 
 	{ incrementPendingAcquires(); }
@@ -1261,12 +1527,17 @@ class BasicResourcePool implements ResourcePool
 				}
 			    catch (Exception e)
 				{
-				    if (Debug.DEBUG) 
-					{
-					    //e.printStackTrace();
-					    if (logger.isLoggable( MLevel.FINE ))
-						logger.log( MLevel.FINE, "An exception occurred while acquiring a resource.", e );
-					}
+				    //e.printStackTrace();
+
+				    // if num_acq_attempts <= 0, we try to acquire forever, so the end-of-batch
+				    // log message below will never be triggered if there is a persistent problem
+				    // so in this case, it's better flag a higher-than-debug-level message for
+				    // each failed attempt. (Thanks to Eric Crahen for calling attention to this
+				    // issue.)
+				    MLevel logLevel = (num_acq_attempts > 0 ? MLevel.FINE : MLevel.INFO);
+				    if (logger.isLoggable( logLevel ))
+					logger.log( logLevel, "An exception occurred while acquiring a poolable resource. Will retry.", e );
+
 				    lastException = e;
 				}
 			}
@@ -1370,7 +1641,7 @@ class BasicResourcePool implements ResourcePool
 		    if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINER ))
 			logger.log( MLevel.FINER, "Checking for expired resources - " + new Date() + " [" + BasicResourcePool.this + "]");
 		    synchronized ( BasicResourcePool.this )
-			{ cullExpiredAndUnused(); }
+			{ cullExpired(); }
 		}
 	    catch ( ResourceClosedException e ) // one of our async threads died
 		{
@@ -1443,6 +1714,8 @@ class BasicResourcePool implements ResourcePool
 
 	public void run()
 	{
+// 	    assert !Thread.holdsLock( BasicResourcePool.this );
+
 	    try
 		{
 		    boolean failed;
@@ -1466,9 +1739,9 @@ class BasicResourcePool implements ResourcePool
 			    failed = true;
 			}
 		    
-		    synchronized (BasicResourcePool.this)
+		    if ( failed )
 			{
-			    if ( failed )
+			    synchronized (BasicResourcePool.this)
 				{
 				    if ( managed.keySet().contains( resc ) ) //resc might have been culled as expired while we tested
 					{
@@ -1486,6 +1759,22 @@ class BasicResourcePool implements ResourcePool
 			    BasicResourcePool.this.notifyAll();
 			}
 		}
+	}
+    }
+
+    final static class PunchCard
+    {
+	long acquisition_time;
+	long last_checkin_time;
+	long checkout_time;
+	Exception checkoutStackTraceException;
+
+	PunchCard()
+	{
+	    this.acquisition_time = System.currentTimeMillis();
+	    this.last_checkin_time = acquisition_time;
+	    this.checkout_time = -1;
+	    this.checkoutStackTraceException = null;
 	}
     }
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -64,7 +64,20 @@ public class BeangenDataSourceGenerator
 
 		SimplePropertyBeanGenerator gen = new SimplePropertyBeanGenerator();
 		gen.setGeneratorName( BeangenDataSourceGenerator.class.getName() );
-		gen.addExtension( new IndirectingSerializableExtension("com.mchange.v2.naming.ReferenceIndirector") );
+
+		// tightly coupled to the implementation of SimplePropertyBeanGenerator!
+		IndirectingSerializableExtension idse = new IndirectingSerializableExtension("com.mchange.v2.naming.ReferenceIndirector")
+		    {
+			protected void generateExtraSerInitializers(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
+			    throws IOException
+			{
+			    if (BeangenUtils.hasBoundProperties( props ))
+				iw.println("this.pcs = new PropertyChangeSupport( this );");
+			    if (BeangenUtils.hasConstrainedProperties( props ))
+				iw.println("this.vcs = new VetoableChangeSupport( this );");
+			}
+		    };
+		gen.addExtension( idse );
 
 		PropsToStringGeneratorExtension tsge = new PropsToStringGeneratorExtension();
 		tsge.setExcludePropertyNames( Arrays.asList( new String[] {"userOverridesAsString","overrideDefaultUser","overrideDefaultPassword"} ) );
@@ -76,6 +89,12 @@ public class BeangenDataSourceGenerator
 		//prex.setFactoryClassName( C3P0JavaBeanObjectFactory.class.getName() );
 		prex.setFactoryClassName( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
 		gen.addExtension( prex );
+
+		BooleanInitIdentityTokenConstructortorGeneratorExtension biitcge = new BooleanInitIdentityTokenConstructortorGeneratorExtension();
+		gen.addExtension( biitcge );
+
+		if ( parsed.getClassInfo().getClassName().equals("WrapperConnectionPoolDataSourceBase") )
+		    gen.addExtension( new WcpdsExtrasGeneratorExtension() );
 
 		if (unmodifiableShadow( doc ) )
 		    gen.addExtension( new UnmodifiableShadowGeneratorExtension() );
@@ -97,6 +116,66 @@ public class BeangenDataSourceGenerator
 	Element docElem = doc.getDocumentElement();
 	return DomParseUtils.uniqueChild(docElem, "unmodifiable-shadow") != null;
     }
+
+    static class BooleanInitIdentityTokenConstructortorGeneratorExtension implements GeneratorExtension
+    {
+	public Collection extraGeneralImports()  {return Collections.EMPTY_SET;} 
+
+	public Collection extraSpecificImports() 
+	{
+	    Set out = new HashSet();
+	    out.add( "com.mchange.v2.c3p0.C3P0Registry" );
+	    return out;
+	}
+
+	public Collection extraInterfaceNames()  {return Collections.EMPTY_SET;}
+
+	public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
+	    throws IOException
+	{
+	    BeangenUtils.writeExplicitDefaultConstructor( Modifier.PRIVATE, info, iw);
+	    iw.println();
+	    iw.println("public " + info.getClassName() + "( boolean autoregister )");
+	    iw.println("{");
+	    iw.upIndent();
+	    iw.println( "if (autoregister)");
+	    iw.println("{");
+	    iw.upIndent();
+	    iw.println("this.identityToken = C3P0ImplUtils.allocateIdentityToken( this );");
+	    iw.println("C3P0Registry.reregister( this );");
+	    iw.downIndent();
+	    iw.println("}");
+
+	    iw.downIndent();
+	    iw.println("}");
+	}
+    }
+
+    static class WcpdsExtrasGeneratorExtension implements GeneratorExtension
+    {
+	public Collection extraGeneralImports()  {return Collections.EMPTY_SET;} 
+
+	public Collection extraSpecificImports() 
+	{
+	    Set out = new HashSet();
+	    out.add( "com.mchange.v2.c3p0.ConnectionCustomizer" );
+	    out.add( "javax.sql.PooledConnection" );
+	    out.add( "java.sql.SQLException" );
+	    return out;
+	}
+
+	public Collection extraInterfaceNames()  {return Collections.EMPTY_SET;}
+
+	public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
+	    throws IOException
+	{
+	    iw.println("protected abstract PooledConnection getPooledConnection( ConnectionCustomizer cc, String idt)" +
+		       " throws SQLException;");
+	    iw.println("protected abstract PooledConnection getPooledConnection(String user, String password, ConnectionCustomizer cc, String idt)" +
+		       " throws SQLException;");
+	}
+    }
+
 
     static class UnmodifiableShadowGeneratorExtension implements GeneratorExtension
     {

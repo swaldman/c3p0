@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -115,6 +115,7 @@ public class SerializableExtension implements GeneratorExtension
 			    writeStoreObject( prop, propType, iw );
 		    }
 	    }
+	generateExtraSerWriteStatements( info, superclassType, props, propTypes, iw);
 	iw.downIndent();
 	iw.println("}");
 	iw.println();
@@ -164,6 +165,7 @@ public class SerializableExtension implements GeneratorExtension
 			    iw.println("this." + prop.getName() + " = " + initializer +';');
 		    }
 	    }
+	generateExtraSerInitializers( info, superclassType, props, propTypes, iw);
 	iw.println("break;");
 	iw.downIndent();
 	iw.println("default:");
@@ -187,4 +189,13 @@ public class SerializableExtension implements GeneratorExtension
     {
 	iw.println("this." + prop.getName() + " = (" + prop.getSimpleTypeName() + ") ois.readObject();");
     }
+
+    protected void generateExtraSerWriteStatements(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
+	throws IOException
+    {}
+
+    protected void generateExtraSerInitializers(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
+	throws IOException
+    {}
+
 }

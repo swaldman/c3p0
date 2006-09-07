@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -25,6 +25,12 @@ package com.mchange.v2.async;
 
 import java.util.*;
 import com.mchange.v2.log.*;
+
+import java.io.StringWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import com.mchange.v2.io.IndentedWriter;
 import com.mchange.v2.util.ResourceClosedException;
 
 public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
@@ -53,7 +59,7 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
     boolean should_cancel_timer;
 
     TimerTask deadlockDetector = new DeadlockDetector();
-    TimerTask replacedThreadInterruptor = new ReplacedThreadInterruptor();
+    TimerTask replacedThreadInterruptor = null;
 
     Map stoppedThreadsToStopDates = new HashMap();
 
@@ -77,9 +83,8 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 
 	myTimer.schedule( deadlockDetector, deadlock_detector_interval, deadlock_detector_interval );
 
-	int replacedThreadProcessDelay = interrupt_delay_after_apparent_deadlock / 4;
-	myTimer.schedule( replacedThreadInterruptor, replacedThreadProcessDelay, replacedThreadProcessDelay );
     }
+
 
     public ThreadPoolAsynchronousRunner( int num_threads, 
 					 boolean daemon, 
@@ -152,13 +157,16 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	    }
     }
 
+    public synchronized int getThreadCount()
+    { return managed.size(); }
+
     public void close( boolean skip_remaining_tasks )
     {
 	synchronized ( this )
 	    {
 		if (managed == null) return;
 		deadlockDetector.cancel();
-		replacedThreadInterruptor.cancel();
+		//replacedThreadInterruptor.cancel();
 		if (should_cancel_timer)
 		    myTimer.cancel();
 		myTimer = null;
@@ -188,13 +196,139 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
     public void close()
     { close( true ); }
 
+    public synchronized int getActiveCount()
+    { return managed.size() - available.size(); }
+
+    public synchronized int getIdleCount()
+    { return available.size(); }
+
+    public synchronized int getPendingTaskCount()
+    { return pendingTasks.size(); }
+
     public synchronized String getStatus()
     { 
-	StringBuffer sb = new StringBuffer( 512 );
-	sb.append( this.toString() );
-	sb.append( ' ' );
-	appendStatusString( sb );
-	return sb.toString();
+	/*
+	  StringBuffer sb = new StringBuffer( 512 );
+	  sb.append( this.toString() );
+	  sb.append( ' ' );
+	  appendStatusString( sb );
+	  return sb.toString();
+	*/
+	
+	return getMultiLineStatusString();
+    }
+
+    // done reflectively for jdk 1.3/1.4 compatability
+    public synchronized String getStackTraces()
+    { return getStackTraces(0); }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+    private String getStackTraces(int initial_indent)
+    {
+	if (managed == null)
+	    return null;
+
+	try
+	    {
+		Method m = Thread.class.getMethod("getStackTrace", null);
+
+		StringWriter sw = new StringWriter(2048);
+		IndentedWriter iw = new IndentedWriter( sw );
+		for (int i = 0; i < initial_indent; ++i)
+		    iw.upIndent();
+		for (Iterator ii = managed.iterator(); ii.hasNext(); )
+		    {
+			Object poolThread = ii.next();
+			Object[] stackTraces = (Object[]) m.invoke( poolThread, null );
+			iw.println( poolThread );
+			iw.upIndent();
+			for (int i = 0, len = stackTraces.length; i < len; ++i)
+			    iw.println( stackTraces[i] );
+			iw.downIndent();
+		    }
+		for (int i = 0; i < initial_indent; ++i)
+		    iw.downIndent();
+		iw.flush(); // useless, but I feel better
+		String out = sw.toString();
+		iw.close(); // useless, but I feel better;
+		return out;
+	    }
+	catch (NoSuchMethodException e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.fine( this + ": strack traces unavailable because this is a pre-Java 1.5 VM.");
+		return null;
+	    }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, this + ": An Exception occurred while trying to extract PoolThread stack traces.", e);
+		return null;
+	    }
+    }
+
+    public synchronized String getMultiLineStatusString()
+    { return this.getMultiLineStatusString(0); }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+    private String getMultiLineStatusString(int initial_indent)
+    {
+	try
+	    {
+		StringWriter sw = new StringWriter(2048);
+		IndentedWriter iw = new IndentedWriter( sw );
+		
+		for (int i = 0; i < initial_indent; ++i)
+		    iw.upIndent();
+		
+		if (managed == null)
+		    {
+			iw.print("[");
+			iw.print( this );
+			iw.println(" closed.]");
+		    }
+		else
+		    {
+			HashSet active = (HashSet) managed.clone();
+			active.removeAll( available );
+			
+			iw.print("Managed Threads: ");
+			iw.println( managed.size() );
+			iw.print("Active Threads: ");
+			iw.println( active.size() );
+			iw.println("Active Tasks: ");
+			iw.upIndent();
+			for (Iterator ii = active.iterator(); ii.hasNext(); )
+			    {
+				PoolThread pt = (PoolThread) ii.next();
+				iw.print( pt.getCurrentTask() );
+				iw.print( " (");
+				iw.print( pt.getName() );
+				iw.println(')');
+			    }
+			iw.downIndent();
+			iw.println("Pending Tasks: ");
+			iw.upIndent();
+			for (int i = 0, len = pendingTasks.size(); i < len; ++i)
+			    iw.println( pendingTasks.get( i ) );
+			iw.downIndent();
+		    }
+		
+		for (int i = 0; i < initial_indent; ++i)
+		    iw.downIndent();
+		iw.flush(); // useless, but I feel better
+		String out = sw.toString();
+		iw.close(); // useless, but I feel better;
+		return out;
+	    }
+	catch (IOException e)
+	    {
+		if (logger.isLoggable( MLevel.WARNING ))
+		    logger.log( MLevel.WARNING, "Huh? An IOException when working with a StringWriter?!?", e);
+		throw new RuntimeException("Huh? An IOException when working with a StringWriter?!? " + e);
+	    }
     }
 
     // protected by ThreadPoolAsynchronousRunner.this' lock
@@ -247,6 +381,7 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 			PoolThread pt = (PoolThread) ii.next();
 			pt.gentleStop();
 			stoppedThreadsToStopDates.put( pt, aboutNow );
+			ensureReplacedThreadsProcessing();
 		    }
 	    }
 
@@ -286,6 +421,38 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 			    }
 			//else keep waiting...
 		    }
+		if (stoppedThreadsToStopDates.isEmpty())
+		    stopReplacedThreadsProcessing();
+	    }
+    }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+    private void ensureReplacedThreadsProcessing()
+    {
+	if (replacedThreadInterruptor == null)
+	    {
+		if (logger.isLoggable( MLevel.FINE ))
+		    logger.fine("Apparently some threads have been replaced. Replacement thread processing enabled.");
+
+		this.replacedThreadInterruptor = new ReplacedThreadInterruptor();
+		int replacedThreadProcessDelay = interrupt_delay_after_apparent_deadlock / 4;
+		myTimer.schedule( replacedThreadInterruptor, replacedThreadProcessDelay, replacedThreadProcessDelay );
+	    }
+    }
+
+    // protected by ThreadPoolAsynchronousRunner.this' lock
+    // BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
+    private void stopReplacedThreadsProcessing()
+    {
+	if (this.replacedThreadInterruptor != null)
+	    {
+		this.replacedThreadInterruptor.cancel();
+		this.replacedThreadInterruptor = null;
+
+		if (logger.isLoggable( MLevel.FINE ))
+		    logger.fine("Apparently all replaced threads have either completed their tasks or been interrupted(). " +
+				"Replacement thread processing cancelled.");
 	    }
     }
 
@@ -304,6 +471,7 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	    }
     }
 
+
     class PoolThread extends Thread
     {
 	// protected by ThreadPoolAsynchronousRunner.this' lock
@@ -315,17 +483,14 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	// post ctor immutable
 	int index;
 
-	// post ctor immutable
-	TimerTask maxIndividualTaskTimeEnforcer;
+	// not shared. only accessed by the PoolThread itself
+	TimerTask maxIndividualTaskTimeEnforcer = null;
 
 	PoolThread(int index, boolean daemon)
 	{
 	    this.setName( this.getClass().getName() + "-#" + index);
 	    this.setDaemon( daemon );
 	    this.index = index;
-
-	    if (max_individual_task_time > 0)
-		this.maxIndividualTaskTimeEnforcer = new TimerTask() { public void run() { interrupt(); } };
 	}
 
 	public int getIndex()
@@ -340,6 +505,20 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	// BE SURE CALLER OWNS ThreadPoolAsynchronousRunner.this' lock
 	Runnable getCurrentTask()
 	{ return currentTask; }
+
+	// no need to sync. data not shared
+	private /* synchronized */  void setMaxIndividualTaskTimeEnforcer()
+	{
+	    this.maxIndividualTaskTimeEnforcer = new MaxIndividualTaskTimeEnforcer( this );
+	    myTimer.schedule( maxIndividualTaskTimeEnforcer, max_individual_task_time );
+	}
+
+	// no need to sync. data not shared
+	private /* synchronized */ void cancelMaxIndividualTaskTimeEnforcer()
+	{
+	    this.maxIndividualTaskTimeEnforcer.cancel();
+	    this.maxIndividualTaskTimeEnforcer = null;
+	}
 
 	public void run()
 	{
@@ -363,8 +542,8 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 				}
 			    try
 				{ 
-				    if ( maxIndividualTaskTimeEnforcer != null )
-					myTimer.schedule( maxIndividualTaskTimeEnforcer, max_individual_task_time );
+				    if (max_individual_task_time > 0)
+					setMaxIndividualTaskTimeEnforcer();
 				    myTask.run(); 
 				}
 			    catch ( RuntimeException e )
@@ -376,7 +555,7 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 			    finally
 				{
 				    if ( maxIndividualTaskTimeEnforcer != null )
-					maxIndividualTaskTimeEnforcer.cancel();
+					cancelMaxIndividualTaskTimeEnforcer();
 
 				    synchronized ( ThreadPoolAsynchronousRunner.this )
 					{
@@ -427,12 +606,23 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 			    if ( logger.isLoggable( MLevel.WARNING ) )
 				{
 				    logger.warning(this + " -- APPARENT DEADLOCK!!! Creating emergency threads for unassigned pending tasks!");
-				    StringBuffer sb = new StringBuffer( 512 );
-				    sb.append( this );
-				    sb.append( " -- APPARENT DEADLOCK!!! Complete Status: ");
-				    appendStatusString( sb );
+				    StringWriter sw = new StringWriter( 4096 );
+				    PrintWriter pw = new PrintWriter( sw );
+				    //StringBuffer sb = new StringBuffer( 512 );
+				    //appendStatusString( sb );
 				    //System.err.println( sb.toString() );
-				    logger.warning( sb.toString() );
+				    pw.print( this );
+				    pw.println( " -- APPARENT DEADLOCK!!! Complete Status: ");
+				    pw.print( ThreadPoolAsynchronousRunner.this.getMultiLineStatusString( 1 ) );
+				    pw.println("Pool thread stack traces:"); 
+				    String stackTraces = getStackTraces( 1 );
+				    if (stackTraces == null)
+					pw.println("\t[Stack traces of deadlocked task threads not available.]");
+				    else
+					pw.println( stackTraces );
+				    pw.flush(); //superfluous, but I feel better
+				    logger.warning( sw.toString() );
+				    pw.close(); //superfluous, but I feel better
 				}
 			    recreateThreadsAndTasks();
 			    run_stray_tasks = true;
@@ -457,6 +647,54 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	}
     }
 
+    class MaxIndividualTaskTimeEnforcer extends TimerTask
+    {
+	PoolThread pt;
+	Thread     interruptMe;
+	String     threadStr;
+	String     fixedTaskStr;
+
+	MaxIndividualTaskTimeEnforcer(PoolThread pt)
+	{ 
+	    this.pt = pt;
+	    this.interruptMe = pt;
+	    this.threadStr = pt.toString();
+	    this.fixedTaskStr = null;
+	}
+
+	MaxIndividualTaskTimeEnforcer(Thread interruptMe, String threadStr, String fixedTaskStr)
+	{ 
+	    this.pt = null; 
+	    this.interruptMe = interruptMe;
+	    this.threadStr = threadStr;
+	    this.fixedTaskStr = fixedTaskStr;
+	}
+
+	public void run() 
+	{ 
+	    String taskStr;
+	    
+	    if (fixedTaskStr != null)
+		taskStr = fixedTaskStr;
+	    else if (pt != null)
+		{
+		    synchronized (ThreadPoolAsynchronousRunner.this)
+			{ taskStr = String.valueOf( pt.getCurrentTask() ); }
+		}
+	    else
+		taskStr = "Unknown task?!";
+	    
+	    if (logger.isLoggable( MLevel.WARNING ))
+		logger.warning("A task has exceeded the maximum allowable task time. Will interrupt() thread [" + threadStr
+			       + "], with current task: " + taskStr);
+	    
+	    interruptMe.interrupt(); 
+	    
+	    if (logger.isLoggable( MLevel.WARNING ))
+		logger.warning("Thread [" + threadStr + "] interrupted.");
+	} 
+    }
+
     //not currently used...
     private void runInEmergencyThread( final Runnable r )
     {
@@ -464,17 +702,7 @@ public final class ThreadPoolAsynchronousRunner implements AsynchronousRunner
 	t.start();
 	if (max_individual_task_time > 0)
 	    {
-		TimerTask maxIndividualTaskTimeEnforcer = new TimerTask() 
-		    { 
-			public void run() 
-			{ 
-			    if (logger.isLoggable(MLevel.WARNING))
-				logger.log(MLevel.WARNING, 
-					   "Task " + t + " (in one-off task Thread created after deadlock) failed to complete in maximum time " +
-					   max_individual_task_time + " ms. Trying interrupt().");
-			    t.interrupt();
-			} 
-		    };
+		TimerTask maxIndividualTaskTimeEnforcer = new MaxIndividualTaskTimeEnforcer(t, t + " [One-off emergency thread!!!]", r.toString());
 		myTimer.schedule( maxIndividualTaskTimeEnforcer, max_individual_task_time );
 	    }
     }

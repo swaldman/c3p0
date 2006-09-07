@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -27,6 +27,9 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.VetoableChangeListener;
 import java.beans.PropertyVetoException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -45,6 +48,19 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 {
     final static MLogger logger = MLog.getLogger( JndiRefForwardingDataSource.class );
 
+    //MT: protected by this' lock in all cases
+    transient DataSource cachedInner;
+
+    public JndiRefForwardingDataSource()
+    { this( true ); }
+
+    public JndiRefForwardingDataSource( boolean autoregister )
+    {
+	super( autoregister );
+	setUpPropertyListeners();
+    }
+
+    private void setUpPropertyListeners()
     {
 	VetoableChangeListener l = new VetoableChangeListener()
 	    {
@@ -66,12 +82,7 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 		{ cachedInner = null; }
 	    };
 	this.addPropertyChangeListener( pcl );
-
-	C3P0Registry.register( this );
     }
-
-    //MT: protected by this' lock in all cases
-    transient DataSource cachedInner;
 
     //MT: called only from inner(), effectively synchrtonized
     private DataSource dereference() throws SQLException
@@ -132,5 +143,27 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 
     public void setLoginTimeout(int seconds) throws SQLException
     { inner().setLoginTimeout( seconds ); }
+
+    // serialization stuff -- set up bound/constrained property event handlers on deserialization
+    private static final long serialVersionUID = 1;
+    private static final short VERSION = 0x0001;
+	
+    private void writeObject( ObjectOutputStream oos ) throws IOException
+    {
+	oos.writeShort( VERSION );
+    }
+	
+    private void readObject( ObjectInputStream ois ) throws IOException, ClassNotFoundException
+    {
+	short version = ois.readShort();
+	switch (version)
+	    {
+	    case VERSION:
+		setUpPropertyListeners();
+		break;
+	    default:
+		throw new IOException("Unsupported Serialized Version: " + version);
+	    }
+    }
 }
 

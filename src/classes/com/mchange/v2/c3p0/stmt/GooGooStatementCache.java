@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -30,11 +30,15 @@ import com.mchange.v2.async.AsynchronousRunner;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.log.*;
 import com.mchange.v1.db.sql.StatementUtils;
-import com.mchange.v2.holders.ChangeNotifyingSynchronizedIntHolder; //req'd only for oracle bug workaround
 
 public abstract class GooGooStatementCache
 {
     private final static MLogger logger = MLog.getLogger( GooGooStatementCache.class );
+
+    private final static int DESTROY_NEVER          = 0;
+    private final static int DESTROY_IF_CHECKED_IN  = 1 << 0; 
+    private final static int DESTROY_IF_CHECKED_OUT = 1 << 1;
+    private final static int DESTROY_ALWAYS         = (DESTROY_IF_CHECKED_IN | DESTROY_IF_CHECKED_OUT);
 
     /* MT: protected by this's lock */
 
@@ -56,7 +60,6 @@ public abstract class GooGooStatementCache
     // culling in case of overflow
     HashSet checkedOut = new HashSet();
 
-    
     int stmt_count;
 
     /* MT: end protected by this' lock */
@@ -169,7 +172,7 @@ public abstract class GooGooStatementCache
 		// calling attention to this issue.
 		checkedOut.add( pstmt );
 
-		removeStatement( pstmt, true ); //force destruction of the statement even though it appears checked-out
+		removeStatement( pstmt, DESTROY_ALWAYS ); //force destruction of the statement even though it appears checked-out
 		return;
 	    }
 
@@ -219,78 +222,58 @@ public abstract class GooGooStatementCache
 
     /*
      * we only selectively sync' parts of this method, because we wish to wait for
-     * Statements to be destroyed without holding up the StatementCache by keeping
-     * the lock.
-     *
-     * THIS IS BECAUSE ORACLE DEADLOCKS IF A STATEMENT IS CLOSING AT THE SAME TIME AS
-     * ITS PARENT CONNECTION IS CLOSING. (THIS IS AN ORACLE BUG, AND I _HATE_ DRAMATICALLY
-     * COMPLICATING MY CODE TO AVOID IT.) Oh, okay. That's a bit overdone. Lots of drivers
-     * don't like the old behavior.
-     *
-     * we have a double-lock acqusition here -- we acquire a counter's lock, than our own.
-     * the other thread that contends the counter's lock is the async task thread in the 
-     * destroy statement method. ensure that statement-destroying task does not acquire 
-     * this' lock prior to requiring the counter's lock to avoid deadlock.
-     *
+     * Statements we wish to destroy the Statements synchronously, but without
+     * holding the pool's lock.
      */
     public void closeAll(Connection pcon) throws SQLException
     {
 // 	System.err.println( this + ": closeAll( " + pcon + " )" );
-
 // 	new Exception("closeAll()").printStackTrace();
+
+// 	assert !Thread.holdsLock( this );
 
 	if (! this.isClosed())
 	    {
-		Set cSet = null;
-		synchronized(this)
-		    { cSet = cxnStmtMgr.statementSet( pcon ); }
-		
 		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 		    {
 			if (logger.isLoggable(MLevel.FINEST))
 			    {
 				logger.log(MLevel.FINEST, "ENTER METHOD: closeAll( " + pcon + " )! -- num_connections: " + 
 					   cxnStmtMgr.getNumConnectionsWithCachedStatements());
-				logger.log(MLevel.FINEST, "Set of statements for connection: " + cSet + (cSet != null ? "; size: " + cSet.size() : ""));
+				//logger.log(MLevel.FINEST, "Set of statements for connection: " + cSet + (cSet != null ? "; size: " + cSet.size() : ""));
 			    }
 		    }
 		
-		ChangeNotifyingSynchronizedIntHolder counter = new ChangeNotifyingSynchronizedIntHolder(0, true);
-		synchronized ( counter )
+		Set stmtSet = null;
+		synchronized (this)
 		    {
+			Set cSet = cxnStmtMgr.statementSet( pcon ); 
+			
 			if (cSet != null)
 			    {
 				//the removeStatement(...) removes from cSet, so we can't be iterating over cSet directly
-				Set stmtSet = new HashSet( cSet );
-				int sz = stmtSet.size();
+				stmtSet = new HashSet( cSet );
 				//System.err.println("SIZE FOR CONNECTION SET: " + stmtSet.size());
+
 				for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
 				    {
 					Object stmt = ii.next();
-					
-					synchronized ( this )
-					    { removeStatement( stmt, true, counter ); }
-				    }
-				try
-				    {
-					while (counter.getValue() < sz) 
-					    {
-						//System.err.println( "counter.getValue(): " + counter.getValue() + "; sz: " + sz );
-						counter.wait();
-					    }
-					//System.err.println( "FINAL: counter.getValue(): " + counter.getValue() + "; sz: " + sz );
-				    }
-				catch (InterruptedException e)
-				    {
-					if (logger.isLoggable(MLevel.WARNING))
-					    logger.warning("Unexpected interupt(). [A thread closing all Statements for a Connection in a Statement cache" +
-							   " will no longer wait for all Statements to close, but will move on and let them close() asynchronously." +
-							   " This is harmless in general, but may lead to a transient deadlock (which the thread pool will notice " +
-							   " and resolve) under some database drivers.]");
+					// we remove without destroying, leaving the destruction
+					// until when we lose the pool's lock
+					removeStatement( stmt, DESTROY_NEVER ); 
 				    }
 			    }
 		    }
 
+		if ( stmtSet != null )
+		    {
+			for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
+			    {
+				Object stmt = ii.next();
+				synchronousDestroyStatement( stmt );
+			    }
+		    }
+				
 		if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 		    {
 			if (logger.isLoggable(MLevel.FINEST))
@@ -299,8 +282,8 @@ public abstract class GooGooStatementCache
 	    }
 // 	else
 // 	    {
-// 		if (logger.isLoggable(MLevel.FINE))
-// 		    logger.log(MLevel.FINE, 
+// 		if (logger.isLoggable(MLevel.FINER))
+// 		    logger.log(MLevel.FINER, 
 // 			       this + ":  call to closeAll() when statment cache is already closed! [not harmful! debug only!]", 
 // 			       new Exception("DUPLICATE CLOSE DEBUG STACK TRACE."));
 // 	    }
@@ -337,44 +320,15 @@ public abstract class GooGooStatementCache
     /* non-public methods that needn't be called with this' lock below */
      
     private void destroyStatement( final Object pstmt )
-    { destroyStatement( pstmt, null ); }
-
-    /*
-     * ORACLE BUG WORKAROUND ( counter crap ) -- see closeAll(Connection c)
-     *
-     * NOTE: plan on reverting this method to fully sync'ed, no counter or waiting on counter 
-     * involved if Oracle ever fixes their damned bug. See c3p0-0.9.0-pre5 for last simpler
-     * version.
-     */
-    private void destroyStatement( final Object pstmt, final ChangeNotifyingSynchronizedIntHolder counter )
     {
- 	Runnable r;
-	if (counter == null)
-	    {
-		r = new Runnable()
-		    {
-			public void run()
-			{ StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
-		    };
-	    }
-	else
-	    {
-		r = new Runnable()
-		    {
-			// this method MUSTN'T try to obtain this' lock prior to obtaining the 
-			// counter's lock, or a potential deadlock may result. 
-			//
-			// See closeAll(Connection c) comments.
-			public void run()
-			{ 
-			    synchronized( counter )
-				{
-				    StatementUtils.attemptClose( (PreparedStatement) pstmt ); 
-				    counter.increment();
-				}
-			}
-		    };
-	    }
+	class StatementCloseTask implements Runnable
+	{
+	    public void run()
+	    { StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
+	}
+	
+	Runnable r = new StatementCloseTask();
+
 	blockingTaskAsyncRunner.postRunnable(r);
     }
 
@@ -432,13 +386,7 @@ public abstract class GooGooStatementCache
 	checkedOut.add( ps );
     }
 
-    private void removeStatement( Object ps , boolean force_destroy )
-    { removeStatement( ps, force_destroy, null ); }
-
-    /*
-     * SIMULTANEOUS CLOSE OF STATEMENT AND CONNECTION BUG WORKAROUND ( counter crap ) -- see closeAll(Connection c)
-     */
-    private void removeStatement( Object ps , boolean force_destroy, ChangeNotifyingSynchronizedIntHolder counter )
+    private void removeStatement( Object ps , int destruction_policy )
     {
 	synchronized (removalPending)
 	    {
@@ -452,20 +400,22 @@ public abstract class GooGooStatementCache
 	removeFromKeySet( sck, ps );
 	Connection pConn = sck.physicalConnection;
 
-	if (! checkedOut.contains( ps ) )
+	boolean checked_in = !checkedOut.contains( ps );
+
+	if ( checked_in )
 	    {
 		removeStatementFromDeathmarches( ps, pConn );
 		removeFromCheckoutQueue( sck , ps );
-		destroyStatement( ps, counter );
+		if ((destruction_policy & DESTROY_IF_CHECKED_IN) != 0)
+		    destroyStatement( ps );
 	    }
 	else
 	    {
-		checkedOut.remove( ps ); // usually we let it defer destruction until check-in!
-		if (force_destroy)       // but occasionally we want the statement assuredly gone.
-		    {
-			destroyStatement( ps, counter );
-		    }
+		checkedOut.remove( ps );
+		if ((destruction_policy & DESTROY_IF_CHECKED_OUT) != 0)
+		    destroyStatement( ps );
 	    }
+
 
 	boolean check =	cxnStmtMgr.removeStatementForConnection( ps, pConn );
 	if (Debug.DEBUG && check == false)
@@ -492,36 +442,38 @@ public abstract class GooGooStatementCache
 		final Object[] outHolder = new Object[1];
 		final SQLException[] exceptionHolder = new SQLException[1];
 		
-		Runnable r = new Runnable()
+		class StmtAcquireTask implements Runnable
+		{
+		    public void run()
 		    {
-			public void run()
-			{
-			    try
-				{
-				    outHolder[0] = 
-					stmtProducingMethod.invoke( pConn, 
-								    args ); 
-				}
-			    catch ( InvocationTargetException e )
-				{ 
-				    Throwable targetException = e.getTargetException();
-				    if ( targetException instanceof SQLException )
-					exceptionHolder[0] = (SQLException) targetException;
-				    else
-					exceptionHolder[0] 
-					    = SqlUtils.toSQLException(targetException);
-				}
-			    catch ( Exception e )
-				{ exceptionHolder[0] = SqlUtils.toSQLException(e); }
-			    finally
-				{ 
-				    synchronized ( GooGooStatementCache.this )
-					{ GooGooStatementCache.this.notifyAll(); }
-				}
-			}
-		    };
+			try
+			    {
+				outHolder[0] = 
+				    stmtProducingMethod.invoke( pConn, 
+								args ); 
+			    }
+			catch ( InvocationTargetException e )
+			    { 
+				Throwable targetException = e.getTargetException();
+				if ( targetException instanceof SQLException )
+				    exceptionHolder[0] = (SQLException) targetException;
+				else
+				    exceptionHolder[0] 
+					= SqlUtils.toSQLException(targetException);
+			    }
+			catch ( Exception e )
+			    { exceptionHolder[0] = SqlUtils.toSQLException(e); }
+			finally
+			    { 
+				synchronized ( GooGooStatementCache.this )
+				    { GooGooStatementCache.this.notifyAll(); }
+			    }
+		    }
+		}
 		
+		Runnable r = new StmtAcquireTask();
 		blockingTaskAsyncRunner.postRunnable(r);
+
 		while ( outHolder[0] == null && exceptionHolder[0] == null )
 		    this.wait(); //give up our lock while the Statement gets prepared
 		if (exceptionHolder[0] != null)
@@ -672,7 +624,7 @@ public abstract class GooGooStatementCache
 			}
 		    // we do not undeathmarch the statement ourselves, because removeStatement( ... )
 		    // should remove from all deathmarches...
-		    removeStatement( ps, true ); 
+		    removeStatement( ps, DESTROY_ALWAYS ); 
 		    if (Debug.DEBUG && this.contains( ps ))
 			throw new RuntimeException("Inconsistency!!! Statement culled from deathmarch failed to be removed by removeStatement( ... )!");
 		    return true;

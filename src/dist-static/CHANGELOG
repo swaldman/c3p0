@@ -1,12 +1,159 @@
+c3p0-0.9.1-pre7
+	-- Defined the ConnectionCustomizer interface as a hood through which clients 
+    	   can "set up" newly acquired or checked out connections (and clean up prior 
+	   to check-in or destruction). Added config param connectionCustomizerClassName.
+	-- Formerly unused config parameter propertyCycle now controls how frequently 
+	   c3p0 checks timestamps against expiration parameters (maxIdleTime, 
+	   maxIdleTimeExcessConnections, maxConnectionAge, unreturnedConnectionTimeout)
+	-- Added config parameters unreturnedConnectionTimeout and 
+	   debugUnreturnedConnectionStackTraces, reluctantly but by popular demand.
+	   If unreturnedConnectionTimeout is set, Connections will be automatically
+	   destroyed and removed from the pool if not returned in the given number
+	   of seconds. If debugUnreturnedConnectionStackTraces is also set, stack
+	   traces will be captured on check-out of any Connection, and the stack traces
+	   that were unreturned and cleaned up by the pool will be logged. Any clean-up
+	   of an unreturned Connection is logged at INFO level, in hopes of annoying
+	   people into cleaning up their code and close()-ing their Connections reliably.
+	-- Added config parameter maxIdleTimeExcessConnections. Connections in excess of
+	   the pool's minimum size will be expired out if they remain idle for longer
+	   than maxIdleTimeExcessConnections. [Thanks to Navin M. and Ben Groeneveld for 
+	   the suggestion.]
+	-- Added configuration parameter maxConnectionAge to limit the absolute age 
+	   of Connections (age in seconds from acquisition, rather than in seconds
+	   form last check-in).
+	-- Put more status accessors in ThreadPoolAsynchronousRunner and exposed
+	   thread pool state via JMX (PooledDataSourceManagerMBean).
+	-- Preliminary support for management via mbeans/jmx under jdk1.5+ is 
+	   implemented. (These mbeans are distinct from the mbean designed for 
+	   configuring c3p0 under jboss, and are in the package 
+	   com.mchange.c3p0.management.) Currently, pool statistics are instrumented, 
+	   as well as pool reset operations, but viewing and modifying the pool 
+	   configuration parameters is not supported. (I'll write a dynamic mbean to 
+	   capture this stuff; there are too many config properties I'm already 
+	   updating by hand in too many places. Later.)
+	-- Added configuration parameter maxAdministrativeTaskTime, which forces 
+	   interrupt() to be called on pool administrative tasks (Connection acquisition, 
+	   destruction and testing; prepared statement destruction) if these tasks seem 
+	   to hang. This is one strategy for dealing with database that hang and lead to
+	   deadlock messages and eventually large memory footprints. It's useful only if 
+	   the hanging operations respond to interrupt()s, not thread-monitor related 
+	   deadlocks (which hopefully don't ever happen). c3p0 should recover from any 
+	   Exceptions provoked by the interrupt() calls. (Hopefully improvements to
+	   GooGooStatementCache have rendered this parameter largely unnecessary by
+	   resolving the most common source of deadlocks.)
+	-- Major revision to GooGooStatementCache that may eliminate most APPARENT
+	   DEADLOCK messages. c3p0-0.9.0 introduced a complicated implementation
+	   of closeAll(), in order to ensure that Statement and Connection close did
+	   not happen simultaneously. Upon review, there was a significant bug in the
+	   implementation, and even when corrected, the strategy is itself prone to
+	   deadlocks should the ThreadPool become saturated with destroy tasks, which
+	   block awaiting statement remove tasks. Rewrote closeAll() as a simple
+	   synchronous method, rather than simulating synchrony with wait()/notifyAll(),
+	   but with care not to hold the StatementCache's lock during Statement.close()
+	   calls. There is a slight loss of asynchrony, as Statement.close() methods
+	   are executed sequentially rather than simultaneously, but as a practical
+	   matter, since the sequential destruction occurs asynchronously in the
+	   thread pool and is invisible to clients, both client-observed and over-all
+	   performance should not suffer. (It may even be improved, as the 0.9.0.x 
+	   strategy was complicated and had some overhead.)
+	-- Changed asynchronous tasks implemented as anonymous inner classes to named
+	   inner classes, so that users reviewing active and pending tasks (usually
+	   in trying to make sense of an APPARENT DEADLOCK) have a better idea of
+	   what's going on.	    
+	-- Major revision to GooGooStatementCache that may eliminate most APPARENT
+	   DEADLOCK messages. c3p0-0.9.0 introduced a complicated implementation
+	   of closeAll(), in order to ensure that Statement and Connection close did
+	   not happen simultaneously. Upon review, there was a significant bug in the
+	   implementation, and even when corrected, the strategy is itself prone to
+	   deadlocks should the ThreadPool become saturated with destroy tasks, which
+	   block awaiting statement remove tasks. Rewrote closeAll() as a simple
+	   synchronous method, rather than simulating synchrony with wait()/notifyAll(),
+	   but with care not to hold the StatementCache's lock during Statement.close()
+	   calls. There is a slight loss of asynchrony, as Statement.close() methods
+	   are executed sequentially rather than simultaneously, but as a practical
+	   matter, since the sequential destruction occurs asynchronously in the
+	   thread pool and is invisible to clients, both client-observed and over-all
+	   performance should not suffer. (It may even be improved, as the 0.9.0.x 
+	   strategy was complicated and had some overhead.)
+	-- Users still occasionally report seeing "APPARENT DEADLOCK" messages
+	   from ThreadPoolAsynchronousRunner. Previously, most reports had to
+	   do with cached PreparedStatements that hang when closed. Previous
+	   fixes (in 0.9.0) seemed to resolve these problems. Most new reports
+	   have to do with Connection acquisition or Connection close() tasks
+	   hanging indefinitely, with statement cacheing not necessarily involved.
+	   It's unclear whether these reports stem from a c3p0 bug, or rare 
+	   situations in which various JDBC driver hangs hang c3p0. (If the
+	   condition is temporary, c3p0 recovers after the "APPARENT DEADLOCK"
+	   warning. In any case, ThreadPoolAsynchronousRunner has been modified
+	   to provide much better debug information, particularly in jdk1.5 
+	   environments, where hung Thread stack traces are dumped. 
+	-- Modified the build file and refactored C3P0Config / C3P0ConfigUtils / C3P0ConfigXmlUtils
+	   to make sure that c3p0 still runs under jdk1.3, even though it only builds
+	   under jdk 1.5. JMX support is 1.5 only, and XML config depends on the
+	   availability of standard XML extensions under jdk 1.3. (This is going to get harder,
+	   as I hope to start using assertions. For the moment, assertions are
+	   commented out. I think I'll have ant filter away the assertions for 1.3
+	   builds and leave them in otherwise, based on a build property.
+	-- Significantly reorganized (hopefully simplified) of C3P0Registry and 
+	   ComboPooledDataSource. Much of the complication of all this is supporting 
+	   the most annoying, least used, but nevertheless very important feature
+	   of supporting JNDI lookups across JVM boundaries via Serialization or JNDI 
+	   References.
+	-- Reorganized ComboPooledDataSource to inherit from PoolBackedDataSource.
+	   In doing so, changed setConnectionPoolDataSource() of PoolBackedDataSource
+	   to throw a PropertyVetoException. (It is a "constrained property" now.)
+	   The very, very few users who call this method directly may have to update
+	   their code to handle the potential Exception. This change does not affect
+	   compatability for clients that use ComboPooledDataSource or who create
+	   PoolBackedDataSources via the c3p0's factories (e.g. DataSources).
+	-- Fixed bug whereby config parameter breakAfterAcquireFailure did not take 
+	   effect at the ResourcePool level.
+	-- Fixed bug whereby initialPoolSize parameter failed to take effect at the 
+	   ResourcePool level.
+	-- Fixed a bug whereby Connection tests on checkout held the pool's lock, 
+	   preventing other activity during the Connection test. [Thanks to John 
+	   Sumsion for calling attention to this subtle problem.]
+	-- ThreadPoolAsynchronousRunner has seen some minor efficiency improvements 
+	   (a task that calls interrupt() long-running tasks on post-deadlock blocked, 
+	   replaced threads no longer runs when there are no post deadlock blocked, 
+	   replaced threads).
+	-- Previous versions used a Stringified identityHashCode() as a unique ID
+	   for various C3P0 objects. This was not correct (and bit at least one
+	   user in practice), as identityHashCode()s are not guaranteed unique,
+	   and in practice are not on 64-bit VMs. c3p0 now checks identityHashCodes 
+	   to make sure they are not reused, and if seen before appends a count to
+	   keep unique IDs unique. [Many thanks to Prishan Makandurage for calling
+	   attention to this issue.]
+	-- Fixed fact that statusOnException() in NewPooledConnection() ignored
+	   preferredTestQuery parameter, always using the very slow default 
+	   connection test rather than the user-defined test. [Thanks to Andrea
+	   Luciano for calling attention to this issue.]
+	-- C3P0PooledConnection (part of the "traditionalReflectiveProxies"
+	   codebase that's largely been superceded, but that is still nominally
+	   supported) held a static reference to a ClassLoader, in some cases
+	   preventing the ClassLoader from being garbage collected (for example
+	   when webapp contexts, with context specific Classloaders are 
+	   undeployed by some app servers). This was entirely unnecessary, as 
+	   the cached reference was used exactly once in the lifecycle of the
+	   class. The reference to the ClassLoader is no longer stored. [Many
+	   thanks to Michael Fortin for very specifically tracking down this 
+	   subtle problem!]
+	-- Added logic to log individual acquisition failures at INFO level
+	   if acquireRetryAttempts <= 0. if num_acq_attempts <= 0, we try to 
+	   acquire forever, so the end-of-batch log message below will never 
+	   be triggered if there is a persistent problem so in this case, 
+	   it's better flag a higher-than-debug-level message for
+	   each failed attempt. [Thanks to Eric Crahen for calling attention 
+	   to this issue.]
 c3p0-0.9.1-pre6
 	-- Wrote a stub of a status-monitoring servlet. Not yet documented, or
 	   even usefully functional, but hopefully will be soon.
 	-- Updated documentation to include new config file format, including
 	   named and per-user config. Docs could still use some work, but the
 	   functionality is now described.
-	-- For consistency, the parameters user and password our now configurable
+	-- For consistency, the parameters user and password are now configurable
 	   via config files and System properties.
-	-- Modified DefaultC3P0ConfigFinder to properly give greater precedance to
+	-- Modified DefaultC3P0ConfigFinder to properly give greater precedence to
 	   System properties than to XML-defined unspecified user, default config
 	   values.
 	-- Added WARNING logging of create SQL and original database Exception when

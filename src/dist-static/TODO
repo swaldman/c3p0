@@ -1,3 +1,7 @@
+testConnectionOnCheckout should not tie up resource pool lock during the test.
+
+make asynchronous checkins optional, let the default depend on the value of testConnectionOnCheckin.
+
 maxExcessConnectionIdleTime [to implement behavior navin_m on sf suggests.]
 
 A shortcut in acquire tasks that bails before attempting an acquire if the acquisition

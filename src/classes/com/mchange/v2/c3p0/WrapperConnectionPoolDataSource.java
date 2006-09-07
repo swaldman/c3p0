@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -37,7 +37,7 @@ import com.mchange.v2.c3p0.impl.*;
 import com.mchange.v2.log.*;
 
 // MT: Most methods are left unsynchronized, because getNestedDataSource() is synchronized, and for most methods, that's
-//     the critical part. Previous oversynchronization led to hangs, when getting the Connection for one Thread happened
+//     the only critical part. Previous oversynchronization led to hangs, when getting the Connection for one Thread happened
 //     to hang, blocking access to getPooledConnection() for all Threads.
 public final class WrapperConnectionPoolDataSource extends WrapperConnectionPoolDataSourceBase implements ConnectionPoolDataSource
 {
@@ -47,7 +47,26 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     ConnectionTester connectionTester = C3P0ImplUtils.defaultConnectionTester();
     Map              userOverrides;
 
+    public WrapperConnectionPoolDataSource(boolean autoregister)
+    {
+	super( autoregister );
+
+	setUpPropertyListeners();
+
+	//set up initial value of userOverrides
+	try
+	    { this.userOverrides = C3P0ImplUtils.parseUserOverridesAsString( this.getUserOverridesAsString() ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. " + this.getUserOverridesAsString(), e );
+	    }
+    }
+
     public WrapperConnectionPoolDataSource()
+    { this( true ); }
+
+    private void setUpPropertyListeners()
     {
 	VetoableChangeListener setConnectionTesterListener = new VetoableChangeListener()
 	    {
@@ -85,17 +104,6 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		}
 	    };
 	this.addVetoableChangeListener( setConnectionTesterListener );
-
-	//set up initial value of userOverrides
-	try
-	    { this.userOverrides = C3P0ImplUtils.parseUserOverridesAsString( this.getUserOverridesAsString() ); }
-	catch (Exception e)
-	    {
-		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. " + this.getUserOverridesAsString(), e );
-	    }
-
-	C3P0Registry.register( this );
     }
 
     public WrapperConnectionPoolDataSource( String configName )
@@ -118,11 +126,15 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     }
 
     // implementation of javax.sql.ConnectionPoolDataSource
-    //
+
+    public PooledConnection getPooledConnection()
+	throws SQLException
+    { return this.getPooledConnection( (ConnectionCustomizer) null, null ); }
+
     // getNestedDataSource() is sync'ed, which is enough. Unsync'ed this method,
     // because when sync'ed a hang in retrieving one connection blocks all
     //
-    public PooledConnection getPooledConnection()
+    protected PooledConnection getPooledConnection( ConnectionCustomizer cc, String pdsIdt )
 	throws SQLException
     { 
 	DataSource nds = getNestedDataSource();
@@ -138,21 +150,30 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		return new C3P0PooledConnection( conn, 
 						 connectionTester,
 						 this.isAutoCommitOnClose(), 
-						 this.isForceIgnoreUnresolvedTransactions() ); 
+						 this.isForceIgnoreUnresolvedTransactions(),
+						 cc,
+						 pdsIdt); 
 	    }
 	else
 	    {
 		return new NewPooledConnection( conn, 
 						connectionTester,
 						this.isAutoCommitOnClose(), 
-						this.isForceIgnoreUnresolvedTransactions() ); 
+						this.isForceIgnoreUnresolvedTransactions(),
+						this.getPreferredTestQuery(),
+						cc,
+						pdsIdt); 
 	    }
     } 
  
+    public PooledConnection getPooledConnection(String user, String password)
+	throws SQLException
+    { return this.getPooledConnection( user, password, null, null ); }
+
     // getNestedDataSource() is sync'ed, which is enough. Unsync'ed this method,
     // because when sync'ed a hang in retrieving one connection blocks all
     //
-    public PooledConnection getPooledConnection(String user, String password)
+    protected PooledConnection getPooledConnection(String user, String password, ConnectionCustomizer cc, String pdsIdt)
 	throws SQLException
     { 
 	DataSource nds = getNestedDataSource();
@@ -168,14 +189,19 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		return new C3P0PooledConnection( conn,
 						 connectionTester,
 						 this.isAutoCommitOnClose(), 
-						 this.isForceIgnoreUnresolvedTransactions() ); 
+						 this.isForceIgnoreUnresolvedTransactions(),
+						 cc,
+						 pdsIdt);
 	    }
 	else
 	    {
 		return new NewPooledConnection( conn, 
 						connectionTester,
 						this.isAutoCommitOnClose(), 
-						this.isForceIgnoreUnresolvedTransactions() ); 
+						this.isForceIgnoreUnresolvedTransactions(),
+						this.getPreferredTestQuery(),
+						cc,
+						pdsIdt); 
 	    }
     }
  

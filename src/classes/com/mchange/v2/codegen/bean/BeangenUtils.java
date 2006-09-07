@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -223,6 +223,20 @@ public final class BeangenUtils
 
 	iw.downIndent();
 	iw.println('}');
+    }
+
+    public static boolean hasBoundProperties(Property[] props)
+    {
+	for (int i = 0, len = props.length; i < len; ++i)
+	    if (props[i].isBound()) return true;
+	return false;
+    }
+
+    public static boolean hasConstrainedProperties(Property[] props)
+    {
+	for (int i = 0, len = props.length; i < len; ++i)
+	    if (props[i].isConstrained()) return true;
+	return false;
     }
 
     private static boolean changeMarked( Property prop )

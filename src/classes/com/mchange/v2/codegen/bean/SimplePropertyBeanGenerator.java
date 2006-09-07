@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -552,18 +552,10 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
     }
 
     boolean boundProperties()
-    {
-	for (int i = 0, len = props.length; i < len; ++i)
-	    if (props[i].isBound()) return true;
-	return false;
-    }
+    { return BeangenUtils.hasBoundProperties( props ); }
 
     boolean constrainedProperties()
-    {
-	for (int i = 0, len = props.length; i < len; ++i)
-	    if (props[i].isConstrained()) return true;
-	return false;
-    }
+    { return BeangenUtils.hasConstrainedProperties( props ); }
 
     public static void main( String[] argv )
     {

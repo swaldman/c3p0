@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -31,38 +31,44 @@ import com.mchange.v2.c3p0.ConnectionTester;
 // return its default value
 public final class C3P0Defaults
 {
-    private final static int MAX_STATEMENTS                = 0;
-    private final static int MAX_STATEMENTS_PER_CONNECTION = 0;
-    private final static int INITIAL_POOL_SIZE             = 3;   //ignored by present implementation
-    private final static int MIN_POOL_SIZE                 = 3;
-    private final static int MAX_POOL_SIZE                 = 15;
-    private final static int IDLE_CONNECTION_TEST_PERIOD   = -1; //idle connections never tested
-    private final static int MAX_IDLE_TIME                 = 0;  //seconds, 0 means connections never expire
-    private final static int PROPERTY_CYCLE                = 300; //seconds, but ignored by present implementation
-    private final static int ACQUIRE_INCREMENT             = 3;
-    private final static int ACQUIRE_RETRY_ATTEMPTS        = 30;
-    private final static int ACQUIRE_RETRY_DELAY           = 1000; //milliseconds!
-    private final static int CHECKOUT_TIMEOUT              = 0; //milliseconds!
+    private final static int MAX_STATEMENTS                   = 0;
+    private final static int MAX_STATEMENTS_PER_CONNECTION    = 0;
+    private final static int INITIAL_POOL_SIZE                = 3;  
+    private final static int MIN_POOL_SIZE                    = 3;
+    private final static int MAX_POOL_SIZE                    = 15;
+    private final static int IDLE_CONNECTION_TEST_PERIOD      = -1; //idle connections never tested
+    private final static int MAX_IDLE_TIME                    = 0;  //seconds, 0 means connections never expire
+    private final static int PROPERTY_CYCLE                   = 0;  //seconds
+    private final static int ACQUIRE_INCREMENT                = 3;
+    private final static int ACQUIRE_RETRY_ATTEMPTS           = 30;
+    private final static int ACQUIRE_RETRY_DELAY              = 1000; //milliseconds
+    private final static int CHECKOUT_TIMEOUT                 = 0;    //milliseconds
+    private final static int MAX_ADMINISTRATIVE_TASK_TIME     = 0;    //seconds
+    private final static int MAX_IDLE_TIME_EXCESS_CONNECTIONS = 0;    //seconds
+    private final static int MAX_CONNECTION_AGE               = 0;    //seconds
+    private final static int UNRETURNED_CONNECTION_TIMEOUT    = 0;    //seconds
 
-    private final static boolean BREAK_AFTER_ACQUIRE_FAILURE         = false;
-    private final static boolean TEST_CONNECTION_ON_CHECKOUT         = false;
-    private final static boolean TEST_CONNECTION_ON_CHECKIN          = false;
-    private final static boolean AUTO_COMMIT_ON_CLOSE                = false;
-    private final static boolean FORCE_IGNORE_UNRESOLVED_TXNS        = false;
-    private final static boolean USES_TRADITIONAL_REFLECTIVE_PROXIES = false;
+    private final static boolean BREAK_AFTER_ACQUIRE_FAILURE                 = false;
+    private final static boolean TEST_CONNECTION_ON_CHECKOUT                 = false;
+    private final static boolean TEST_CONNECTION_ON_CHECKIN                  = false;
+    private final static boolean AUTO_COMMIT_ON_CLOSE                        = false;
+    private final static boolean FORCE_IGNORE_UNRESOLVED_TXNS                = false;
+    private final static boolean USES_TRADITIONAL_REFLECTIVE_PROXIES         = false;
+    private final static boolean DEBUG_UNRETURNED_CONNECTION_STACK_TRACES    = false;
 
     private final static ConnectionTester CONNECTION_TESTER = new DefaultConnectionTester();
 
     private final static int NUM_HELPER_THREADS = 3;
 
-    private final static String AUTOMATIC_TEST_TABLE      = null;
-    private final static String OVERRIDE_DEFAULT_USER     = null;
-    private final static String OVERRIDE_DEFAULT_PASSWORD = null;
-    private final static String PASSWORD                  = null;
-    private final static String PREFERRED_TEST_QUERY      = null;
-    private final static String FACTORY_CLASS_LOCATION    = null;
-    private final static String USER_OVERRIDES_AS_STRING  = null;
-    private final static String USER                      = null;
+    private final static String AUTOMATIC_TEST_TABLE             = null;
+    private final static String CONNECTION_CUSTOMIZER_CLASS_NAME = null;
+    private final static String OVERRIDE_DEFAULT_USER            = null;
+    private final static String OVERRIDE_DEFAULT_PASSWORD        = null;
+    private final static String PASSWORD                         = null;
+    private final static String PREFERRED_TEST_QUERY             = null;
+    private final static String FACTORY_CLASS_LOCATION           = null;
+    private final static String USER_OVERRIDES_AS_STRING         = null;
+    private final static String USER                             = null;
 
     private static Set KNOWN_PROPERTIES;
 
@@ -106,6 +112,9 @@ public final class C3P0Defaults
     public static int maxIdleTime()
     { return MAX_IDLE_TIME; }
 
+    public static int unreturnedConnectionTimeout()
+    { return UNRETURNED_CONNECTION_TIMEOUT; }
+
     public static int propertyCycle()
     { return PROPERTY_CYCLE; }
 
@@ -120,6 +129,9 @@ public final class C3P0Defaults
 
     public static int checkoutTimeout()
     { return CHECKOUT_TIMEOUT; }
+
+    public static String connectionCustomizerClassName()
+    { return CONNECTION_CUSTOMIZER_CLASS_NAME; }
 
     public static ConnectionTester connectionTester()
     { return CONNECTION_TESTER; }
@@ -148,6 +160,9 @@ public final class C3P0Defaults
     public static boolean forceIgnoreUnresolvedTransactions()
     { return FORCE_IGNORE_UNRESOLVED_TXNS; }
 
+    public static boolean debugUnreturnedConnectionStackTraces()
+    { return DEBUG_UNRETURNED_CONNECTION_STACK_TRACES; }
+
     public static boolean usesTraditionalReflectiveProxies()
     { return USES_TRADITIONAL_REFLECTIVE_PROXIES; }
 
@@ -171,5 +186,14 @@ public final class C3P0Defaults
 
     public static String password()
     { return PASSWORD; }
+
+    public static int maxAdministrativeTaskTime()
+    { return MAX_ADMINISTRATIVE_TASK_TIME; }
+
+    public static int maxIdleTimeExcessConnections()
+    { return MAX_IDLE_TIME_EXCESS_CONNECTIONS; }
+
+    public static int maxConnectionAge()
+    { return MAX_CONNECTION_AGE; }
 }
 

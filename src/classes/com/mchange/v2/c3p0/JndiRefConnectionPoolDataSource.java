@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -56,13 +56,20 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 
     String identityToken;
 
+    public JndiRefConnectionPoolDataSource()
+    { this( true ); }
+
+    public JndiRefConnectionPoolDataSource( boolean autoregister )
     {
 	jrfds = new JndiRefForwardingDataSource();
 	wcpds = new WrapperConnectionPoolDataSource();
 	wcpds.setNestedDataSource( jrfds );
 
-	this.identityToken = C3P0ImplUtils.identityToken( this );
-	C3P0Registry.register( this );
+	if (autoregister)
+	    {
+		this.identityToken = C3P0ImplUtils.allocateIdentityToken( this );
+		C3P0Registry.reregister( this );
+	    }
     }
 
     public boolean isJndiLookupCaching()

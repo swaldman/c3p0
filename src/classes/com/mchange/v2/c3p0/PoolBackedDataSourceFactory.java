@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -25,6 +25,7 @@ package com.mchange.v2.c3p0;
 
 import java.sql.SQLException;
 import javax.sql.DataSource;
+import com.mchange.v2.sql.SqlUtils;
 
 /**
  *  A class offering Factory methods for creating DataSources backed
@@ -69,19 +70,24 @@ public final class PoolBackedDataSourceFactory
 						  int maxStatements,
 						  String factoryLocation ) throws SQLException
     {
-	WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
-	cpds.setNestedDataSource(unpooledDataSource);
-	cpds.setMinPoolSize( minPoolSize );
-	cpds.setMaxPoolSize( maxPoolSize );
-	cpds.setAcquireIncrement( acquireIncrement );
-	cpds.setMaxIdleTime( maxIdleTime );
-	cpds.setMaxStatements( maxStatements );
-	cpds.setFactoryClassLocation( factoryLocation );
-
-
-	PoolBackedDataSource out = new PoolBackedDataSource();
-	out.setConnectionPoolDataSource( cpds );
-	return out;
+	try
+	    {
+		WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
+		cpds.setNestedDataSource(unpooledDataSource);
+		cpds.setMinPoolSize( minPoolSize );
+		cpds.setMaxPoolSize( maxPoolSize );
+		cpds.setAcquireIncrement( acquireIncrement );
+		cpds.setMaxIdleTime( maxIdleTime );
+		cpds.setMaxStatements( maxStatements );
+		cpds.setFactoryClassLocation( factoryLocation );
+		
+		
+		PoolBackedDataSource out = new PoolBackedDataSource();
+		out.setConnectionPoolDataSource( cpds );
+		return out;
+	    }
+	catch (Exception e)
+	    { throw SqlUtils.toSQLException( e ); }
     }
 
     /**
@@ -103,13 +109,18 @@ public final class PoolBackedDataSourceFactory
 						  String factoryLocation ) 
 	throws SQLException
     {
-	WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
-	cpds.setNestedDataSource(unpooledDataSource);
-	cpds.setFactoryClassLocation( factoryLocation );
-
-	PoolBackedDataSource out = new PoolBackedDataSource();
-	out.setConnectionPoolDataSource( cpds );
-	return out;
+	try
+	    {
+		WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
+		cpds.setNestedDataSource(unpooledDataSource);
+		cpds.setFactoryClassLocation( factoryLocation );
+		
+		PoolBackedDataSource out = new PoolBackedDataSource();
+		out.setConnectionPoolDataSource( cpds );
+		return out;
+	    }
+	catch (Exception e)
+	    { throw SqlUtils.toSQLException( e ); }
     }
 
     /**
@@ -223,17 +234,22 @@ public final class PoolBackedDataSourceFactory
 						 int maxStatements) 
 	throws SQLException
     {
-	WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
-	cpds.setNestedDataSource(unpooledDataSource);
-	cpds.setMinPoolSize( minPoolSize );
-	cpds.setMaxPoolSize( maxPoolSize );
-	cpds.setAcquireIncrement( acquireIncrement );
-	cpds.setMaxIdleTime( maxIdleTime );
-	cpds.setMaxStatements( maxStatements );
-
-	PoolBackedDataSource out = new PoolBackedDataSource();
-	out.setConnectionPoolDataSource( cpds );
-	return out;
+	try
+	    {
+		WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
+		cpds.setNestedDataSource(unpooledDataSource);
+		cpds.setMinPoolSize( minPoolSize );
+		cpds.setMaxPoolSize( maxPoolSize );
+		cpds.setAcquireIncrement( acquireIncrement );
+		cpds.setMaxIdleTime( maxIdleTime );
+		cpds.setMaxStatements( maxStatements );
+		
+		PoolBackedDataSource out = new PoolBackedDataSource();
+		out.setConnectionPoolDataSource( cpds );
+		return out;
+	    }
+	catch (Exception e)
+	    { throw SqlUtils.toSQLException( e ); }
     }
 
     /**
@@ -250,12 +266,17 @@ public final class PoolBackedDataSourceFactory
      */
     public static DataSource createSerializable( DataSource unpooledDataSource ) throws SQLException
     {
-	WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
-	cpds.setNestedDataSource(unpooledDataSource);
-
-	PoolBackedDataSource out = new PoolBackedDataSource();
-	out.setConnectionPoolDataSource( cpds );
-	return out;
+	try
+	    {
+		WrapperConnectionPoolDataSource cpds = new WrapperConnectionPoolDataSource();
+		cpds.setNestedDataSource(unpooledDataSource);
+		
+		PoolBackedDataSource out = new PoolBackedDataSource();
+		out.setConnectionPoolDataSource( cpds );
+		return out;
+	    }
+	catch (Exception e)
+	    { throw SqlUtils.toSQLException( e ); }
     }
 
 

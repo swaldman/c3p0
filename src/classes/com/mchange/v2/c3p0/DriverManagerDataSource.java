@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -26,6 +26,9 @@ package com.mchange.v2.c3p0;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
 import java.beans.VetoableChangeListener;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.Properties;
 import java.sql.Connection;
@@ -47,6 +50,26 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     //MT: protected by this' lock
     Driver driver;
 
+    public DriverManagerDataSource()
+    { this( true ); }
+
+    public DriverManagerDataSource(boolean autoregister)
+    {
+	super( autoregister );
+
+	setUpPropertyListeners();
+
+	String user = C3P0Config.initializeStringPropertyVar("user", null);
+	String password = C3P0Config.initializeStringPropertyVar("password", null);
+
+	if (user != null)
+	    this.setUser( user );
+
+	if (password != null)
+	    this.setPassword( password );
+    }
+
+    private void setUpPropertyListeners()
     {
 	VetoableChangeListener registerDriverListener = new VetoableChangeListener()
 	    {
@@ -72,17 +95,6 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		}
 	    };
 	this.addVetoableChangeListener( registerDriverListener );
-
-	String user = C3P0Config.initializeStringPropertyVar("user", null);
-	String password = C3P0Config.initializeStringPropertyVar("password", null);
-
-	if (user != null)
-	    this.setUser( user );
-
-	if (password != null)
-	    this.setPassword( password );
-
-	C3P0Registry.register( this );
     }
 
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
@@ -200,4 +212,26 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     private static boolean eqOrBothNull( Object a, Object b )
     { return (a == b || (a != null && a.equals(b))); }
+
+    // serialization stuff -- set up bound/constrained property event handlers on deserialization
+    private static final long serialVersionUID = 1;
+    private static final short VERSION = 0x0001;
+	
+    private void writeObject( ObjectOutputStream oos ) throws IOException
+    {
+	oos.writeShort( VERSION );
+    }
+	
+    private void readObject( ObjectInputStream ois ) throws IOException, ClassNotFoundException
+    {
+	short version = ois.readShort();
+	switch (version)
+	    {
+	    case VERSION:
+		setUpPropertyListeners();
+		break;
+	    default:
+		throw new IOException("Unsupported Serialized Version: " + version);
+	    }
+    }
 }

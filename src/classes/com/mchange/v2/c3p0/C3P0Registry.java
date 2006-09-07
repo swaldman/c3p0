@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -27,8 +27,13 @@ import java.util.*;
 import com.mchange.v2.coalesce.*;
 import com.mchange.v2.log.*;
 import com.mchange.v2.c3p0.impl.*;
+
+import java.sql.SQLException;
 import com.mchange.v2.c3p0.impl.IdentityTokenized;
 import com.mchange.v2.c3p0.subst.C3P0Substitutions;
+import com.mchange.v2.sql.SqlUtils;
+
+import com.mchange.v2.c3p0.management.*;
 
 public final class C3P0Registry
 {
@@ -46,14 +51,37 @@ public final class C3P0Registry
     private static Coalescer idtCoalescer = CoalescerFactory.createCoalescer(CC, false , true);
 
     //MT: protected by class' lock
+    private static HashMap tokensToTokenized = new HashMap();
+
+    //MT: protected by class' lock
     private static HashSet topLevelPooledDataSources = new HashSet();
 
     //MT: protected by its own lock
     private static Map classNamesToConnectionTesters = Collections.synchronizedMap( new HashMap() );
 
+    //MT: protected by its own lock
+    private static Map classNamesToConnectionCustomizers = Collections.synchronizedMap( new HashMap() );
+
+    private static C3P0ManagementCoordinator mc;
+
     static
     {
 	classNamesToConnectionTesters.put(C3P0Defaults.connectionTesterClassName(), C3P0Defaults.connectionTester());
+
+	try
+	    {
+		Class.forName("java.lang.management.ManagementFactory");
+
+		mc = (C3P0ManagementCoordinator) Class.forName( "com.mchange.v2.c3p0.management.ActiveManagementCoordinator" ).newInstance();
+	    }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.INFO ) )
+		    logger.log( MLevel.INFO, 
+				"jdk1.5 management interfaces unavailable... JMX support disabled.",
+				e);
+		mc = new NullManagementCoordinator();
+	    }
     }
 
     public static ConnectionTester getConnectionTester( String className )
@@ -79,6 +107,35 @@ public final class C3P0Registry
 	    }
     }
 
+    public static ConnectionCustomizer getConnectionCustomizer( String className )
+	throws SQLException
+    {
+	if ( className == null )
+	    return null;
+	else
+	    {
+		try
+		    {
+			ConnectionCustomizer out = (ConnectionCustomizer) classNamesToConnectionCustomizers.get( className );
+			if (out == null)
+			    { 
+				out = (ConnectionCustomizer) Class.forName( className ).newInstance();
+				classNamesToConnectionCustomizers.put( className, out );
+			    }
+			return out;
+		    }
+		catch (Exception e)
+		    {
+			if (logger.isLoggable( MLevel.WARNING ))
+			    logger.log( MLevel.WARNING, 
+					"Could not create for find ConnectionCustomizer with class name '" +
+					className + "'.",
+					e );
+			throw SqlUtils.toSQLException( e );
+		    }
+	    }
+    }
+
     private static synchronized void banner()
     {
 	if (! banner_printed )
@@ -88,41 +145,41 @@ public final class C3P0Registry
 				"; debug? " + C3P0Substitutions.DEBUG + 
 				"; trace: " + C3P0Substitutions.TRACE 
 				+']');
+		mc.attemptManageC3P0Registry();
 		banner_printed = true;
 	    }
     }
 
-    private static synchronized void addToTopLevelPooledDataSources(IdentityTokenized idt)
+    // must be called with class' lock
+    private static boolean isIncorporated( IdentityTokenized idt )
+    { return tokensToTokenized.keySet().contains( idt.getIdentityToken() ); }
+
+    // must be called with class' lock
+    private static void incorporate( IdentityTokenized idt )
     {
-	if (idt instanceof PoolBackedDataSource)
+	tokensToTokenized.put( idt.getIdentityToken(), idt );
+	if (idt instanceof PooledDataSource)
 	    {
-		if (((PoolBackedDataSource) idt).owner() == null)
-		    topLevelPooledDataSources.add( idt );
+		topLevelPooledDataSources.add( idt );
+		mc.attemptManagePooledDataSource( (PooledDataSource) idt );
 	    }
-	else if (idt instanceof PooledDataSource)
-	    { topLevelPooledDataSources.add( idt ); }
     }
 
-    static void register(IdentityTokenized idt)
+    public static synchronized IdentityTokenized reregister(IdentityTokenized idt)
     {
 	banner();
 
 	if (idt.getIdentityToken() == null)
 	    throw new RuntimeException("[c3p0 issue] The identityToken of a registered object should be set prior to registration.");
-	Object coalesceCheck = idtCoalescer.coalesce(idt);
-	if (coalesceCheck != idt)
-	    throw new RuntimeException("[c3p0 bug] Only brand new IdentityTokenized's, with their" +
-				       " identities just set, should be registered!!!" +
-				       " Attempted to register " + idt + " (with identity token " +
-				       idt.getIdentityToken() + ");" +
-				       " Coalesced to " + coalesceCheck + "(with identity token " +
-				       ((IdentityTokenized) coalesceCheck).getIdentityToken() + ").");
 
-// 	System.err.println("[c3p0-registry] registered " + idt.getClass().getName() + 
-// 			   "; natural identity: " + C3P0ImplUtils.identityToken( idt ) +
-// 			   "; set identity: " + idt.getIdentityToken());
+	IdentityTokenized coalesceCheck = (IdentityTokenized) idtCoalescer.coalesce(idt);
 
-	addToTopLevelPooledDataSources(idt);
+	// if we coalesce to something else, we've already been registered, and don't need
+	// to be added to the various book-keeping and administrative datastructures
+	if (! isIncorporated( coalesceCheck ))
+	    incorporate( coalesceCheck );
+
+	return coalesceCheck;
     }
 
     public synchronized static Set getPooledDataSources()
@@ -151,17 +208,25 @@ public final class C3P0Registry
 	return null;
     }
 
-    public static Object coalesce( IdentityTokenized idt )
+    public synchronized static Set allIdentityTokens()
     { 
-	Object out = idtCoalescer.coalesce( idt ); 
-// 	System.err.println("[c3p0-registry] coalesced " + idt.getClass().getName() + 
-// 			   "; natural identity: " + C3P0ImplUtils.identityToken( idt ) +
-// 			   "; set identity: " + idt.getIdentityToken());
-// 	//System.err.println(idt);
-// 	System.err.println("[c3p0-registry] output item " + idt.getClass().getName() + 
-// 			   "; natural identity: " + C3P0ImplUtils.identityToken( out ) +
-// 			   "; set identity: " + ((IdentityTokenized) out).getIdentityToken());
-// 	//System.err.println(out);
+	Set out = Collections.unmodifiableSet( tokensToTokenized.keySet() ); 
+	//System.err.println( "allIdentityTokens(): " + out );
+	return out;
+    }
+
+    public synchronized static Set allIdentityTokenized()
+    { 
+	HashSet out = new HashSet();
+	out.addAll( tokensToTokenized.values() );
+	//System.err.println( "allIdentityTokenized(): " + out );
+	return Collections.unmodifiableSet( out );
+    }
+
+    public synchronized static Set allPooledDataSources()
+    { 
+	Set out = Collections.unmodifiableSet( topLevelPooledDataSources ); 
+	//System.err.println( "allPooledDataSources(): " + out );
 	return out;
     }
 }

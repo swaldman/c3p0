@@ -57,7 +57,8 @@
    <!-- these properties should often be preempted in build.properties -->
    <property name="c3p0-build.debug" value="false" />
    <property name="c3p0-build.trace" value="5" />
-   
+
+   <property name="c3p0.target.version" value="1.3" />
 
    <path id="codegen-classpath">
        <pathelement location="${build.classes.dir}" />
@@ -80,6 +81,7 @@
      <include name="com/mchange/v2/codegen/**/*.java" />  
      <include name="com/mchange/v2/log/*.java" />  
      <include name="com/mchange/v2/cfg/*.java" />
+     <include name="com/mchange/v2/io/IndentedWriter.java" />
      <include name="com/mchange/v1/util/StringTokenizerUtils.java" />
      <exclude name="**/bad/**" />
      <exclude name="**/old/**" />
@@ -118,13 +120,13 @@
        <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
        <fileset dir="${j2ee.jar.dir}" includes="*.jar" />
        <pathelement location="${test.jdbc.driver.jar.file}" />
-       <!-- <pathelement location="${log4j.jar.file}" /> -->
+       <pathelement location="${log4j.jar.file}" />
    </path>
 
    <target name="init">
      <tstamp>
-       <format property="c3p0.timestamp" pattern="dd-MMMM-yyyy HH:mm:ss Z"/>
-       <!-- <format property="c3p0.timestamp" pattern="dd-MMMM-yyyy HH:mm:ss"/> --><!-- jdk 1.3 compatible -->
+       <!-- <format property="c3p0.timestamp" pattern="dd-MMMM-yyyy HH:mm:ss Z"/> -->
+       <format property="c3p0.timestamp" pattern="dd-MMMM-yyyy HH:mm:ss"/> <!-- jdk 1.3 compatible -->
      </tstamp>
 
      <mkdir dir="${build.dir}" />
@@ -191,6 +193,8 @@
 
    <target name="init-codegen" depends="debuggen,subst">
       <javac destdir="${build.classes.dir}" 
+	     source="${c3p0.target.version}"
+	     target="${c3p0.target.version}"
              classpathref="codegen-classpath"
              debug="true">
           <src>
@@ -235,6 +239,8 @@
 
    <target name="compile-common" depends="codegen">
       <javac destdir="${build.classes.dir}" 
+	     source="${c3p0.target.version}"
+	     target="${c3p0.target.version}"
              classpathref="build-classpath" 
              debug="on">
           <sourcepath>
@@ -254,6 +260,8 @@
 
    <target name="compile-subst" depends="codegen">
       <javac destdir="${build.classes.dir}" 
+	     source="${c3p0.target.version}"
+	     target="${c3p0.target.version}"
              classpathref="build-classpath" 
              debug="on">
           <sourcepath>
@@ -268,6 +276,8 @@
 
    <target name="compile-log4j" depends="init" if="log4j.jar.file">
       <javac destdir="${build.classes.dir}" 
+	     source="${c3p0.target.version}"
+	     target="${c3p0.target.version}"
              debug="on">
 	  <classpath>
 	    <path refid="build-classpath" />
@@ -287,6 +297,8 @@
 
    <target name="compile-junit" depends="init" if="junit.jar.file">
       <javac destdir="${build.classes.dir}" 
+	     source="${c3p0.target.version}"
+	     target="${c3p0.target.version}"
              debug="on">
 	  <classpath>
 	    <path refid="build-classpath" />
@@ -367,6 +379,14 @@
 	   <syspropertyset>
 	     <propertyref builtin="commandline" />
 	   </syspropertyset>
+
+	   <!--
+           <jvmarg value="-ea" />
+	   <sysproperty key="com.sun.management.jmxremote.port" value="38383" />
+	   <sysproperty key="com.sun.management.jmxremote.authenticate" value="false" />
+	   <sysproperty key="com.sun.management.jmxremote.ssl" value="false" />
+	   -->
+
            <!-- <jvmarg value="-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" /> -->
            <!-- <jvmarg value="-verbose:class" /> -->
            <arg value="${test.jdbc.url}" />
@@ -402,8 +422,17 @@
            <!-- <jvmarg value="-server" /> -->
            <!-- <jvmarg value="-Xprof" /> -->
            <!-- <jvmarg value="-verbose:class" /> -->
+
            <sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 	   <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+
+	   <!--
+           <jvmarg value="-ea" />
+	   <sysproperty key="com.sun.management.jmxremote.port" value="38383" />
+	   <sysproperty key="com.sun.management.jmxremote.authenticate" value="false" />
+	   <sysproperty key="com.sun.management.jmxremote.ssl" value="false" />
+	   -->
+
 	   <syspropertyset>
 	     <propertyref builtin="commandline" />
 	   </syspropertyset>
@@ -425,6 +454,14 @@
 	   <syspropertyset>
 	     <propertyref builtin="commandline" />
 	   </syspropertyset>
+
+	   <!--
+           <jvmarg value="-ea" />
+	   <sysproperty key="com.sun.management.jmxremote.port" value="38383" />
+	   <sysproperty key="com.sun.management.jmxremote.authenticate" value="false" />
+	   <sysproperty key="com.sun.management.jmxremote.ssl" value="false" />
+	   -->
+
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -441,6 +478,14 @@
 	   <syspropertyset>
 	     <propertyref builtin="commandline" />
 	   </syspropertyset>
+
+	   <!--
+           <jvmarg value="-ea" />
+	   <sysproperty key="com.sun.management.jmxremote.port" value="38383" />
+	   <sysproperty key="com.sun.management.jmxremote.authenticate" value="false" />
+	   <sysproperty key="com.sun.management.jmxremote.ssl" value="false" />
+	   -->
+
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />
@@ -457,6 +502,14 @@
 	   <syspropertyset>
 	     <propertyref builtin="commandline" />
 	   </syspropertyset>
+
+	   <!--
+           <jvmarg value="-ea" />
+	   <sysproperty key="com.sun.management.jmxremote.port" value="38383" />
+	   <sysproperty key="com.sun.management.jmxremote.authenticate" value="false" />
+	   <sysproperty key="com.sun.management.jmxremote.ssl" value="false" />
+	   -->
+
            <arg value="${test.jdbc.url}" />
            <arg value="${test.jdbc.user}" />
            <arg value="${test.jdbc.password}" />

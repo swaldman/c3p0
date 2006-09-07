@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -96,6 +96,12 @@ public abstract class ResourcePoolFactory
     public abstract void setMax( int max )
 	throws ResourcePoolException;
 
+    public abstract int getStart()
+	throws ResourcePoolException;
+
+    public abstract void setStart( int start )
+	throws ResourcePoolException;
+
     public abstract int getMax()
 	throws ResourcePoolException;
 
@@ -129,23 +135,53 @@ public abstract class ResourcePoolFactory
     public abstract long getResourceMaxAge()
 	throws ResourcePoolException;
 
+    public abstract void setResourceMaxIdleTime( long millis )
+	throws ResourcePoolException;
+
+    public abstract long getResourceMaxIdleTime()
+	throws ResourcePoolException;
+
+    public abstract void setExcessResourceMaxIdleTime( long millis )
+	throws ResourcePoolException;
+
+    public abstract long getExcessResourceMaxIdleTime()
+	throws ResourcePoolException;
+
+    public abstract long getDestroyOverdueResourceTime()
+	throws ResourcePoolException;
+
+    public abstract void setDestroyOverdueResourceTime( long millis )
+	throws ResourcePoolException;
+
+    public abstract void setExpirationEnforcementDelay( long millis )
+	throws ResourcePoolException;
+
+    public abstract long getExpirationEnforcementDelay()
+	throws ResourcePoolException;
+
     public abstract void setBreakOnAcquisitionFailure( boolean b )
 	throws ResourcePoolException;
 
     public abstract boolean getBreakOnAcquisitionFailure()
 	throws ResourcePoolException;
 
-    /**
-     *  Sets whether or not maxAge should be interpreted
-     *  as the maximum age since the resource was first acquired 
-     *  (age_is_absolute == true) or since the resource was last
-     *  checked in (age_is_absolute == false).
-     */
-    public abstract void setAgeIsAbsolute( boolean age_is_absolute )
+    public abstract void setDebugStoreCheckoutStackTrace( boolean debug_store_checkout_stacktrace )
 	throws ResourcePoolException;
 
-    public abstract boolean getAgeIsAbsolute()
+    public abstract boolean getDebugStoreCheckoutStackTrace()
 	throws ResourcePoolException;
+
+//     /**
+//      *  Sets whether or not maxAge should be interpreted
+//      *  as the maximum age since the resource was first acquired 
+//      *  (age_is_absolute == true) or since the resource was last
+//      *  checked in (age_is_absolute == false).
+//      */
+//     public abstract void setAgeIsAbsolute( boolean age_is_absolute )
+// 	throws ResourcePoolException;
+
+//     public abstract boolean getAgeIsAbsolute()
+// 	throws ResourcePoolException;
 
     public abstract ResourcePool createPool(ResourcePool.Manager mgr)
 	throws ResourcePoolException;

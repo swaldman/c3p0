@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -66,6 +66,7 @@ public final class C3P0PooledConnectionPoolManager
     final Map flatPropertyOverrides;
     final Map userOverrides;
     final DbAuth defaultAuth;
+    final String parentDataSourceIdentityToken;
     /* MT: end independently thread-safe, never reassigned post-ctor or factory */
 
     /* MT: unchanging after constructor completes */
@@ -73,10 +74,49 @@ public final class C3P0PooledConnectionPoolManager
 
     /* MT: end unchanging after constructor completes */
 
+    public int getThreadPoolSize()
+    { return taskRunner.getThreadCount(); }
+
+    public int getThreadPoolNumActiveThreads()
+    { return taskRunner.getActiveCount(); }
+
+    public int getThreadPoolNumIdleThreads()
+    { return taskRunner.getIdleCount(); }
+
+    public int getThreadPoolNumTasksPending()
+    { return taskRunner.getPendingTaskCount(); }
+
+    public String getThreadPoolStackTraces()
+    { return taskRunner.getStackTraces(); }
+
+    public String getThreadPoolStatus()
+    { return taskRunner.getStatus(); }
+
     private synchronized void poolsInit()
     {
 	this.timer = new Timer( true );
-	this.taskRunner = new ThreadPoolAsynchronousRunner( num_task_threads, true, timer );
+
+	int matt = this.getMaxAdministrativeTaskTime( null );
+	if ( matt > 0 )
+	    {
+		int matt_ms = matt * 1000;
+		this.taskRunner = new ThreadPoolAsynchronousRunner( num_task_threads, 
+
+								    true,        // daemon thread
+
+								    matt_ms,     // wait before interrupt()
+
+								    matt_ms * 3, // wait before deadlock declared if no tasks clear
+
+								    matt_ms * 6, // wait before deadlock tasks are interrupted (again)
+								                 // after the hung thread has been cleared and replaced
+								                 // (in hopes of getting the thread to terminate for
+								                 // garbage collection)
+
+								    timer );
+	    }
+	else
+	    this.taskRunner = new ThreadPoolAsynchronousRunner( num_task_threads, true, timer );
 	//this.taskRunner = new RoundRobinAsynchronousRunner( num_task_threads, true );
 	//this.rpfact = ResourcePoolFactory.createInstance( taskRunner, timer );
 	if (POOL_EVENT_SUPPORT)
@@ -115,7 +155,8 @@ public final class C3P0PooledConnectionPoolManager
     public C3P0PooledConnectionPoolManager(ConnectionPoolDataSource cpds, 
 					   Map flatPropertyOverrides,     // Map of properties, usually null
 					   Map forceUserOverrides,        // userNames to Map of properties, usually null
-					   int num_task_threads )
+					   int num_task_threads,
+					   String parentDataSourceIdentityToken)
 	throws SQLException
     {
 	try
@@ -123,6 +164,7 @@ public final class C3P0PooledConnectionPoolManager
 		this.cpds = cpds;
 		this.flatPropertyOverrides = flatPropertyOverrides;
 		this.num_task_threads = num_task_threads;
+		this.parentDataSourceIdentityToken = parentDataSourceIdentityToken;
 
 		DbAuth auth = null;
 
@@ -352,6 +394,18 @@ public final class C3P0PooledConnectionPoolManager
     public String getPreferredTestQuery(String userName)
     { return getString("preferredTestQuery", userName ); }
 
+    private int getInitialPoolSize(String userName)
+    {
+	try
+	    { return getInt("initialPoolSize", userName ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Could not fetch int property", e);
+		return C3P0Defaults.initialPoolSize();
+	    }
+    }
+
     public int getMinPoolSize(String userName)
     {
 	try
@@ -484,6 +538,18 @@ public final class C3P0PooledConnectionPoolManager
 	    }
     }
 
+    private int getUnreturnedConnectionTimeout(String userName)
+    {
+	try
+	    { return getInt("unreturnedConnectionTimeout", userName ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Could not fetch int property", e);
+		return C3P0Defaults.unreturnedConnectionTimeout();
+	    }
+    }
+
     private boolean getTestConnectionOnCheckout(String userName)
     {
 	try
@@ -508,11 +574,78 @@ public final class C3P0PooledConnectionPoolManager
 	    }
     }
 
-    public String getConnectionTesterClassName(String userName)
+    private boolean getDebugUnreturnedConnectionStackTraces(String userName)
+    {
+	try
+	    { return getBoolean("debugUnreturnedConnectionStackTraces", userName ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Could not fetch boolean property", e);
+		return C3P0Defaults.debugUnreturnedConnectionStackTraces();
+	    }
+    }
+
+    private String getConnectionTesterClassName(String userName)
     { return getString("connectionTesterClassName", userName ); }
 
     private ConnectionTester getConnectionTester(String userName)
     { return C3P0Registry.getConnectionTester( getConnectionTesterClassName( userName ) ); }
+
+    private String getConnectionCustomizerClassName(String userName)
+    { return getString("connectionCustomizerClassName", userName ); }
+
+    private ConnectionCustomizer getConnectionCustomizer(String userName) throws SQLException
+    { return C3P0Registry.getConnectionCustomizer( getConnectionCustomizerClassName( userName ) ); }
+
+    private int getMaxIdleTimeExcessConnections(String userName)
+    {
+	try
+	    { return getInt("maxIdleTimeExcessConnections", userName ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Could not fetch int property", e);
+		return C3P0Defaults.maxIdleTimeExcessConnections();
+	    }
+    }
+
+    private int getMaxAdministrativeTaskTime(String userName)
+    {
+	try
+	    { return getInt("maxAdministrativeTaskTime", userName ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Could not fetch int property", e);
+		return C3P0Defaults.maxAdministrativeTaskTime();
+	    }
+    }
+
+    private int getMaxConnectionAge(String userName)
+    {
+	try
+	    { return getInt("maxConnectionAge", userName ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Could not fetch int property", e);
+		return C3P0Defaults.maxConnectionAge();
+	    }
+    }
+
+    private int getPropertyCycle(String userName)
+    {
+	try
+	    { return getInt("propertyCycle", userName ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.FINE ) )
+		    logger.log( MLevel.FINE, "Could not fetch int property", e);
+		return C3P0Defaults.propertyCycle();
+	    }
+    }
+
 
     // called only from sync'ed methods
     private C3P0PooledConnectionPool createPooledConnectionPool(DbAuth auth)
@@ -546,6 +679,7 @@ public final class C3P0PooledConnectionPoolManager
 								      auth,
 								      this.getMinPoolSize( userName ),
 								      this.getMaxPoolSize( userName ),
+								      this.getInitialPoolSize( userName ),
 								      this.getAcquireIncrement( userName ),
 								      this.getAcquireRetryAttempts( userName ),
 								      this.getAcquireRetryDelay( userName ),
@@ -553,14 +687,21 @@ public final class C3P0PooledConnectionPoolManager
 								      this.getCheckoutTimeout( userName ),
 								      this.getIdleConnectionTestPeriod( userName ),
 								      this.getMaxIdleTime( userName ),
+								      this.getMaxIdleTimeExcessConnections( userName ),
+								      this.getMaxConnectionAge( userName ),
+								      this.getPropertyCycle( userName ),
+								      this.getUnreturnedConnectionTimeout( userName ),
+								      this.getDebugUnreturnedConnectionStackTraces( userName ),
 								      this.getTestConnectionOnCheckout( userName ),
 								      this.getTestConnectionOnCheckin( userName ),
 								      this.getMaxStatements( userName ),
 								      this.getMaxStatementsPerConnection( userName ),
 								      this.getConnectionTester( userName ),
+								      this.getConnectionCustomizer( userName ),
 								      realTestQuery,
 								      rpfact,
-								      taskRunner );
+								      taskRunner,
+								      parentDataSourceIdentityToken );
 	return out;
     }
 

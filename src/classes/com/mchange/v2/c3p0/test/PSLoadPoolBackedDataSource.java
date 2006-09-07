@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -87,6 +87,7 @@ public final class PSLoadPoolBackedDataSource
 			ConnectionUtils.attemptClose( con );
 		    }
 
+		//for (int i = 0; i < 5; ++i)
 		for (int i = 0; i < 50; ++i)
 		    {
 			Thread t = new ChurnThread();

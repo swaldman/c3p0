@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -33,7 +33,7 @@ import java.sql.Connection;
  *
  *  <p><b>Recommended:</b> If you'd like your ConnectionTester
  *  to support the user-configured <tt>preferredTestQuery</tt>
- *  parameter, please implement {@link com.mchange.v2.c3p0.QueryConnectionTester}.
+ *  parameter, please implement {@link com.mchange.v2.c3p0.FullQueryConnectionTester}.
  *
  *  <p>ConnectionTesters should be Serializable, immutable, 
  *  and must have public, no-arg constructors.</p>

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -131,6 +131,7 @@ public interface PooledDataSource extends DataSource
     public int getNumIdleConnectionsDefaultUser() throws SQLException;
     public int getNumBusyConnectionsDefaultUser() throws SQLException;
     public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException;
+    public float getEffectivePropertyCycleDefaultUser() throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource's default-authentication pool
@@ -146,6 +147,7 @@ public interface PooledDataSource extends DataSource
     public int getNumIdleConnections(String username, String password) throws SQLException;
     public int getNumBusyConnections(String username, String password) throws SQLException;
     public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException;
+    public float getEffectivePropertyCycle(String username, String password) throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource with the specified authentication credentials
@@ -161,6 +163,13 @@ public interface PooledDataSource extends DataSource
     public int getNumIdleConnectionsAllUsers() throws SQLException;
     public int getNumConnectionsAllUsers() throws SQLException;
     public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException;
+
+    public int getThreadPoolSize() throws SQLException;
+    public int getThreadPoolNumActiveThreads() throws SQLException;
+    public int getThreadPoolNumIdleThreads() throws SQLException;
+    public int getThreadPoolNumTasksPending() throws SQLException;
+    public String getThreadPoolStackTraces() throws SQLException;
+    public String getThreadPoolStatus() throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource

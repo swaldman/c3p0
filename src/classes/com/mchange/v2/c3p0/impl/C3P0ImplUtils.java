@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -32,26 +32,89 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import com.mchange.lang.ByteUtils;
-import com.mchange.v2.ser.SerializableUtils;
+import com.mchange.v2.encounter.EncounterCounter;
+import com.mchange.v2.encounter.EqualityEncounterCounter;
+import com.mchange.v2.lang.VersionUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.sql.SqlUtils;
 
 public final class C3P0ImplUtils
 {
+    // turning this on would only test to generate long tokens
+    // on 64 bit machines, but since identityHashCode() is not
+    // GUARANTEED unique under 32-bit JVMs, even if in practice
+    // always is, we always test to be sure we're not reusing
+    // an identity token.
+    private final static boolean CONDITIONAL_LONG_TOKENS = false;
+
     final static MLogger logger = MLog.getLogger( C3P0ImplUtils.class );
 
     public final static DbAuth NULL_AUTH = new DbAuth(null,null);
 
     public final static Object[] NOARGS = new Object[0]; 
 
+    private final static EncounterCounter ID_TOKEN_COUNTER;
+
+    static
+    {
+	if (CONDITIONAL_LONG_TOKENS)
+	    {
+		boolean long_tokens;
+		Integer jnb = VersionUtils.jvmNumberOfBits();
+		if (jnb == null)
+		    long_tokens = true;
+		else if (jnb.intValue() > 32)
+		    long_tokens = true;
+		else
+		    long_tokens = false;
+		
+		if (long_tokens)
+		    ID_TOKEN_COUNTER = new EqualityEncounterCounter();
+		else
+		    ID_TOKEN_COUNTER = null;
+	    }
+	else
+	    ID_TOKEN_COUNTER = new EqualityEncounterCounter();
+     }
+
     //MT: protected by class' lock
     static String connectionTesterClassName = null;
     static ConnectionTester cachedTester = null;
 
-    public static String identityToken(Object o)
-    { return (o != null ? Integer.toString( System.identityHashCode( o ), 16 ) : null); }
+    // identityHashCode() is not a sufficient unique token, because they are
+    // not guaranteed unique, and in practice are occasionally not unique,
+    // particularly on 64-bit systems.
+
+    public static String allocateIdentityToken(Object o)
+    { 
+	if (o == null)
+	    return null;
+	else
+	    {
+
+		String shortIdToken = Integer.toString( System.identityHashCode( o ), 16 ).intern(); 
+
+		//new Exception( "DEBUG_STACK_TRACE: " + o.getClass().getName() + " " + shortIdToken ).printStackTrace();
+
+		String out;
+		long count;
+		if (ID_TOKEN_COUNTER != null && ((count = ID_TOKEN_COUNTER.encounter( shortIdToken )) > 0))
+		    {
+			StringBuffer sb = new StringBuffer(32);
+			sb.append( shortIdToken );
+			sb.append('#');
+			sb.append( count );
+			out = sb.toString();
+		    }
+		else
+		    out = shortIdToken;
+
+		return out;
+	    }
+    }
 
     public static DbAuth findAuth(Object o)
 	throws SQLException
@@ -213,3 +276,18 @@ public final class C3P0ImplUtils
 //  	}
 //  }
 //  System.err.println( o );
+
+    /*
+    private final static ThreadLocal threadLocalConnectionCustomizer = new ThreadLocal();
+
+    // used so that C3P0PooledConnectionPool can pass a ConnectionCustomizer 
+    // to WrapperConnectionPoolDataSource without altering that class' public API
+    public static void setThreadConnectionCustomizer(ConnectionCustomizer cc)
+    { threadLocalConnectionCustomizer.set( cc ); }
+
+    public static ConnectionCustomizer getThreadConnectionCustomizer()
+    { return threadLocalConnectionCustomizer.get(); }
+
+    public static void unsetThreadConnectionCustomizer()
+    { setThreadConnectionCustomizer( null ); }
+    */

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -298,6 +298,7 @@ public final class C3P0BenchmarkApp
 		}
 	    finally
 		{ ConnectionUtils.attemptClose( con ); }
+	    //{}
 	}
 
 	long test(Connection con, int n) throws SQLException

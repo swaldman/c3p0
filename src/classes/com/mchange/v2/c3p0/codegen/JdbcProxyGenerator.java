@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -569,6 +569,21 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println();
 	    iw.println("DatabaseMetaData metaData = null;");
 	    iw.println();
+
+// We've nothing to do with preferredTestQuery here... the stuff below was unnecessary
+//
+// 	    iw.println("String preferredTestQuery = null;");
+// 	    iw.println();
+// 	    iw.print( CodegenUtils.fqcnLastElement( genclass ) );
+// 	    iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + " inner, NewPooledConnection parentPooledConnection, String preferredTestQuery )");
+// 	    iw.println("{");
+// 	    iw.upIndent();
+// 	    iw.println("this( inner, parentPooledConnection );");
+// 	    iw.println("this.preferredTestQuery = preferredTestQuery;");
+// 	    iw.downIndent();
+// 	    iw.println("}");
+// 	    iw.println();
+
 	    iw.println("public Object rawConnectionOperation(Method m, Object target, Object[] args)");
 	    iw.upIndent();
 	    iw.println("throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SQLException");

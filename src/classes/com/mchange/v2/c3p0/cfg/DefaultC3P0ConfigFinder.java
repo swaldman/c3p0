@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -46,7 +46,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	String cfgFile = MultiPropertiesConfig.readVmConfig().getProperty( XML_CFG_FILE_KEY );
 	if (cfgFile == null)
 	    {
-		C3P0Config xmlConfig = C3P0ConfigUtils.extractXmlConfigFromDefaultResource();
+		C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromDefaultResource();
 		if (xmlConfig != null)
 		    {
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
@@ -60,7 +60,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 		InputStream is = new BufferedInputStream( new FileInputStream( cfgFile ) );
 		try
 		    {
-			C3P0Config xmlConfig = C3P0ConfigUtils.extractXmlConfigFromInputStream( is );
+			C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromInputStream( is );
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
 			out = xmlConfig;
 		    }

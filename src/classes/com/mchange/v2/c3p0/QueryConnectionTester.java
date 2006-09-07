@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -23,8 +23,6 @@
 
 package com.mchange.v2.c3p0;
 
-import com.mchange.v2.c3p0.*;
-import java.io.Serializable;
 import java.sql.Connection;
 
 public interface QueryConnectionTester extends ConnectionTester

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -74,6 +74,9 @@ public interface ResourcePool extends ClosableResource
 	throws ResourcePoolException;
 
     public int getAwaitingCheckinCount()
+	throws ResourcePoolException;
+
+    public long getEffectiveExpirationEnforcementDelay()
 	throws ResourcePoolException;
 
     /**

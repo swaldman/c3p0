@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -80,15 +80,22 @@ public final class C3P0Config
 		if ( logger.isLoggable(MLevel.WARNING) )
 		    logger.log( MLevel.WARNING, "Could not load specified C3P0ConfigFinder class'" + cname + "'.", e);
 	    }
-	if (cfgFinder == null)
-	    cfgFinder = new DefaultC3P0ConfigFinder();
+
 	try
-	    { protoMain = cfgFinder.findConfig(); }
+	    { 
+		if (cfgFinder == null)
+		    {
+			Class.forName("org.w3c.dom.Node");
+			Class.forName("com.mchange.v2.c3p0.cfg.C3P0ConfigXmlUtils"); //fail nicely if we don't have XML libs
+			cfgFinder = new DefaultC3P0ConfigFinder();
+		    }
+		protoMain = cfgFinder.findConfig(); 
+	    }
 	catch (Exception e)
 	    { 
 		
 		if ( logger.isLoggable(MLevel.WARNING) )
-		    logger.log( MLevel.WARNING, "An Exception occurred while loading C3P0Config.", e);
+		    logger.log( MLevel.WARNING, "XML configuration disabled! Verify that standard XML libs are available.", e);
 
 		HashMap flatDefaults = C3P0ConfigUtils.extractHardcodedC3P0Defaults();
 		flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
@@ -312,5 +319,11 @@ public final class C3P0Config
 	this.defaultConfig = defaultConfig;
 	this.configNamesToNamedScopes = configNamesToNamedScopes;
     }
+
+//     C3P0Config()
+//     {
+// 	this.defaultConfig = new NamedScope();
+// 	this.configNamesToNamedScopes = new HashMap();
+//     }
 
 }

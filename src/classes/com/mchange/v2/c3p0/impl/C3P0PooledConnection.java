@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -32,16 +32,14 @@ import com.mchange.v2.sql.*;
 import com.mchange.v2.sql.filter.*;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.stmt.*;
-import com.mchange.v1.util.ClosableResource;
 import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.util.ConnectionEventSupport;
 import com.mchange.v2.lang.ObjectUtils;
 
-public final class C3P0PooledConnection implements PooledConnection, ClosableResource
+public final class C3P0PooledConnection extends AbstractC3P0PooledConnection
 {
     final static MLogger logger = MLog.getLogger( C3P0PooledConnection.class );
 
-    final static ClassLoader CL = C3P0PooledConnection.class.getClassLoader();
     final static Class[]     PROXY_CTOR_ARGS = new Class[]{ InvocationHandler.class };
 
     final static Constructor CON_PROXY_CTOR;
@@ -59,7 +57,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     private static Constructor createProxyConstructor(Class intfc) throws NoSuchMethodException
     { 
 	Class[] proxyInterfaces = new Class[] { intfc };
-	Class proxyCl = Proxy.getProxyClass(CL, proxyInterfaces);
+	Class proxyCl = Proxy.getProxyClass(C3P0PooledConnection.class.getClassLoader(), proxyInterfaces);
 	return proxyCl.getConstructor( PROXY_CTOR_ARGS ); 
     }
 
@@ -127,8 +125,18 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
     public C3P0PooledConnection(Connection con, 
 				ConnectionTester connectionTester,
 				boolean autoCommitOnClose, 
-				boolean forceIgnoreUnresolvedTransactions) throws SQLException
+				boolean forceIgnoreUnresolvedTransactions,
+				ConnectionCustomizer cc,
+				String pdsIdt) throws SQLException
     { 
+	try
+	    {
+		if (cc != null)
+		    cc.onAcquire( con, pdsIdt );
+	    }
+	catch (Exception e)
+	    { throw SqlUtils.toSQLException(e); }
+
 	this.physicalConnection = con; 
 	this.connectionTester = connectionTester;
 	this.autoCommitOnClose = autoCommitOnClose;
@@ -140,6 +148,7 @@ public final class C3P0PooledConnection implements PooledConnection, ClosableRes
 	this.dflt_holdability = (supports_setHoldability ? con.getHoldability() : ResultSet.CLOSE_CURSORS_AT_COMMIT);
     }
 
+    //used by C3P0PooledConnectionPool
     Connection getPhysicalConnection()
     { return physicalConnection; }
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -39,18 +39,11 @@ import java.io.ObjectStreamException;
  * way of setting up the for Referenceability in multiple
  * levels of a class hierarchy. So we leave the getters/setters,
  * and variable initialization to code-generators.
- *
- * Non-generated classes, that of course take care of their own
- * referenceability, should extend BaseIdentityTokenized to
- * inherit these extra conveniences.
- *
- * NOTE: since I'm not using it just now, BaseIdentityTokenized
- *       is removed to the old/ directory... recover if necessary
  */
-public abstract class IdentityTokenResolvable implements IdentityTokenized
+public abstract class IdentityTokenResolvable extends AbstractIdentityTokenized
 {
     public static Object doResolve(IdentityTokenized itd)
-    { return C3P0Registry.coalesce( itd ); }
+    { return C3P0Registry.reregister( itd ); }
 
     protected Object readResolve() throws ObjectStreamException
     { 

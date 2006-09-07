@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -32,41 +32,14 @@ import com.mchange.v2.log.*;
 import com.mchange.v2.naming.*;
 import com.mchange.v2.c3p0.impl.*;
 
+import javax.sql.DataSource;
 import com.mchange.v2.beans.BeansUtils;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 
-// WrapperConnectionPoolDataSource properties -- count: 24
-//
-// 	("checkoutTimeout");
-// 	("acquireIncrement");
-// 	("acquireRetryAttempts");
-// 	("acquireRetryDelay");
-// 	("autoCommitOnClose");
-// 	("connectionTesterClassName");
-// 	("forceIgnoreUnresolvedTransactions");
-// 	("idleConnectionTestPeriod");
-// 	("initialPoolSize");
-// 	("maxIdleTime");
-// 	("maxPoolSize");
-// 	("maxStatements");
-// 	("maxStatementsPerConnection");
-// 	("minPoolSize");
-// 	("propertyCycle");
-// 	("breakAfterAcquireFailure");
-// 	("testConnectionOnCheckout");
-// 	("testConnectionOnCheckin");
-// 	("usesTraditionalReflectiveProxies");
-// 	("preferredTestQuery");
-// 	("automaticTestTable");
-// 	("userOverridesAsString");
-// 	("overrideDefaultUser");
-// 	("overrideDefaultPassword");
-
-
 /**
- * <p>For the meaning of most of these properties, please see {@link PoolConfig}!</p>
+ * <p>For the meaning of most of these properties, please see c3p0's top-level documentation!</p>
  */
-public final class ComboPooledDataSource extends IdentityTokenResolvable implements PooledDataSource, Serializable, Referenceable
+public final class ComboPooledDataSource extends AbstractPoolBackedDataSource implements PooledDataSource, Serializable, Referenceable
 {
     final static MLogger logger = MLog.getLogger( ComboPooledDataSource.class );
 
@@ -87,58 +60,106 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 									      "numUnclosedOrphanedConnectionsAllUsers",
 									      "numUnclosedOrphanedConnectionsDefaultUser",
 									      "numUserPools",
+									      "effectivePropertyCycleDefaultUser",
+									      "threadPoolSize",
+									      "threadPoolNumActiveThreads",
+									      "threadPoolNumIdleThreads",
+									      "threadPoolNumTasksPending",
+									      "threadPoolStackTraces",
+									      "threadPoolStatus",
 									      "overrideDefaultUser",
 									      "overrideDefaultPassword",
 									      "password",
 									      "reference",
 									      "user",
-									      "userOverridesAsString"
+									      "userOverridesAsString",
+									      "allUsers",
+									      
+									      "connectionPoolDataSource"
 									  } ) );
 
     // not reassigned post-ctor; mutable elements protected by their own locks
-    // when (very rarely) necessery, we sync pbds -> wcpds -> dmds
-    DriverManagerDataSource         dmds;
-    WrapperConnectionPoolDataSource wcpds;
-    PoolBackedDataSource            pbds;
+    // when (very rarely) necessery, we sync this -> wcpds -> dmds
 
-    String identityToken;
+    // note that serialization of these guys happens via out superclass
+    // we just have to make sure they get properly reset on deserialization
+    transient DriverManagerDataSource         dmds;
+    transient WrapperConnectionPoolDataSource wcpds;
 
+    public ComboPooledDataSource()
+    { this( true ); }
+
+    public ComboPooledDataSource( boolean autoregister )
     {
+	super( autoregister );
+
 	// System.err.println("...Initializing ComboPooledDataSource.");
 
 	dmds  = new DriverManagerDataSource();
 	wcpds = new WrapperConnectionPoolDataSource();
-	pbds  = new PoolBackedDataSource( this ); 
 
 	wcpds.setNestedDataSource( dmds );
-	pbds.setConnectionPoolDataSource( wcpds );
 
-	this.identityToken = C3P0ImplUtils.identityToken( this );
-	C3P0Registry.register( this );
+	try
+	    { this.setConnectionPoolDataSource( wcpds ); }
+	catch (PropertyVetoException e)
+	    {
+		logger.log(MLevel.WARNING, "Hunh??? This can't happen. We haven't set up any listeners to veto the property change yet!", e);
+		throw new RuntimeException("Hunh??? This can't happen. We haven't set up any listeners to veto the property change yet! " + e);
+	    }
+
+	// set things up in case there are future changes to our ConnectionPoolDataSource
+	//
+	setUpPropertyEvents();
     }
 
-    public ComboPooledDataSource()
-    {}
+    private void setUpPropertyEvents()
+    {
+	VetoableChangeListener wcpdsConsistencyEnforcer = new VetoableChangeListener()
+	    {
+		// always called within synchronized mutators of the parent class... needn't explicitly sync here
+		public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
+		{
+		    String propName = evt.getPropertyName();
+		    Object val = evt.getNewValue();
+
+		    if ( "connectionPoolDataSource".equals( propName ) )
+			{
+			    if (val instanceof WrapperConnectionPoolDataSource)
+				{
+				    DataSource nested = (DataSource) ((WrapperConnectionPoolDataSource)val).getNestedDataSource();
+				    if (! (nested instanceof DriverManagerDataSource) )
+					throw new PropertyVetoException("ComboPooledDataSource requires that its unpooled DataSource " +
+									" be set at all times, and that it be a" +
+									" com.mchange.v2.c3p0.DriverManagerDataSource. Bad: " + nested, evt);
+				}
+			    else
+				throw new PropertyVetoException("ComboPooledDataSource requires that its ConnectionPoolDataSource " +
+								" be set at all times, and that it be a" +
+								" com.mchange.v2.c3p0.WrapperConnectionPoolDataSource. Bad: " + val, evt);
+			}
+		}
+	    };
+	this.addVetoableChangeListener( wcpdsConsistencyEnforcer );
+
+	PropertyChangeListener wcpdsStateUpdater = new PropertyChangeListener()
+	    {
+		public void propertyChange( PropertyChangeEvent evt )
+		{ updateLocalVarsFromCpdsProp(); }
+	    };
+	this.addPropertyChangeListener( wcpdsStateUpdater );
+    }
+
+    private void updateLocalVarsFromCpdsProp()
+    {
+	this.wcpds = (WrapperConnectionPoolDataSource) this.getConnectionPoolDataSource();
+	this.dmds  = (DriverManagerDataSource) wcpds.getNestedDataSource();
+    }
 
     public ComboPooledDataSource(String configName)
-    {
-	try
-	    {
-		if (configName != null)
-		    {
-			C3P0Config.bindNamedConfigToBean( this, configName ); 
-			if ( this.getDataSourceName().equals( this.getIdentityToken() ) ) //dataSourceName has not been specified in config
-			    this.setDataSourceName( configName );
-		    }
-	    }
-	catch (Exception e)
-	    {
-		if (logger.isLoggable( MLevel.WARNING ))
-		    logger.log( MLevel.WARNING, 
-				"Error binding ComboPooledDataSource to named-config '" + configName + 
-				"'. Some default-config values may be used.", 
-				e);
-	    }
+    { 
+	this();
+	initializeNamedConfig( configName );
     }
 
     // DriverManagerDataSourceProperties  (count: 4)
@@ -196,17 +217,14 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
     public void setPassword( String password )
     { dmds.setPassword( password ); }
 
-    // WrapperConnectionPoolDataSource properties (count: 21)
+    // WrapperConnectionPoolDataSource properties
     public int getCheckoutTimeout()
     { return wcpds.getCheckoutTimeout(); }
 	
     public void setCheckoutTimeout( int checkoutTimeout )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setCheckoutTimeout( checkoutTimeout ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setCheckoutTimeout( checkoutTimeout ); 
+	this.resetPoolManager( false );
     }
 	
     public int getAcquireIncrement()
@@ -214,11 +232,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setAcquireIncrement( int acquireIncrement )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setAcquireIncrement( acquireIncrement ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setAcquireIncrement( acquireIncrement ); 
+	this.resetPoolManager( false );
     }
 	
     public int getAcquireRetryAttempts()
@@ -226,11 +241,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setAcquireRetryAttempts( int acquireRetryAttempts )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
+	this.resetPoolManager( false );
     }
 	
     public int getAcquireRetryDelay()
@@ -238,11 +250,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setAcquireRetryDelay( int acquireRetryDelay )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
+	this.resetPoolManager( false );
     }
 	
     public boolean isAutoCommitOnClose()
@@ -250,11 +259,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 
     public void setAutoCommitOnClose( boolean autoCommitOnClose )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setAutoCommitOnClose( autoCommitOnClose ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setAutoCommitOnClose( autoCommitOnClose ); 
+	this.resetPoolManager( false );
     }
 	
     public String getConnectionTesterClassName()
@@ -262,11 +268,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setConnectionTesterClassName( String connectionTesterClassName ) throws PropertyVetoException
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
+	this.resetPoolManager( false );
     }
 	
     public String getAutomaticTestTable()
@@ -274,11 +277,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setAutomaticTestTable( String automaticTestTable )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setAutomaticTestTable( automaticTestTable ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setAutomaticTestTable( automaticTestTable ); 
+	this.resetPoolManager( false );
     }
 	
     public boolean isForceIgnoreUnresolvedTransactions()
@@ -286,11 +286,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setForceIgnoreUnresolvedTransactions( boolean forceIgnoreUnresolvedTransactions )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
+	this.resetPoolManager( false );
     }
 	
     public int getIdleConnectionTestPeriod()
@@ -298,11 +295,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setIdleConnectionTestPeriod( int idleConnectionTestPeriod )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); 
+	this.resetPoolManager( false );
     }
     
     public int getInitialPoolSize()
@@ -310,11 +304,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setInitialPoolSize( int initialPoolSize )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setInitialPoolSize( initialPoolSize ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setInitialPoolSize( initialPoolSize ); 
+	this.resetPoolManager( false );
     }
 
     public int getMaxIdleTime()
@@ -322,11 +313,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setMaxIdleTime( int maxIdleTime )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setMaxIdleTime( maxIdleTime ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setMaxIdleTime( maxIdleTime ); 
+	this.resetPoolManager( false );
     }
 	
     public int getMaxPoolSize()
@@ -334,11 +322,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setMaxPoolSize( int maxPoolSize )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setMaxPoolSize( maxPoolSize ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setMaxPoolSize( maxPoolSize ); 
+	this.resetPoolManager( false );
     }
 	
     public int getMaxStatements()
@@ -346,11 +331,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setMaxStatements( int maxStatements )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setMaxStatements( maxStatements ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setMaxStatements( maxStatements ); 
+	this.resetPoolManager( false );
     }
 	
     public int getMaxStatementsPerConnection()
@@ -358,11 +340,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setMaxStatementsPerConnection( int maxStatementsPerConnection )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setMaxStatementsPerConnection( maxStatementsPerConnection ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setMaxStatementsPerConnection( maxStatementsPerConnection ); 
+	this.resetPoolManager( false );
     }
 	
     public int getMinPoolSize()
@@ -370,11 +349,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setMinPoolSize( int minPoolSize )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setMinPoolSize( minPoolSize ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setMinPoolSize( minPoolSize ); 
+	this.resetPoolManager( false );
     }
 	
     public String getOverrideDefaultUser()
@@ -382,11 +358,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setOverrideDefaultUser(String overrideDefaultUser)
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setOverrideDefaultUser( overrideDefaultUser ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setOverrideDefaultUser( overrideDefaultUser ); 
+	this.resetPoolManager( false );
     }
 	
     public String getOverrideDefaultPassword()
@@ -394,11 +367,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setOverrideDefaultPassword(String overrideDefaultPassword)
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setOverrideDefaultPassword( overrideDefaultPassword ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setOverrideDefaultPassword( overrideDefaultPassword ); 
+	this.resetPoolManager( false );
     }
 	
     public int getPropertyCycle()
@@ -406,11 +376,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setPropertyCycle( int propertyCycle )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setPropertyCycle( propertyCycle ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setPropertyCycle( propertyCycle ); 
+	this.resetPoolManager( false );
     }
     
     public boolean isBreakAfterAcquireFailure()
@@ -418,11 +385,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
     
     public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
+	this.resetPoolManager( false );
     }
     
     public boolean isTestConnectionOnCheckout()
@@ -430,11 +394,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); 
+	this.resetPoolManager( false );
     }
 	
     public boolean isTestConnectionOnCheckin()
@@ -442,11 +403,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setTestConnectionOnCheckin( testConnectionOnCheckin ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setTestConnectionOnCheckin( testConnectionOnCheckin ); 
+	this.resetPoolManager( false );
     }
 	
     public boolean isUsesTraditionalReflectiveProxies()
@@ -454,11 +412,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies ); 
+	this.resetPoolManager( false );
     }
 
     public String getPreferredTestQuery()
@@ -466,11 +421,8 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setPreferredTestQuery( String preferredTestQuery )
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setPreferredTestQuery( preferredTestQuery ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setPreferredTestQuery( preferredTestQuery ); 
+	this.resetPoolManager( false );
     }
 
     public String getUserOverridesAsString()
@@ -478,58 +430,157 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	
     public void setUserOverridesAsString( String userOverridesAsString ) throws PropertyVetoException
     { 
-	synchronized ( pbds )
-	    {
-		wcpds.setUserOverridesAsString( userOverridesAsString ); 
-		pbds.resetPoolManager( false );
-	    }
+	wcpds.setUserOverridesAsString( userOverridesAsString ); 
+	this.resetPoolManager( false );
     }
 
-    // PoolBackedDataSource properties (count: 2)
-    public String getDataSourceName()
-    { return pbds.getDataSourceName(); }
+    public int getMaxAdministrativeTaskTime()
+    { return wcpds.getMaxAdministrativeTaskTime(); }
 	
-    public void setDataSourceName( String name )
-    { pbds.setDataSourceName( name ); }
-
-    public int getNumHelperThreads()
-    { return pbds.getNumHelperThreads(); }
+    public void setMaxAdministrativeTaskTime( int maxAdministrativeTaskTime )
+    { 
+	wcpds.setMaxAdministrativeTaskTime( maxAdministrativeTaskTime ); 
+	this.resetPoolManager( false );
+    }
 	
-    public void setNumHelperThreads( int numHelperThreads )
-    { pbds.setNumHelperThreads( numHelperThreads ); }
-
-
-    // identity tokens
-    public String getIdentityToken()
-    { return identityToken; }
+    public int getMaxIdleTimeExcessConnections()
+    { return wcpds.getMaxIdleTimeExcessConnections(); }
 	
-    public void setIdentityToken(String identityToken)
-    { this.identityToken = identityToken; }
+    public void setMaxIdleTimeExcessConnections( int maxIdleTimeExcessConnections )
+    { 
+	wcpds.setMaxIdleTimeExcessConnections( maxIdleTimeExcessConnections ); 
+	this.resetPoolManager( false );
+    }
+	
+    public int getMaxConnectionAge()
+    { return wcpds.getMaxConnectionAge(); }
+	
+    public void setMaxConnectionAge( int maxConnectionAge )
+    { 
+	wcpds.setMaxConnectionAge( maxConnectionAge ); 
+	this.resetPoolManager( false );
+    }
+	
+    public String getConnectionCustomizerClassName()
+    { return wcpds.getConnectionCustomizerClassName(); }
+	
+    public void setConnectionCustomizerClassName( String connectionCustomizerClassName )
+    { 
+	wcpds.setConnectionCustomizerClassName( connectionCustomizerClassName ); 
+	this.resetPoolManager( false );
+    }
+
+    public int getUnreturnedConnectionTimeout()
+    { return wcpds.getUnreturnedConnectionTimeout(); }
+
+    public void setUnreturnedConnectionTimeout(int unreturnedConnectionTimeout)
+    {
+	wcpds.setUnreturnedConnectionTimeout( unreturnedConnectionTimeout ); 
+	this.resetPoolManager( false );
+    }
+	
+    public boolean isDebugUnreturnedConnectionStackTraces()
+    { return wcpds.isDebugUnreturnedConnectionStackTraces(); }
+
+    public void setDebugUnreturnedConnectionStackTraces(boolean debugUnreturnedConnectionStackTraces)
+    {
+	wcpds.setDebugUnreturnedConnectionStackTraces( debugUnreturnedConnectionStackTraces ); 
+	this.resetPoolManager( false );
+    }
 	
     // shared properties (count: 1)
     public String getFactoryClassLocation()
-    {
-	return dmds.getFactoryClassLocation();
-    }
+    { return super.getFactoryClassLocation(); }
     
     public void setFactoryClassLocation( String factoryClassLocation )
     {
-	synchronized ( pbds )
-	    {
-		synchronized ( wcpds )
-		    {
-			synchronized( dmds )
-			    {
-				dmds.setFactoryClassLocation( factoryClassLocation );
-				wcpds.setFactoryClassLocation( factoryClassLocation );
-				pbds.setFactoryClassLocation( factoryClassLocation );
-			    }
-		    }
-	    }
+	dmds.setFactoryClassLocation( factoryClassLocation );
+	wcpds.setFactoryClassLocation( factoryClassLocation );
+	this.setFactoryClassLocation( factoryClassLocation );
     }
 
+    public String toString()
+    {
+	//System.err.println("ComboPooledDataSource.toString()");
 
-    final static JavaBeanReferenceMaker referenceMaker = new JavaBeanReferenceMaker();
+	StringBuffer sb = new StringBuffer(512);
+	sb.append( this.getClass().getName() );
+	sb.append(" [ ");
+	try { BeansUtils.appendPropNamesAndValues(sb, this, TO_STRING_IGNORE_PROPS); }
+	catch (Exception e)
+	    { 
+		sb.append( e.toString() ); 
+		//e.printStackTrace();
+	    }
+	sb.append(" ]");
+
+// 	Map userOverrides = wcpds.getUserOverrides();
+// 	if (userOverrides != null)
+// 	    sb.append("; userOverrides: " + userOverrides.toString());
+
+	return sb.toString();
+    }
+
+    // serialization stuff -- set up bound/constrained property event handlers on deserialization
+    private static final long serialVersionUID = 1;
+    private static final short VERSION = 0x0001;
+	
+    private void writeObject( ObjectOutputStream oos ) throws IOException
+    {
+	oos.writeShort( VERSION );
+    }
+	
+    private void readObject( ObjectInputStream ois ) throws IOException, ClassNotFoundException
+    {
+	short version = ois.readShort();
+	switch (version)
+	    {
+	    case VERSION:
+		updateLocalVarsFromCpdsProp();
+		setUpPropertyEvents();
+		break;
+	    default:
+		throw new IOException("Unsupported Serialized Version: " + version);
+	    }
+    }
+}
+
+// now, referenceability happens exactly the same way it does for PoolBackedDataSource
+// all this stuff (and the maintenance hassle of it) should be unnecessary
+
+/*
+ // WrapperConnectionPoolDataSource properties -- count: 28
+//
+// 	("checkoutTimeout");
+// 	("acquireIncrement");
+// 	("acquireRetryAttempts");
+// 	("acquireRetryDelay");
+// 	("autoCommitOnClose");
+// 	("connectionTesterClassName");
+// 	("forceIgnoreUnresolvedTransactions");
+// 	("idleConnectionTestPeriod");
+// 	("initialPoolSize");
+// 	("maxIdleTime");
+// 	("maxPoolSize");
+// 	("maxStatements");
+// 	("maxStatementsPerConnection");
+// 	("minPoolSize");
+// 	("propertyCycle");
+// 	("breakAfterAcquireFailure");
+// 	("testConnectionOnCheckout");
+// 	("testConnectionOnCheckin");
+// 	("usesTraditionalReflectiveProxies");
+// 	("preferredTestQuery");
+// 	("automaticTestTable");
+// 	("userOverridesAsString");
+// 	("overrideDefaultUser");
+// 	("overrideDefaultPassword");
+// 	("maxAdministrativeTaskTime");
+// 	("maxIdleTimeExcessConnections");
+// 	("maxConnectionAge");
+// 	("connectionTesterClassName");
+
+   final static JavaBeanReferenceMaker referenceMaker = new JavaBeanReferenceMaker();
     
     static
     {
@@ -541,7 +592,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	referenceMaker.addReferenceProperty("jdbcUrl");
 	referenceMaker.addReferenceProperty("properties");
 
-	// WrapperConnectionPoolDataSource properties (count: 22)
+	// WrapperConnectionPoolDataSource properties (count: 27)
 	referenceMaker.addReferenceProperty("checkoutTimeout");
 	referenceMaker.addReferenceProperty("acquireIncrement");
 	referenceMaker.addReferenceProperty("acquireRetryAttempts");
@@ -564,6 +615,11 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 	referenceMaker.addReferenceProperty("preferredTestQuery");
 	referenceMaker.addReferenceProperty("automaticTestTable");
 	referenceMaker.addReferenceProperty("userOverridesAsString");
+	referenceMaker.addReferenceProperty("overrideDefaultUser");
+	referenceMaker.addReferenceProperty("overrideDefaultPassword");
+	referenceMaker.addReferenceProperty("maxAdministrativeTaskTime");
+	referenceMaker.addReferenceProperty("maxIdleTimeExcessConnections");
+	referenceMaker.addReferenceProperty("maxConnectionAge");
 
 	// PoolBackedDataSource properties (count: 2)
 	referenceMaker.addReferenceProperty("dataSourceName");
@@ -578,7 +634,7 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
     
     public Reference getReference() throws NamingException
     { 
-	synchronized ( pbds )
+	synchronized ( this )
 	    {
 		synchronized ( wcpds )
 		    {
@@ -595,115 +651,4 @@ public final class ComboPooledDataSource extends IdentityTokenResolvable impleme
 		    }
 	    }
     }
-
-    // DataSource implementation
-    public Connection getConnection() throws SQLException
-    { return pbds.getConnection(); }
-
-    public Connection getConnection(String username, String password) throws SQLException
-    { return pbds.getConnection( username, password );  }
-
-    public PrintWriter getLogWriter() throws SQLException
-    { return pbds.getLogWriter(); }
-
-    public void setLogWriter(PrintWriter out) throws SQLException
-    { pbds.setLogWriter( out ); }
-
-    public int getLoginTimeout() throws SQLException
-    { return pbds.getLoginTimeout(); }
-
-    public void setLoginTimeout(int seconds) throws SQLException
-    { pbds.setLoginTimeout( seconds ); }
-
-    //implementation of com.mchange.v2.c3p0.PoolingDataSource
-    public int getNumConnections() throws SQLException
-    { return pbds.getNumConnections(); }
-
-    public int getNumIdleConnections() throws SQLException
-    { return pbds.getNumIdleConnections(); }
-
-    public int getNumBusyConnections() throws SQLException
-    { return pbds.getNumBusyConnections(); }
-
-    public int getNumUnclosedOrphanedConnections() throws SQLException
-    { return pbds.getNumUnclosedOrphanedConnections(); }
-
-    public int getNumConnectionsDefaultUser() throws SQLException
-    { return pbds.getNumConnectionsDefaultUser(); }
-
-    public int getNumIdleConnectionsDefaultUser() throws SQLException
-    { return pbds.getNumIdleConnectionsDefaultUser(); }
-
-    public int getNumBusyConnectionsDefaultUser() throws SQLException
-    { return pbds.getNumBusyConnectionsDefaultUser(); }
-
-    public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException
-    { return pbds.getNumUnclosedOrphanedConnectionsDefaultUser(); }
-
-    public void softResetDefaultUser() throws SQLException
-    { pbds.softResetDefaultUser();}
-
-    public int getNumConnections(String username, String password) throws SQLException
-    { return pbds.getNumConnections( username, password ); }
-
-    public int getNumIdleConnections(String username, String password) throws SQLException
-    { return pbds.getNumIdleConnections( username, password ); }
-
-    public int getNumBusyConnections(String username, String password) throws SQLException
-    { return pbds.getNumBusyConnections( username, password ); }
-
-    public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException
-    { return pbds.getNumUnclosedOrphanedConnections( username, password ); }
-
-    public void softReset(String username, String password) throws SQLException
-    { pbds.softReset( username, password );}
-
-    public int getNumBusyConnectionsAllUsers() throws SQLException
-    { return pbds.getNumBusyConnectionsAllUsers(); }
-
-    public int getNumIdleConnectionsAllUsers() throws SQLException
-    { return pbds.getNumIdleConnectionsAllUsers(); }
-
-    public int getNumConnectionsAllUsers() throws SQLException
-    { return pbds.getNumConnectionsAllUsers(); }
-
-    public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException
-    { return pbds.getNumUnclosedOrphanedConnectionsAllUsers(); }
-
-    public void softResetAllUsers() throws SQLException
-    { pbds.softResetAllUsers();}
-
-    public int getNumUserPools() throws SQLException
-    { return pbds.getNumUserPools(); }
-
-
-    public Collection getAllUsers() throws SQLException
-    { return pbds.getAllUsers(); }
-
-    public void hardReset() throws SQLException
-    { pbds.hardReset(); }
-
-    public void close() throws SQLException
-    { pbds.close(); }
-
-    public void close( boolean force_destroy ) throws SQLException
-    { pbds.close( force_destroy ); }
-
-    public String toString()
-    {
-	StringBuffer sb = new StringBuffer(255);
-	sb.append( super.toString() );
-	sb.append("[ ");
-	try { BeansUtils.appendPropNamesAndValues(sb, this, TO_STRING_IGNORE_PROPS); }
-	catch (Exception e)
-	    { sb.append( e.toString() ); }
-	sb.append(" ]");
-
-// 	Map userOverrides = wcpds.getUserOverrides();
-// 	if (userOverrides != null)
-// 	    sb.append("; userOverrides: " + userOverrides.toString());
-
-	return sb.toString();
-    }
-}
-
+*/

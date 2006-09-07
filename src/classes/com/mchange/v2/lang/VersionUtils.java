@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -35,6 +35,8 @@ public final class VersionUtils
     private final static int[] JDK_VERSION_ARRAY;
     private final static int JDK_VERSION; //two digit int... 10 for 1.0, 11 for 1.1, etc.
 
+    private final static Integer NUM_BITS;
+
     static
     {
 	String vstr = System.getProperty( "java.version" );
@@ -65,7 +67,39 @@ public final class VersionUtils
 	JDK_VERSION = jdkv;
 
 	//System.err.println( JDK_VERSION );
+
+	Integer tmpNumBits;
+	try
+	    {
+		String numBitsStr = System.getProperty("sun.arch.data.model");
+		if (numBitsStr == null)
+		    tmpNumBits = null;
+		else
+		    tmpNumBits = new Integer( numBitsStr );
+	    }
+	catch (Exception e)
+	    {
+		tmpNumBits = null;
+	    }
+
+	if (tmpNumBits == null || tmpNumBits.intValue() == 32 || tmpNumBits.intValue() == 64)
+	    NUM_BITS = tmpNumBits;
+	else
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.warning("Determined a surprising jvmNumerOfBits: " + tmpNumBits + 
+				   ". Setting jvmNumberOfBits to unknown (null).");
+		NUM_BITS = null;
+	    }
     }
+
+    /**
+     *  @return null if unknown, 
+     *          an Integer (as of 2006 always 32 or 64)
+     *          otherwise
+     */
+    public static Integer jvmNumberOfBits()
+    { return NUM_BITS; }
 
     public static boolean isJavaVersion10()
     { return (JDK_VERSION == 10); }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -35,8 +35,7 @@ import java.lang.reflect.Method;
 import com.mchange.v2.lang.ObjectUtils;
 import com.mchange.v2.sql.SqlUtils;
 
-public final class NewPooledConnection implements PooledConnection
-{
+public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     private final static MLogger logger = MLog.getLogger( NewPooledConnection.class );
 
     //MT: thread-safe post-constructor constants
@@ -44,6 +43,7 @@ public final class NewPooledConnection implements PooledConnection
     final ConnectionTester       connectionTester;
     final boolean                autoCommitOnClose;
     final boolean                forceIgnoreUnresolvedTransactions;
+    final String                 preferredTestQuery;
     final boolean                supports_setHoldability;
     final boolean                supports_setReadOnly;
     final boolean                supports_setTypeMap;
@@ -76,12 +76,24 @@ public final class NewPooledConnection implements PooledConnection
     public NewPooledConnection(Connection con, 
 			       ConnectionTester connectionTester,
 			       boolean autoCommitOnClose, 
-			       boolean forceIgnoreUnresolvedTransactions) throws SQLException
+			       boolean forceIgnoreUnresolvedTransactions,
+			       String  preferredTestQuery,
+			       ConnectionCustomizer cc,
+			       String pdsIdt) throws SQLException
     { 
+	try
+	    {
+		if (cc != null)
+		    cc.onAcquire( con, pdsIdt );
+	    }
+	catch (Exception e)
+	    { throw SqlUtils.toSQLException(e); }
+
 	this.physicalConnection                = con; 
 	this.connectionTester                  = connectionTester;
 	this.autoCommitOnClose                 = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
+	this.preferredTestQuery                = preferredTestQuery;
 	this.supports_setHoldability           = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ Integer.class });
 	this.supports_setReadOnly              = C3P0ImplUtils.supportsMethod(con, "setReadOnly", new Class[]{ Boolean.class });
 	this.supports_setTypeMap               = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
@@ -352,7 +364,13 @@ public final class NewPooledConnection implements PooledConnection
 
 	SQLException sqle = SqlUtils.toSQLException( t );
 	//logger.warning("handle throwable ct: " + connectionTester);
-	int status = connectionTester.statusOnException( physicalConnection, sqle );
+
+	int status;
+	if (connectionTester instanceof FullQueryConnectionTester)
+	    status = ((FullQueryConnectionTester) connectionTester).statusOnException( physicalConnection, sqle, preferredTestQuery );
+	else
+	    status = connectionTester.statusOnException( physicalConnection, sqle );
+
 	updateConnectionStatus( status ); 
 	if (status != ConnectionTester.CONNECTION_IS_OKAY)
 	    {
@@ -602,6 +620,10 @@ public final class NewPooledConnection implements PooledConnection
 	    }
 	return out;
     }
+
+    //used by C3P0PooledConnectionPool
+    Connection getPhysicalConnection()
+    { return physicalConnection; }
 
     // static utility functions
     private static void logCloseExceptions( Throwable cause, Collection exceptions )

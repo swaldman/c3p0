@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre6
+ * Distributed as part of c3p0 v.0.9.1-pre7
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -24,6 +24,8 @@
 package com.mchange.v2.c3p0.impl;
 
 import com.mchange.v2.c3p0.stmt.*;
+import com.mchange.v2.c3p0.ConnectionCustomizer;
+import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -67,23 +69,31 @@ public final class C3P0PooledConnectionPool
 
     C3P0PooledConnectionPool( final ConnectionPoolDataSource cpds,
 			      final DbAuth auth,
-			      int  min, 
-			      int  max, 
-			      int  inc,
+			      int min, 
+			      int max, 
+			      int start,
+			      int inc,
 			      int acq_retry_attempts,
 			      int acq_retry_delay,
 			      boolean break_after_acq_failure,
 			      int checkoutTimeout, //milliseconds
 			      int idleConnectionTestPeriod, //seconds
 			      int maxIdleTime, //seconds
+			      int maxIdleTimeExcessConnections, //seconds
+			      int maxConnectionAge, //seconds
+			      int propertyCycle, //seconds
+			      int unreturnedConnectionTimeout, //seconds
+			      boolean debugUnreturnedConnectionStackTraces,
 			      final boolean testConnectionOnCheckout,
 			      final boolean testConnectionOnCheckin,
 			      int maxStatements,
 			      int maxStatementsPerConnection,
 			      final ConnectionTester connectionTester,
+			      final ConnectionCustomizer connectionCustomizer,
 			      final String testQuery,
 			      final ResourcePoolFactory fact,
-			      ThreadPoolAsynchronousRunner taskRunner) throws SQLException
+			      ThreadPoolAsynchronousRunner taskRunner,
+			      final String parentDataSourceIdentityToken) throws SQLException
     {
         try
 	    {
@@ -104,19 +114,42 @@ public final class C3P0PooledConnectionPool
 
 		class PooledConnectionResourcePoolManager implements ResourcePool.Manager
 		{	
-		    SynchronizedIntHolder totalOpenedCounter  = new SynchronizedIntHolder();
-		    SynchronizedIntHolder connectionCounter   = new SynchronizedIntHolder();
-		    SynchronizedIntHolder failedCloseCounter  = new SynchronizedIntHolder();
+		    //SynchronizedIntHolder totalOpenedCounter  = new SynchronizedIntHolder();
+		    //SynchronizedIntHolder connectionCounter   = new SynchronizedIntHolder();
+		    //SynchronizedIntHolder failedCloseCounter  = new SynchronizedIntHolder();
 		    
 		    public Object acquireResource() throws Exception
 		    { 
-			PooledConnection out = (auth.equals( C3P0ImplUtils.NULL_AUTH ) ?
-						cpds.getPooledConnection() :
-						cpds.getPooledConnection( auth.getUser(), 
-									  auth.getPassword() ) );
-			
-			connectionCounter.increment(); 
-			totalOpenedCounter.increment();
+			PooledConnection out;
+
+			if ( connectionCustomizer == null)
+			    {
+				out = (auth.equals( C3P0ImplUtils.NULL_AUTH ) ?
+				       cpds.getPooledConnection() :
+				       cpds.getPooledConnection( auth.getUser(), 
+								 auth.getPassword() ) );
+			    }
+			else
+			    {
+				try
+				    { 
+					WrapperConnectionPoolDataSourceBase wcpds = (WrapperConnectionPoolDataSourceBase) cpds;
+
+					out = (auth.equals( C3P0ImplUtils.NULL_AUTH ) ?
+					       wcpds.getPooledConnection( connectionCustomizer, parentDataSourceIdentityToken ) :
+					       wcpds.getPooledConnection( auth.getUser(), 
+									  auth.getPassword(),
+									  connectionCustomizer, parentDataSourceIdentityToken ) );
+				    }
+				catch (ClassCastException e)
+				    {
+					throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 ConnectionPoolDataSource." +
+								      " ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+				    }
+			    }
+
+			//connectionCounter.increment(); 
+			//totalOpenedCounter.increment();
 			
 			try
 			    {
@@ -159,10 +192,10 @@ public final class C3P0PooledConnectionPool
 			finally
 			    {
 				if (logger.isLoggable( MLevel.FINEST ))
-				    logger.finest(this + ".acquireResource() returning. " +
-						  "Currently open Connections: " + connectionCounter.getValue() +
-						  "; Failed close count: " + failedCloseCounter.getValue() +
-						  "; Total processed by this pool: " + totalOpenedCounter.getValue());
+				    logger.finest(this + ".acquireResource() returning. " );
+						  //"Currently open Connections: " + connectionCounter.getValue() +
+						  //"; Failed close count: " + failedCloseCounter.getValue() +
+						  //"; Total processed by this pool: " + totalOpenedCounter.getValue());
 			    }
 		    }
 		    
@@ -181,10 +214,40 @@ public final class C3P0PooledConnectionPool
 				else
 				    testPooledConnection( resc );
 			    }
+			if ( connectionCustomizer != null )
+			    {
+				Connection physicalConnection = null;
+				try
+				    { 
+					physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
+					connectionCustomizer.onCheckOut( physicalConnection, parentDataSourceIdentityToken );
+				    }
+				catch (ClassCastException e)
+				    {
+					throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
+								      " PooledConnection: " + resc + 
+								      "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+				    }
+			    }
 		    }
 		    
 		    public void refurbishResourceOnCheckin( Object resc ) throws Exception
 		    {
+			if ( connectionCustomizer != null )
+			    {
+				Connection physicalConnection = null;
+				try
+				    { 
+					physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
+					connectionCustomizer.onCheckIn( physicalConnection, parentDataSourceIdentityToken );
+				    }
+				catch (ClassCastException e)
+				    {
+					throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
+								      " PooledConnection: " + resc + 
+								      "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+				    }
+			    }
 			if ( testConnectionOnCheckin )
 			    { 
 				if ( logger.isLoggable( MLevel.FINER ) )
@@ -293,29 +356,55 @@ public final class C3P0PooledConnectionPool
 		    { 
 			try
 			    {
+				if ( connectionCustomizer != null )
+				    {
+					Connection physicalConnection = null;
+					try
+					    { 
+						physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
+						connectionCustomizer.onDestroy( physicalConnection, parentDataSourceIdentityToken );
+					    }
+					catch (ClassCastException e)
+					    {
+						throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
+									      " PooledConnection: " + resc + 
+									      "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+					    }
+					catch (Exception e)
+					    {
+						if (logger.isLoggable( MLevel.WARNING ))
+						    logger.log( MLevel.WARNING,
+								"An exception occurred while executing the onDestroy() method of " + connectionCustomizer +
+								". c3p0 will attempt to destroy the target Connection regardless, but this issue " +
+								" should be investigated and fixed.",
+								e );
+					    }
+				    }
+
 				if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
 				    logger.log( MLevel.FINER, "Preparing to destroy PooledConnection: " + resc);
 				
 				((PooledConnection) resc).close();
 				
-				connectionCounter.decrement();
+				// inaccurate, as Connections can be removed more than once
+				//connectionCounter.decrement();
 				
 				if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
 				    logger.log( MLevel.FINER, 
-						"Successfully destroyed PooledConnection: " + resc + 
-						". Currently open Connections: " + connectionCounter.getValue() +
-						"; Failed close count: " + failedCloseCounter.getValue() +
-						"; Total processed by this pool: " + totalOpenedCounter.getValue());
+						"Successfully destroyed PooledConnection: " + resc );
+						//". Currently open Connections: " + connectionCounter.getValue() +
+						//"; Failed close count: " + failedCloseCounter.getValue() +
+						//"; Total processed by this pool: " + totalOpenedCounter.getValue());
 			    }
 			catch (Exception e)
 			    {
-				failedCloseCounter.increment();
+				//failedCloseCounter.increment();
 
 				if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
-				    logger.log( MLevel.FINER, "Failed to destroy PooledConnection: " + resc +
-						". Currently open Connections: " + connectionCounter.getValue() +
-						"; Failed close count: " + failedCloseCounter.getValue() +
-						"; Total processed by this pool: " + totalOpenedCounter.getValue());
+				    logger.log( MLevel.FINER, "Failed to destroy PooledConnection: " + resc );
+						//". Currently open Connections: " + connectionCounter.getValue() +
+						//"; Failed close count: " + failedCloseCounter.getValue() +
+						//"; Total processed by this pool: " + totalOpenedCounter.getValue());
 				
 				throw e;
 			    }
@@ -328,13 +417,18 @@ public final class C3P0PooledConnectionPool
 		    {
 			fact.setMin( min );
 			fact.setMax( max );
+			fact.setStart( start );
 			fact.setIncrement( inc );
 			fact.setIdleResourceTestPeriod( idleConnectionTestPeriod * 1000);
-			fact.setResourceMaxAge( maxIdleTime * 1000 );
+			fact.setResourceMaxIdleTime( maxIdleTime * 1000 );
+			fact.setExcessResourceMaxIdleTime( maxIdleTimeExcessConnections * 1000 );
+			fact.setResourceMaxAge( maxConnectionAge * 1000 );
+			fact.setExpirationEnforcementDelay( propertyCycle * 1000 );
+			fact.setDestroyOverdueResourceTime( unreturnedConnectionTimeout * 1000 );
+			fact.setDebugStoreCheckoutStackTrace( debugUnreturnedConnectionStackTraces );
 			fact.setAcquisitionRetryAttempts( acq_retry_attempts );
 			fact.setAcquisitionRetryDelay( acq_retry_delay );
 			fact.setBreakOnAcquisitionFailure( break_after_acq_failure );
-			fact.setAgeIsAbsolute( false ); //we timeout Connections only when idle
 			rp = fact.createPool( manager );
 		    }
 	    }
@@ -359,6 +453,14 @@ public final class C3P0PooledConnectionPool
 	//System.err.println(this + " -- CHECKIN");
         try { rp.checkinResource( pcon ); } 
         catch (ResourcePoolException e)
+	    { throw SqlUtils.toSQLException(e); }
+    }
+
+    public float getEffectivePropertyCycle() throws SQLException
+    {
+	try
+	    { return rp.getEffectiveExpirationEnforcementDelay() / 1000f; }
+	catch (ResourcePoolException e)
 	    { throw SqlUtils.toSQLException(e); }
     }
     
