@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -38,7 +38,6 @@ import javax.sql.PooledConnection;
 import com.mchange.v1.db.sql.ConnectionUtils;
 import com.mchange.v2.async.AsynchronousRunner;
 import com.mchange.v2.async.ThreadPoolAsynchronousRunner;
-import com.mchange.v2.holders.SynchronizedIntHolder;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
@@ -117,6 +116,9 @@ public final class C3P0PooledConnectionPool
 		    //SynchronizedIntHolder totalOpenedCounter  = new SynchronizedIntHolder();
 		    //SynchronizedIntHolder connectionCounter   = new SynchronizedIntHolder();
 		    //SynchronizedIntHolder failedCloseCounter  = new SynchronizedIntHolder();
+            
+            final boolean connectionTesterIsDefault = (connectionTester instanceof DefaultConnectionTester);
+            final boolean c3p0PooledConnections = (cpds instanceof WrapperConnectionPoolDataSource);
 		    
 		    public Object acquireResource() throws Exception
 		    { 
@@ -155,10 +157,8 @@ public final class C3P0PooledConnectionPool
 			    {
 				if (scache != null)
 				    {
-					if (out instanceof C3P0PooledConnection)
-					    ((C3P0PooledConnection) out).initStatementCache(scache);
-					else if (out instanceof NewPooledConnection)
-					    ((NewPooledConnection) out).initStatementCache(scache);
+					if (c3p0PooledConnections)
+					    ((AbstractC3P0PooledConnection) out).initStatementCache(scache);
 					else
 					    {
 						// System.err.print("Warning! StatementPooling not ");
@@ -294,12 +294,36 @@ public final class C3P0PooledConnectionPool
 				pc.removeConnectionEventListener( cl );
 				
 				conn = pc.getConnection(); //checkout proxy connection
+
+				// if this is a c3p0 pooled-connection, let's get underneath the
+				// proxy wrapper, and test the physical connection sometimes. 
+                // this is faster, when the testQuery would not otherwise be cached,
+				// and it avoids a potential statusOnException() double-check by the
+				// PooledConnection implementation should the test query provoke an
+				// Exception
+				Connection testConn;
+                if (scache != null) //when there is a statement cache...
+                {
+                    // if it's the slow, default query, faster to test the raw Connection 
+                    if (testQuery == null && connectionTesterIsDefault && c3p0PooledConnections)
+                        testConn = ((AbstractC3P0PooledConnection) pc).getPhysicalConnection();
+                    else //test will likely be faster on the proxied Connection, because the test query is probably cached
+                        testConn = conn; 
+                }
+                else //where there's no statement cache, better to use the physical connection, if we can get it
+                {
+                    if (c3p0PooledConnections)
+                        testConn = ((AbstractC3P0PooledConnection) pc).getPhysicalConnection();
+                    else    
+                        testConn = conn;
+                }
+                
 				if ( testQuery == null )
-				    status = connectionTester.activeCheckConnection( conn );
+				    status = connectionTester.activeCheckConnection( testConn );
 				else
 				    {
 					if (connectionTester instanceof QueryConnectionTester)
-					    status = ((QueryConnectionTester) connectionTester).activeCheckConnection( conn, testQuery );
+					    status = ((QueryConnectionTester) connectionTester).activeCheckConnection( testConn, testQuery );
 					else
 					    {
 						// System.err.println("[c3p0] WARNING: testQuery '" + testQuery +
@@ -309,9 +333,9 @@ public final class C3P0PooledConnectionPool
 
 						logger.warning("[c3p0] testQuery '" + testQuery +
 							       "' ignored. Please set a ConnectionTester that implements " +
-							       "com.mchange.v2.c3p0.advanced.QueryConnectionTester, or use the " +
+							       "com.mchange.v2.c3p0.QueryConnectionTester, or use the " +
 							       "DefaultConnectionTester, to test with the testQuery.");
-						status = connectionTester.activeCheckConnection( conn );
+						status = connectionTester.activeCheckConnection( testConn );
 					    }
 				    }
 			    }

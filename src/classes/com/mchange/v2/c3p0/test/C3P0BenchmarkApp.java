@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -28,6 +28,7 @@ import java.sql.*;
 import javax.sql.*;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v1.db.sql.*;
+import com.mchange.v2.c3p0.DriverManagerDataSource;
 
 public final class C3P0BenchmarkApp
 {
@@ -50,6 +51,13 @@ public final class C3P0BenchmarkApp
 
     public static void main(String[] argv)
     {
+        if (argv.length > 0)
+        {
+            System.err.println( C3P0BenchmarkApp.class.getName() + 
+                                " now requires no args. Please set everything in standard c3p0 config files.");
+            return;                    
+        }
+        
 //      com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).info("this is some info.");
 // 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.WARNING, "this is a warning.", new Exception("test"));
 // 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.FINE, "this is fine.");
@@ -62,7 +70,7 @@ public final class C3P0BenchmarkApp
 	DataSource ds_pooled   = null;
 	try
 	    {
-		
+/*		
 		String jdbc_url = null;
 		String username = null;
 		String password = null;
@@ -83,7 +91,8 @@ public final class C3P0BenchmarkApp
 
 		if (! jdbc_url.startsWith("jdbc:") )
 		    usage();
-
+*/
+        
 //  		ds_unpooled = DriverManagerDataSourceFactory.create(jdbc_url, username, password);
 
 //  		ds_pooled
@@ -97,8 +106,9 @@ public final class C3P0BenchmarkApp
 //      							 0,
 //      							 100 );
 
-		ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+		//ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
 		//ds_pooled = DataSources.pooledDataSource( ds_unpooled );
+        ds_unpooled = new DriverManagerDataSource();
 
    		//DataSource ds_unpooled_screwy = C3P0TestUtils.unreliableCommitDataSource( ds_unpooled );
    		//ds_pooled = DataSources.pooledDataSource( ds_unpooled_screwy );
@@ -109,11 +119,13 @@ public final class C3P0BenchmarkApp
 //  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
 //  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, "foo", "goo" );
 
+        //ds_pooled = DataSources.pooledDataSource(ds_unpooled);
+        
 		//ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
  		ComboPooledDataSource cpds = new ComboPooledDataSource();
- 		cpds.setJdbcUrl( jdbc_url );
- 		cpds.setUser( username );
- 		cpds.setPassword( password );
+ 		//cpds.setJdbcUrl( jdbc_url );
+ 		//cpds.setUser( username );
+ 		//cpds.setPassword( password );
  		ds_pooled = cpds;
 
  		create(ds_pooled);
@@ -156,6 +168,7 @@ public final class C3P0BenchmarkApp
 	    }
     }
 
+    /*
     private static void usage()
     {
 	System.err.println("java " +
@@ -164,7 +177,7 @@ public final class C3P0BenchmarkApp
 			   " <jdbc_url> [<username> <password>]" );
 	System.exit(-1);
     }
-
+*/
     static void create(DataSource ds)
 	throws SQLException
     {

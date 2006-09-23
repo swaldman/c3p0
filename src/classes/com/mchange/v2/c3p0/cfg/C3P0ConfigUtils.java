@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -36,7 +36,29 @@ public final class C3P0ConfigUtils
     public final static String PROPS_FILE_PROP_PFX      = "c3p0.";
     public final static int    PROPS_FILE_PROP_PFX_LEN  = 5;
 
+    private final static String[] MISSPELL_PFXS = {"/c3pO", "/c3po", "/C3P0", "/C3PO"}; 
+    
     final static MLogger logger = MLog.getLogger( C3P0ConfigUtils.class );
+    
+    static
+    {
+        if ( logger.isLoggable(MLevel.WARNING) && C3P0ConfigUtils.class.getResource( PROPS_FILE_RSRC_PATH ) == null )
+        {
+            // warn on a misspelling... its an ugly way to do this, but since resources are not listable...
+            for (int i = 0; i < MISSPELL_PFXS.length; ++i)
+            {
+                String test = MISSPELL_PFXS[i] + ".properties";
+                if (C3P0ConfigUtils.class.getResource( MISSPELL_PFXS[i] + ".properties" ) != null)
+                {
+                    logger.warning("POSSIBLY MISSPELLED c3p0.properties CONFIG RESOURCE FOUND. " +
+                                   "Please ensure the file name is c3p0.properties, all lower case, " +
+                                   "with the digit 0 (NOT the letter O) in c3p0. It should be placed " +
+                                   " in the top level of c3p0's effective classpath.");
+                    break;
+                }
+            }
+        }
+    }
 
     public static HashMap extractHardcodedC3P0Defaults(boolean stringify)
     {
@@ -101,6 +123,9 @@ public final class C3P0ConfigUtils
 	
 	return new C3P0Config( defaults, configNamesToNamedScopes ); 
     }
+    
+    public static String getPropFileConfigProperty( String prop )
+    { return MultiPropertiesConfig.readVmConfig().getProperty( prop ); }
 
     private static Properties findResourceProperties()
     { return MultiPropertiesConfig.readVmConfig().getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }

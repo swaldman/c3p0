@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -103,8 +103,8 @@ public abstract class MultiPropertiesConfig
 			    }
 			else
 			    {
-				//System.err.println("Resource path list could not be found at resource path: " + VM_CONFIG_RSRC_PATHS);
-				//System.err.println("Using empty vmconfig.");
+				System.err.println("com.mchange.v2.cfg.MultiPropertiesConfig: Resource path list could not be found at resource path: " + VM_CONFIG_RSRC_PATHS);
+				System.err.println("com.mchange.v2.cfg.MultiPropertiesConfig: Using empty vmconfig.");
 				vmConfig = EMPTY;
 			    }
 		    }

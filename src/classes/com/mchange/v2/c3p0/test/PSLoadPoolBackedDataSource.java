@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -33,15 +33,25 @@ public final class PSLoadPoolBackedDataSource
 {
     final static String INSERT_STMT = "INSERT INTO testpbds VALUES ( ? , ? )";
     final static String SELECT_STMT = "SELECT count(*) FROM testpbds";
+    final static String DELETE_STMT = "DELETE FROM testpbds";
 
     static Random random = new Random();
     static DataSource ds;
 
     public static void main(String[] argv)
     {
-	String jdbc_url = null;
-	String username = null;
-	String password = null;
+        if (argv.length > 0)
+        {
+            System.err.println( PSLoadPoolBackedDataSource.class.getName() + 
+                                " now requires no args. Please set everything in standard c3p0 config files.");
+            return;                    
+        }
+
+        String jdbc_url = null;
+        String username = null;
+        String password = null;
+
+        /*
 	if (argv.length == 3)
 	    {
 		jdbc_url = argv[0];
@@ -59,11 +69,12 @@ public final class PSLoadPoolBackedDataSource
 	
 	if (! jdbc_url.startsWith("jdbc:") )
 	    usage();
-	
+	   */
 	
 	try
 	    {
-		DataSource ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+        //DataSource ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+        DataSource ds_unpooled = DataSources.unpooledDataSource();
 		ds = DataSources.pooledDataSource( ds_unpooled );
 
 		Connection con = null;
@@ -113,12 +124,19 @@ public final class PSLoadPoolBackedDataSource
 			    try
 				{
 				    con = ds.getConnection();
-				    boolean select = random.nextBoolean();
-				    //boolean select = true; //CHURNSELECTTEST
-				    if (select)
-					executeSelect( con );
-				    else
-					executeInsert( con );
+				    int select = random.nextInt(3);
+                    switch (select)
+                    {
+                    case 0:
+                        executeSelect( con );
+                        break;
+                    case 1:
+                        executeInsert( con );
+                        break;
+                    case 2:
+                        executeDelete( con );
+                        break;
+                    }
 				}
  			    catch (Exception e)
  				{ e.printStackTrace(); }
@@ -174,6 +192,24 @@ public final class PSLoadPoolBackedDataSource
 	    }
     }
 
+    static void executeDelete(Connection con) throws SQLException
+    {
+    PreparedStatement pstmt = null;
+    ResultSet rs   = null;
+    try
+        {
+        pstmt = con.prepareStatement(DELETE_STMT);
+        int deleted = pstmt.executeUpdate();
+        System.out.println("DELETE [" + deleted + " rows]");
+        }
+    finally
+        {
+        ResultSetUtils.attemptClose( rs );
+        StatementUtils.attemptClose( pstmt );
+        }
+    }
+    
+    /*
     private static void usage()
     {
 	System.err.println("java " +
@@ -182,4 +218,5 @@ public final class PSLoadPoolBackedDataSource
 			   " <jdbc_url> [<username> <password>]" );
 	System.exit(-1);
     }
+    */
 }

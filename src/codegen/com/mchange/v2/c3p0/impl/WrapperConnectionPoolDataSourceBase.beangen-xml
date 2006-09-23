@@ -1,5 +1,3 @@
-<!-- DON'T FORGET TO CALL C3P0Registry.register( this ) AT CONSTRUCTION OF CONCRETE SUBCLASS -->
-
 <beangen>
   <package>com.mchange.v2.c3p0.impl</package>
   <imports>

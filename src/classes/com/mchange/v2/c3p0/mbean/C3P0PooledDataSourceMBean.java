@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -29,6 +29,9 @@ import java.sql.SQLException;
 import java.util.Properties;
 import javax.naming.NamingException;
 
+/**
+ * @deprecated Please use com.mchange.v2.c3p0.jboss.C3P0PooledDataSourceMBean
+ */
 public interface C3P0PooledDataSourceMBean
 {
     // Jndi Setup 

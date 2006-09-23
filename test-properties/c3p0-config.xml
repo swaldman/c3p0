@@ -25,13 +25,14 @@
 
   </default-config>
 
-  <!--
+<!--
   <named-config name="dumbTestConfig">
     <property name="maxStatements">200</property>
+    <property name="jdbcUrl">jdbc:test</property>
     <user-overrides user="poop">
       <property name="maxStatements">300</property>
     </user-overrides>
    </named-config>
-  -->
+-->
 
 </c3p0-config>

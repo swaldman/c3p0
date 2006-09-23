@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -108,6 +108,14 @@ public final class ClassUtils
 
     public static Class classForPrimitive(String typeStr)
     { return (Class) primitivesToClasses.get( typeStr ); }
+    
+    public static Class forName(String fqcnOrPrimitive ) throws ClassNotFoundException
+    {
+        Class out = classForPrimitive( fqcnOrPrimitive );
+        if (out == null)
+            out = Class.forName( fqcnOrPrimitive );
+        return out;
+    }
 
     public static Class forName( String fqOrSimple,  String[] importPkgs, String[] importClasses )
 	throws AmbiguousClassNameException, ClassNotFoundException

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -36,7 +36,7 @@ public final class C3P0Defaults
     private final static int INITIAL_POOL_SIZE                = 3;  
     private final static int MIN_POOL_SIZE                    = 3;
     private final static int MAX_POOL_SIZE                    = 15;
-    private final static int IDLE_CONNECTION_TEST_PERIOD      = -1; //idle connections never tested
+    private final static int IDLE_CONNECTION_TEST_PERIOD      = 0;  //idle connections never tested
     private final static int MAX_IDLE_TIME                    = 0;  //seconds, 0 means connections never expire
     private final static int PROPERTY_CYCLE                   = 0;  //seconds
     private final static int ACQUIRE_INCREMENT                = 3;
@@ -62,6 +62,8 @@ public final class C3P0Defaults
 
     private final static String AUTOMATIC_TEST_TABLE             = null;
     private final static String CONNECTION_CUSTOMIZER_CLASS_NAME = null;
+    private final static String DRIVER_CLASS                     = null;
+    private final static String JDBC_URL                         = null;
     private final static String OVERRIDE_DEFAULT_USER            = null;
     private final static String OVERRIDE_DEFAULT_PASSWORD        = null;
     private final static String PASSWORD                         = null;
@@ -141,6 +143,12 @@ public final class C3P0Defaults
 
     public static String automaticTestTable()
     { return AUTOMATIC_TEST_TABLE; }
+
+    public static String driverClass()
+    { return DRIVER_CLASS; }
+
+    public static String jdbcUrl()
+    { return JDBC_URL; }
 
     public static int numHelperThreads()
     { return NUM_HELPER_THREADS; }

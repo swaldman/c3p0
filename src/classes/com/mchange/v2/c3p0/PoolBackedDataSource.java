@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -22,6 +22,8 @@
 
 
 package com.mchange.v2.c3p0;
+
+import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;
 
 public final class PoolBackedDataSource extends AbstractPoolBackedDataSource implements PooledDataSource
 {

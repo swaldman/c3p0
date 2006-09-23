@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -168,8 +168,9 @@ public interface PooledDataSource extends DataSource
     public int getThreadPoolNumActiveThreads() throws SQLException;
     public int getThreadPoolNumIdleThreads() throws SQLException;
     public int getThreadPoolNumTasksPending() throws SQLException;
-    public String getThreadPoolStackTraces() throws SQLException;
-    public String getThreadPoolStatus() throws SQLException;
+
+    public String sampleThreadPoolStackTraces() throws SQLException;
+    public String sampleThreadPoolStatus() throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource
@@ -227,8 +228,11 @@ public interface PooledDataSource extends DataSource
      *
      * <p><b>To close a pool normally, use the no argument close method, or set <tt>force_destroy</tt>
      *    to false.</b></p>
+     *    
+     *  @deprecated the force_destroy argument is now meaningless, as pools are no longer
+     *              potentially shared between multiple DataSources.
      *
-     *   @see #close()
+     *  @see #close()
      */
     public void close(boolean force_destory) throws SQLException;
 }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -40,9 +40,17 @@ public final class LoadPoolBackedDataSource
 
     public static void main(String[] argv)
     {
-	String jdbc_url = null;
-	String username = null;
-	String password = null;
+        if (argv.length > 0)
+        {
+            System.err.println( LoadPoolBackedDataSource.class.getName() + 
+                                " now requires no args. Please set everything in standard c3p0 config files.");
+            return;                    
+        }
+        String jdbc_url = null;
+        String username = null;
+        String password = null;
+
+    /*       
 	if (argv.length == 3)
 	    {
 		jdbc_url = argv[0];
@@ -60,11 +68,12 @@ public final class LoadPoolBackedDataSource
 	
 	if (! jdbc_url.startsWith("jdbc:") )
 	    usage();
-	
+*/	
 	
 	try
 	    {
-		DataSource ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+        //DataSource ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+        DataSource ds_unpooled = DataSources.unpooledDataSource();
 		ds = DataSources.pooledDataSource( ds_unpooled );
 
 		Connection con = null;
@@ -140,11 +149,19 @@ public final class LoadPoolBackedDataSource
 			    try
 				{
 				    con = ds.getConnection();
-				    boolean select = random.nextBoolean();
-				    if (select)
-					executeSelect( con );
-				    else
-					executeInsert( con );
+				    int select = random.nextInt(3);
+                    switch (select)
+                    {
+                    case 0:
+                        executeSelect( con );
+                        break;
+                    case 1:
+                        executeInsert( con );
+                        break;
+                    case 2:
+                        executeDelete( con );
+                        break;
+                    }
 				    PooledDataSource pds = (PooledDataSource) ds;
 				    System.out.println( pds.getNumConnectionsDefaultUser() );
 				    System.out.println( pds.getNumIdleConnectionsDefaultUser() );
@@ -177,6 +194,21 @@ public final class LoadPoolBackedDataSource
 	    {
 		StatementUtils.attemptClose( stmt );
 	    }
+    }
+
+    static void executeDelete(Connection con) throws SQLException
+    {
+    Statement stmt = null;
+    try
+        {
+        stmt = con.createStatement();
+        stmt.executeUpdate("DELETE FROM testpbds;");
+        System.out.println("DELETION");
+        }
+    finally
+        {
+        StatementUtils.attemptClose( stmt );
+        }
     }
 
     static void executeSelect(Connection con) throws SQLException

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -24,7 +24,6 @@
 package com.mchange.v2.c3p0;
 
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyVetoException;
 import java.sql.SQLException;
 import java.util.Properties;
 import javax.sql.DataSource;
@@ -59,8 +58,6 @@ public final class DriverManagerDataSourceFactory
 				    String refFactoryLoc)
 	throws SQLException
     { 
-	try
-	    {
 		DriverManagerDataSource out = new DriverManagerDataSource();
 		out.setDriverClass( driverClass );
 		out.setJdbcUrl( jdbcUrl );
@@ -68,13 +65,6 @@ public final class DriverManagerDataSourceFactory
 		out.setPassword( dfltPassword );
 		out.setFactoryClassLocation( refFactoryLoc );
 		return out;
-	    }
-	catch ( PropertyVetoException e )
-	    {
-		e.printStackTrace();
-		PropertyChangeEvent evt = e.getPropertyChangeEvent();
-		throw new SQLException("Illegal value attempted for property " + evt.getPropertyName() + ": " + evt.getNewValue());
-	    }
     }
 
     /**
@@ -94,21 +84,12 @@ public final class DriverManagerDataSourceFactory
 				    String refFactoryLoc)
 	throws SQLException
     { 
-	try
-	    {
 		DriverManagerDataSource out = new DriverManagerDataSource();
 		out.setDriverClass( driverClass );
 		out.setJdbcUrl( jdbcUrl );
 		out.setProperties( props );
 		out.setFactoryClassLocation( refFactoryLoc );
 		return out;
-	    }
-	catch ( PropertyVetoException e )
-	    {
-		e.printStackTrace();
-		PropertyChangeEvent evt = e.getPropertyChangeEvent();
-		throw new SQLException("Illegal value attempted for property " + evt.getPropertyName() + ": " + evt.getNewValue());
-	    }
     } 
 
     /**

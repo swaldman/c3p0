@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -24,8 +24,7 @@
 package com.mchange.v2.c3p0;
 
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyVetoException;
-import java.beans.VetoableChangeListener;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -49,52 +48,65 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     //MT: protected by this' lock
     Driver driver;
+    
+    //MT: protected by this' lock
+    boolean driver_class_loaded = false;
 
     public DriverManagerDataSource()
     { this( true ); }
 
     public DriverManagerDataSource(boolean autoregister)
     {
-	super( autoregister );
+        super( autoregister );
 
-	setUpPropertyListeners();
+        setUpPropertyListeners();
 
-	String user = C3P0Config.initializeStringPropertyVar("user", null);
-	String password = C3P0Config.initializeStringPropertyVar("password", null);
+        String user = C3P0Config.initializeStringPropertyVar("user", null);
+        String password = C3P0Config.initializeStringPropertyVar("password", null);
 
-	if (user != null)
-	    this.setUser( user );
+        if (user != null)
+            this.setUser( user );
 
-	if (password != null)
-	    this.setPassword( password );
+        if (password != null)
+            this.setPassword( password );
     }
 
     private void setUpPropertyListeners()
     {
-	VetoableChangeListener registerDriverListener = new VetoableChangeListener()
-	    {
-		public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
-		{
-		    Object val = evt.getNewValue();
-		    try
-			{
-			    if ( "driverClass".equals( evt.getPropertyName() ) )
-				{
-				    String dc = (String) val;
-				    if (dc != null)
-					Class.forName( dc );
-				}
-			}
-		    catch ( ClassNotFoundException e )
-			{
-			    //e.printStackTrace();
-			    if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ) )
-				logger.log( MLevel.FINE, "ClassNotFoundException while setting driverClass", e );
-			    throw new PropertyVetoException("Could not locate driver class with name '" + val + "'.", evt);
-			}
-		}
-	    };
-	this.addVetoableChangeListener( registerDriverListener );
+        PropertyChangeListener driverClassListener = new PropertyChangeListener()
+        {
+            public void propertyChange( PropertyChangeEvent evt )
+            {
+                Object val = evt.getNewValue();
+                if ( "driverClass".equals( evt.getPropertyName() ) )
+                    setDriverClassLoaded( false );
+            }
+        };
+        this.addPropertyChangeListener( driverClassListener );
+    }
+    
+    private synchronized boolean isDriverClassLoaded()
+    { return driver_class_loaded; }
+    
+    private synchronized void setDriverClassLoaded(boolean dcl)
+    { this.driver_class_loaded = dcl; }
+    
+    private void ensureDriverLoaded() throws SQLException
+    {
+        try
+        {
+            if (! isDriverClassLoaded())
+            {
+                if (driverClass != null)
+                    Class.forName( driverClass );
+                setDriverClassLoaded( true );
+            }
+        }
+        catch (ClassNotFoundException e)
+        {
+            if (logger.isLoggable(MLevel.WARNING))
+                logger.log(MLevel.WARNING, "Could not load driverClass " + driverClass, e);
+        }
     }
 
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
@@ -103,11 +115,13 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     public Connection getConnection() throws SQLException
     { 
-	Connection out = driver().connect( jdbcUrl, properties ); 
-	if (out == null)
-	    throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
-				   "driver [" + driver() + "].");
-	return out;
+        ensureDriverLoaded();
+
+        Connection out = driver().connect( jdbcUrl, properties ); 
+        if (out == null)
+            throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
+                            "driver [" + driver() + "].");
+        return out;
     }
 
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
@@ -116,11 +130,13 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     public Connection getConnection(String username, String password) throws SQLException
     { 
-	Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );  
-	if (out == null)
-	    throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
-				   "driver [" + driver() + "].");
-	return out;
+        ensureDriverLoaded();
+
+        Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );  
+        if (out == null)
+            throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
+                            "driver [" + driver() + "].");
+        return out;
     }
 
     public PrintWriter getLogWriter() throws SQLException
@@ -138,45 +154,47 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     //overrides
     public synchronized void setJdbcUrl(String jdbcUrl)
     {
-	super.setJdbcUrl( jdbcUrl );
-	clearDriver();
+        //System.err.println( "setJdbcUrl( " + jdbcUrl + " )");
+        //new Exception("DEBUG STACK TRACE").printStackTrace();
+        super.setJdbcUrl( jdbcUrl );
+        clearDriver();
     }
 
     //"virtual properties"
     public synchronized void setUser(String user)
     {
-	String oldUser = this.getUser();
-	if (! eqOrBothNull( user, oldUser ))
-	    {
-		if (user != null)
-		    properties.put( SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user ); 
-		else
-		    properties.remove( SqlUtils.DRIVER_MANAGER_USER_PROPERTY );
+        String oldUser = this.getUser();
+        if (! eqOrBothNull( user, oldUser ))
+        {
+            if (user != null)
+                properties.put( SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user ); 
+            else
+                properties.remove( SqlUtils.DRIVER_MANAGER_USER_PROPERTY );
 
-		pcs.firePropertyChange("user", oldUser, user);
-	    }
+            pcs.firePropertyChange("user", oldUser, user);
+        }
     }
 
     public synchronized String getUser()
     {
-// 	System.err.println("getUser() -- DriverManagerDataSource@" + System.identityHashCode( this ) + 
-// 			   " using Properties@" + System.identityHashCode( properties ));
-// 	new Exception("STACK TRACE DUMP").printStackTrace();
-	return properties.getProperty( SqlUtils.DRIVER_MANAGER_USER_PROPERTY ); 
+//      System.err.println("getUser() -- DriverManagerDataSource@" + System.identityHashCode( this ) + 
+//      " using Properties@" + System.identityHashCode( properties ));
+//      new Exception("STACK TRACE DUMP").printStackTrace();
+        return properties.getProperty( SqlUtils.DRIVER_MANAGER_USER_PROPERTY ); 
     }
 
     public synchronized void setPassword(String password)
     {
-	String oldPass = this.getPassword();
-	if (! eqOrBothNull( password, oldPass ))
-	    {
-		if (password != null)
-		    properties.put( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password ); 
-		else
-		    properties.remove( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY );
+        String oldPass = this.getPassword();
+        if (! eqOrBothNull( password, oldPass ))
+        {
+            if (password != null)
+                properties.put( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password ); 
+            else
+                properties.remove( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY );
 
-		pcs.firePropertyChange("password", oldPass, password);
-	    }
+            pcs.firePropertyChange("password", oldPass, password);
+        }
     }
 
     public synchronized String getPassword()
@@ -184,27 +202,27 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     private final Properties overrideProps(String user, String password)
     {
-	Properties overriding = (Properties) properties.clone(); //we are relying on a defensive clone in our base class!!!
+        Properties overriding = (Properties) properties.clone(); //we are relying on a defensive clone in our base class!!!
 
-	if (user != null)
-	    overriding.put(SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user);
-	else
-	    overriding.remove(SqlUtils.DRIVER_MANAGER_USER_PROPERTY);
+        if (user != null)
+            overriding.put(SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user);
+        else
+            overriding.remove(SqlUtils.DRIVER_MANAGER_USER_PROPERTY);
 
-	if (password != null)
-	    overriding.put(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password);
-	else
-	    overriding.remove(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY);
+        if (password != null)
+            overriding.put(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password);
+        else
+            overriding.remove(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY);
 
-	return overriding;
+        return overriding;
     }
 
     private synchronized Driver driver() throws SQLException
     {
-	//System.err.println( "driver() <-- " + this );
-	if (driver == null)
-	    driver = DriverManager.getDriver( jdbcUrl );
-	return driver;
+        //System.err.println( "driver() <-- " + this );
+        if (driver == null)
+            driver = DriverManager.getDriver( jdbcUrl );
+        return driver;
     }
 
     private synchronized void clearDriver()
@@ -216,22 +234,22 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // serialization stuff -- set up bound/constrained property event handlers on deserialization
     private static final long serialVersionUID = 1;
     private static final short VERSION = 0x0001;
-	
+
     private void writeObject( ObjectOutputStream oos ) throws IOException
     {
-	oos.writeShort( VERSION );
+        oos.writeShort( VERSION );
     }
-	
+
     private void readObject( ObjectInputStream ois ) throws IOException, ClassNotFoundException
     {
-	short version = ois.readShort();
-	switch (version)
-	    {
-	    case VERSION:
-		setUpPropertyListeners();
-		break;
-	    default:
-		throw new IOException("Unsupported Serialized Version: " + version);
-	    }
+        short version = ois.readShort();
+        switch (version)
+        {
+        case VERSION:
+            setUpPropertyListeners();
+            break;
+        default:
+            throw new IOException("Unsupported Serialized Version: " + version);
+        }
     }
 }

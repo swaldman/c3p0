@@ -1,8 +1,9 @@
-testConnectionOnCheckout should not tie up resource pool lock during the test.
+full status dump operations from JMX beans (two methods, one std err onr to logger at INFO level?) 
+
+Statement cache statistics exposed via JMX.
+Interface to Statement-caching statistics
 
 make asynchronous checkins optional, let the default depend on the value of testConnectionOnCheckin.
-
-maxExcessConnectionIdleTime [to implement behavior navin_m on sf suggests.]
 
 A shortcut in acquire tasks that bails before attempting an acquire if the acquisition
 is no longer necessary.
@@ -10,16 +11,6 @@ is no longer necessary.
 Make visible rootCause exceptions when Connection test fails. (Looks implemented, but I don't see them. Debug.)
 
 Less confusing hibernate ConnectionProvider.
-
-Per-user configuration (thanks Ruslan)
-
-Debugging mode to track Connection acquirers (thanks Ruslan)
-
-Interface to Statement-caching statistics
-
-Optional exposure of all c3p0 pool statistics to clients that cannot obtain direct references to datasources
-
-name property for DataSources and name lookup via C3P0Registry.
 
 JUnit testing regime.
 

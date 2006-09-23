@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -277,7 +277,7 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method, idempotent
     private void _recheckResizePool()
     {
-// 	assert Thread.holdsLock(this);
+ 	assert Thread.holdsLock(this);
 
 	if (! broken)
 	    {
@@ -323,7 +323,7 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method
     private void expandPool(int count)
     {
-// 	assert Thread.holdsLock(this);
+ 	assert Thread.holdsLock(this);
 
 	for (int i = 0; i < count; ++i)
 	    taskRunner.postRunnable( new AcquireTask() );
@@ -332,7 +332,7 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method
     private void shrinkPool(int count)
     {
-// 	assert Thread.holdsLock(this);
+ 	assert Thread.holdsLock(this);
 
 	for (int i = 0; i < count; ++i)
 	    taskRunner.postRunnable( new RemoveTask() ); 
@@ -857,7 +857,7 @@ class BasicResourcePool implements ResourcePool
     //block!!!!
     private void doAcquire() throws Exception
     {
-// 	assert !Thread.holdsLock( this );
+ 	assert !Thread.holdsLock( this );
 
 	Object resc = mgr.acquireResource(); //note we acquire the resource while we DO NOT hold the pool's lock!
 	boolean destroy = false;
@@ -949,7 +949,7 @@ class BasicResourcePool implements ResourcePool
     // must own this' lock
     private void markBrokenNoEnsureMinResources(Object resc) 
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	try
 	    { 
@@ -967,7 +967,7 @@ class BasicResourcePool implements ResourcePool
     // must own this' lock
     private void _markBroken( Object resc )
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
  	if ( unused.contains( resc ) )
 	    removeResource( resc ); 
@@ -1052,7 +1052,7 @@ class BasicResourcePool implements ResourcePool
 
     private void doCheckinManaged( final Object resc ) throws ResourcePoolException
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	if (unused.contains(resc))
 	    {
@@ -1079,6 +1079,9 @@ class BasicResourcePool implements ResourcePool
 				    }
 				else
 				    {
+                    if (card != null)
+                        card.checkout_time = -1; //so we don't see this as still checked out and log an overdue cxn in removeResource()
+                    
 					removeResource( resc );
 					ensureMinResources();
 
@@ -1099,7 +1102,7 @@ class BasicResourcePool implements ResourcePool
 
     private void doCheckinExcluded( Object resc )
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	excluded.remove(resc);
 	destroyResource(resc);
@@ -1110,7 +1113,7 @@ class BasicResourcePool implements ResourcePool
      */
     private void awaitAvailable(long timeout) throws InterruptedException, TimeoutException, ResourcePoolException
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	if (force_kill_acquires)
 	    throw new ResourcePoolException("A ResourcePool cannot acquire a new resource -- the factory or source appears to be down.");
@@ -1167,7 +1170,7 @@ class BasicResourcePool implements ResourcePool
 
     private void assimilateResource( Object resc ) throws Exception
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	managed.put(resc, new PunchCard());
 	unused.add(0, resc);
@@ -1182,7 +1185,7 @@ class BasicResourcePool implements ResourcePool
     // should NOT be called from synchronized method
     private void synchronousRemoveArbitraryResource()
     { 
-// 	assert !Thread.holdsLock( this );
+ 	assert !Thread.holdsLock( this );
 
 	Object removeMe = null;
 
@@ -1216,7 +1219,7 @@ class BasicResourcePool implements ResourcePool
 
     private void removeResource(Object resc, boolean synchronous)
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	PunchCard pc = (PunchCard) managed.remove(resc);
 
@@ -1252,7 +1255,7 @@ class BasicResourcePool implements ResourcePool
     //out resource from the pool
     private void excludeResource(Object resc)
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	managed.remove(resc);
 	excluded.add(resc);
@@ -1263,7 +1266,7 @@ class BasicResourcePool implements ResourcePool
 
     private void removeTowards( int new_sz )
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	int num_to_remove = managed.size() - new_sz;
 	int count = 0;
@@ -1278,7 +1281,7 @@ class BasicResourcePool implements ResourcePool
 
     private void cullExpired()
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	if ( logger.isLoggable( MLevel.FINER ) )
 	    logger.log( MLevel.FINER, "BEGIN check for expired resources.  [" + this + "]");
@@ -1308,7 +1311,7 @@ class BasicResourcePool implements ResourcePool
 
     private void checkIdleResources()
     {
-// 	assert Thread.holdsLock( this );
+        assert Thread.holdsLock( this );
 
 	List u = cloneOfUnused();
 	for ( Iterator ii = u.iterator(); ii.hasNext(); )
@@ -1323,7 +1326,7 @@ class BasicResourcePool implements ResourcePool
 
     private boolean shouldExpire( Object resc )
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	boolean expired = false;
 
@@ -1409,7 +1412,7 @@ class BasicResourcePool implements ResourcePool
 
     private boolean attemptRefurbishResourceOnCheckout( Object resc )
     {
-// 	assert !Thread.holdsLock( this );
+ 	assert !Thread.holdsLock( this );
 
 	try
 	    { 
@@ -1431,7 +1434,7 @@ class BasicResourcePool implements ResourcePool
 
     private boolean attemptRefurbishResourceOnCheckin( Object resc )
     {
-// 	assert !Thread.holdsLock( this );
+ 	assert !Thread.holdsLock( this );
 
 	try
 	    { 
@@ -1453,7 +1456,7 @@ class BasicResourcePool implements ResourcePool
 
     private void ensureNotBroken() throws ResourcePoolException
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	if (broken) 
 	    throw new ResourcePoolException("Attempted to use a closed or broken resource pool");
@@ -1461,7 +1464,7 @@ class BasicResourcePool implements ResourcePool
 
     private void trace()
     {
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	if ( logger.isLoggable( MLevel.FINEST ) )
  	    {
@@ -1476,21 +1479,21 @@ class BasicResourcePool implements ResourcePool
 
     private final HashMap cloneOfManaged()
     { 
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	return (HashMap) managed.clone(); 
     }
 
     private final LinkedList cloneOfUnused()
     { 
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	return (LinkedList) unused.clone(); 
     }
 
     private final HashSet cloneOfExcluded()
     { 
-// 	assert Thread.holdsLock( this );
+ 	assert Thread.holdsLock( this );
 
 	return (HashSet) excluded.clone(); 
     }
@@ -1701,7 +1704,7 @@ class BasicResourcePool implements ResourcePool
 // 	synchronized boolean failed()
 // 	{
 // 	    if (pending)
-// 		throw new RuntimeException(this + " You bastard! You can't check if the test failed wile it's pending!");
+// 		throw new RuntimeException(this + " You bastard! You can't check if the test failed while it's pending!");
 // 	    return 
 // 		failed;
 // 	}
@@ -1714,7 +1717,7 @@ class BasicResourcePool implements ResourcePool
 
 	public void run()
 	{
-// 	    assert !Thread.holdsLock( BasicResourcePool.this );
+ 	    assert !Thread.holdsLock( BasicResourcePool.this );
 
 	    try
 		{

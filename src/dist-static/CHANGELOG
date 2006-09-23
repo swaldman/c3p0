@@ -1,5 +1,72 @@
+c3p0-0.9.1-pre9
+	-- Updated the documentation. It is now fully current.
+	-- Changed the name of the jboss configuration mbean from 
+	   com.mchange.v2.c3p0.mbean.C3P0PooledDataSource to com.mchange.v2.c3p0.jboss.C3P0PooledDataSource,
+	   in order to distinguish the jboss configuration stuff from the normal management
+	   beans, which really are quite different. The old com.mchange.v2.c3p0.mbean.C3P0PooledDataSource
+	   still exists, so that existing users don't see anything break, but only the new version will
+	   be updated to support new parameters.
+	-- Added a means by which users can suppress JMX MBean registration if they
+	   wish. Setting the property com.mchange.v2.c3p0.management.ManagementCoordinator
+	   to com.mchange.v2.c3p0.management.NullManagementCoordinator will
+	   prevent mbean registration. (Advanced users can also use this to install
+	   their own implementations of the ManagementCoordinator interface, though
+	   I doubt many people will find this useful.)
+	-- Fixed infinitely loop in ComboPooledDataSource.setFactoryClassLocation( ... ) [introduced with
+	   the reorganization of ComboPooledDataSource to inherit from AbstractPoolBackedDataSource (?)]
+ 	-- Added some code to warn on common spelling errors of c3p0.properties
+ 	   and c3p0-config.xml (Users have frequently mistaken the digit 0 for
+ 	   the letter O in c3p0.)
+    -- Wrote a DynamicMBean for PooledDataSources. It seems to work, 
+       covers both ComboPooledDataSource and "wrapping" PoolBackedDataSources, 
+       and should cover new config parameters and accessors automatically.
+	-- More refinements to connection test logic. We test proxy Connections
+	   when there's a statement cache and a test query (to save time, since
+	   the test query is likely cached), we test physical connections if we'll
+	   need to do the slow, default test (statement caching doesn't help), or
+	   if there is no statement cache.
+	-- Removed the stub servlet I'd previously added. Although it jdk1.5+, the
+	   JMX approach is a better one for monitoring and modifying c3p0 pools at
+	   runtime, and I'm going to focus on that for now. (If there's a lot of
+	   clamor for it, I'll add back and flesh out the servlet. It just doesn't
+	   seem like a great use of my time for now.)
+	-- Modified build to create a separate jdk1.3 compatable jar by stripping
+	   source of lines beginning with "assert". I want to start using assertions,
+	   but will keep them to recognizable, strippable one-liners.
+	-- Modified DriverManagerDataSource to handle its driverClass parameter
+	   in a less fragile way. Rather than attempting to load the driverClass on
+	   property set, DriverManagerDataSource now lazily tries to load the class
+	   upon its first call to getConnection() after the property is initialized
+	   or updated. 
+c3p0-0.9.1-pre8
+	-- Fixed bug whereby jdbcUrl and driverClass were not initialized properly
+	   if set in config files rather than in code. [Thanks to Felipe Dominguez
+	   for calling attention to this problem!]
+	-- Changed AbstractPoolBackedDataSource from a non-public class in
+	   com.mchange.v2.c3p0 to a public class in com.mchange.v2.c3p0.impl to
+	   workaround fragilities associated with sun bug id #6342411, wherein
+	   reflective invocation of public methods on a non-public class fail,
+	   even when involed via a public base-class.
+	-- Fixed NullPointerException (introduced on -pre7) on initializing with
+	   a named config.
+	-- Continuing along the same lines, modified C3P0Registry and 
+	   C3P0ManagementCoordinator to unregister (both from C3P0Registry and
+	   associated MBeans on DataSource close. When all PooledDataSources
+	   are unregistered, the C3P0RegistryManager MBean unregisters as well.
+	-- Modified ActiveManagementCoordinator to check for, and unregister, the
+	   C3P0Registry mbean prior to registration, to prevent conflicts on
+	   undeploy/redepoloy cycle. [Thanks to Ben Groeneveld for calling attention
+	   to this problem, and suggesting the fix.]
+	-- Modified C3P0PooledConnectionPool to perform Connection tests on the raw
+	   physical Connection rather than the proxy Connection, when possible (i.e.
+	   when we're using a C3P0 PooledConnection implementation that we know how to
+	   get underneath of). This is better because 1) it's slightly faster; 2) it's
+	   significantly faster on failure, as C3P0 PooledConnections test Connections
+	   after a failure with statusOnException(), leading to an unnecessary 
+	   double-check; and 3) authors of custom ConnectionTesters can use vendor-specific
+	   API to test Connections if they wish.
 c3p0-0.9.1-pre7
-	-- Defined the ConnectionCustomizer interface as a hood through which clients 
+	-- Defined the ConnectionCustomizer interface as a hook through which clients 
     	   can "set up" newly acquired or checked out connections (and clean up prior 
 	   to check-in or destruction). Added config param connectionCustomizerClassName.
 	-- Formerly unused config parameter propertyCycle now controls how frequently 
@@ -30,7 +97,8 @@ c3p0-0.9.1-pre7
 	   as well as pool reset operations, but viewing and modifying the pool 
 	   configuration parameters is not supported. (I'll write a dynamic mbean to 
 	   capture this stuff; there are too many config properties I'm already 
-	   updating by hand in too many places. Later.)
+	   updating by hand in too many places. Later.) [Thanks to Ben Groeneveld for 
+	   the suggestion, including some nice sample code!]
 	-- Added configuration parameter maxAdministrativeTaskTime, which forces 
 	   interrupt() to be called on pool administrative tasks (Connection acquisition, 
 	   destruction and testing; prepared statement destruction) if these tasks seem 

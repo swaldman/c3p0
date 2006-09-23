@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -21,12 +21,12 @@
  */
 
 
-package com.mchange.v2.c3p0;
+package com.mchange.v2.c3p0.impl;
 
 import java.io.*;
 import java.sql.*;
 import javax.sql.*;
-import com.mchange.v2.c3p0.impl.*;
+import com.mchange.v2.c3p0.*;
 import com.mchange.v2.log.*;
 
 import java.beans.PropertyChangeEvent;
@@ -41,85 +41,95 @@ import java.util.Map;
 import java.util.Set;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 
-abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceBase implements PooledDataSource
+public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceBase implements PooledDataSource
 {
     final static MLogger logger = MLog.getLogger( AbstractPoolBackedDataSource.class );
-    
+
     final static String NO_CPDS_ERR_MSG =
-       "Attempted to use an uninitialized PoolBackedDataSource. " +
-       "Please call setConnectionPoolDataSource( ... ) to initialize.";
+        "Attempted to use an uninitialized PoolBackedDataSource. " +
+        "Please call setConnectionPoolDataSource( ... ) to initialize.";
 
     //MT: protected by this' lock
     transient C3P0PooledConnectionPoolManager poolManager;
     transient boolean is_closed = false;
     //MT: end protected by this' lock
 
-    AbstractPoolBackedDataSource( boolean autoregister )
+    protected AbstractPoolBackedDataSource( boolean autoregister )
     {
-	super( autoregister );
-	setUpPropertyEvents();
+        super( autoregister );
+        setUpPropertyEvents();
     }
 
-    AbstractPoolBackedDataSource(String configName)
+    protected AbstractPoolBackedDataSource(String configName)
     { 
-	this( true );
-	initializeNamedConfig( configName );
+        this( true );
+        initializeNamedConfig( configName );
     }
 
     private void setUpPropertyEvents()
     {
-	PropertyChangeListener l = new PropertyChangeListener()
-	    {
-		public void propertyChange( PropertyChangeEvent evt )
-		{ resetPoolManager(); }
-	    };
-	this.addPropertyChangeListener( l );
+        PropertyChangeListener l = new PropertyChangeListener()
+        {
+            public void propertyChange( PropertyChangeEvent evt )
+            { resetPoolManager(); }
+        };
+        this.addPropertyChangeListener( l );
     }
 
 
-    void initializeNamedConfig(String configName)
+    protected void initializeNamedConfig(String configName)
     {
-	try
-	    {
-		if (configName != null)
-		    {
-			C3P0Config.bindNamedConfigToBean( this, configName ); 
-			if ( this.getDataSourceName().equals( this.getIdentityToken() ) ) //dataSourceName has not been specified in config
-			    this.setDataSourceName( configName );
-		    }
-	    }
-	catch (Exception e)
-	    {
-		if (logger.isLoggable( MLevel.WARNING ))
-		    logger.log( MLevel.WARNING, 
-				"Error binding PoolBackedDataSource to named-config '" + configName + 
-				"'. Some default-config values may be used.", 
-				e);
-	    }
+        try
+        {
+            if (configName != null)
+            {
+                C3P0Config.bindNamedConfigToBean( this, configName ); 
+                if ( this.getDataSourceName().equals( this.getIdentityToken() ) ) //dataSourceName has not been specified in config
+                    this.setDataSourceName( configName );
+            }
+        }
+        catch (Exception e)
+        {
+            if (logger.isLoggable( MLevel.WARNING ))
+                logger.log( MLevel.WARNING, 
+                        "Error binding PoolBackedDataSource to named-config '" + configName + 
+                        "'. Some default-config values may be used.", 
+                        e);
+        }
     }
 
-// Commented out method is just super.getReference() with a lot of extra printing
-//
-//     public javax.naming.Reference getReference() throws javax.naming.NamingException
-//     {
-// 	System.err.println("getReference()!!!!");
-// 	new Exception("PRINT-STACK-TRACE").printStackTrace();
-// 	javax.naming.Reference out = super.getReference();
-// 	System.err.println(out);
-// 	return out;
-//     }
+//  Commented out method is just super.getReference() with a lot of extra printing
+
+//  public javax.naming.Reference getReference() throws javax.naming.NamingException
+//  {
+//  System.err.println("getReference()!!!!");
+//  new Exception("PRINT-STACK-TRACE").printStackTrace();
+//  javax.naming.Reference out = super.getReference();
+//  System.err.println(out);
+//  return out;
+//  }
+
+    // report our ID token as dataSourceName if we have no
+    // name explicitly set
+    public String getDataSourceName()
+    {
+ 	String out = super.getDataSourceName();
+ 	if (out == null)
+ 	    out = this.getIdentityToken();
+ 	return out;
+    }
 
     //implementation of javax.sql.DataSource
     public Connection getConnection() throws SQLException
     {
-	PooledConnection pc = getPoolManager().getPool().checkoutPooledConnection();
-	return pc.getConnection();
+        PooledConnection pc = getPoolManager().getPool().checkoutPooledConnection();
+        return pc.getConnection();
     }
 
     public Connection getConnection(String username, String password) throws SQLException
     { 
-	PooledConnection pc = getPoolManager().getPool(username, password).checkoutPooledConnection();
-	return pc.getConnection();
+        PooledConnection pc = getPoolManager().getPool(username, password).checkoutPooledConnection();
+        return pc.getConnection();
     }
 
     public PrintWriter getLogWriter() throws SQLException
@@ -174,10 +184,10 @@ abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceBase imp
     public int getThreadPoolNumTasksPending() throws SQLException
     { return getPoolManager().getThreadPoolNumTasksPending(); }
 
-    public String getThreadPoolStackTraces() throws SQLException
+    public String sampleThreadPoolStackTraces() throws SQLException
     { return getPoolManager().getThreadPoolStackTraces(); }
 
-    public String getThreadPoolStatus() throws SQLException
+    public String sampleThreadPoolStatus() throws SQLException
     { return getPoolManager().getThreadPoolStatus(); }
 
     public void softResetDefaultUser() throws SQLException
@@ -221,30 +231,32 @@ abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceBase imp
 
     public Collection getAllUsers() throws SQLException
     {
- 	LinkedList out = new LinkedList();
-	Set auths = getPoolManager().getManagedAuths();
- 	for ( Iterator ii = auths.iterator(); ii.hasNext(); )
- 	    out.add( ((DbAuth) ii.next()).getUser() );
- 	return Collections.unmodifiableList( out );
+        LinkedList out = new LinkedList();
+        Set auths = getPoolManager().getManagedAuths();
+        for ( Iterator ii = auths.iterator(); ii.hasNext(); )
+            out.add( ((DbAuth) ii.next()).getUser() );
+        return Collections.unmodifiableList( out );
     }
 
     public synchronized void hardReset()
     {
-	resetPoolManager(); 
+        resetPoolManager(); 
     }
 
     public synchronized void close()
     { 
-	resetPoolManager(); 
-	is_closed = true;
+        resetPoolManager(); 
+        is_closed = true;
+        
+        C3P0Registry.markClosed(this);
 
-	if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable(MLevel.FINEST))
-	    {
- 		logger.log(MLevel.FINEST, 
-			   this.getClass().getName() + '@' + Integer.toHexString( System.identityHashCode( this ) ) +
-			   " has been closed. ",
-			   new Exception("DEBUG STACK TRACE for PoolBackedDataSource.close()."));
-	    }
+        if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable(MLevel.FINEST))
+        {
+            logger.log(MLevel.FINEST, 
+                    this.getClass().getName() + '@' + Integer.toHexString( System.identityHashCode( this ) ) +
+                    " has been closed. ",
+                    new Exception("DEBUG STACK TRACE for PoolBackedDataSource.close()."));
+        }
     }
 
     /**
@@ -260,56 +272,56 @@ abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceBase imp
 
     public synchronized void resetPoolManager( boolean close_checked_out_connections ) //used by other, wrapping datasources in package, and in mbean package
     {
-	if ( poolManager != null )
-	    {
-		poolManager.close( close_checked_out_connections );
-		poolManager = null;
-	    }
-     }
+        if ( poolManager != null )
+        {
+            poolManager.close( close_checked_out_connections );
+            poolManager = null;
+        }
+    }
 
-     private synchronized ConnectionPoolDataSource assertCpds() throws SQLException
-     {
-	 if ( is_closed )
-	     throw new SQLException(this + " has been closed() -- you can no longer use it.");
+    private synchronized ConnectionPoolDataSource assertCpds() throws SQLException
+    {
+        if ( is_closed )
+            throw new SQLException(this + " has been closed() -- you can no longer use it.");
 
-	 ConnectionPoolDataSource out = this.getConnectionPoolDataSource();
-         if ( out == null )
-           throw new SQLException(NO_CPDS_ERR_MSG);
-         return out;
-     }
+        ConnectionPoolDataSource out = this.getConnectionPoolDataSource();
+        if ( out == null )
+            throw new SQLException(NO_CPDS_ERR_MSG);
+        return out;
+    }
 
-     private synchronized C3P0PooledConnectionPoolManager getPoolManager() throws SQLException
-     {
-	if (poolManager == null)
-	    {
-		ConnectionPoolDataSource cpds = assertCpds();
-		poolManager = new C3P0PooledConnectionPoolManager(cpds, null, null, this.getNumHelperThreads(), this.getIdentityToken());
-		if (logger.isLoggable(MLevel.INFO))
-		    logger.info("Initializing c3p0 pool... " + this.toString()  /* + "; using pool manager: " + poolManager */);
-	    }
+    private synchronized C3P0PooledConnectionPoolManager getPoolManager() throws SQLException
+    {
+        if (poolManager == null)
+        {
+            ConnectionPoolDataSource cpds = assertCpds();
+            poolManager = new C3P0PooledConnectionPoolManager(cpds, null, null, this.getNumHelperThreads(), this.getIdentityToken());
+            if (logger.isLoggable(MLevel.INFO))
+                logger.info("Initializing c3p0 pool... " + this.toString()  /* + "; using pool manager: " + poolManager */);
+        }
         return poolManager;	    
-     }
+    }
 
     // serialization stuff -- set up bound/constrained property event handlers on deserialization
     private static final long serialVersionUID = 1;
     private static final short VERSION = 0x0001;
-	
+
     private void writeObject( ObjectOutputStream oos ) throws IOException
     {
-	oos.writeShort( VERSION );
+        oos.writeShort( VERSION );
     }
-	
+
     private void readObject( ObjectInputStream ois ) throws IOException, ClassNotFoundException
     {
-	short version = ois.readShort();
-	switch (version)
-	    {
-	    case VERSION:
-		setUpPropertyEvents();
-		break;
-	    default:
-		throw new IOException("Unsupported Serialized Version: " + version);
-	    }
+        short version = ois.readShort();
+        switch (version)
+        {
+        case VERSION:
+            setUpPropertyEvents();
+            break;
+        default:
+            throw new IOException("Unsupported Serialized Version: " + version);
+        }
     }
 }
 

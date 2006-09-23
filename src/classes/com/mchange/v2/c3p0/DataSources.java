@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -111,13 +111,20 @@ public final class DataSources
     }
 
     /**
-     * Defines an unpooled DataSource on the specified JDBC URL.
+     * Defines an unpooled DataSource all of whose paramateres (especially jdbcUrl)
+     * should be set in config files.
      */
-    public static DataSource unpooledDataSource(String jdbcUrl) throws SQLException
+    public static DataSource unpooledDataSource() throws SQLException
     { 
 	DriverManagerDataSource out = new DriverManagerDataSource();
-	out.setJdbcUrl( jdbcUrl );
 	return out;
+    }
+
+    public static DataSource unpooledDataSource(String jdbcUrl) throws SQLException
+    { 
+    DriverManagerDataSource out = new DriverManagerDataSource();
+    out.setJdbcUrl( jdbcUrl );
+    return out;
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -37,6 +37,9 @@ import javax.naming.Context;
 import javax.naming.NameAlreadyBoundException;
 import javax.naming.NamingException;
 
+/**
+ * @deprecated Please use com.mchange.v2.c3p0.jboss.C3P0PooledDataSource
+ */
 public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 {
     private final static MLogger logger = MLog.getLogger( C3P0PooledDataSource.class );

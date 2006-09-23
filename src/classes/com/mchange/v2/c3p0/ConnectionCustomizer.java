@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -51,7 +51,7 @@ public interface ConnectionCustomizer
      *  incorporation into the pool.</p>
      *
      *  <p>This method is only called once
-     *  per Connection. If standars JDBC
+     *  per Connection. If standard JDBC
      *  Connection properties are modified
      *  [holdability, transactionIsolation,
      *  readOnly], those modifications

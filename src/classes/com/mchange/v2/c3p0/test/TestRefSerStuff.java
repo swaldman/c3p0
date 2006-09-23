@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -91,6 +91,7 @@ public final class TestRefSerStuff
 	    }
     }
 
+    /*
     private static void usage()
     {
 	System.err.println("java " +
@@ -99,11 +100,12 @@ public final class TestRefSerStuff
 			   " <jdbc_url> [<username> <password>]" );
 	System.exit(-1);
     }
+    */
 
     static void doTest(DataSource checkMe) throws Exception
     {
 	doSomething( checkMe );
-	System.err.println("\tcreated: " + checkMe);
+	System.err.println("\tcreated:   " + checkMe);
 	DataSource afterSer = (DataSource) SerializableUtils.testSerializeDeserialize( checkMe );
 	doSomething( afterSer );
 	System.err.println("\tafter ser: " + afterSer );
@@ -121,6 +123,14 @@ public final class TestRefSerStuff
 
     public static void main( String[] argv )
     {
+        if (argv.length > 0)
+        {
+            System.err.println( TestRefSerStuff.class.getName() + 
+                                " now requires no args. Please set everything in standard c3p0 config files.");
+            return;                    
+        }
+
+        /*
 	String jdbcUrl = null;
 	String username = null;
 	String password = null;
@@ -141,14 +151,14 @@ public final class TestRefSerStuff
 	
 	if (! jdbcUrl.startsWith("jdbc:") )
 	    usage();
-	
+	*/
 	
 	try
 	    {
 		DriverManagerDataSource dmds = new DriverManagerDataSource();
-		dmds.setJdbcUrl( jdbcUrl );
-		dmds.setUser( username );
-		dmds.setPassword( password );
+		//dmds.setJdbcUrl( jdbcUrl );
+		//dmds.setUser( username );
+		//dmds.setPassword( password );
 		try { drop( dmds ); }
 		catch (Exception e)
 		    { /* Ignore */ }
@@ -164,6 +174,9 @@ public final class TestRefSerStuff
 		
 		System.err.println("PoolBackedDataSource:");
 		doTest( pbds );
+        
+        ComboPooledDataSource cpds = new ComboPooledDataSource();
+        doTest( cpds );
 	    }
 	catch ( Exception e )
 	    { e.printStackTrace(); }

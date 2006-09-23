@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -25,9 +25,11 @@ package com.mchange.v2.c3p0.management;
 
 import com.mchange.v2.c3p0.PooledDataSource;
 
-public interface C3P0ManagementCoordinator
+public interface ManagementCoordinator
 {
     public void attemptManageC3P0Registry();
+    public void attemptUnmanageC3P0Registry();
     public void attemptManagePooledDataSource(PooledDataSource pds);
+    public void attemptUnmanagePooledDataSource( PooledDataSource pds );
 }
 

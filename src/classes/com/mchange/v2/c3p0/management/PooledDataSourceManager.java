@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre7
+ * Distributed as part of c3p0 v.0.9.1-pre9
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -71,10 +71,10 @@ public class PooledDataSourceManager implements PooledDataSourceManagerMBean
     { return pds.getThreadPoolNumTasksPending(); }
 
     public String sampleThreadPoolStackTraces() throws SQLException
-    { return pds.getThreadPoolStackTraces(); }
+    { return pds.sampleThreadPoolStackTraces(); }
 
     public String sampleThreadPoolStatus() throws SQLException
-    { return pds.getThreadPoolStatus(); }
+    { return pds.sampleThreadPoolStatus(); }
 
     public void softResetDefaultUser() throws SQLException
     { pds.softResetDefaultUser(); }
