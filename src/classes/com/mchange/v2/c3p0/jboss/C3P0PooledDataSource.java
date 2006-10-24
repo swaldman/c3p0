@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -425,7 +425,17 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     { }
 
     public void destroy()
-    { }
+    { 
+        try
+        {
+            combods.close();
+            logger.log(MLevel.INFO, "Destroyed C3P0 PooledDataSource with name ''{0}''.", jndiName); 
+        }
+        catch (Exception e)
+        {
+            logger.log(MLevel.INFO, "Failed to destroy C3P0 PooledDataSource.", e); 
+        }
+    }
 
     public String getConnectionCustomizerClassName()
     { return combods.getConnectionCustomizerClassName(); }

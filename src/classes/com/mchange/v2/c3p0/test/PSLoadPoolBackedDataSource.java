@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -74,6 +74,8 @@ public final class PSLoadPoolBackedDataSource
 	try
 	    {
         //DataSource ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+        //DataSource ds_unpooled = new FreezableDriverManagerDataSource();
+
         DataSource ds_unpooled = DataSources.unpooledDataSource();
 		ds = DataSources.pooledDataSource( ds_unpooled );
 

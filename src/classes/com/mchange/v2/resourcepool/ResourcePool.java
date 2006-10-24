@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -77,7 +77,36 @@ public interface ResourcePool extends ClosableResource
 	throws ResourcePoolException;
 
     public long getEffectiveExpirationEnforcementDelay()
-	throws ResourcePoolException;
+    throws ResourcePoolException;
+    
+    public long getStartTime()
+    throws ResourcePoolException;
+    
+    public long getUpTime()
+    throws ResourcePoolException;
+    
+    public long getNumFailedCheckins()
+    throws ResourcePoolException;
+
+    public long getNumFailedCheckouts()
+    throws ResourcePoolException;
+
+    public long getNumFailedIdleTests()
+    throws ResourcePoolException;
+    
+    public Throwable getLastCheckinFailure()
+    throws ResourcePoolException;
+
+    public Throwable getLastCheckoutFailure()
+    throws ResourcePoolException;
+
+    public Throwable getLastIdleCheckFailure()
+    throws ResourcePoolException;
+    
+    public Throwable getLastResourceTestFailure()
+    throws ResourcePoolException;
+
+    
 
     /**
      * Discards all resources managed by the pool

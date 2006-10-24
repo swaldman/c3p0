@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -25,7 +25,10 @@ package com.mchange.v2.c3p0.impl;
 
 import java.io.*;
 import java.sql.*;
+
 import javax.sql.*;
+
+import com.mchange.lang.ThrowableUtils;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.log.*;
 
@@ -169,8 +172,32 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException
     { return getNumUnclosedOrphanedConnections();}
 
+    public int getStatementCacheNumStatementsDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getStatementCacheNumStatements(); }
+
+    public int getStatementCacheNumCheckedOutDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getStatementCacheNumCheckedOut(); }
+
+    public int getStatementCacheNumConnectionsWithCachedStatementsDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getStatementCacheNumConnectionsWithCachedStatements(); }
+
     public float getEffectivePropertyCycleDefaultUser() throws SQLException
     { return getPoolManager().getPool().getEffectivePropertyCycle(); }
+    
+    public long getStartTimeMillisDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getStartTime(); }
+
+    public long getUpTimeMillisDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getUpTime(); }
+    
+    public long getNumFailedCheckinsDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getNumFailedCheckins(); }
+
+    public long getNumFailedCheckoutsDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getNumFailedCheckouts(); }
+
+    public long getNumFailedIdleTestsDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getNumFailedIdleTests(); }
 
     public int getThreadPoolSize() throws SQLException
     { return getPoolManager().getThreadPoolSize(); }
@@ -190,6 +217,84 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public String sampleThreadPoolStatus() throws SQLException
     { return getPoolManager().getThreadPoolStatus(); }
 
+    public String sampleStatementCacheStatusDefaultUser() throws SQLException
+    { return getPoolManager().getPool().dumpStatementCacheStatus(); }
+    
+    public String sampleStatementCacheStatus(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).dumpStatementCacheStatus(); }
+    
+    public Throwable getLastCheckinFailureDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getLastCheckinFailure(); }
+
+    public Throwable getLastCheckoutFailureDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getLastCheckoutFailure(); }
+
+    public Throwable getLastIdleTestFailureDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getLastIdleTestFailure(); }
+
+    public Throwable getLastConnectionTestFailureDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getLastConnectionTestFailure(); }
+    
+    public Throwable getLastCheckinFailure(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getLastCheckinFailure(); }
+
+    public Throwable getLastCheckoutFailure(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getLastCheckoutFailure(); }
+
+    public Throwable getLastIdleTestFailure(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getLastIdleTestFailure(); }
+
+    public Throwable getLastConnectionTestFailure(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getLastConnectionTestFailure(); }
+    
+    public String sampleLastCheckinFailureStackTraceDefaultUser() throws SQLException
+    { 
+        Throwable t = getLastCheckinFailureDefaultUser(); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+    
+    public String sampleLastCheckoutFailureStackTraceDefaultUser() throws SQLException
+    { 
+        Throwable t = getLastCheckoutFailureDefaultUser(); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+
+    public String sampleLastIdleTestFailureStackTraceDefaultUser() throws SQLException
+    { 
+        Throwable t = getLastIdleTestFailureDefaultUser(); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+
+    public String sampleLastConnectionTestFailureStackTraceDefaultUser() throws SQLException
+    { 
+        Throwable t = getLastConnectionTestFailureDefaultUser();
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+    
+    public String sampleLastCheckinFailureStackTrace(String username, String password) throws SQLException
+    { 
+        Throwable t = getLastCheckinFailure(username, password); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+
+    public String sampleLastCheckoutFailureStackTrace(String username, String password) throws SQLException
+    { 
+        Throwable t = getLastCheckoutFailure(username, password); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+
+    public String sampleLastIdleTestFailureStackTrace(String username, String password) throws SQLException
+    { 
+        Throwable t = getLastIdleTestFailure(username, password); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+
+    public String sampleLastConnectionTestFailureStackTrace(String username, String password) throws SQLException
+    { 
+        Throwable t = getLastConnectionTestFailure(username, password); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+
     public void softResetDefaultUser() throws SQLException
     { getPoolManager().getPool().reset(); }
 
@@ -205,8 +310,32 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException
     { return getPoolManager().getPool(username, password).getNumUnclosedOrphanedConnections(); }
 
+    public int getStatementCacheNumStatements(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getStatementCacheNumStatements(); }
+
+    public int getStatementCacheNumCheckedOut(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getStatementCacheNumCheckedOut(); }
+
+    public int getStatementCacheNumConnectionsWithCachedStatements(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getStatementCacheNumConnectionsWithCachedStatements(); }
+
     public float getEffectivePropertyCycle(String username, String password) throws SQLException
     { return getPoolManager().getPool(username, password).getEffectivePropertyCycle(); }
+
+    public long getStartTimeMillis(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getStartTime(); }
+
+    public long getUpTimeMillis(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getUpTime(); }
+    
+    public long getNumFailedCheckins(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getNumFailedCheckins(); }
+
+    public long getNumFailedCheckouts(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getNumFailedCheckouts(); }
+
+    public long getNumFailedIdleTests(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getNumFailedIdleTests(); }
 
     public void softReset(String username, String password) throws SQLException
     { getPoolManager().getPool(username, password).reset(); }
@@ -222,6 +351,15 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
 
     public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumUnclosedOrphanedConnectionsAllAuths(); }
+
+    public int getStatementCacheNumStatementsAllUsers() throws SQLException
+    { return getPoolManager().getStatementCacheNumStatementsAllUsers(); }
+
+    public int getStatementCacheNumCheckedOutStatementsAllUsers() throws SQLException
+    { return getPoolManager().getStatementCacheNumCheckedOutStatementsAllUsers(); }
+
+    public synchronized int getStatementCacheNumConnectionsWithCachedStatementsAllUsers() throws SQLException
+    { return getPoolManager().getStatementCacheNumConnectionsWithCachedStatementsAllUsers(); }
 
     public void softResetAllUsers() throws SQLException
     { getPoolManager().softResetAllAuths(); }

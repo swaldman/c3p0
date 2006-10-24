@@ -1,3 +1,41 @@
+c3p0-0.9.1-pre10
+	-- Exposed statement pool stats via PooledDataSource interface and MBean.
+	   Added accessors to the statement cache, pool, pool manager, and 
+	   AbstractPoolBackedDataSource.
+	-- Fixed a bug whereby multiple near-simultaneous Connection requests failed
+	   to provoke sufficient pool growth/Connection acquisition. This is a bug
+	   reintroduced in c3p0-0.9.1-pre4, and is a duplicate of an early issue,
+	   resolved under the old pool size management scheme. c3p0 must (and does)
+	   keep track not only of its current size and pending growth, but also the 
+	   number of potentially unserved recent Connection requests. c3p0-0.9.1-pre4
+	   thru c3p0-0.9.1-pre9 failed to make use of the incoming request count when
+	   deciding whether and how much to grow the pool. Many thanks to John Kristian
+	   for calling attention to this subtle issue.
+	-- Exposed information about Connection test failures (failure count of
+	   each type of test, stack trace of last failure and last failure of each
+	   type) via the PooledDataSource interface and its assiciated MBean. 
+	-- Fixed a rare situation where a Connection test on check-out could
+	   be performed by a Thread holding the pool's lock, if an initial
+	   attempt to checkout a Connection failed and a second checkout attempt
+	   is initiated internally. The recursive checkout is now performed
+	   without the pool's lock.
+	-- Established a consisent policy re logging of Connection test failures.
+	   They are now logged at FINE level (DEBUG under log4j). Previously tests
+	   on checkin and checkout were logged at FINE, but idle tests were logged
+	   at INFO. Is it worth letting this be configurable, as some users may prefer
+	   to see test failures under normal operation?
+	-- Modified C3P0PooledConnectionPoolManager to perform a trial Connection
+	   acquisition before trying to establish a pool, as pools established
+	   on bad database or authentification information churn indefinitely trying
+	   to acquire minPoolSize Connections, clogging up the thread pool and
+	   sometimes leading to "APPARENT DEADLOCKS" if users touch a pool with
+	   bad authentification information.
+	-- Defined UnifiedConnectionTester (and AbstractConnectionTester) so that
+	   ConnectionTesters can provide any Exception associated with a failure,
+	   which will show up as the "root cause" of the Exception eventually
+	   thrown to signal the failure.
+	-- Added logging at WARNING level when a Connection tester reports the
+	   database is invalid, triggering a reset of the Connection pool.
 c3p0-0.9.1-pre9
 	-- Updated the documentation. It is now fully current.
 	-- Changed the name of the jboss configuration mbean from 

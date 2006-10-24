@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -24,7 +24,6 @@
 package com.mchange.v2.c3p0.management;
 
 import java.beans.BeanInfo;
-import java.beans.Beans;
 import java.beans.Introspector;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -58,6 +57,7 @@ import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
 import com.mchange.v2.log.MLevel;
+import com.mchange.v2.management.ManagementUtils;
 
 public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
 {
@@ -77,6 +77,10 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         hpTmp.add("connection");
         hpTmp.add("pooledConnection");
         hpTmp.add("logWriter");
+        hpTmp.add("lastCheckoutFailureDefaultUser");
+        hpTmp.add("lastCheckinFailureDefaultUser");
+        hpTmp.add("lastIdleTestFailureDefaultUser");
+        hpTmp.add("lastConnectionTestFailureDefaultUser");
         HIDE_PROPS = Collections.unmodifiableSet( hpTmp );
         
         Set hoTmp = new HashSet();
@@ -254,7 +258,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         MBeanParameterInfo[] empty = {};
 
         Method[] meths = PooledDataSource.class.getMethods();
-        Set attrInfos = new HashSet();
+        Set attrInfos = new TreeSet(ManagementUtils.OP_INFO_COMPARATOR);
 
         for (int i = 0; i < meths.length; ++i)
         {

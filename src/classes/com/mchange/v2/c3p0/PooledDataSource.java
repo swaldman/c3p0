@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -131,6 +131,14 @@ public interface PooledDataSource extends DataSource
     public int getNumIdleConnectionsDefaultUser() throws SQLException;
     public int getNumBusyConnectionsDefaultUser() throws SQLException;
     public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException;
+    public int getStatementCacheNumStatementsDefaultUser() throws SQLException;
+    public int getStatementCacheNumCheckedOutDefaultUser() throws SQLException;
+    public int getStatementCacheNumConnectionsWithCachedStatementsDefaultUser() throws SQLException;
+    public long getStartTimeMillisDefaultUser() throws SQLException;
+    public long getUpTimeMillisDefaultUser() throws SQLException;
+    public long getNumFailedCheckinsDefaultUser() throws SQLException;
+    public long getNumFailedCheckoutsDefaultUser() throws SQLException;
+    public long getNumFailedIdleTestsDefaultUser() throws SQLException;
     public float getEffectivePropertyCycleDefaultUser() throws SQLException;
 
     /**
@@ -147,6 +155,9 @@ public interface PooledDataSource extends DataSource
     public int getNumIdleConnections(String username, String password) throws SQLException;
     public int getNumBusyConnections(String username, String password) throws SQLException;
     public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException;
+    public int getStatementCacheNumStatements(String username, String password) throws SQLException;
+    public int getStatementCacheNumCheckedOut(String username, String password) throws SQLException;
+    public int getStatementCacheNumConnectionsWithCachedStatements(String username, String password) throws SQLException;
     public float getEffectivePropertyCycle(String username, String password) throws SQLException;
 
     /**
@@ -164,6 +175,10 @@ public interface PooledDataSource extends DataSource
     public int getNumConnectionsAllUsers() throws SQLException;
     public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException;
 
+    public int getStatementCacheNumStatementsAllUsers() throws SQLException;
+    public int getStatementCacheNumCheckedOutStatementsAllUsers() throws SQLException;
+    public int getStatementCacheNumConnectionsWithCachedStatementsAllUsers() throws SQLException;
+
     public int getThreadPoolSize() throws SQLException;
     public int getThreadPoolNumActiveThreads() throws SQLException;
     public int getThreadPoolNumIdleThreads() throws SQLException;
@@ -171,6 +186,29 @@ public interface PooledDataSource extends DataSource
 
     public String sampleThreadPoolStackTraces() throws SQLException;
     public String sampleThreadPoolStatus() throws SQLException;
+
+    public String sampleStatementCacheStatusDefaultUser() throws SQLException;
+    public String sampleStatementCacheStatus(String username, String password) throws SQLException;
+    
+    public Throwable getLastCheckinFailureDefaultUser() throws SQLException;
+    public Throwable getLastCheckoutFailureDefaultUser() throws SQLException;
+    public Throwable getLastIdleTestFailureDefaultUser() throws SQLException;
+    public Throwable getLastConnectionTestFailureDefaultUser() throws SQLException;
+    
+    public Throwable getLastCheckinFailure(String username, String password) throws SQLException;
+    public Throwable getLastCheckoutFailure(String username, String password) throws SQLException;
+    public Throwable getLastIdleTestFailure(String username, String password) throws SQLException;
+    public Throwable getLastConnectionTestFailure(String username, String password) throws SQLException;
+    
+    public String sampleLastCheckinFailureStackTraceDefaultUser() throws SQLException;
+    public String sampleLastCheckoutFailureStackTraceDefaultUser() throws SQLException;
+    public String sampleLastIdleTestFailureStackTraceDefaultUser() throws SQLException;
+    public String sampleLastConnectionTestFailureStackTraceDefaultUser() throws SQLException;
+    
+    public String sampleLastCheckinFailureStackTrace(String username, String password) throws SQLException;
+    public String sampleLastCheckoutFailureStackTrace(String username, String password) throws SQLException;
+    public String sampleLastIdleTestFailureStackTrace(String username, String password) throws SQLException;
+    public String sampleLastConnectionTestFailureStackTrace(String username, String password) throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource

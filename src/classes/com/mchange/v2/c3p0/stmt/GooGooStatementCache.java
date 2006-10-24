@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -31,6 +31,11 @@ import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.log.*;
 import com.mchange.v1.db.sql.StatementUtils;
 
+import java.io.StringWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
+import com.mchange.v2.io.IndentedWriter;
+
 public abstract class GooGooStatementCache
 {
     private final static MLogger logger = MLog.getLogger( GooGooStatementCache.class );
@@ -60,8 +65,6 @@ public abstract class GooGooStatementCache
     // culling in case of overflow
     HashSet checkedOut = new HashSet();
 
-    int stmt_count;
-
     /* MT: end protected by this' lock */
 
     /* MT: protected by its own lock */
@@ -83,6 +86,63 @@ public abstract class GooGooStatementCache
     { 
 	this.blockingTaskAsyncRunner = blockingTaskAsyncRunner; 
 	this.cxnStmtMgr = createConnectionStatementManager();
+    }
+    
+    public synchronized int getNumStatements()
+    { return this.isClosed() ? -1 : countCachedStatements(); }
+    
+    public synchronized int getNumStatementsCheckedOut()
+    { return this.isClosed() ? -1 : checkedOut.size(); }
+    
+    public synchronized int getNumConnectionsWithCachedStatements()
+    { return isClosed() ? -1 : cxnStmtMgr.getNumConnectionsWithCachedStatements(); }
+    
+    public synchronized String dumpStatementCacheStatus()
+    {
+        if (isClosed())
+            return this + "status: Closed.";
+        else
+        {
+            StringWriter sw = new StringWriter(2048);
+            IndentedWriter iw = new IndentedWriter( sw );
+            try
+            {
+                iw.print(this);
+                iw.println(" status:");
+                iw.upIndent();
+                iw.println("core stats:");
+                iw.upIndent();
+                iw.print("num cached statements: ");
+                iw.println( this.countCachedStatements() );
+                iw.print("num cached statements in use: ");
+                iw.println( checkedOut.size() );
+                iw.print("num connections with cached statements: ");
+                iw.println(cxnStmtMgr.getNumConnectionsWithCachedStatements());
+                iw.downIndent();
+                iw.println("cached statement dump:");
+                iw.upIndent();
+                for (Iterator ii = cxnStmtMgr.connectionSet().iterator(); ii.hasNext();)
+                {
+                    Connection pcon = (Connection) ii.next();
+                    iw.print(pcon);
+                    iw.println(':');
+                    iw.upIndent();
+                    for (Iterator jj = cxnStmtMgr.statementSet(pcon).iterator(); jj.hasNext();)
+                        iw.println(jj.next());
+                    iw.downIndent();
+                }
+
+                iw.downIndent();
+                iw.downIndent();
+                return sw.toString();
+            }
+            catch (IOException e)
+            {
+                if (logger.isLoggable(MLevel.SEVERE))
+                    logger.log(MLevel.SEVERE, "Huh? We've seen an IOException writing to s StringWriter?!", e);
+                return e.toString();
+            }
+        }
     }
 
     abstract ConnectionStatementManager createConnectionStatementManager();
@@ -303,7 +363,6 @@ public abstract class GooGooStatementCache
 		stmtToKey        = null;
 		keyToKeyRec      = null;
 		checkedOut       = null;
-		stmt_count       = -1;
 	    }
 	else
 	    {
@@ -381,8 +440,6 @@ public abstract class GooGooStatementCache
 				  cxnStmtMgr.statementSet( pConn ).size());
 	    }
 
-	++stmt_count;
-
 	checkedOut.add( ps );
     }
 
@@ -426,7 +483,6 @@ public abstract class GooGooStatementCache
 			       this + " removed a statement that apparently wasn't in a statement set!!!",
 			       new Exception("LOG STACK TRACE"));
 	    }
-	--stmt_count;
 
 	synchronized (removalPending)
 	    { removalPending.remove(ps); }
@@ -647,6 +703,9 @@ public abstract class GooGooStatementCache
 
 	public int getNumConnectionsWithCachedStatements()
 	{ return cxnToStmtSets.size(); }
+    
+    public Set connectionSet()
+    { return cxnToStmtSets.keySet(); }
 
 	public Set statementSet( Connection pcon )
 	{ return (Set) cxnToStmtSets.get( pcon ); }

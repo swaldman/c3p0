@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre9
+ * Distributed as part of c3p0 v.0.9.1-pre10
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -108,7 +108,7 @@ public final class C3P0BenchmarkApp
 
 		//ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
 		//ds_pooled = DataSources.pooledDataSource( ds_unpooled );
-        ds_unpooled = new DriverManagerDataSource();
+      ds_unpooled = new DriverManagerDataSource();
 
    		//DataSource ds_unpooled_screwy = C3P0TestUtils.unreliableCommitDataSource( ds_unpooled );
    		//ds_pooled = DataSources.pooledDataSource( ds_unpooled_screwy );
@@ -119,7 +119,7 @@ public final class C3P0BenchmarkApp
 //  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
 //  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, "foo", "goo" );
 
-        //ds_pooled = DataSources.pooledDataSource(ds_unpooled);
+      //ds_pooled = DataSources.pooledDataSource(ds_unpooled);
         
 		//ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
  		ComboPooledDataSource cpds = new ComboPooledDataSource();
@@ -133,13 +133,13 @@ public final class C3P0BenchmarkApp
 		System.out.println("Please wait. Tests can be very slow.");
 		List l = new ArrayList();
  		l.add( new ConnectionAcquisitionTest() );
-    		l.add( new StatementCreateTest() );
-    		l.add( new StatementEmptyTableSelectTest() );
+  		l.add( new StatementCreateTest() );
+   		l.add( new StatementEmptyTableSelectTest() );
    		//l.add( new DataBaseMetaDataListNonexistentTablesTest() );
    		l.add( new PreparedStatementEmptyTableSelectTest() );
  		l.add( new PreparedStatementAcquireTest() );
    		l.add( new ResultSetReadTest() );
-    		l.add( new FiveThreadPSQueryTestTest() );
+   		l.add( new FiveThreadPSQueryTestTest() );
 		for (int i = 0, len = l.size(); i < len; ++i)
 		    ((Test) l.get(i)).perform( ds_unpooled, ds_pooled, NUM_ITERATIONS );
 	    }
