@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -78,6 +78,8 @@ public final class PSLoadPoolBackedDataSource
 
         DataSource ds_unpooled = DataSources.unpooledDataSource();
 		ds = DataSources.pooledDataSource( ds_unpooled );
+
+		//new java.io.BufferedReader(new java.io.InputStreamReader(System.in)).readLine();
 
 		Connection con = null;
 		Statement stmt = null;

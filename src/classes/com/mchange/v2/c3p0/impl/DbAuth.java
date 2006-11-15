@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -46,7 +46,9 @@ public final class DbAuth implements Serializable
 
     public boolean equals(Object o)
     {
-	if (o != null && this.getClass() == o.getClass())
+	if (this == o)
+	    return true;
+	else if (o != null && this.getClass() == o.getClass())
 	    {
 		DbAuth other = (DbAuth) o;
 		return 

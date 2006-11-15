@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -140,6 +140,7 @@ public interface PooledDataSource extends DataSource
     public long getNumFailedCheckoutsDefaultUser() throws SQLException;
     public long getNumFailedIdleTestsDefaultUser() throws SQLException;
     public float getEffectivePropertyCycleDefaultUser() throws SQLException;
+    public int getNumThreadsAwaitingCheckoutDefaultUser() throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource's default-authentication pool
@@ -159,6 +160,7 @@ public interface PooledDataSource extends DataSource
     public int getStatementCacheNumCheckedOut(String username, String password) throws SQLException;
     public int getStatementCacheNumConnectionsWithCachedStatements(String username, String password) throws SQLException;
     public float getEffectivePropertyCycle(String username, String password) throws SQLException;
+    public int getNumThreadsAwaitingCheckout(String username, String password) throws SQLException;
 
     /**
      * Discards all Connections managed by the PooledDataSource with the specified authentication credentials
@@ -221,6 +223,7 @@ public interface PooledDataSource extends DataSource
     public void softResetAllUsers() throws SQLException;
 
     public int getNumUserPools() throws SQLException;
+    public int getNumHelperThreads() throws SQLException;
 
     public Collection getAllUsers() throws SQLException;
 

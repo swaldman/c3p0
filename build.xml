@@ -436,10 +436,12 @@
 
 			<sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
 
+			<!--
 			<jvmarg value="-ea" />
 			<sysproperty key="com.sun.management.jmxremote.port" value="38383" />
 			<sysproperty key="com.sun.management.jmxremote.authenticate" value="false" />
 			<sysproperty key="com.sun.management.jmxremote.ssl" value="false" />
+			-->
 
 			<syspropertyset>
 				<propertyref builtin="commandline" />
@@ -586,13 +588,17 @@
 
 	<target name="junit-tests" depends="test-init" if="junit.jar.file">
 		<mkdir dir="${build.testresults.dir}" />
-		<junit printsummary="true" showoutput="true" haltonfailure="true">
+		<junit printsummary="true" showoutput="true" haltonfailure="true"> 
 			<classpath refid="test-classpath" />
 			<formatter type="plain"/>
+
+			<!--
 			<sysproperty key="jdbc.drivers" value="${test.jdbc.drivers}" />
 			<sysproperty key="c3p0.test.jdbc.url" value="${test.jdbc.url}" />
 			<sysproperty key="c3p0.test.jdbc.user" value="${test.jdbc.user}" />
 			<sysproperty key="c3p0.test.jdbc.password" value="${test.jdbc.password}" />
+			-->
+
 			<syspropertyset>
 				<propertyref builtin="commandline" />
 			</syspropertyset>

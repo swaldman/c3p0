@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -504,6 +504,14 @@ public final class C3P0PooledConnectionPool
     {
         try
         { return rp.getEffectiveExpirationEnforcementDelay() / 1000f; }
+        catch (ResourcePoolException e)
+        { throw SqlUtils.toSQLException(e); }
+    }
+
+    public int getNumThreadsAwaitingCheckout() throws SQLException
+    {
+        try
+        { return rp.getNumCheckoutWaiters(); }
         catch (ResourcePoolException e)
         { throw SqlUtils.toSQLException(e); }
     }

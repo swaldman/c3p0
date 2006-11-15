@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -68,7 +68,7 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
             if ( logger.isLoggable( MLevel.WARNING ) )
                 logger.log( MLevel.WARNING, 
                         "Failed to set up C3P0RegistryManager mBean. " +
-                        "[c3p0 will still functioning normally, but management via JMX may not be possible.]", 
+                        "[c3p0 will still function normally, but management via JMX may not be possible.]", 
                         e);
         }
     }

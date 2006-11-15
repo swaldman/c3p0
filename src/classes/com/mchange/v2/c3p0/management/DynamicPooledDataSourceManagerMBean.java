@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -65,6 +65,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
 
     final static Set HIDE_PROPS;
     final static Set HIDE_OPS;
+    final static Set FORCE_OPS;
     
     final static Set FORCE_READ_ONLY_PROPS;
 
@@ -75,6 +76,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         hpTmp.add("nestedDataSource");
         hpTmp.add("reference");
         hpTmp.add("connection");
+        hpTmp.add("password");
         hpTmp.add("pooledConnection");
         hpTmp.add("logWriter");
         hpTmp.add("lastCheckoutFailureDefaultUser");
@@ -83,11 +85,17 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         hpTmp.add("lastConnectionTestFailureDefaultUser");
         HIDE_PROPS = Collections.unmodifiableSet( hpTmp );
         
+	Class[] userPassArgs = new Class[] { String.class, String.class };
         Set hoTmp = new HashSet();
         try
         {
             hoTmp.add(PooledDataSource.class.getMethod("close", new Class[] { boolean.class }) );
-            hoTmp.add(PooledDataSource.class.getMethod("getConnection", new Class[] { String.class, String.class }) );
+            hoTmp.add(PooledDataSource.class.getMethod("getConnection", userPassArgs ) );
+
+            hoTmp.add(PooledDataSource.class.getMethod("getLastCheckinFailure", userPassArgs ) );
+            hoTmp.add(PooledDataSource.class.getMethod("getLastCheckoutFailure", userPassArgs ) );
+            hoTmp.add(PooledDataSource.class.getMethod("getLastIdleTestFailure", userPassArgs ) );
+            hoTmp.add(PooledDataSource.class.getMethod("getLastConnectionTestFailure", userPassArgs ) );
         }
         catch (Exception e)
         {
@@ -98,6 +106,9 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         Set fropTmp = new HashSet();
         fropTmp.add("identityToken");
         FORCE_READ_ONLY_PROPS = Collections.unmodifiableSet(fropTmp);
+
+	Set foTmp = new HashSet();
+	FORCE_OPS = Collections.unmodifiableSet(foTmp);
     }
 
     final static MBeanOperationInfo[] OP_INFS = extractOpInfs();
@@ -269,11 +280,14 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             String mname = meth.getName();
             Class[] params = meth.getParameterTypes();
 
-            //get rid of things we'd have picked up as attributes
-            if (mname.startsWith("set") && params.length == 1)
-                continue;
-            if ((mname.startsWith("get") || mname.startsWith("is")) && params.length == 0)
-                continue;
+	    if (! FORCE_OPS.contains(mname))
+		{
+		    //get rid of things we'd have picked up as attributes
+		    if (mname.startsWith("set") && params.length == 1)
+			continue;
+		    if ((mname.startsWith("get") || mname.startsWith("is")) && params.length == 0)
+			continue;
+		}
 
             Class retType = meth.getReturnType();
             int impact = (retType == void.class ? MBeanOperationInfo.ACTION : MBeanOperationInfo.INFO);

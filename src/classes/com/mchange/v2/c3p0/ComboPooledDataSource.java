@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -45,6 +45,10 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
 
     final static Set TO_STRING_IGNORE_PROPS = new HashSet( Arrays.asList( new String[] { 
                     "connection",
+                    "lastCheckinFailureDefaultUser",
+                    "lastCheckoutFailureDefaultUser",
+                    "lastConnectionTestFailureDefaultUser",
+                    "lastIdleTestFailureDefaultUser",
                     "logWriter",
                     "loginTimeout",
                     "numBusyConnections",
@@ -53,6 +57,9 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
                     "numConnections",
                     "numConnectionsAllUsers",
                     "numConnectionsDefaultUser",
+                    "numFailedCheckinsDefaultUser",
+                    "numFailedCheckoutsDefaultUser",
+                    "numFailedIdleTestsDefaultUser",
                     "numIdleConnections",
                     "numIdleConnectionsAllUsers",
                     "numIdleConnectionsDefaultUser",
@@ -61,6 +68,13 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
                     "numUnclosedOrphanedConnectionsDefaultUser",
                     "numUserPools",
                     "effectivePropertyCycleDefaultUser",
+                    "startTimeMillisDefaultUser",
+                    "statementCacheNumCheckedOutDefaultUser",
+                    "statementCacheNumCheckedOutStatementsAllUsers",
+                    "statementCacheNumConnectionsWithCachedStatementsAllUsers",
+                    "statementCacheNumConnectionsWithCachedStatementsDefaultUser",
+                    "statementCacheNumStatementsAllUsers",
+                    "statementCacheNumStatementsDefaultUser",
                     "threadPoolSize",
                     "threadPoolNumActiveThreads",
                     "threadPoolNumIdleThreads",
@@ -71,10 +85,10 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
                     "overrideDefaultPassword",
                     "password",
                     "reference",
+                    "upTimeMillisDefaultUser",
                     "user",
                     "userOverridesAsString",
                     "allUsers",
-
                     "connectionPoolDataSource"
     } ) );
 

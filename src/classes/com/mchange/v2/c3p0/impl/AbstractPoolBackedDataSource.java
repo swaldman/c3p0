@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -199,6 +199,9 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public long getNumFailedIdleTestsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getNumFailedIdleTests(); }
 
+    public int getNumThreadsAwaitingCheckoutDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getNumThreadsAwaitingCheckout(); }
+
     public int getThreadPoolSize() throws SQLException
     { return getPoolManager().getThreadPoolSize(); }
 
@@ -221,7 +224,7 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     { return getPoolManager().getPool().dumpStatementCacheStatus(); }
     
     public String sampleStatementCacheStatus(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).dumpStatementCacheStatus(); }
+    { return assertAuthPool(username, password).dumpStatementCacheStatus(); }
     
     public Throwable getLastCheckinFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastCheckinFailure(); }
@@ -236,17 +239,20 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     { return getPoolManager().getPool().getLastConnectionTestFailure(); }
     
     public Throwable getLastCheckinFailure(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getLastCheckinFailure(); }
+    { return assertAuthPool(username, password).getLastCheckinFailure(); }
 
     public Throwable getLastCheckoutFailure(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getLastCheckoutFailure(); }
+    { return assertAuthPool(username, password).getLastCheckoutFailure(); }
 
     public Throwable getLastIdleTestFailure(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getLastIdleTestFailure(); }
+    { return assertAuthPool(username, password).getLastIdleTestFailure(); }
 
     public Throwable getLastConnectionTestFailure(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getLastConnectionTestFailure(); }
+    { return assertAuthPool(username, password).getLastConnectionTestFailure(); }
     
+    public int getNumThreadsAwaitingCheckout(String username, String password) throws SQLException
+    { return assertAuthPool(username, password).getNumThreadsAwaitingCheckout(); }
+
     public String sampleLastCheckinFailureStackTraceDefaultUser() throws SQLException
     { 
         Throwable t = getLastCheckinFailureDefaultUser(); 
@@ -299,46 +305,46 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     { getPoolManager().getPool().reset(); }
 
     public int getNumConnections(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getNumConnections(); }
+    { return assertAuthPool(username, password).getNumConnections(); }
 
     public int getNumIdleConnections(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getNumIdleConnections(); }
+    { return assertAuthPool(username, password).getNumIdleConnections(); }
 
     public int getNumBusyConnections(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getNumBusyConnections(); }
+    { return assertAuthPool(username, password).getNumBusyConnections(); }
 
     public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getNumUnclosedOrphanedConnections(); }
+    { return assertAuthPool(username, password).getNumUnclosedOrphanedConnections(); }
 
     public int getStatementCacheNumStatements(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getStatementCacheNumStatements(); }
+    { return assertAuthPool(username, password).getStatementCacheNumStatements(); }
 
     public int getStatementCacheNumCheckedOut(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getStatementCacheNumCheckedOut(); }
+    { return assertAuthPool(username, password).getStatementCacheNumCheckedOut(); }
 
     public int getStatementCacheNumConnectionsWithCachedStatements(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getStatementCacheNumConnectionsWithCachedStatements(); }
+    { return assertAuthPool(username, password).getStatementCacheNumConnectionsWithCachedStatements(); }
 
     public float getEffectivePropertyCycle(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getEffectivePropertyCycle(); }
+    { return assertAuthPool(username, password).getEffectivePropertyCycle(); }
 
     public long getStartTimeMillis(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getStartTime(); }
+    { return assertAuthPool(username, password).getStartTime(); }
 
     public long getUpTimeMillis(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getUpTime(); }
+    { return assertAuthPool(username, password).getUpTime(); }
     
     public long getNumFailedCheckins(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getNumFailedCheckins(); }
+    { return assertAuthPool(username, password).getNumFailedCheckins(); }
 
     public long getNumFailedCheckouts(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getNumFailedCheckouts(); }
+    { return assertAuthPool(username, password).getNumFailedCheckouts(); }
 
     public long getNumFailedIdleTests(String username, String password) throws SQLException
-    { return getPoolManager().getPool(username, password).getNumFailedIdleTests(); }
+    { return assertAuthPool(username, password).getNumFailedIdleTests(); }
 
     public void softReset(String username, String password) throws SQLException
-    { getPoolManager().getPool(username, password).reset(); }
+    { assertAuthPool(username, password).reset(); }
 
     public int getNumBusyConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumBusyConnectionsAllAuths(); }
@@ -438,6 +444,17 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
                 logger.info("Initializing c3p0 pool... " + this.toString()  /* + "; using pool manager: " + poolManager */);
         }
         return poolManager;	    
+    }
+
+    private C3P0PooledConnectionPool assertAuthPool( String username, String password ) throws SQLException
+    {
+	C3P0PooledConnectionPool authPool = getPoolManager().getPool(username, password, false);
+	if (authPool == null)
+	    throw new SQLException("No pool has been yet been established for Connections authenticated by user '" +
+				   username + "' with the password provided. [Use getConnection( username, password ) " +
+				   "to initialize such a pool.]");
+	else
+	    return authPool;
     }
 
     // serialization stuff -- set up bound/constrained property event handlers on deserialization

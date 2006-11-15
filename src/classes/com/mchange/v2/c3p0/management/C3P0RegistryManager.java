@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -24,6 +24,7 @@
 package com.mchange.v2.c3p0.management;
 
 import java.util.*;
+import java.sql.SQLException;
 import com.mchange.v2.c3p0.C3P0Registry;
 
 public class C3P0RegistryManager implements C3P0RegistryManagerMBean 
@@ -54,6 +55,12 @@ public class C3P0RegistryManager implements C3P0RegistryManagerMBean
 
     public String[] getAllPooledDataSourcesStringified()
     { return stringifySet( C3P0Registry.allPooledDataSources() ); }
+
+    public int getNumPooledDataSources() throws SQLException
+    { return C3P0Registry.getNumPooledDataSources(); }
+
+    public int getNumPoolsAllDataSources() throws SQLException
+    { return C3P0Registry.getNumPoolsAllDataSources(); }
 
     private String[] stringifySet(Set s)
     {

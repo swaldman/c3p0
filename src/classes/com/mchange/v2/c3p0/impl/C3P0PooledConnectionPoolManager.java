@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -710,7 +710,28 @@ public final class C3P0PooledConnectionPoolManager
         }
         else
         {
-            ensureFirstConnectionAcquisition( auth );
+	    // when there is an automaticTestTable to be constructed, we
+	    // have little choice but to grab a Connection on initialization
+	    // to ensure that the table exists before the pool tries to
+	    // test Connections. in c3p0-0.9.1-pre10, i added the check below
+	    // to grab and destroy a cxn even when we don't
+	    // need one, to ensure that db access params are correct before
+	    // we start up a pool. a user who frequently creates and destroys
+	    // PooledDataSources complained about the extra initialization
+	    // time. the main use of this test was to prevent superfluous
+	    // bad pools from being intialized when JMX users type bad
+	    // authentification information into a query method. This is
+	    // now prevented in AbstractPoolBackedDataSource. Still, it is
+	    // easy for clients to start pools uselessly by asking for
+	    // Connections with bad authentification information. We adopt
+	    // the compromise position of "trusting" the DataSource's default
+	    // authentification info (as defined by defaultAuth), but ensuring
+	    // that authentification succeeds via the check below when non-default
+	    // authentification info is provided.
+
+	    if (! defaultAuth.equals( auth ))
+		ensureFirstConnectionAcquisition( auth );
+
             realTestQuery = this.getPreferredTestQuery( userName );
         }
 

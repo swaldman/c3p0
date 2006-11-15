@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -37,15 +37,15 @@ import java.sql.SQLException;
  */
 public abstract class AbstractConnectionCustomizer implements ConnectionCustomizer
 {
-    public void onAcquire( Connection c ) throws Exception
+    public void onAcquire( Connection c, String parentDataSourceIdentityToken ) throws Exception
     {}
 
-    public void onDestroy( Connection c ) throws Exception
+    public void onDestroy( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {}
 
-    public void onCheckOut( Connection c ) throws Exception
+    public void onCheckOut( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {}
 
-    public void onCheckIn( Connection c ) throws Exception
+    public void onCheckIn( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {}
 }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -33,9 +33,43 @@ import java.sql.SQLException;
 import com.mchange.v2.c3p0.impl.IdentityTokenized;
 import com.mchange.v2.c3p0.subst.C3P0Substitutions;
 import com.mchange.v2.sql.SqlUtils;
+import com.mchange.v2.util.DoubleWeakHashMap;
 
 import com.mchange.v2.c3p0.management.*;
 
+/*
+ *  The primary purpose of C3P0Registry is to maintain a mapping of "identityTokens"
+ *  to c3p0 DataSources so that if the same DataSource is looked up (and deserialized
+ *  or dereferenced) via JNDI, c3p0 can ensure that the same instance is always returned.
+ *  But there are subtle issues here. If C3P0Registry maintains hard references to
+ *  DataSources, then they can never be garbage collected. But if c3p0 retains only
+ *  weak references, then applications that look up DataSources, then dereference them,
+ *  and then re-look them up again (not a great idea, but not uncommon) might see
+ *  distinct DataSources over multiple lookups.
+ *
+ *  C3P0 resolves this issue has followed: At first creation or lookup of a PooledDataSource, 
+ *  c3p0 creates a hard reference to that DataSource. So long as the DataSource has not
+ *  been close()ed or DataSources.destroy()ed, subsequent lookups will consistently
+ *  return the same DataSource. If the DataSource is never closed, then there is a potential
+ *  memory leak (as well as the potential Thread leak and Connection leak). But if
+ *  the DataSource is close()ed, only weak refernces to the DataSource will be retained.
+ *  A lookup of a DataSource after it has been close()ed within the current VM may
+ *  return the previously close()ed instance, or may return a fresh instance, depending
+ *  on whether the weak reference has been cleared. In other words, the result of
+ *  looking up a DataSource after having close()ed it in the current VM is undefined.
+ *
+ *  Note that unpooled c3p0 DataSources are always held by weak references, since
+ *  they are never explicitly close()ed. The result of looking up an unpooled DataSource, 
+ *  modifying it, dereferencing it, and then relooking up is therefore undefined as well.
+ *
+ *  These issues are mostly academic. Under normal use scenarios, how c3p0 deals with
+ *  maintaining its registry doesn't much matter. In the past, c3p0 maintained hard
+ *  references to DataSources indefinitely. At least one user ran into side effects
+ *  of the unwanted retention of old DataSources (in a process left to run for months
+ *  at a time, and frequently reconstructing multiple DataSources), so now we take care 
+ *  to ensure that when users properly close() and dereference DataSources, they can 
+ *  indeed be garbage collected.
+ */
 public final class C3P0Registry
 {
     private final static String MC_PARAM = "com.mchange.v2.c3p0.management.ManagementCoordinator";
@@ -52,12 +86,12 @@ public final class C3P0Registry
     //MT: thread-safe, immutable
     private static CoalesceChecker CC = IdentityTokenizedCoalesceChecker.INSTANCE;
 
-    //MT: protected by its own lock
-    //a weak, synchronized coalescer
-    private static Coalescer idtCoalescer = CoalescerFactory.createCoalescer(CC, true , true);
+    //MT: protected by class' lock
+    //a weak, unsynchronized coalescer
+    private static Coalescer idtCoalescer = CoalescerFactory.createCoalescer(CC, true , false);
 
     //MT: protected by class' lock
-    private static HashMap tokensToTokenized = new HashMap();
+    private static Map tokensToTokenized = new DoubleWeakHashMap();
 
     //MT: protected by class' lock
     private static HashSet unclosedPooledDataSources = new HashSet();
@@ -213,8 +247,6 @@ public final class C3P0Registry
 
         IdentityTokenized coalesceCheck = (IdentityTokenized) idtCoalescer.coalesce(idt);
 
-        // if we coalesce to something else, we've already been registered, and don't need
-        // to be added to the various book-keeping and administrative datastructures
         if (! isIncorporated( coalesceCheck ))
             incorporate( coalesceCheck );
 
@@ -278,5 +310,30 @@ public final class C3P0Registry
         Set out = Collections.unmodifiableSet( unclosedPooledDataSources ); 
         //System.err.println( "allPooledDataSources(): " + out );
         return out;
+    }
+
+    public synchronized static int getNumPooledDataSources()
+    { return unclosedPooledDataSources.size(); }
+
+    public synchronized static int getNumPoolsAllDataSources() throws SQLException
+    {
+	int count = 0; 
+	for (Iterator ii = unclosedPooledDataSources.iterator(); ii.hasNext();) 
+	    { 
+		PooledDataSource pds = (PooledDataSource) ii.next(); 
+		count += pds.getNumUserPools(); 
+	    } 
+	return count; 
+    }
+
+    public synchronized int getNumThreadsAllThreadPools() throws SQLException
+    {
+	int count = 0; 
+	for (Iterator ii = unclosedPooledDataSources.iterator(); ii.hasNext();) 
+	    { 
+		PooledDataSource pds = (PooledDataSource) ii.next(); 
+		count += pds.getNumHelperThreads(); 
+	    } 
+	return count; 
     }
 }

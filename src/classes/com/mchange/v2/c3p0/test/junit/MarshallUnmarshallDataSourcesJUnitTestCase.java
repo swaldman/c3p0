@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -33,7 +33,15 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 
 public final class MarshallUnmarshallDataSourcesJUnitTestCase extends C3P0JUnitTestCaseBase
 {
-    final static Collection EXCLUDE_PROPS = Arrays.asList( new String[]{"connection",
+    final static Collection EXCLUDE_PROPS = Arrays.asList( new String[]{
+                                    "allUsers",
+                                    "connection",
+                                    "connectionPoolDataSource",
+                                    "effectivePropertyCycleDefaultUser",
+                                    "lastCheckinFailureDefaultUser",
+                                    "lastCheckoutFailureDefaultUser",
+                                    "lastConnectionTestFailureDefaultUser",
+                                    "lastIdleTestFailureDefaultUser",
 									"logWriter",
 									"numBusyConnections",
 									"numBusyConnectionsAllUsers",
@@ -41,18 +49,37 @@ public final class MarshallUnmarshallDataSourcesJUnitTestCase extends C3P0JUnitT
 									"numConnections",
 									"numConnectionsAllUsers",
 									"numConnectionsDefaultUser",
+                                    "numFailedCheckinsDefaultUser",
+                                    "numFailedCheckoutsDefaultUser",
+                                    "numFailedIdleTestsDefaultUser",
 									"numIdleConnections",
 									"numIdleConnectionsAllUsers",
 									"numIdleConnectionsDefaultUser",
 									"numUnclosedOrphanedConnections",
 									"numUnclosedOrphanedConnectionsAllUsers",
 									"numUnclosedOrphanedConnectionsDefaultUser",
-									"numUserPools" } );
+									"numUserPools",
+                                    "startTimeMillisDefaultUser",
+                                    "statementCacheNumCheckedOutDefaultUser",
+                                    "statementCacheNumCheckedOutStatementsAllUsers",
+                                    "statementCacheNumConnectionsWithCachedStatementsAllUsers",
+                                    "statementCacheNumConnectionsWithCachedStatementsDefaultUser",
+                                    "statementCacheNumStatementsAllUsers",
+                                    "statementCacheNumStatementsDefaultUser",
+                                    "threadPoolSize",
+                                    "threadPoolNumActiveThreads",
+                                    "threadPoolNumIdleThreads",
+                                    "threadPoolNumTasksPending",
+                                    "threadPoolStackTraces",
+                                    "threadPoolStatus",
+                                    "upTimeMillisDefaultUser"
+                                    } );
 
     public void testSerializationRoundTrip()
     {
 	try
 	    {
+        cpds.setIdentityToken("poop"); //simulate a never-before-seen data source, so it's a new registration on deserialization
 		byte[] pickled = SerializableUtils.toByteArray(cpds);
 		ComboPooledDataSource unpickled = (ComboPooledDataSource) SerializableUtils.fromByteArray( pickled );
 		assertTrue( "Marshalled and unmarshalled DataSources should have the same properties!", 
@@ -69,6 +96,7 @@ public final class MarshallUnmarshallDataSourcesJUnitTestCase extends C3P0JUnitT
     {
 	try
 	    {
+        cpds.setIdentityToken("scoop"); //simulate a never-before-seen data source, so it's a new registration on deserialization
 		Reference ref = cpds.getReference();
 		ComboPooledDataSource unpickled = (ComboPooledDataSource) ReferenceableUtils.referenceToObject( ref, null, null, null );
 		assertTrue( "Marshalled and unmarshalled DataSources should have the same properties!", 

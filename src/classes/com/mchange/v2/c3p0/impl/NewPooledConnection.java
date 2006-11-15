@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -36,7 +36,11 @@ import com.mchange.v2.lang.ObjectUtils;
 import com.mchange.v2.sql.SqlUtils;
 
 public final class NewPooledConnection extends AbstractC3P0PooledConnection{
+
     private final static MLogger logger = MLog.getLogger( NewPooledConnection.class );
+
+    private final static SQLException NORMAL_CLOSE_PLACEHOLDER = new SQLException("This pooled Connection was explicitly close()ed by " +
+										  "a client, not invalidated due to an error.");
 
     //MT: thread-safe post-constructor constants
     final Connection             physicalConnection;
@@ -481,7 +485,11 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 		    connection_status = ConnectionTester.CONNECTION_IS_INVALID;
 		if ( cause == null )
 		    {
-			this.invalidatingException = new SQLException(this + " explicitly closed!");
+			this.invalidatingException = NORMAL_CLOSE_PLACEHOLDER;
+
+			if ( logger.isLoggable( MLevel.FINEST ) )
+			    logger.log( MLevel.FINEST, this + " closed by a client.", new Exception("DEBUG -- CLOSE BY CLIENT STACK TRACE") );
+
 			logCloseExceptions( null, closeExceptions );
 
 			if (closeExceptions.size() > 0)

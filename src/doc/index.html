@@ -1,7 +1,7 @@
 <html>
   <head>
     <title>c3p0-v@c3p0.version@ - JDBC3 Connection and Statement Pooling - Documentation</title>
-    <script type="text/javascript">
+    <script language="text/javascript">
       function toggleDisplay( id1, id2 )
       {
         if (document.getElementById( id1 ).style.display == 'block')
@@ -33,7 +33,9 @@
       }
       dl.properties dt {
          padding-top: 1em;
-         border-top: 1 dashed black;
+         border-top-width: 1;
+         border-top-style: dashed;
+         border-top-color: black;
          font-family: monospace;
 	 color: red;
       }
@@ -45,18 +47,16 @@
       dl.properties div.per-user {
       	 text-align: center;
          margin-top: 0.5em;
-		 font-weight: bold;
-		 border-top: 1 solid black;
-		 border-left: 1 solid black;
-		 border-bottom: 1 solid black;
-		 border-right: 1 solid black;
-		 background-color: #FFCCCC;
+	 font-weight: bold;
+	 border-width: 1;
+         border-style: solid; 
+         border-color: black;
+	 background-color: #FFCCCC;
       }
       dl.log_properties {
-         border-top: 2 solid black;
-         border-left: 2 solid black;
-         border-bottom: 2 solid black;
-         border-right: 2 solid black;
+         border-width: 2;
+         border-style: solid;
+         border-color: black;
          padding: 0.5em 0.5em 0.5em 0.5em;
          font-size: smaller;
 	 background-color: #DDDDDD;
@@ -73,7 +73,9 @@
 	 color: black;
       }
       div.boxed {
-        border: 1px solid black; 
+        border-width: 1;
+        border-style: solid; 
+        border-color: black; 
         padding: 1em; 
         font-size: smaller;
         background-color: #CCFFCC;
@@ -108,8 +110,17 @@
 	 background-color: #CCCCFF;
          margin: 3em 3em 3em 3em;
          padding: 1em 0em 1em 2em;
+         border-top-width: 2; 
+         border-top-color: black; 
+         border-top-style: solid; 
+         border-bottom-width: 2; 
+         border-bottom-color: black; 
+         border-bottom-style: solid; 
+      /*
+         doesn't show under Firefox
          border-top: 2 solid black;
          border-bottom: 2 solid black;
+      */
       }
       div.example_properties {
          white-space: pre;
@@ -118,8 +129,12 @@
 	 background-color: #CCCCFF;
          margin: 3em 3em 3em 3em;
          padding: 1em 0em 1em 0em;
-         border-top: 2 solid black;
-         border-bottom: 2 solid black;
+         border-top-width: 2; 
+         border-top-color: black; 
+         border-top-style: solid; 
+         border-bottom-width: 2; 
+         border-bottom-color: black; 
+         border-bottom-style: solid; 
       }
       div.example_properties strong {
          font-weight: bold;
@@ -127,6 +142,15 @@
       }
       div.hibernate_props {
          text-align: center;
+      }
+      div.other_properties_desc {
+         padding-top: 2px;
+         padding-left: 2em;
+         padding-right: 2em;
+         padding-bottom: 5px;
+         margin-bottom: 2em;
+         text-align: justify;
+         background: #ddf;
       }
       div.sectiontext {
          margin-left: 2em;
@@ -147,11 +171,16 @@
       }
       h2 {
 	 background-color: #FFFFAA;
-         border-bottom: 2 solid black;
          margin-top: 2em;
+         border-bottom-width: 2; 
+         border-bottom-color: black; 
+         border-bottom-style: solid; 
       }
       h3 {
          margin-right: -2em;
+      }
+      img {
+         border: 0;
       }
       ol.contents ol {
          list-style-type: lower-roman;
@@ -164,7 +193,9 @@
       }
       ol.precedence {
         width: 75%; 
-        border: 2 solid black; 
+        border-width: 2; 
+        border-color: black; 
+        border-style: solid; 
         padding-left: 3em; 
         padding-top: 1em; 
         padding-bottom: 1em; 
@@ -186,9 +217,27 @@
          font-style: plain;
          float: right;
       }
+      table.beanPropSummaryTable {
+         width: 100%;
+         border: none;
+      }
+      table.beanPropSummaryTable tr td {
+         width: 33%;
+         border: none;
+         background: #ddf;
+         font-family: monospace;
+         line-height: 1.5;
+         padding: 8px;
+      }
+
+      table.beanPropSummaryTable tr td  a {
+         color: black;
+      }
 
       table.hibernate_props {
-         border: 2 solid black;
+         border-width: 2;
+         border-color: black; 
+         border-style: solid; 
 	 font-size: smaller;
          margin-left: auto;
          margin-right: auto;
@@ -198,6 +247,11 @@
       }
       table.hibernate_props td {
          font-family: monospace;
+      }
+      ul.other_props_list {
+         list-style: none;
+         font-family: monospace;
+         color: #A00;
       }
       ul.pointerlist {
          list-style: square;
@@ -808,7 +862,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
       </h3>
       <p>
-	While c3p0 does not <i>require</i> very much configuration, it is very tweakable. All the interesting
+	While c3p0 does not <i>require</i> very much configuration, it is very tweakable. Most of the interesting
 	knobs and dials are represented as JavaBean properties. Following JavaBean conventions, we note that
 	if an Object has a property of type <tt>T</tt> called <tt>foo</tt>, it will have methods that look
 	like...
@@ -1101,11 +1155,43 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<li><a class="cfg_param" href="#connectionCustomizerClassName">connectionCustomizerClassName</a></li>
       </ul>
       <p>
-	ConnectionCustomizers are required to be immutable classes with public no argument Constructors.
-	They shouldn't store any state. For (rare) application that wish to track the behavior of individual
+	ConnectionCustomizers are required to be immutable classes with public no argument constructors.
+	They shouldn't store any state. For (rare) applications that wish to track the behavior of individual
 	DataSources with ConnectionCustomizers, the lifecycle methods each accept a DataSource-specific 
 	"identityToken", which is unique to each PooledDataSource.
       </p>
+      <p>
+	Below is a sample <tt>ConnectionCustomizer</tt>. Implementations that do not need to override all
+	four <tt>ConnectionCustomizer</tt> methods can extend 
+	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionCustomizer.html"><tt>AbstractConnectionCustomizer</tt></a>
+	to inherit no-op implementations of all methods.  
+      </p>
+      <div class="example">
+import com.mchange.v2.c3p0.*;
+import java.sql.Connection;
+
+public class VerboseConnectionCustomizer
+{
+    public void onAcquire( Connection c, String pdsIdt )
+    { 
+       System.err.println("Acquired " + c + " [" + pdsIdt + "]"); 
+
+       // override the default transaction isolation of 
+       // newly acquired Connections
+       c.setTransactionIsolation( Connection.REPEATABLE_READ );
+    }
+
+    public void onDestroy( Connection c, String pdsIdt )
+    { System.err.println("Destroying " + c + " [" + pdsIdt + "]"); }
+
+    public void onCheckOut( Connection c, String pdsIdt )
+    { System.err.println("Checked out " + c + " [" + pdsIdt + "]"); }
+
+    public void onCheckIn( Connection c, String pdsIdt )
+    { System.err.println("Checking in " + c + " [" + pdsIdt + "]"); }
+}
+      </div>
+
       <h3>
 	<a name="configuring_unresolved">Configuring Unresolved Transaction Handling</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -1196,7 +1282,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       <p>
       	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
       	checked out and one cannot be supplied immediately. <tt>usesTraditionalReflectiveProxies</tt>, which is
-      	of little practical use, an old, now superceded implementation of C3P0-generated proxy objects. (C3P0
+      	of little practical use, permits you to use an old, now superceded implementation of C3P0-generated proxy objects. (C3P0
       	used to use reflective, dynamic proxies. Now, for enhanced performance, it uses code-generated, nonrefective
       	implementations.) <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
       	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
@@ -1249,7 +1335,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	c3p0 starts up, it emits the build-time values of debug and trace, along with the version and build time.
       </p>
       <dl class="log_properties">
-	<a name="log_properties_box" />
+	<a name="log_properties_box"></a>
 	<dt><a name="com.mchange.v2.log.MLog" />com.mchange.v2.log.MLog</dt>
 	<dd>
 	  <div class="propdesc">
@@ -1383,6 +1469,65 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
     </div>
     <h2><a name="configuration_properties">Appendix A: Configuration Properties</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
+      <p>
+	c3p0 configuration properties can be divided into <a href="#javabeans-style-properties">JavaBeans-style Properties</a> and
+	<a href="#other-properties">Other Properties</a>.
+      </p>
+      <h3>
+	<a name="javabeans-style-properties">JavaBeans-style Properties</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	The following properties can be set directly in code as JavaBeans properties, 
+	via a <a href="#system_properties">System properties</a> or a <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>  file
+	(with <tt>c3p0.</tt> prepended to
+	the property name), or in a <a href="#c3p0-config.xml"><tt>c3p0-config.xml</tt></a> file. See the section on 
+	<a href="#configuration">Configuration</a> above.
+	Click on the property name for a full description. 
+      </p>
+      <table class="beanPropSummaryTable">
+	<tr>
+	  <td>
+	    <a href="#acquireIncrement">acquireIncrement</a><br/>
+	    <a href="#acquireRetryAttempts">acquireRetryAttempts</a><br/>
+	    <a href="#acquireRetryDelay">acquireRetryDelay</a><br/>
+	    <a href="#autoCommitOnClose">autoCommitOnClose</a><br/>
+	    <a href="#automaticTestTable">automaticTestTable</a><br/>
+	    <a href="#breakAfterAcquireFailure">breakAfterAcquireFailure</a><br/>
+	    <a href="#checkoutTimeout">checkoutTimeout</a><br/>
+	    <a href="#connectionCustomizerClassName">connectionCustomizerClassName</a><br/>
+	    <a href="#connectionTesterClassName">connectionTesterClassName</a><br/>
+	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
+	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
+	  </td>
+	  <td>
+	    <a href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a><br/>
+	    <a href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a><br/>
+	    <a href="#initialPoolSize">initialPoolSize</a><br/>
+	    <a href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a><br/>
+	    <a href="#maxConnectionAge">maxConnectionAge</a><br/>
+	    <a href="#maxIdleTime">maxIdleTime</a><br/>
+	    <a href="#maxIdleTimeExcessConnections">maxIdleTimeExcessConnections</a><br/>
+	    <a href="#maxPoolSize">maxPoolSize</a><br/>
+	    <a href="#maxStatements">maxStatements</a><br/>
+	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
+	    <a href="#minPoolSize">minPoolSize</a><br/>
+	  </td>
+	  <td>
+	    <a href="#numHelperThreads">numHelperThreads</a><br/>
+	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
+	    <a href="#overrideDefaultPassword">overrideDefaultPassword</a><br/>
+	    <a href="#password">password</a><br/>
+	    <a href="#preferredTestQuery">preferredTestQuery</a><br/>
+	    <a href="#propertyCycle">propertyCycle</a><br/>
+	    <a href="#testConnectionOnCheckin">testConnectionOnCheckin</a><br/>
+	    <a href="#testConnectionOnCheckout">testConnectionOnCheckout</a><br/>
+	    <a href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a><br/>
+	    <a href="#user">user</a><br/>
+	    <a href="#usesTraditionalReflectiveProxies">usesTraditionalReflectiveProxies</a><br/>
+	  </td>
+	</tr>
+      </table>
       <dl class="properties">
 	<dt><a name="acquireIncrement" />acquireIncrement</dt>
 	<dd>
@@ -1543,13 +1688,13 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
 	    Seconds before c3p0's thread pool will try to interrupt an apparently hung task. <u>Rarely useful.</u> Many of c3p0's functions
-	    are not performed by client threads, but asynchronously by an internal thread pool. This enhances
+	    are not performed by client threads, but asynchronously by an internal thread pool. c3p0's asynchrony enhances
 	    client performance directly, and minimizes the length of time that critical locks are held by ensuring that slow
 	    jdbc operations are performed in non-lock-holding threads. If, however, some of these tasks "hang", that is
-	    they neither succeed, nor fail with an Exception for a prolonged period of time, c3p0's thread pool can become
-	    exhausted and administrative tasks backed up. If tasks are simple slow, the best way to resolve the problem
+	    they neither succeed nor fail with an Exception for a prolonged period of time, c3p0's thread pool can become
+	    exhausted and administrative tasks backed up. If the tasks are simply slow, the best way to resolve the problem
 	    is to increase the number of threads, via <a href="#numHelperThreads">numHelperThreads</a>. But if tasks
-	    sometimes hang indefinitely, you can use this parameter to force a call to a task thread's <tt>interrupt()</tt>
+	    sometimes hang indefinitely, you can use this parameter to force a call to the task thread's <tt>interrupt()</tt>
 	    method if a task exceeds a set time limit. [c3p0 will eventually recover from hung tasks anyway by signalling an "APPARENT
 	    DEADLOCK" (you'll see it as a warning in the logs), replacing the thread pool task threads, and interrupt()ing the
 	    original threads. But letting the pool go into APPARENT DEADLOCK and then recover means that for some periods,
@@ -1787,6 +1932,80 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
  	  </div>
 	</dd>
       </dl>
+      <h3>
+	<a name="other-properties">Other Properties</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	The following configuration properties affect the behavior of the c3p0 library as a whole. They
+	may be set as system properties, or in a <a href="#c3p0_properties"><tt>c3p0.properties</tt></a> file.
+      </p>
+      <div class="other_properties_desc">
+	<h4>Logging-related properties</h4>
+	<p>
+	  The following properties affect c3p0's logging behavior. Please see <a href="#configuring_logging">Configuring Logging</a>
+	  above for specific information.
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.log.MLog</li>
+	  <li>com.mchange.v2.log.NameTransformer</li>
+	  <li>com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</li>
+	</ul>
+	<h4>Configuring JMX</h4>
+	<p>
+	  The following property controls c3p0's JMX management interface. Plese see 
+	  <a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a> above
+	  for more information.
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.management.ManagementCoordinator</li>
+	</ul>
+	<h4>Configuring the VMID</h4>
+	<p>
+	  Is it better to be beautiful or correct? Beginning with c3p0-0.9.1, c3p0 opts somewhat reluctantly for correctness.
+	</p>
+	<p>
+	  Here's the deal. Every c3p0 DataSource is allocated a unique "identity token", which is used to ensure that multiple
+	  JNDI lookups of the same PooledDataSource always return the same instance, even if the JNDI name-server stores a
+	  Serialized or Referenced instance. Previously, c3p0 was happy for generated IDs to be unique within a single VM (and it
+	  didn't even get that quite right, before c3p0-0.9.1). But in theory, one VM might look up two different DataSources,
+	  generated by two different VMs, that by unlikely coincidence have the same "identity token", leading to errors as one
+	  of the two DataSources sneakily substitutes for the second. Though this hypothetical issue has never been reported in practice,
+	  c3p0 resolves it by prepending a VMID to its identity tokens. This makes them long and ugly, but correct.
+	</p>
+	<p>
+	  If you don't like the long and ugly VMID, you can set your own, or you can turn off this solution to a hypothetical
+	  non-problem entirely with the following property:
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.VMID</li>
+	</ul>
+	<p>
+	  Set it to <tt>NONE</tt> to turn off the VMID, set it to <tt>AUTO</tt> to let c3p0 generate a VMID,
+	  or provide any other String to set the VMID that will be used directly. The default is <tt>AUTO</tt>.
+	</p>
+	<h4>Experimental properties</h4>
+	<p>
+	  c3p0-0.9.1 includes a new implementation of asynchronous Connection acquisition that
+	  should improve c3p0's performance and resource utilization in cases where database
+	  acquisition attempts, for whatever reason, occasionally fail. The new implementation
+	  should be significantly better than the "traditional" Connection acquisition strategy,
+	  but was added too late in the c3p0-0.9.1 development cycle to be fully tested and
+	  enabled by default. Users are encouraged to try the new implementation, both because
+	  it is better, and to help iron out any unanticipated problems.
+	</p>
+	<p>
+	  For a full description of the new implementation and the resource bottleneck it is
+	  designed to overcome, please see the <tt>CHANGELOG</tt> entry for <tt>c3p0-0.9.1-pre11</tt>.
+	  To enable the new implementation, set the following parameter to "<tt>true</tt>".
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.resourcepool.experimental.useScatteredAcquireTask</li>
+	</ul>
+	<p>
+	  This feature is expected to be enabled by default in c3p0-0.9.2 and above.
+	</p>
+      </div>
     </div>
     <hr/>
       <h2>
@@ -1951,7 +2170,7 @@ DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoA
 	  <ol class="precedence">
 	    <li>Configuration values programmatically set.</li>
 	    <li>System property setting of configuration value.</li>
-	    <li>Configuration values taken from the default configuration a <tt>c3p0-config.xml</tt> file.</li>
+	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
 	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>

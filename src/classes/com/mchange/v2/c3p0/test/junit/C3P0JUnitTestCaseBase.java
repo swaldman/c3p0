@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre10
+ * Distributed as part of c3p0 v.0.9.1-pre11
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -32,15 +32,22 @@ public abstract class C3P0JUnitTestCaseBase extends TestCase
 
     protected void setUp() 
     {
+        //we let this stuff get setup in c3p0.properties now
+        
+        /*
 	String url      = System.getProperty("c3p0.test.jdbc.url");
 	String user     = System.getProperty("c3p0.test.jdbc.user");
 	String password = System.getProperty("c3p0.test.jdbc.password");
+         */
 
 	//C3P0JUnitTestConfig.loadDrivers();
 	cpds = new ComboPooledDataSource();
+    
+    /*
 	cpds.setJdbcUrl( url );
 	cpds.setUser( user );
 	cpds.setPassword( password );
+    */
     }
 
     protected void tearDown() 

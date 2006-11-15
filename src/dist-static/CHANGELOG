@@ -1,3 +1,115 @@
+c3p0-0.9.1-pre11
+	-- Documentation updates, and style-sheet fixes for FireFox.
+	
+	-- Despite the ugliness, added logic to prepend a VMID to identity
+	   tokens generated for c3p0 DataSources. See the docs (Appendix A,
+	   other configuration properties) for more information. Though there's
+	   little harm in the longer, uglier identityTokens, users who dislike
+	   them can turn them off using the property com.mchange.v2.c3p0.VMID.
+
+	-- Wrote ScatteringAcquireTask, which represents a significant change to
+	   how c3p0's underlying resource pool deals with Connections acquisition
+	   failures. c3p0 is designed to retry Connection acquisition up to 
+	   "c3p0.acquireRetryAttempts" times (30 by default) with a delay of
+	   "c3p0.acquireRetryDelay" milliseconds (1000 by default) between tries.
+	   Should no Connection be successfully acquired after acquireRetryAttempts,
+	   c3p0 gives up, logs an error, and frees clients waiting to check out
+	   a Connection with an Exception (declaring the pool permanently broken
+	   iff c3p0.breakOnAcquireFailure is set to true).
+
+	   Connection acquisition is performed asynchronously by c3p0's thread
+	   pool. Under the old implementation, when database Connections could
+	   not be acquired, a single task dispatched to the thread pool would
+	   hog a thread for the full length of the cycle -- 30 seconds by 
+	   default -- spending most of that time sleeping between retries.
+	   Under the new implementation, each acquisition attempt is its own
+	   separate task, and if an acquire attempt fails, a timer is used to
+	   schedule a retry adter acquireRetryDelay without hogging any thread.
+
+	   I think the new implementation is unambiguously superior to the old,
+	   as it permits clients to use smaller thread pools (c3p0.numHelperThreads) 
+	   and diminishes the likelihood of apparent thread pool deadlocks.
+	   However, it is too significant a change to introduce this late
+	   in the "mature" c3p0-0.9.1 series, so the old implementation is enabled 
+	   by default until the c3p0-0.9.2 development cycle begins. 
+
+	   TO USE THE NEW IMPLEMENTATION WITH c3p0-0.9.1, set...
+
+	     com.mchange.v2.resourcepool.experimental.useScatteredAcquireTask=true
+
+	   in a c3p0.properties file or as a system property. Users are strongly 
+	   encouraged to set this property. You'll see better resource utilization,
+	   and I'll get to hear issue reports if I've screwed anything up in
+	   the implementation.
+	-- Modified BasicResourcePool so that checkin (and removal) of resources
+	   is always synchronous if the pool is marked broken. [Otherwise the
+	   check-ins to a closed or broken pool may fail, as they try to use an 
+	   already close()ed asynchronous task runner.]
+	-- Modified BasicResourcePool.AcquireTask so that an interrupt always
+	   forces the whole task to end, not just a single acquisition
+	   attempt.
+	-- Exposed numThreadsAwaitingCheckout in PooledDataSource interface
+	   and its associated MBean. [Thanks to John Sumsion for suggesting
+	   this property.]
+	-- Prevented password from being exposed via 
+	   DynamicPooledDataSourceManagerMBean. [Thanks to John Sumsion
+	   for calling attention to this oversight!]
+	-- Fixed an error whereby DataSources.pooledDataSource( ... ) methods
+	   failed to properly set configuration properties defined on
+	   PoolBackedDataSource [e.g. numHelperThreads]. Many thanks to
+	   John Sumsion for noticing the problem and sending the fix!
+	-- Fixed AbstractConnectionCustomizer to implement (with no-op) methods
+	   the current definition of the ConnectionCustomizer interface. (Failed
+	   to update after modifying an early version of this interface.)
+	-- Modified NewPooledConnection to only collect stack trace information
+	   on close() when we are debugging at FINEST or DEBUG (log4j) level.
+	   Previously, stack trace information was collected anytime a 
+	   c3p0 PooledConnection was close()ed. This was unnecessary, although
+	   the performance cost was probably small to negligible, since 
+	   PooledConnections are typically reused many times before they are 
+	   close()ed. Stack trace information is still captured when 
+	   PooledConnections are destroyed due to an error, rather than an
+	   ordinary call to close().
+	-- Hid the getLastXXXFailure(user, password) from the operations list of 
+	   DynamicPooledDataSourceManagerMBean. The stack traces of failures
+	   are visible via the sampleLastXXXFailureStackTrace(); there's no
+	   need to expose the Throwbales as well via JMX.
+	-- Added convenience methods getNumPooledDataSources() and getNumPoolsAllDataSources()
+	   to C3P0Registry and the related MBean. [Thanks to lukeda on hibernate
+	   forums for calling attention to the need for a pool count, since
+	   DataSources can wrap multiple pools associated with different
+	   authentications.]
+	-- Eliminated the "trial Connection acquisition" added to c3p0-0.9.1-pre10 
+           when PooledDataSources construct the pool with their default authentification
+	   information. Effectively we trust that the default auntentification is
+	   good, while we distrust client-specified (or JMX-queried) username/password
+	   combinations, and perform the extra check. This is a compromise, as users 
+	   who frequently create and destroy DataSources don't like the extra overhead 
+	   of the trial Connection acquisition, but we really want to avoid the initialization 
+	   of bad pools when users misspecify authentification information. We've also prevented
+	   mere queries of pool status from triggering the initialization of a 
+	   non-default-authentification pool. Only calls to getConnection(user, password)
+	   will provoke the initialization of a non-default-auth pool. Querying
+	   a non-default pool -- e.g. getNumBusyConnections( "steve", "test" ) -- will
+	   throw an Exception if no Conections have ever been requested for ("steve", "test")
+	   rather than initializing a new pool. [Thanks to Jiji Sasidharan for calling
+	   attention to this issue.]
+        -- Finally rationalized C3P0Registry's Object retention policy. C3P0Registry
+           retains references to all C3P0 DataSources, to provide a central
+           point of client access for users, and to ensure that multiple JNDI
+           lookups within a single VM result in the same DataSource instance.
+           This is both intuitive, and avoids multiplying Threads and pools.
+           In previous versions of c3p0, hard references were retained indefinitely.
+           Closed DataSources hold no non-memory resources, and are small Objects,
+           but in unusual scenarios wherein very many c3p0 DataSources are created
+           and destroyed within the lifetime of a single VM, this amounts to a
+           memory leak. C3P0Registry now retains hard references to DataSources
+           so long as they have not been close()ed (or DataSources.destroy()ed).
+           When they have been close()ed, only weak references to c3p0 DataSources
+           persist, and they are eligible for garbage collection. [Thanks to 
+           Jeremy Grodberg for calling attention to this as a real-world issue.]
+	-- Removed some of the new pool stat params which distractingly appear in
+	   ComboPooledDataSource's toString() method (and c3p0 pools' config dump).
 c3p0-0.9.1-pre10
 	-- Exposed statement pool stats via PooledDataSource interface and MBean.
 	   Added accessors to the statement cache, pool, pool manager, and 
@@ -161,7 +273,9 @@ c3p0-0.9.1-pre7
 	   matter, since the sequential destruction occurs asynchronously in the
 	   thread pool and is invisible to clients, both client-observed and over-all
 	   performance should not suffer. (It may even be improved, as the 0.9.0.x 
-	   strategy was complicated and had some overhead.)
+	   strategy was complicated and had some overhead.) Note: This revision should
+	   also eliminate occasional ConcurrentModificationExceptions associated
+	   with the Statement cache.
 	-- Changed asynchronous tasks implemented as anonymous inner classes to named
 	   inner classes, so that users reviewing active and pending tasks (usually
 	   in trying to make sense of an APPARENT DEADLOCK) have a better idea of
