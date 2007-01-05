@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -95,6 +95,9 @@ public interface ResourcePool extends ClosableResource
     throws ResourcePoolException;
     
     public int getNumCheckoutWaiters()
+    throws ResourcePoolException;
+
+    public Throwable getLastAcquisitionFailure()
     throws ResourcePoolException;
 
     public Throwable getLastCheckinFailure()

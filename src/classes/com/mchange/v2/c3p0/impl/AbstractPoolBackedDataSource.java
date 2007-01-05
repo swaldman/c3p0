@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -226,6 +226,9 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public String sampleStatementCacheStatus(String username, String password) throws SQLException
     { return assertAuthPool(username, password).dumpStatementCacheStatus(); }
     
+    public Throwable getLastAcquisitionFailureDefaultUser() throws SQLException
+    { return getPoolManager().getPool().getLastAcquisitionFailure(); }
+
     public Throwable getLastCheckinFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastCheckinFailure(); }
 
@@ -238,6 +241,9 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public Throwable getLastConnectionTestFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastConnectionTestFailure(); }
     
+    public Throwable getLastAcquisitionFailure(String username, String password) throws SQLException
+    { return assertAuthPool(username, password).getLastAcquisitionFailure(); }
+
     public Throwable getLastCheckinFailure(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getLastCheckinFailure(); }
 
@@ -253,6 +259,12 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public int getNumThreadsAwaitingCheckout(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getNumThreadsAwaitingCheckout(); }
 
+    public String sampleLastAcquisitionFailureStackTraceDefaultUser() throws SQLException
+    { 
+        Throwable t = getLastAcquisitionFailureDefaultUser(); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+    
     public String sampleLastCheckinFailureStackTraceDefaultUser() throws SQLException
     { 
         Throwable t = getLastCheckinFailureDefaultUser(); 
@@ -277,6 +289,12 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
     
+    public String sampleLastAcquisitionFailureStackTrace(String username, String password) throws SQLException
+    { 
+        Throwable t = getLastAcquisitionFailure(username, password); 
+        return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
+    }
+
     public String sampleLastCheckinFailureStackTrace(String username, String password) throws SQLException
     { 
         Throwable t = getLastCheckinFailure(username, password); 

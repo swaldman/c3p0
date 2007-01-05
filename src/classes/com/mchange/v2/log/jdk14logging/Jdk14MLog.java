@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -26,29 +26,38 @@ package com.mchange.v2.log.jdk14logging;
 import java.util.*;
 import java.util.logging.*;
 import com.mchange.v2.log.*;
+import com.mchange.v2.util.DoubleWeakHashMap;
 
 public final class Jdk14MLog extends MLog
 {
     private static String[] UNKNOWN_ARRAY = new String[] {"UNKNOWN_CLASS", "UNKNOWN_METHOD"};
 
     private final static String CHECK_CLASS = "java.util.logging.Logger";
+    
+    private final static Map namedLoggerMap = new DoubleWeakHashMap();
 
     MLogger global = null;
 
     public Jdk14MLog() throws ClassNotFoundException
     { Class.forName( CHECK_CLASS ); }
 
-    public MLogger getMLogger(String name)
+    public synchronized MLogger getMLogger(String name)
     {
-	Logger lg = Logger.getLogger(name);
-	return new Jdk14MLogger( lg ); 
+        MLogger out = (MLogger) namedLoggerMap.get( name );
+        if (out == null)
+        {
+            Logger lg = Logger.getLogger(name);
+            out = new Jdk14MLogger( lg ); 
+            namedLoggerMap.put( name, out );
+        }
+        return out;
     }
 
-    public MLogger getMLogger(Class cl)
+    public synchronized MLogger getMLogger(Class cl)
     { return getLogger( cl.getName() ); }
 
 
-    public MLogger getMLogger()
+    public synchronized MLogger getMLogger()
     {
 	if (global == null)
 	    global = new Jdk14MLogger( LogManager.getLogManager().getLogger("global") );

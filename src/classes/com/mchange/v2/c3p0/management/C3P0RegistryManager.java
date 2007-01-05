@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -26,13 +26,14 @@ package com.mchange.v2.c3p0.management;
 import java.util.*;
 import java.sql.SQLException;
 import com.mchange.v2.c3p0.C3P0Registry;
+import com.mchange.v2.c3p0.subst.C3P0Substitutions;
 
 public class C3P0RegistryManager implements C3P0RegistryManagerMBean 
 {
     public String[] getAllIdentityTokens()
     { 
-	Set tokens = C3P0Registry.allIdentityTokens(); 
-	return (String[]) tokens.toArray( new String[ tokens.size() ] );
+        Set tokens = C3P0Registry.allIdentityTokens(); 
+        return (String[]) tokens.toArray( new String[ tokens.size() ] );
     }
 
     public Set getAllIdentityTokenized()
@@ -61,6 +62,9 @@ public class C3P0RegistryManager implements C3P0RegistryManagerMBean
 
     public int getNumPoolsAllDataSources() throws SQLException
     { return C3P0Registry.getNumPoolsAllDataSources(); }
+    
+    public String getC3p0Version()
+    { return C3P0Substitutions.VERSION ; }
 
     private String[] stringifySet(Set s)
     {

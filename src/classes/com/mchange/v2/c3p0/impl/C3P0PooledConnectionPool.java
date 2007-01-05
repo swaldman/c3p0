@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -30,6 +30,7 @@ import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.LinkedList;
 
 import javax.sql.ConnectionEvent;
@@ -133,9 +134,9 @@ public final class C3P0PooledConnectionPool
                     if ( connectionCustomizer == null)
                     {
                         out = (auth.equals( C3P0ImplUtils.NULL_AUTH ) ?
-                                        cpds.getPooledConnection() :
-                                            cpds.getPooledConnection( auth.getUser(), 
-                                                            auth.getPassword() ) );
+                               cpds.getPooledConnection() :
+                               cpds.getPooledConnection( auth.getUser(), 
+                                                         auth.getPassword() ) );
                     }
                     else
                     {
@@ -144,10 +145,10 @@ public final class C3P0PooledConnectionPool
                             WrapperConnectionPoolDataSourceBase wcpds = (WrapperConnectionPoolDataSourceBase) cpds;
 
                             out = (auth.equals( C3P0ImplUtils.NULL_AUTH ) ?
-                                            wcpds.getPooledConnection( connectionCustomizer, parentDataSourceIdentityToken ) :
-                                                wcpds.getPooledConnection( auth.getUser(), 
-                                                                auth.getPassword(),
-                                                                connectionCustomizer, parentDataSourceIdentityToken ) );
+                                   wcpds.getPooledConnection( connectionCustomizer, parentDataSourceIdentityToken ) :
+                                   wcpds.getPooledConnection( auth.getUser(), 
+                                                              auth.getPassword(),
+                                                              connectionCustomizer, parentDataSourceIdentityToken ) );
                         }
                         catch (ClassCastException e)
                         {
@@ -176,6 +177,20 @@ public final class C3P0PooledConnectionPool
                                 "ConnectionPoolDataSources.");
                             }
                         }
+                        
+                        // log and clear any SQLWarnings present upon acquisition
+                        Connection con = null;
+                        try
+                        {
+                            con = out.getConnection();
+                            logAndClearWarnings( con );
+                        }
+                        finally
+                        {
+                            //invalidate the proxy Connection
+                            ConnectionUtils.attemptClose( con );
+                        }
+                        
                         out.addConnectionEventListener( cl );
                         return out;
                     }
@@ -246,6 +261,7 @@ public final class C3P0PooledConnectionPool
                         { 
                             physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
                             connectionCustomizer.onCheckIn( physicalConnection, parentDataSourceIdentityToken );
+                            logAndClearWarnings( physicalConnection );
                         }
                         catch (ClassCastException e)
                         {
@@ -254,6 +270,28 @@ public final class C3P0PooledConnectionPool
                                             "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
                         }
                     }
+                    else
+                    {
+                        PooledConnection pc = (PooledConnection) resc;
+                        Connection con = null;
+
+                        try
+                        {
+                            //we don't want any callbacks while we're clearing warnings
+                            pc.removeConnectionEventListener( cl );
+
+                            con = pc.getConnection();
+                            logAndClearWarnings(con);
+                        }
+                        finally
+                        {
+                            // close the proxy Connection
+                            ConnectionUtils.attemptClose(con);
+                            
+                            pc.addConnectionEventListener( cl );
+                        }
+                    }
+                    
                     if ( testConnectionOnCheckin )
                     { 
                         if ( logger.isLoggable( MLevel.FINER ) )
@@ -830,6 +868,17 @@ public final class C3P0PooledConnectionPool
             throw SqlUtils.toSQLException( e );
         }
     }
+    
+    public Throwable getLastAcquisitionFailure() throws SQLException
+    {
+        try { return rp.getLastAcquisitionFailure(); }
+        catch ( Exception e )
+        { 
+            //e.printStackTrace();
+            logger.log( MLevel.WARNING, null, e );
+            throw SqlUtils.toSQLException( e );
+        }
+    }
 
     /**
      * Discards all Connections managed by the pool
@@ -866,5 +915,15 @@ public final class C3P0PooledConnectionPool
             th[0] = null;
             l.add(th);
         }
+    }
+    
+    private static void logAndClearWarnings(Connection con) throws SQLException
+    {
+        if (logger.isLoggable(MLevel.WARNING))
+        {
+            for(SQLWarning w = con.getWarnings(); w != null; w = w.getNextWarning())
+                logger.log(MLevel.WARNING, w.getMessage(), w);
+        }
+        con.clearWarnings();
     }
 }

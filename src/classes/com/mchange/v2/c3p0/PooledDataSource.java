@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -192,21 +192,25 @@ public interface PooledDataSource extends DataSource
     public String sampleStatementCacheStatusDefaultUser() throws SQLException;
     public String sampleStatementCacheStatus(String username, String password) throws SQLException;
     
+    public Throwable getLastAcquisitionFailureDefaultUser() throws SQLException;
     public Throwable getLastCheckinFailureDefaultUser() throws SQLException;
     public Throwable getLastCheckoutFailureDefaultUser() throws SQLException;
     public Throwable getLastIdleTestFailureDefaultUser() throws SQLException;
     public Throwable getLastConnectionTestFailureDefaultUser() throws SQLException;
     
+    public Throwable getLastAcquisitionFailure(String username, String password) throws SQLException;
     public Throwable getLastCheckinFailure(String username, String password) throws SQLException;
     public Throwable getLastCheckoutFailure(String username, String password) throws SQLException;
     public Throwable getLastIdleTestFailure(String username, String password) throws SQLException;
     public Throwable getLastConnectionTestFailure(String username, String password) throws SQLException;
     
+    public String sampleLastAcquisitionFailureStackTraceDefaultUser() throws SQLException;
     public String sampleLastCheckinFailureStackTraceDefaultUser() throws SQLException;
     public String sampleLastCheckoutFailureStackTraceDefaultUser() throws SQLException;
     public String sampleLastIdleTestFailureStackTraceDefaultUser() throws SQLException;
     public String sampleLastConnectionTestFailureStackTraceDefaultUser() throws SQLException;
     
+    public String sampleLastAcquisitionFailureStackTrace(String username, String password) throws SQLException;
     public String sampleLastCheckinFailureStackTrace(String username, String password) throws SQLException;
     public String sampleLastCheckoutFailureStackTrace(String username, String password) throws SQLException;
     public String sampleLastIdleTestFailureStackTrace(String username, String password) throws SQLException;

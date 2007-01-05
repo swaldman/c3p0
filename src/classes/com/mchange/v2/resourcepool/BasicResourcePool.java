@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -37,7 +37,7 @@ class BasicResourcePool implements ResourcePool
     final static int AUTO_MAX_CULL_FREQUENCY = (15 * 60 * 1000); //15 mins
     final static int AUTO_MIN_CULL_FREQUENCY = (1 * 1000); //15 mins
 
- 
+
     //XXX: temporary -- for selecting between AcquireTask types
     //     remove soon, and use only ScatteredAcquireTask,
     //     presuming no problems appear
@@ -45,15 +45,15 @@ class BasicResourcePool implements ResourcePool
     final static boolean USE_SCATTERED_ACQUIRE_TASK;
     static
     {
-	String checkScattered = com.mchange.v2.cfg.MultiPropertiesConfig.readVmConfig().getProperty(USE_SCATTERED_ACQUIRE_TASK_KEY);
-	if (checkScattered != null && checkScattered.trim().toLowerCase().equals("true"))
-	    {
-		USE_SCATTERED_ACQUIRE_TASK = true;
-		if ( logger.isLoggable( MLevel.INFO ) )
-		    logger.info(BasicResourcePool.class.getName() + " using experimental ScatteredAcquireTask.");
-	    }
-	else
-	    USE_SCATTERED_ACQUIRE_TASK = false;
+        String checkScattered = com.mchange.v2.cfg.MultiPropertiesConfig.readVmConfig().getProperty(USE_SCATTERED_ACQUIRE_TASK_KEY);
+        if (checkScattered != null && checkScattered.trim().toLowerCase().equals("true"))
+        {
+            USE_SCATTERED_ACQUIRE_TASK = true;
+            if ( logger.isLoggable( MLevel.INFO ) )
+                logger.info(BasicResourcePool.class.getName() + " using experimental ScatteredAcquireTask.");
+        }
+        else
+            USE_SCATTERED_ACQUIRE_TASK = false;
     }
     // end temporary switch between acquire task types
 
@@ -116,26 +116,28 @@ class BasicResourcePool implements ResourcePool
 
     boolean broken = false;
 
-//     long total_acquired = 0;
+//  long total_acquired = 0;
 
     long failed_checkins   = 0;
     long failed_checkouts  = 0;
     long failed_idle_tests = 0;
 
-    Throwable lastCheckinFailure = null;
-    Throwable lastCheckoutFailure = null;
-    Throwable lastIdleTestFailure = null;
-    Throwable lastFailure;
+    Throwable lastCheckinFailure      = null;
+    Throwable lastCheckoutFailure     = null;
+    Throwable lastIdleTestFailure     = null;
+    Throwable lastResourceTestFailure = null;
+
+    Throwable lastAcquisitionFailiure = null;
 
     //DEBUG only!
     Object exampleResource;
-    
+
     public long getStartTime()
     { return pool_start_time; }
-    
+
     public long getUpTime()
     { return System.currentTimeMillis() - pool_start_time; }
-    
+
     public synchronized long getNumFailedCheckins()
     { return failed_checkins; }
 
@@ -144,18 +146,52 @@ class BasicResourcePool implements ResourcePool
 
     public synchronized long getNumFailedIdleTests()
     { return failed_idle_tests; }
-    
+
     public synchronized Throwable getLastCheckinFailure()
     { return lastCheckinFailure; }
+
+    //must be called from a pre-existing sync'ed block
+    private void setLastCheckinFailure(Throwable t)
+    {
+        assert ( Thread.holdsLock(this));
+
+        this.lastCheckinFailure = t;
+        this.lastResourceTestFailure = t;
+    }
 
     public synchronized Throwable getLastCheckoutFailure()
     { return lastCheckoutFailure; }
 
+    //must be called from a pre-existing sync'ed block
+    private void setLastCheckoutFailure(Throwable t)
+    {
+        assert ( Thread.holdsLock(this));
+
+        this.lastCheckoutFailure = t;
+        this.lastResourceTestFailure = t;
+    }
+
     public synchronized Throwable getLastIdleCheckFailure()
     { return lastIdleTestFailure; }
-    
+
+    //must be called from a pre-existing sync'ed block
+    private void setLastIdleCheckFailure(Throwable t)
+    {
+        assert ( Thread.holdsLock(this));
+
+        this.lastIdleTestFailure = t;
+        this.lastResourceTestFailure = t;
+    }
+
     public synchronized Throwable getLastResourceTestFailure()
-    { return lastFailure; }
+    { return lastResourceTestFailure; }
+
+    public synchronized Throwable getLastAcquisitionFailure()
+    { return lastAcquisitionFailiure; }
+
+    // ought not be called while holding this' lock
+    private synchronized void setLastAcquisitionFailure( Throwable t )
+    { this.lastAcquisitionFailiure = t; }
 
     public synchronized int getNumCheckoutWaiters()
     { return acquireWaiters.size(); }
@@ -364,8 +400,8 @@ class BasicResourcePool implements ResourcePool
     { 
         ++pending_acquires; 
 
-	if (logger.isLoggable(MLevel.FINEST))
-	    logger.finest("incremented pending_acquires: " + pending_acquires);
+        if (logger.isLoggable(MLevel.FINEST))
+            logger.finest("incremented pending_acquires: " + pending_acquires);
         //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
     }
 
@@ -373,26 +409,26 @@ class BasicResourcePool implements ResourcePool
     { 
         ++pending_removes; 
 
-	if (logger.isLoggable(MLevel.FINEST))
-	    logger.finest("incremented pending_removes: " + pending_removes);
+        if (logger.isLoggable(MLevel.FINEST))
+            logger.finest("incremented pending_removes: " + pending_removes);
         //new Exception("REMOVE SOURCE STACK TRACE").printStackTrace();
     }
 
     private synchronized void decrementPendingAcquires()
     { 
-	--pending_acquires; 
+        --pending_acquires; 
 
-	if (logger.isLoggable(MLevel.FINEST))
-	    logger.finest("decremented pending_acquires: " + pending_acquires);
+        if (logger.isLoggable(MLevel.FINEST))
+            logger.finest("decremented pending_acquires: " + pending_acquires);
         //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
     }
 
     private synchronized void decrementPendingRemoves()
     { 
-	--pending_removes; 
+        --pending_removes; 
 
-	if (logger.isLoggable(MLevel.FINEST))
-	    logger.finest("decremented pending_removes: " + pending_removes);
+        if (logger.isLoggable(MLevel.FINEST))
+            logger.finest("decremented pending_removes: " + pending_removes);
         //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
     }
 
@@ -405,18 +441,18 @@ class BasicResourcePool implements ResourcePool
     {
         assert Thread.holdsLock(this);
 
-	// XXX: temporary switch -- assuming no problems appear, we'll get rid of AcquireTask
-	//      in favor of ScatteredAcquireTask
-	if ( USE_SCATTERED_ACQUIRE_TASK )
-	    {
-		for (int i = 0; i < count; ++i)
-		    taskRunner.postRunnable( new ScatteredAcquireTask() );
-	    }
-	else
-	    {
-		for (int i = 0; i < count; ++i)
-		    taskRunner.postRunnable( new AcquireTask() );
-	    }
+        // XXX: temporary switch -- assuming no problems appear, we'll get rid of AcquireTask
+        //      in favor of ScatteredAcquireTask
+        if ( USE_SCATTERED_ACQUIRE_TASK )
+        {
+            for (int i = 0; i < count; ++i)
+                taskRunner.postRunnable( new ScatteredAcquireTask() );
+        }
+        else
+        {
+            for (int i = 0; i < count; ++i)
+                taskRunner.postRunnable( new AcquireTask() );
+        }
     }
 
     // must be called from synchronized method
@@ -436,7 +472,7 @@ class BasicResourcePool implements ResourcePool
      * by the semantics of wait(), a timeout of zero means forever.
      */
     public Object checkoutResource( long timeout )
-	throws TimeoutException, ResourcePoolException, InterruptedException
+    throws TimeoutException, ResourcePoolException, InterruptedException
     {
         Object resc = prelimCheckoutResource( timeout );
 
@@ -982,10 +1018,10 @@ class BasicResourcePool implements ResourcePool
 
         synchronized(this) //assimilate resc if we do need it
         {
-// 	    ++total_acquired;
+//          ++total_acquired;
 
-//             if (logger.isLoggable( MLevel.FINER))
-//                 logger.log(MLevel.FINER, "acquired new resource, total_acquired: " + total_acquired);
+//          if (logger.isLoggable( MLevel.FINER))
+//          logger.log(MLevel.FINER, "acquired new resource, total_acquired: " + total_acquired);
 
             msz = managed.size();
             if (msz < target_pool_size)
@@ -1181,8 +1217,8 @@ class BasicResourcePool implements ResourcePool
             if ( Debug.DEBUG )
                 throw new ResourcePoolException("Tried to check-in an already checked-in resource: " + resc);
         }
-	else if (broken)
-	    removeResource( resc, true ); //synchronous... if we're broken, async tasks might not work
+        else if (broken)
+            removeResource( resc, true ); //synchronous... if we're broken, async tasks might not work
         else
         {
             class RefurbishCheckinResourceTask implements Runnable
@@ -1555,8 +1591,7 @@ class BasicResourcePool implements ResourcePool
             synchronized (this)
             {
                 ++failed_checkouts;
-                lastCheckoutFailure = e;
-                lastFailure = e;
+                setLastCheckoutFailure(e);
             }
             return false;
         }
@@ -1583,8 +1618,7 @@ class BasicResourcePool implements ResourcePool
             synchronized (this)
             {
                 ++failed_checkins;
-                lastCheckinFailure = e;
-                lastFailure = e;
+                setLastCheckinFailure(e);
             }
             return false;
         }
@@ -1636,112 +1670,114 @@ class BasicResourcePool implements ResourcePool
 
     class ScatteredAcquireTask implements Runnable
     {
-	int attempts_remaining;
+        int attempts_remaining;
 
-	ScatteredAcquireTask()
-	{ this ( (num_acq_attempts >= 0 ? num_acq_attempts : -1) , true ); }
+        ScatteredAcquireTask()
+        { this ( (num_acq_attempts >= 0 ? num_acq_attempts : -1) , true ); }
 
-	private ScatteredAcquireTask(int attempts_remaining, boolean first_attempt)
-	{ 
-	    this.attempts_remaining = attempts_remaining; 
-	    if (first_attempt)
-		{
-		    incrementPendingAcquires();
-		    if (logger.isLoggable(MLevel.FINEST))
-			logger.finest("Starting acquisition series. Incremented pending_acquires [" + pending_acquires + "], " +
-				      " attempts_remaining: " + attempts_remaining);
-		}
-	    else
-		{
-		    if (logger.isLoggable(MLevel.FINEST))
-			logger.finest("Continuing acquisition series. pending_acquires [" + pending_acquires + "], " +
-				      " attempts_remaining: " + attempts_remaining);
-		}
-	}
+        private ScatteredAcquireTask(int attempts_remaining, boolean first_attempt)
+        { 
+            this.attempts_remaining = attempts_remaining; 
+            if (first_attempt)
+            {
+                incrementPendingAcquires();
+                if (logger.isLoggable(MLevel.FINEST))
+                    logger.finest("Starting acquisition series. Incremented pending_acquires [" + pending_acquires + "], " +
+                                    " attempts_remaining: " + attempts_remaining);
+            }
+            else
+            {
+                if (logger.isLoggable(MLevel.FINEST))
+                    logger.finest("Continuing acquisition series. pending_acquires [" + pending_acquires + "], " +
+                                    " attempts_remaining: " + attempts_remaining);
+            }
+        }
 
-	public void run()
-	{
-	    try
-		{
-		    boolean fkap = isForceKillAcquiresPending();
-		    if (! fkap)
-			{
-			    //we don't want this call to be sync'd
-			    //on the pool, so that resource acquisition
-			    //does not interfere with other pool clients.
-			    BasicResourcePool.this.doAcquire();
-			}
-		    decrementPendingAcquires();
-		    if (logger.isLoggable(MLevel.FINEST))
-			logger.finest("Acquisition series terminated " +
-				      (fkap ? "because force-kill-acquires is pending" : "successfully") +
-				      ". Decremented pending_acquires [" + pending_acquires + "], " +
-				      " attempts_remaining: " + attempts_remaining);
-		}
-	    catch (Exception e)
-		{
-		    if (attempts_remaining == 0) //last try in a round...
-			{
-			    decrementPendingAcquires();
-			    if ( logger.isLoggable( MLevel.WARNING ) )
-				{
-				    logger.log( MLevel.WARNING,
-						this + " -- Acquisition Attempt Failed!!! Clearing pending acquires. " +
-						"While trying to acquire a needed new resource, we failed " +
-						"to succeed more than the maximum number of allowed " +
-						"acquisition attempts (" + num_acq_attempts + "). " + 
-						"Last acquisition attempt exception: ",
-						e);
-				}
-			    if (break_on_acquisition_failure)
-				{
-				    //System.err.println("\tTHE RESOURCE POOL IS PERMANENTLY BROKEN!");
-				    if ( logger.isLoggable( MLevel.SEVERE ) )
-					logger.severe("A RESOURCE POOL IS PERMANENTLY BROKEN! [" + this + "] " +
-						      "(because a series of " + num_acq_attempts + " acquisition attempts " +
-						      "failed.)");
-				    unexpectedBreak();
-				}
-			    else
-				{
-				    try { forceKillAcquires(); }
-				    catch (InterruptedException ie)
-					{
-					    if ( logger.isLoggable(MLevel.WARNING) )
-						logger.log(MLevel.WARNING, 
-							   "Failed to force-kill pending acquisition attempts after acquisition failue, " +
-							   " due to an InterruptedException!",
-							   ie );
+        public void run()
+        {
+            try
+            {
+                boolean fkap = isForceKillAcquiresPending();
+                if (! fkap)
+                {
+                    //we don't want this call to be sync'd
+                    //on the pool, so that resource acquisition
+                    //does not interfere with other pool clients.
+                    BasicResourcePool.this.doAcquire();
+                }
+                decrementPendingAcquires();
+                if (logger.isLoggable(MLevel.FINEST))
+                    logger.finest("Acquisition series terminated " +
+                                    (fkap ? "because force-kill-acquires is pending" : "successfully") +
+                                    ". Decremented pending_acquires [" + pending_acquires + "], " +
+                                    " attempts_remaining: " + attempts_remaining);
+            }
+            catch (Exception e)
+            {
+                BasicResourcePool.this.setLastAcquisitionFailure(e);
 
-					    // we might still have clients waiting, so we should try
-					    // to ensure there are sufficient connections to serve
-					    recheckResizePool();
-					}
-				}
-			    if (logger.isLoggable(MLevel.FINEST))
-				logger.finest("Acquisition series terminated unsuccessfully. Decremented pending_acquires [" + pending_acquires + "], " +
-					      " attempts_remaining: " + attempts_remaining);
-			}
-		    else
-			{
-			    // if attempts_remaining < 0, we try to acquire forever, so the end-of-batch
-			    // log message below will never be triggered if there is a persistent problem
-			    // so in this case, it's better flag a higher-than-debug-level message for
-			    // each failed attempt. (Thanks to Eric Crahen for calling attention to this
-			    // issue.)
-			    MLevel logLevel = (attempts_remaining > 0 ? MLevel.FINE : MLevel.INFO);
-			    if (logger.isLoggable( logLevel ))
-				logger.log( logLevel, "An exception occurred while acquiring a poolable resource. Will retry.", e );
+                if (attempts_remaining == 0) //last try in a round...
+                {
+                    decrementPendingAcquires();
+                    if ( logger.isLoggable( MLevel.WARNING ) )
+                    {
+                        logger.log( MLevel.WARNING,
+                                        this + " -- Acquisition Attempt Failed!!! Clearing pending acquires. " +
+                                        "While trying to acquire a needed new resource, we failed " +
+                                        "to succeed more than the maximum number of allowed " +
+                                        "acquisition attempts (" + num_acq_attempts + "). " + 
+                                        "Last acquisition attempt exception: ",
+                                        e);
+                    }
+                    if (break_on_acquisition_failure)
+                    {
+                        //System.err.println("\tTHE RESOURCE POOL IS PERMANENTLY BROKEN!");
+                        if ( logger.isLoggable( MLevel.SEVERE ) )
+                            logger.severe("A RESOURCE POOL IS PERMANENTLY BROKEN! [" + this + "] " +
+                                            "(because a series of " + num_acq_attempts + " acquisition attempts " +
+                            "failed.)");
+                        unexpectedBreak();
+                    }
+                    else
+                    {
+                        try { forceKillAcquires(); }
+                        catch (InterruptedException ie)
+                        {
+                            if ( logger.isLoggable(MLevel.WARNING) )
+                                logger.log(MLevel.WARNING, 
+                                                "Failed to force-kill pending acquisition attempts after acquisition failue, " +
+                                                " due to an InterruptedException!",
+                                                ie );
 
-			    TimerTask doNextAcquire = new TimerTask()
-				{
-				    public void run()
-				    { taskRunner.postRunnable( new ScatteredAcquireTask( attempts_remaining - 1, false ) ); }
-				};
-			    cullAndIdleRefurbishTimer.schedule( doNextAcquire, acq_attempt_delay );
-			}
-		}
-	}
+                            // we might still have clients waiting, so we should try
+                            // to ensure there are sufficient connections to serve
+                            recheckResizePool();
+                        }
+                    }
+                    if (logger.isLoggable(MLevel.FINEST))
+                        logger.finest("Acquisition series terminated unsuccessfully. Decremented pending_acquires [" + pending_acquires + "], " +
+                                        " attempts_remaining: " + attempts_remaining);
+                }
+                else
+                {
+                    // if attempts_remaining < 0, we try to acquire forever, so the end-of-batch
+                    // log message below will never be triggered if there is a persistent problem
+                    // so in this case, it's better flag a higher-than-debug-level message for
+                    // each failed attempt. (Thanks to Eric Crahen for calling attention to this
+                    // issue.)
+                    MLevel logLevel = (attempts_remaining > 0 ? MLevel.FINE : MLevel.INFO);
+                    if (logger.isLoggable( logLevel ))
+                        logger.log( logLevel, "An exception occurred while acquiring a poolable resource. Will retry.", e );
+
+                    TimerTask doNextAcquire = new TimerTask()
+                    {
+                        public void run()
+                        { taskRunner.postRunnable( new ScatteredAcquireTask( attempts_remaining - 1, false ) ); }
+                    };
+                    cullAndIdleRefurbishTimer.schedule( doNextAcquire, acq_attempt_delay );
+                }
+            }
+        }
 
     }
 
@@ -1775,12 +1811,12 @@ class BasicResourcePool implements ResourcePool
 
                         success = true;
                     }
-		    catch (InterruptedException e)
-		    {
-			// end the whole task on interrupt, regardless of success
-			// or failure
-			throw e;
-		    }
+                    catch (InterruptedException e)
+                    {
+                        // end the whole task on interrupt, regardless of success
+                        // or failure
+                        throw e;
+                    }
                     catch (Exception e)
                     {
                         //e.printStackTrace();
@@ -1795,6 +1831,7 @@ class BasicResourcePool implements ResourcePool
                             logger.log( logLevel, "An exception occurred while acquiring a poolable resource. Will retry.", e );
 
                         lastException = e;
+                        setLastAcquisitionFailure(e);
                     }
                 }
                 if (!success) 
@@ -1973,10 +2010,9 @@ class BasicResourcePool implements ResourcePool
                             removeResource( resc ); 
                             ensureMinResources();
                         }
-                        
+
                         ++failed_idle_tests;
-                        lastIdleTestFailure = e;
-                        lastFailure = e;
+                        setLastIdleCheckFailure(e);
                     }
                 }
             }

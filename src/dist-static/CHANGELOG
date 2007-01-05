@@ -1,3 +1,25 @@
+c3p0-0.9.1-pre12
+	-- Modified Jdk14MLog to canonicalize named MLogger instances. In doing so, put the getLogger()
+	   method behind a synchronization barrier, which hopefully will resolve an odd visibility issue
+	   bug reported by a user (wherein the underlying jdk Logger appeared occasionally to be null
+	   in threads that might have initialized prior to the logger) [Thanks to Denis on Sourcefore
+	   for reporting this subtle and interesting issue.]
+	-- Added a lastAcquisitionFailure property to PooledDataSource (and the JMX view thereof).
+	   Thanks to Troy Whittier for the suggestion, and the patch!
+	-- SQL Warnings present at Connection acquisition, or uncleared upon Connection checkin
+	   are now logged (at WARNING level) and cleared prior to being made available as part
+	   of the pool. This is necessary to sustain the invariant that all pooled Connections
+	   are identical and interchangible; warnings are Connection state that must be managed
+	   and homogenized. [Thanks to Naxe on the hibernate forums for calling attention to this
+	   issue!]
+	-- Resolved a rare NullPointerException which occurs when a Statement cache is closed
+	   beneath an active, checked out Connection. A client tries to prepare a Statement,
+	   but the closed Statement cache throws an NPE. Resolved this by having the closed
+	   Statement cache throw a ResourceClosedException, and having c3p0's proxy Statement
+	   recover by generating an uncached PreparedStatement. [Thanks to Sven / ford_perfect
+	   on sourceforge for finding and calling attention to this issue.]
+    -- Added c3p0 version to C3P0RegistryManagerMBean [Thanks to Sven / ford_perfect
+       on sourceforge for the suggestion.]
 c3p0-0.9.1-pre11
 	-- Documentation updates, and style-sheet fixes for FireFox.
 	

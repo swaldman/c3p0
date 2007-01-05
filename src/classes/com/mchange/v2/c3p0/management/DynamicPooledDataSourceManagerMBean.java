@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -79,6 +79,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         hpTmp.add("password");
         hpTmp.add("pooledConnection");
         hpTmp.add("logWriter");
+        hpTmp.add("lastAcquisitionFailureDefaultUser");
         hpTmp.add("lastCheckoutFailureDefaultUser");
         hpTmp.add("lastCheckinFailureDefaultUser");
         hpTmp.add("lastIdleTestFailureDefaultUser");
@@ -92,6 +93,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             hoTmp.add(PooledDataSource.class.getMethod("close", new Class[] { boolean.class }) );
             hoTmp.add(PooledDataSource.class.getMethod("getConnection", userPassArgs ) );
 
+            hoTmp.add(PooledDataSource.class.getMethod("getLastAcquisitionFailure", userPassArgs ) );
             hoTmp.add(PooledDataSource.class.getMethod("getLastCheckinFailure", userPassArgs ) );
             hoTmp.add(PooledDataSource.class.getMethod("getLastCheckoutFailure", userPassArgs ) );
             hoTmp.add(PooledDataSource.class.getMethod("getLastIdleTestFailure", userPassArgs ) );

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -77,20 +77,26 @@ public class DoubleWeakHashMapJUnitTestCase extends TestCase
         m.put(c, new Object());
         
         //race condition... b & c might already have been removed... but i doubt it
-        assertEquals("Weak values should not yet have been removed (but not guaranteed!)", m.size(), 3);
+        assertEquals("1) Weak values should not yet have been removed (but not guaranteed! sometimes fails without a defect!)", m.size(), 3);
         
         // we are relying that a full, synchronous GC occurs,
         // which is not guaranteed in all VMs
         System.gc();
         
-        assertEquals("Weak values should have been automatically removed (but not guaranteed!)", m.size(), 1);
+        // let's see if we can force a deeper gc via a big array creation
+        byte[] bArray = new byte[1024 * 1024];
+        
+        assertEquals("2) Weak values should have been automatically removed (but not guaranteed! sometimes fails without a defect!)", m.size(), 1);
         
         m.put( new Object(), b);
         
         //race condition... b & c might already have been removed... but i doubt it
-        assertEquals("Weak key should not yet have been removed (but not guaranteed!)", m.size(), 2);
+        assertEquals("3) Weak key should not yet have been removed (but not guaranteed! sometimes fails without a defect!)", m.size(), 2);
 
         System.gc();
-        assertEquals("Weak key should have been automatically removed (but not guaranteed!)", m.size(), 1);
+        // let's see if we can force a deeper gc via a big array creation
+        bArray = new byte[1024 * 1024];
+
+        assertEquals("4) Weak key should have been automatically removed (but not guaranteed! sometimes fails without a defect!)", m.size(), 1);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre11
+ * Distributed as part of c3p0 v.0.9.1-pre12
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -41,4 +41,6 @@ public interface C3P0RegistryManagerMBean
 
     public int getNumPooledDataSources() throws SQLException;
     public int getNumPoolsAllDataSources() throws SQLException;
+    
+    public String getC3p0Version();
 }
