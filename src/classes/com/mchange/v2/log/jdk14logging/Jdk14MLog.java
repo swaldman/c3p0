@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre12
+ * Distributed as part of c3p0 v.0.9.1
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -34,7 +34,7 @@ public final class Jdk14MLog extends MLog
 
     private final static String CHECK_CLASS = "java.util.logging.Logger";
     
-    private final static Map namedLoggerMap = new DoubleWeakHashMap();
+    private final Map namedLoggerMap = new DoubleWeakHashMap();
 
     MLogger global = null;
 

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre12
+ * Distributed as part of c3p0 v.0.9.1
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -25,6 +25,7 @@ package com.mchange.v2.c3p0.impl;
 
 import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v2.c3p0.ConnectionCustomizer;
+import com.mchange.v2.c3p0.SQLWarnings;
 import com.mchange.v2.c3p0.UnifiedConnectionTester;
 import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;
 
@@ -183,7 +184,7 @@ public final class C3P0PooledConnectionPool
                         try
                         {
                             con = out.getConnection();
-                            logAndClearWarnings( con );
+                            SQLWarnings.logAndClearWarnings( con );
                         }
                         finally
                         {
@@ -261,7 +262,7 @@ public final class C3P0PooledConnectionPool
                         { 
                             physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
                             connectionCustomizer.onCheckIn( physicalConnection, parentDataSourceIdentityToken );
-                            logAndClearWarnings( physicalConnection );
+                            SQLWarnings.logAndClearWarnings( physicalConnection );
                         }
                         catch (ClassCastException e)
                         {
@@ -281,7 +282,7 @@ public final class C3P0PooledConnectionPool
                             pc.removeConnectionEventListener( cl );
 
                             con = pc.getConnection();
-                            logAndClearWarnings(con);
+                            SQLWarnings.logAndClearWarnings(con);
                         }
                         finally
                         {
@@ -917,13 +918,4 @@ public final class C3P0PooledConnectionPool
         }
     }
     
-    private static void logAndClearWarnings(Connection con) throws SQLException
-    {
-        if (logger.isLoggable(MLevel.WARNING))
-        {
-            for(SQLWarning w = con.getWarnings(); w != null; w = w.getNextWarning())
-                logger.log(MLevel.WARNING, w.getMessage(), w);
-        }
-        con.clearWarnings();
-    }
 }

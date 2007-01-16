@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre12
+ * Distributed as part of c3p0 v.0.9.1
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -126,7 +126,7 @@ public class DoubleWeakHashMap implements Map
         {
             cleanCleared();
             WVal wval = (WVal) inner.get(holder.set(key));
-            return wval.get();
+            return (wval == null ? null : wval.get());
         }
         finally
         { holder.clear(); }

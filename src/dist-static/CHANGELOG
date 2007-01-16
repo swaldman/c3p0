@@ -1,3 +1,12 @@
+c3p0-0.9.1
+	-- Modified logging of uncleared SQLWarnings, so that warnings are emitted at INFO rather
+	   than WARNING, and via a dedicated logger [com.mchange.v2.c3p0.SQLWarnings], so that users
+	   can easily turn this behavior off. [Thanks to Oleksandr Alesinskyy for calling attention
+	   to the annoyingness of unconditionally logging all of this at WARNING.]
+c3p0-0.9.1-pre12a
+    -- Fixed a NullPointerException in DoubleWeakHashMap that showed up thanks to the newly
+       implemented canonicalization of Jdk14MLog instances. [Many thanks to Carlos Cajina for
+       finding and reporting this bug.]
 c3p0-0.9.1-pre12
 	-- Modified Jdk14MLog to canonicalize named MLogger instances. In doing so, put the getLogger()
 	   method behind a synchronization barrier, which hopefully will resolve an odd visibility issue

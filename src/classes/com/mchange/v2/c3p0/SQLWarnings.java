@@ -21,20 +21,28 @@
  */
 
 
-package com.mchange.v2.coalesce;
+package com.mchange.v2.c3p0;
 
-public interface CoalesceChecker
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+
+import com.mchange.v2.log.MLevel;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
+
+public final class SQLWarnings
 {
-    /**
-     *  @return true iff a and b should be considered equivalent,
-     *          so that a Coalescer should simply return whichever
-     *          Object it considers canonical.
-     */
-    public boolean checkCoalesce( Object a, Object b );
+    final static MLogger logger = MLog.getLogger( SQLWarnings.class );
 
-    /**
-     *  Any two objects for which checkCoalese() would return true <b>must</b>
-     *  coalesce hash to the same value!!!
-     */
-    public int coalesceHash( Object a );
+    public static void logAndClearWarnings(Connection con) throws SQLException
+    {
+        if (logger.isLoggable(MLevel.INFO))
+        {
+            for(SQLWarning w = con.getWarnings(); w != null; w = w.getNextWarning())
+                logger.log(MLevel.INFO, w.getMessage(), w);
+        }
+        con.clearWarnings();
+    }
+
 }

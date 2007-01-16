@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1-pre12
+ * Distributed as part of c3p0 v.0.9.1
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -32,6 +32,12 @@ import junit.framework.TestCase;
 
 public class DoubleWeakHashMapJUnitTestCase extends TestCase
 {
+    public void testGetNeverAdded()
+    {
+        Map m = new DoubleWeakHashMap();
+        assertNull( m.get("foo") );
+    }
+    
     public void testHardAdds()
     {
         Integer a = new Integer(1);
