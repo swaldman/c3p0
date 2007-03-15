@@ -1,3 +1,22 @@
+c3p0-0.9.1.1
+	-- Marked variable "logger" in Log4jMLogger. Rare null pointer exceptions apparently
+	   result from a stale value of the previously set variable. Did the same for
+	   Log4jMLogger, although no analoguous issue has thus far been reported. [Thanks to 
+	   Noa Resare and Denis on sourceforge for calling attention to this issue.]
+	-- Hid the attribute "properties" from access via JMX, since it often contains password
+	   information. I don't think properties is particularly useful via JMX, and this seems
+	   like a better solution than returning properties with a hidden/modified password
+	   property, since users might break things unintuitively be resetting a property to
+	   a value that, according to the mbean, was the original value. [Thanks to John Sumsion
+	   for calling attention to this issue.]
+    -- Fixed bug whereby setting any positive unreturnedConnectionTimeout forced c3p0's default 
+       effectivePropertyCycle down to 1 second. [Many thanks to Luke Dang for tracking down
+       this bug.]
+    -- Fixed an embarrassing bug whereby c3p0 was reflective testing for methods (setHoldability 
+       and setReadOnly) whose argument types are primitive int and boolean, by looking for 
+       Integer.class instead of int.class and Boolean.class instead of boolean.class. [Many
+       thanks to John Kristian for tracking down this subtle, and embarrassing issue very
+       precisely and suggesting the fix.]
 c3p0-0.9.1
 	-- Modified logging of uncleared SQLWarnings, so that warnings are emitted at INFO rather
 	   than WARNING, and via a dedicated logger [com.mchange.v2.c3p0.SQLWarnings], so that users

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1
+ * Distributed as part of c3p0 v.0.9.1.1
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -334,7 +334,7 @@ class BasicResourcePool implements ResourcePool
         if (excess_max_idle_time > 0)
             out = Math.min( out, excess_max_idle_time );
         if (destroy_unreturned_resc_time > 0)
-            out = Math.min( out, expiration_enforcement_delay );
+            out = Math.min( out, destroy_unreturned_resc_time );
         return out;
     }
 

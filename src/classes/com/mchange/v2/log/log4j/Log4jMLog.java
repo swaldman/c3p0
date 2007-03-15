@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1
+ * Distributed as part of c3p0 v.0.9.1.1
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -63,8 +63,10 @@ public final class Log4jMLog extends MLog
     {
         final static String FQCN = Log4jMLogger.class.getName();
 
+        // protected by this' lock
         MLevel myLevel = null;
-        Logger logger;
+        
+        volatile Logger logger;
 
         Log4jMLogger( Logger logger )
         { this.logger = logger; }

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1
+ * Distributed as part of c3p0 v.0.9.1.1
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -98,8 +98,8 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 	this.autoCommitOnClose                 = autoCommitOnClose;
 	this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
 	this.preferredTestQuery                = preferredTestQuery;
-	this.supports_setHoldability           = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ Integer.class });
-	this.supports_setReadOnly              = C3P0ImplUtils.supportsMethod(con, "setReadOnly", new Class[]{ Boolean.class });
+	this.supports_setHoldability           = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ int.class });
+	this.supports_setReadOnly              = C3P0ImplUtils.supportsMethod(con, "setReadOnly", new Class[]{ boolean.class });
 	this.supports_setTypeMap               = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
 	this.dflt_txn_isolation                = con.getTransactionIsolation();
 	this.dflt_catalog                      = con.getCatalog();
