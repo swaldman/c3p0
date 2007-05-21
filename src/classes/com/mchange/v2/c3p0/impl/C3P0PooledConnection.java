@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -946,7 +946,7 @@ public final class C3P0PooledConnection extends AbstractC3P0PooledConnection
 				mname.equals("silentClose"))
 				return null;
 			    else if (mname.equals("isClosed"))
-				return new Boolean(true);
+				return Boolean.TRUE;
 			    else
 				{
 				    throw new SQLException("You can't operate on " +

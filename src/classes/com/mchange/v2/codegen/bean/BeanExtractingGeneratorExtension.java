@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -40,7 +40,7 @@ public class BeanExtractingGeneratorExtension implements GeneratorExtension
     public int getConstructorModifiers()
     { return ctor_modifiers; }
 
-    public void setExtractMethodModifiers( int ctor_modifiers )
+    public void setExtractMethodModifiers( int method_modifiers )
     { this.method_modifiers = method_modifiers; }
 
     public int getExtractMethodModifiers()

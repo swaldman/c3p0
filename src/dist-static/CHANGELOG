@@ -1,3 +1,22 @@
+c3p0-0.9.1.2
+	-- Fixed a variety of latent, hidden bugs discovered by "findbugs". Many thanks to Carsten Heyl
+	   for running this utility and reporting the issues.
+	-- Added lastAcquisitionFailureDefaultUser to ComboPooledDataSource's TO_STRING_IGNORE_PROPS,
+	   as some moments' Exception doesn't belong in a DataSource's toString(), and as trying to
+	   find this when stringifying close()ed DataSources provoked an infinte recursion (as an Exception
+	   was triggered trying to get the last failure info, which tries to include the stringified
+	   DataSource in its message, again provoking an Exception, ad infinitum.) Many thanks to Santiago 
+	   Aguiar for finding and diagnosing this problem.
+	-- Added better documentation of the com.mchange.v2.c3p0.cfg.xml configuration property.
+	   [Thanks to Legolas Wood for calling attention to this shortcoming.]
+	-- Calling getHoldability() to find the default Connection holdability provokes an Error
+	   on some DB2 drivers. Added a "careful" check which catches and works around this. 
+	   [Thanks to Lari Hotari for finding the problem, and providing a solution!] 
+	-- Refactored NewPooledConnection to not call event multicaster methods while holding
+	   the NewPooledConnection's lock. Holding locks while firing events is an old-fashioned
+	   way of provoking deadlocks, and it turns out c3p0 was not immune. Whoops! Another
+	   embarrassing one. Many thanks to Rhythm Tyagi and Pappu Sharadavani for finding this
+	   deadlock! 
 c3p0-0.9.1.1
 	-- Marked variable "logger" in Log4jMLogger. Rare null pointer exceptions apparently
 	   result from a stale value of the previously set variable. Did the same for

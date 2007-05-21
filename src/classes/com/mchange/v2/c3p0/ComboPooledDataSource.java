@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -45,6 +45,7 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
 
     final static Set TO_STRING_IGNORE_PROPS = new HashSet( Arrays.asList( new String[] { 
                     "connection",
+                    "lastAcquisitionFailureDefaultUser",
                     "lastCheckinFailureDefaultUser",
                     "lastCheckoutFailureDefaultUser",
                     "lastConnectionTestFailureDefaultUser",

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -27,6 +27,36 @@ import com.mchange.v2.lang.ObjectUtils;
 
 public final class ArrayUtils
 {
+    /**
+     *  The array may contain nulls, but <TT>o</TT>
+     *  must be non-null.
+     */
+    public static int indexOf(Object[] array, Object o)
+    {
+    for (int i = 0, len = array.length; i < len; ++i)
+        if (o.equals(array[i])) return i;
+    return -1;
+    }
+    
+    public static int identityIndexOf(Object[] array, Object o)
+    {
+    for (int i = 0, len = array.length; i < len; ++i)
+        if (o == array[i]) return i;
+    return -1;
+    }
+    
+    public static boolean startsWith( byte[] checkMe, byte[] maybePrefix )
+    {
+    int cm_len = checkMe.length;
+    int mp_len = maybePrefix.length;
+    if (cm_len < mp_len)
+        return false;
+    for (int i = 0; i < mp_len; ++i)
+        if (checkMe[i] != maybePrefix[i])
+        return false;
+    return true;
+    }
+    
     /**
      * returns a hash-code for an array consistent with Arrays.equals( ... )
      */
@@ -75,6 +105,9 @@ public final class ArrayUtils
     public static int hashOrZeroArray(int[] ii)
     { return (ii == null ? 0 : hashArray(ii)); }
 
+    /**
+     * @deprecated use the various toString(T[] methods)
+     */
     public static String stringifyContents(Object[] array)
     {
 	StringBuffer sb = new StringBuffer();
@@ -88,5 +121,180 @@ public final class ArrayUtils
 	sb.append(" ]");
 	return sb.toString();
     }
-}
+    
+    //these methods are obsoleted by Arrays.toString() in jdk1.5, but
+    //for libs that support older VMs...
+    private static String toString(String[] strings, int guessed_len)
+    {
+        StringBuffer sb = new StringBuffer( guessed_len );
+        boolean first = true;
+        sb.append('[');
+        for (int i = 0, len = strings.length; i < len; ++i)
+        {
+            if (first)
+                first = false;
+            else
+                sb.append(',');
+            sb.append( strings[i] );
+        }
+        sb.append(']');
+        return sb.toString();
+    }
+    
+    public static String toString(boolean[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+    
+    public static String toString(byte[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+    
+    public static String toString(char[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+
+    public static String toString(short[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+
+    public static String toString(int[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+    
+    public static String toString(long[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+    
+   public static String toString(float[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+    
+    public static String toString(double[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+
+    public static String toString(Object[] arr)
+    {
+        String[] strings = new String[arr.length];
+        int chars = 0;
+        for(int i = 0, len = arr.length; i < len; ++i)
+        {
+            String str;
+            Object o = arr[i];
+            if (o instanceof Object[])
+                str = toString((Object[]) o);
+            else if (o instanceof double[])
+                str = toString((double[]) o);
+            else if (o instanceof float[])
+                str = toString((float[]) o);
+            else if (o instanceof long[])
+                str = toString((long[]) o);
+            else if (o instanceof int[])
+                str = toString((int[]) o);
+            else if (o instanceof short[])
+                str = toString((short[]) o);
+            else if (o instanceof char[])
+                str = toString((char[]) o);
+            else if (o instanceof byte[])
+                str = toString((byte[]) o);
+            else if (o instanceof boolean[])
+                str = toString((boolean[]) o);
+            else
+                str = String.valueOf(arr[i]);
+            chars += str.length();
+            strings[i] = str;
+        }
+        return toString(strings, chars + arr.length + 1);
+    }
+
+    
+    private ArrayUtils()
+    {}
+    
+    /*
+    public static void main(String[] argv)
+    {
+        int[] is = {1,2,3,4};
+        String[] ss = {"Hello", "There"};
+        Object[] os = {"Poop", is, ss, new Thread()};
+        
+        System.out.println( toString(is) );
+        System.out.println( toString(ss) );
+        System.out.println( toString(os) );
+    }
+    */
+}    
+
 

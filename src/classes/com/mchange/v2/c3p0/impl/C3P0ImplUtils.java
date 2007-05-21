@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -88,7 +88,7 @@ public final class C3P0ImplUtils
 	    ID_TOKEN_COUNTER = new EqualityEncounterCounter();
      }
     
-    public static String VMID_PROPKEY = "com.mchange.v2.c3p0.VMID";
+    public final static String VMID_PROPKEY = "com.mchange.v2.c3p0.VMID";
     private final static String VMID_PFX;
     
     static

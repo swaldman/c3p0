@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -64,7 +64,7 @@ public class SimplePropertyBeanGenerator implements PropertyBeanGenerator
     /**
      * @param version a three digit number -- for example Java 1.3.1 is 131
      */
-    public synchronized void setJavaVersion(int version) 
+    public synchronized void setJavaVersion(int java_version) 
     { this.java_version = java_version; }
 
     public synchronized int getJavaVersion()

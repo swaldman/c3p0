@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -326,7 +326,7 @@ public class DoubleWeakHashMap implements Map
         Object key;
         Object val;
 
-        UserEntry(Entry innerEntry, Object key, Object value)
+        UserEntry(Entry innerEntry, Object key, Object val)
         { 
             this.innerEntry = innerEntry; 
             this.key = key;

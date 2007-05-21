@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.1.1
+ * Distributed as part of c3p0 v.0.9.1.2
  *
  * Copyright (C) 2005 Machinery For Change, Inc.
  *
@@ -127,6 +127,15 @@ public final class C3P0BenchmarkApp
  		//cpds.setUser( username );
  		//cpds.setPassword( password );
  		ds_pooled = cpds;
+        
+//        ComboPooledDataSource cpds2 = new ComboPooledDataSource();
+//        System.err.println("Made second ComboPooledDataSource.");
+//        cpds.getNumIdleConnectionsDefaultUser();
+//        cpds2.getNumIdleConnectionsDefaultUser();
+        
+//        Properties badProps = new Properties();
+//        badProps.put("badprop", null);
+//        DataSource appendix = DataSources.pooledDataSource(ds_unpooled, badProps);
 
  		create(ds_pooled);
 
