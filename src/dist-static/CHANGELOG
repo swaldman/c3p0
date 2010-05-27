@@ -1,3 +1,51 @@
+c3p0-0.9.2-pre1
+	-- Implemented asynchronous Statement destroyer, hopefully completing the task of
+           making the statement cache robust to drivers that cannot deal with Statements
+           being closed underneath Connections still in use (e.g. Oracle, JTDS). Note
+           that this implementation requires at least one dedicated Thread for statement
+           destruction (if we used the common Thread pool, there will be deadlocks as
+           Statement close tasks await not-in-use Connections, while Connection-related
+           tasks can't be completed because the Thread pool is saturated with Statement
+           close tasks. Stats about the asynchronous Statement destroyer are available
+           via the JMX MBean, prefixed statementDestroyer. Setting the new config parameter 
+           c3p0.statementCacheNumDeferredCloseThreads enables the fix. 
+	-- Resolved a potential race condition that could lead to pool freezes, especially
+	   when acquisitions occasionally fail and acquireIncrement is set to 1. [Many
+           thanks to Brendan Dougherty for carefully describing this issue.]
+	-- Added a guard to BasicResourcePool.doAcquire() to ensure that the pool has
+           not been closed or broken before assimilating a task [Many thanks to
+           Sean Rohead for tracking down this issue and suggesting the fix.]
+	-- Made SCATTERED_ACQUIRE_TASK default to true. This provides much better overall
+	   performance for Connection acquisition from potentially unreliable sources
+	-- Modifed to ensure that unresolved transaction settings apply to expired
+	   unreturned Connections. (see config params autoCommitOnClose and
+           forceIgnoreUnresolvedTransactions) [Thanks to Matthew Lieder for calling 
+	   attention to this issue.]
+	-- Cleaned up Statement cache fix that ensures no statements are closed while
+           their parent Connection is in use. By default, the fix is not enabled, because
+ 	   it's extra work that most databases don't need. [Most drivers support Statement
+	   close() while a parent Connection is in use, so the extra work is unnecessary.] 
+	-- Separated traditional build into two libraries, mchange-commons and c3p0.   
+	-- Modified GooGooStatementCache and C3P0PooledConnectionPool to ensure that
+	   1) the Statement cache knows which Connections are currently in use by outside
+	   clients; and 2) the Statement cache refuses to cull Statements belonging to 
+	   Connections in use. Theoretically, drivers should support asynchronous statement
+	   close. In practice, some drivers don't do so nicely, or block pending completion
+	   of other (potentially long) operations, leading to APPARENT DEADLOCKS. (Oracle
+	   users in particular have reported deadlocks in which all pool threads are blocked
+	   on Statement close tasks.) [Many, many thanks to Ovidiu Feodorov for a very detailed
+	   account of problems that occur under c3p0 when very long queries are executed under 
+	   Oracle!]
+	-- Defined a NullMLogger, and modified Log4jMLog to use that, instead of a broken
+	   log4j MLogger, if c3p0's logging library fails to acquire a non-null Log4j logger.
+	   Thanks to Oli Glimmer for calling attention to this issue. (Strange NPEs due to
+	   apparently null log4j loggers have been encountered before, and previous attempts
+	   to resolve apparently weren't adequate.)
+	-- Fixed a problem whereby ThreadPoolAsynchronousRunner was not robust to Errors provoked
+	   during task execution. [Thanks to George Khoshy for reporting this issue.]
+	-- Made VersionUtils more robust to cases where some components of the java.version system
+	   property are non-integral [Thanks to Dirk Weigenand for calling attention to this problem,
+	   and suggesting a solution!]
 c3p0-0.9.1.2
 	-- Fixed a variety of latent, hidden bugs discovered by "findbugs". Many thanks to Carsten Heyl
 	   for running this utility and reporting the issues.
@@ -25,13 +73,13 @@ c3p0-0.9.1.1
 	-- Hid the attribute "properties" from access via JMX, since it often contains password
 	   information. I don't think properties is particularly useful via JMX, and this seems
 	   like a better solution than returning properties with a hidden/modified password
-	   property, since users might break things unintuitively be resetting a property to
+	   property, since users might break things unintuitively by resetting a property to
 	   a value that, according to the mbean, was the original value. [Thanks to John Sumsion
 	   for calling attention to this issue.]
     -- Fixed bug whereby setting any positive unreturnedConnectionTimeout forced c3p0's default 
        effectivePropertyCycle down to 1 second. [Many thanks to Luke Dang for tracking down
        this bug.]
-    -- Fixed an embarrassing bug whereby c3p0 was reflective testing for methods (setHoldability 
+    -- Fixed an embarrassing bug whereby c3p0 was reflectively testing for methods (setHoldability 
        and setReadOnly) whose argument types are primitive int and boolean, by looking for 
        Integer.class instead of int.class and Boolean.class instead of boolean.class. [Many
        thanks to John Kristian for tracking down this subtle, and embarrassing issue very

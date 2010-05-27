@@ -328,7 +328,7 @@
       <li><a href="#configuration_files">Appendix B: Configuation Files, etc.</a></li>
 	<ol class="contents">
 	  <li><a href="#c3p0_properties">Overriding c3p0 defaults with a c3p0.properties file</a></li>
-	  <li><a href="#system_properties">Overriding c3p0 defaults with a System properties</a></li>
+	  <li><a href="#system_properties">Overriding c3p0 defaults with System properties</a></li>
 	  <li><a href="#c3p0-config.xml">Named and Per-User configuration: Overriding c3p0 defaults via c3p0-config.xml</a></li>
 	  <li><a href="#configuration_precedence">Precedence of Configuration Settings</a></li>
 	</ol>
@@ -881,7 +881,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	via <a href="#system_properties">System properties</a>. Configuration files
 	are normally looked up under standard names (<tt>c3p0.properties</tt> or <tt>c3p0-config.xml</tt>)
 	at the top level of an application's classpath, but the XML configuration can be placed
-	anywhere in an application's file system, if the system property com.mchange.v2.c3p0.cfg.xml is set
+	anywhere in an application's file system, if the system property <tt>com.mchange.v2.c3p0.cfg.xml</tt> is set
 	(to an absolute filesystem path).
       </p>
       <p>
@@ -1068,6 +1068,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       <ul>
 	<li><a class="cfg_param" href="#maxStatements">maxStatements</a></li>
 	<li><a class="cfg_param" href="#maxStatementsPerConnection">maxStatementsPerConnection</a></li>
+	<li><a class="cfg_param" href="#statementCacheNumDeferredCloseThreads">statementCacheNumDeferredCloseThreads</a></li>
       </ul>
       <p>
 	<tt>maxStatements</tt> is JDBC's standard parameter for controlling statement pooling. <tt>maxStatements</tt> defines the
@@ -1088,6 +1089,14 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	If either of these parameters are greater than zero, statement pooling will be enabled. If both
 	parameters are greater than zero, both limits will be enforced. If only one is greater than zero, statement pooling
 	will be enabled, but only one limit will be enforced.
+      </p>
+      <p>
+	If <tt>statementCacheNumDeferredCloseThreads</tt> is greater than zero, the Statement pool will defer physically close()ing cached Statements until
+	its parent Connection is not in use by any client or internally (in e.g. a test) by the pool itself. For some JDBC drivers
+	(especially Oracle), attempts to close a Statement freeze if the parent Connection is in use. This parameter defaults to 0.
+	Set it to a positive value if you observe "APPARENT DEADLOCKS" realted to Connection close tasks. Almost, that value should
+        be one: if you need more than one Thread dedicated solely to Statement destruction, you probably should set <tt>maxStatements</tt> and/or
+	<tt>maxStatementsPerConnection</tt> to higher values so you don't churn through cached Statements so quickly.
       </p>
       <h3>
 	<a name="configuring_recovery">Configuring Recovery From Database Outages</a>
@@ -1524,6 +1533,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <a href="#password">password</a><br/>
 	    <a href="#preferredTestQuery">preferredTestQuery</a><br/>
 	    <a href="#propertyCycle">propertyCycle</a><br/>
+	    <a href="#statementCacheNumDeferredCloseThreads">statementCacheNumDeferredCloseThreads</a><br/>
 	    <a href="#testConnectionOnCheckin">testConnectionOnCheckin</a><br/>
 	    <a href="#testConnectionOnCheckout">testConnectionOnCheckout</a><br/>
 	    <a href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a><br/>
@@ -1874,6 +1884,24 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 		automatically chosen.]
 	  </div>
 	</dd>
+
+	<dt><a name="statementCacheNumDeferredCloseThreads" />statementCacheNumDeferredCloseThreads</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+            If set to a value greater than 0, the statement cache will track when Connections are in use, and only destroy
+	    Statements when their parent Connections are not otherwise in use. Although closing of
+	    a Statement while the parent Connection is in use is formally within spec, some databases
+	    and/or JDBC drivers, most notably Oracle, do not handle the case well and freeze, leading
+	    to deadlocks. Setting this parameter to a positive value should eliminate the issue. This parameter
+	    should only be set if you observe that attempts by c3p0 to close() cached statements freeze (usually
+	    you'll see <tt>APPARENT DEADLOCKS</tt> in your logs). If set, this parameter should almost always be set to <tt>1</tt>.
+	    Usually, if you need more than one Thread dedicated solely to destroying cached Statements, you should set <tt>maxStatements</tt>
+	    and/or <tt>maxStatementsPerConnection</tt> so that you don't churn through Statements so quickly.
+            [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
+	    <div class="per-user">Does Not Support Per-User Overrides.</div>
+	  </div>
+	</dd>
 	<dt><a name="testConnectionOnCheckin" />testConnectionOnCheckin</dt>
 	<dd>
 	  <div class="default">Default: false</div>
@@ -2012,14 +2040,14 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<p>
 	  For a full description of the new implementation and the resource bottleneck it is
 	  designed to overcome, please see the <tt>CHANGELOG</tt> entry for <tt>c3p0-0.9.1-pre11</tt>.
-	  To enable the new implementation, set the following parameter to "<tt>true</tt>".
+	</p>
+	<p>
+	  As of c3p0-0.9.2 this feature is enabled by default. To revert to the traditional Connection
+	  acquisition behavior, set the following parameter to <tt>false</tt>.
 	</p>
 	<ul class="other_props_list">
 	  <li>com.mchange.v2.resourcepool.experimental.useScatteredAcquireTask</li>
 	</ul>
-	<p>
-	  This feature is expected to be enabled by default in c3p0-0.9.2 and above.
-	</p>
       </div>
     </div>
     <hr/>
@@ -2067,7 +2095,7 @@ c3p0.maxStatements=150
 c3p0.maxIdleTime=1800
 	</div>
 	<h3>
-	  <a name="system_properties">Overriding c3p0 defaults with a System properties</a>
+	  <a name="system_properties">Overriding c3p0 defaults with System properties</a>
 	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
 	</h3>
 	<p>

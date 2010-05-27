@@ -17,6 +17,7 @@
    <property name="lib.jar.file" value="${dist.lib.dir}/${c3p0-oracle-thin.name}.jar" />
 
    <path id="build-class-path">
+       <pathelement location="${mchange-commons.jar.file}" />
        <pathelement location="${c3p0.jar.file}" />
        <pathelement location="${oracle-thin.jdbc.jar.file}" />
    </path>
