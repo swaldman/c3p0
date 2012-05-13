@@ -46,9 +46,6 @@
   <property name="docwebapp.war.file"                value="${build.docwebear.dir}/${docwebapp.war.file.name}" />
   <property name="docwebear.file"                    value="${build.dir}/c3p0-docweb.ear" />
 
-  <property name="jvm.target.version" value="1.4" />
-  <!-- <property name="no-mgmt" value="set" /> -->
-
   <!-- these properties can be preempted in build.properties -->
   <property name="c3p0-build.debug" value="false" />
   <property name="c3p0-build.trace" value="5" />
