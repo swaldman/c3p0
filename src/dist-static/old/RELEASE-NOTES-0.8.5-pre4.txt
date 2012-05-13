@@ -1,0 +1,21 @@
+                            RELEASE NOTES
+                           c3p0-0.8.5-pre4
+                         <-=-=-=-=-=-=-=-=->
+
+Version 0.8.5-pre4 contains a major, relatively untested, restructuring of
+c3p0's codebase. This new implementation should be faster and more maintainable
+than the original, but it needs to have its tires kicked a good bit to be sure
+it is production ready...
+
+Please do try it out, and send feedback to Steve Waldman <swaldman@mchange.com>!
+
+--> If you have problems, don't despair! You can revert to the traditional codebase
+--> by setting the parameter 'usesTraditionalReflectiveProxies' to true. 
+
+See c3p0's documentation for information on how to set configuration parameters.
+
+Thanks for using c3p0, and thanks in advance for your feedback and bug reports!
+
+          Steve Waldman <swaldman@mchange.com>
+          Machinery For Change, Inc.
+

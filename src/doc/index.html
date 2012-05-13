@@ -1,0 +1,2502 @@
+<html>
+  <head>
+    <title>c3p0-v@c3p0.version@ - JDBC3 Connection and Statement Pooling - Documentation</title>
+    <script language="text/javascript">
+      function toggleDisplay( id1, id2 )
+      {
+        if (document.getElementById( id1 ).style.display == 'block')
+        {
+           document.getElementById( id1 ).style.display = 'none';
+           document.getElementById( id2 ).style.display = 'block';
+        }
+        else
+        {
+           document.getElementById( id2 ).style.display = 'none';
+           document.getElementById( id1 ).style.display = 'block';
+        }
+        return false;
+      }
+    </script>
+    <style type="text/css">
+      a.cfg_param {
+         font-family: monospace;
+      }
+      body {
+         font-family: optima, helvetica, arial, sans-serif;
+      }
+      dl.properties {
+         padding: 0em 3em 0em 3em;
+      }
+      dl.properties dd {
+         padding-bottom: 0.5em;
+         font-size: smaller;
+      }
+      dl.properties dt {
+         padding-top: 1em;
+         border-top-width: 1;
+         border-top-style: dashed;
+         border-top-color: black;
+         font-family: monospace;
+	 color: red;
+      }
+      dl.properties div.default {
+         padding-top: 0.5em;
+         text-decoration: underline;
+         padding-bottom: 0.5em;
+      }
+      dl.properties div.per-user {
+      	 text-align: center;
+         margin-top: 0.5em;
+	 font-weight: bold;
+	 border-width: 1;
+         border-style: solid; 
+         border-color: black;
+	 background-color: #FFCCCC;
+      }
+      dl.log_properties {
+         border-width: 2;
+         border-style: solid;
+         border-color: black;
+         padding: 0.5em 0.5em 0.5em 0.5em;
+         font-size: smaller;
+	 background-color: #DDDDDD;
+      }
+      dl.log_properties dd {
+         padding-top: 0.5em;
+         padding-bottom: 0.5em;
+         /* font-size: smaller; */
+      }
+      dl.log_properties dt {
+         padding-top: 1em;
+         font-weight: bold;
+         font-family: monospace;
+	 color: black;
+      }
+      div.boxed {
+        border-width: 1;
+        border-style: solid; 
+        border-color: black; 
+        padding: 1em; 
+        font-size: smaller;
+        background-color: #CCFFCC;
+        margin-top: 1em;
+        margin-bottom: 1em;
+      }
+      div.boxed h4 {
+        margin-top: 0;
+        padding-top: 0;
+        font-weight: bold;
+        text-decoration: underline;
+      }
+      div.deprecated {
+         display: none;
+         padding-top: 0;
+         padding-left: 1em;
+         padding-right: 1em;
+         padding-bottom: 1em;
+         background-color: #FFAAAA;
+         border: 2px solid red;
+      }
+      div.deprecated h5 {
+         font-weight: bold;
+         color: #CC0000;
+         margin-top: 0em;
+         padding-top: 1em;
+      }
+      div.example {
+         white-space: pre;
+         font-family: monospace;
+	 font-size: smaller;
+	 background-color: #CCCCFF;
+         margin: 3em 3em 3em 3em;
+         padding: 1em 0em 1em 2em;
+         border-top-width: 2; 
+         border-top-color: black; 
+         border-top-style: solid; 
+         border-bottom-width: 2; 
+         border-bottom-color: black; 
+         border-bottom-style: solid; 
+      /*
+         doesn't show under Firefox
+         border-top: 2 solid black;
+         border-bottom: 2 solid black;
+      */
+      }
+      div.example_properties {
+         white-space: pre;
+         font-family: monospace;
+	 font-size: smaller;
+	 background-color: #CCCCFF;
+         margin: 3em 3em 3em 3em;
+         padding: 1em 0em 1em 0em;
+         border-top-width: 2; 
+         border-top-color: black; 
+         border-top-style: solid; 
+         border-bottom-width: 2; 
+         border-bottom-color: black; 
+         border-bottom-style: solid; 
+      }
+      div.example_properties strong {
+         font-weight: bold;
+	 color: red;
+      }
+      div.hibernate_props {
+         text-align: center;
+      }
+      div.other_properties_desc {
+         padding-top: 2px;
+         padding-left: 2em;
+         padding-right: 2em;
+         padding-bottom: 5px;
+         margin-bottom: 2em;
+         text-align: justify;
+         background: #ddf;
+      }
+      div.sectiontext {
+         margin-left: 2em;
+         margin-right: 2em;
+      }
+      div.subtitle {
+	 font-size: 12pt;
+	 background-color: #FFFFFF;
+      }
+      div.top_boilerplate {
+         margin-left: 8em;
+         margin-right: 8em;
+      }
+
+      h1 {
+         text-align: center;
+	 background-color: #FFCCAA;
+      }
+      h2 {
+	 background-color: #FFFFAA;
+         margin-top: 2em;
+         border-bottom-width: 2; 
+         border-bottom-color: black; 
+         border-bottom-style: solid; 
+      }
+      h3 {
+         margin-right: -2em;
+      }
+      img {
+         border: 0;
+      }
+      ol.contents ol {
+         list-style-type: lower-roman;
+      }
+      ol.contents ol li {
+	 font-size: smaller;
+      }
+      ol.contents > ul.box {
+         list-style: circle;
+      }
+      ol.precedence {
+        width: 75%; 
+        border-width: 2; 
+        border-color: black; 
+        border-style: solid; 
+        padding-left: 3em; 
+        padding-top: 1em; 
+        padding-bottom: 1em; 
+        padding-right: 1em; 
+        text-align: left;
+      }
+
+      ol.precedence > li {
+	 font-size: smaller;
+         margin-top: 0.5em;
+      }
+      span.hibparam_comment {
+         font-family: optima, helvetica, arial, sans-serif;
+         font-style: italic;
+         text-decoration: underline;
+      }
+      span.toplink {
+         font-size: 12;
+         font-style: plain;
+         float: right;
+      }
+      table.beanPropSummaryTable {
+         width: 100%;
+         border: none;
+      }
+      table.beanPropSummaryTable tr td {
+         width: 33%;
+         border: none;
+         background: #ddf;
+         font-family: monospace;
+         line-height: 1.5;
+         padding: 8px;
+      }
+
+      table.beanPropSummaryTable tr td  a {
+         color: black;
+      }
+
+      table.hibernate_props {
+         border-width: 2;
+         border-color: black; 
+         border-style: solid; 
+	 font-size: smaller;
+         margin-left: auto;
+         margin-right: auto;
+      }
+      table.hibernate_props th {
+	 background-color: #FFCCAA;
+      }
+      table.hibernate_props td {
+         font-family: monospace;
+      }
+      ul.other_props_list {
+         list-style: none;
+         font-family: monospace;
+         color: #A00;
+      }
+      ul.pointerlist {
+         list-style: square;
+      }
+
+    </style>
+  </head>
+  <body>
+    <h1>
+      <div>c3p0 - JDBC3 Connection and Statement Pooling</div>
+      <div class="subtitle">version @c3p0.version@</div>
+    </h1>
+    <div class="top_boilerplate">
+      <p>by Steve Waldman &lt;<a href="mailto:swaldman@mchange.com">swaldman@mchange.com</a>&gt;</p>
+      <p>&copy; 2006 Machinery For Change, Inc.</p>
+      <p><i>
+	  This software is made available for use, modification, and redistribution,
+	  under the terms of the <a href="../LICENSE">Lesser GNU Public License (LGPL)</a>, which you should
+	  have received with this distribution.
+      </i></p>
+      <ul class="pointerlist"> 
+	<li>API docs for c3p0 are <a href="apidocs/index.html">here</a>.</li> 
+	<li>Download the latest version from <a href="http://sourceforge.net/projects/c3p0/">c3p0's site on SourceForge</a></li>
+	<li>Looking for the definition of <a href="#configuration_properties">configuration properties</a>?</li>
+	<li>Looking for advice in <a href="#hibernate-specific">using c3p0 with hibernate</a>?</li>
+      </ul>
+    </div>
+    <hr/>
+    <h2><a name="contents">Contents</a></h2>
+    <ol class="contents">
+      <li><a href="#contents">Contents</a></li>
+      <li><a href="#quickstart">Quickstart</a></li>
+      <li><a href="#what_is">What is c3p0?</a></li>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#installation">Installation</a></li>
+      <li>
+	<a href="#using_c3p0">Using c3p0</a>
+	<ol class="contents">
+	  <li><a href="#using_combopooleddatasource">Using ComboPooledDataSource</a></li>
+	  <li><a href="#using_datasources_factory">Using the DataSouces factory class</a></li>
+	  <ul class="box">
+	  	<li><a href="#forceOverrideBox">Box: Overriding authentication information (from non-c3p0 DataSources)</a></li>
+	  </ul>
+	  <li><a href="#querying">Querying Pool Status</a></li>
+	  <ul class="box">
+	  	<li><a href="#using_c3p0_registry_box">Box: Using C3P0Registry to find a reference to a DataSource</a></li>
+	  </ul>
+	  <li><a href="#cleaning">Cleaning Up Pool Resources</a></li>
+	  <li><a href="#build_your_own">Advanced: Building Your Own PoolBackedDataSource</a></li>
+	  <li><a href="#raw_connection_ops">Advanced: Raw Connection and Statement Operations</a></li>
+	</ol>
+      </li>
+      <li>
+	<a href="#configuration">Configuration</a>
+	<ol class="contents">
+	  <li><a href="#configuration_introduction">Introduction</a></li>
+	  <li><a href="#basic_pool_configuration">Basic Pool Configuration</a></li>
+	  <li><a href="#managing_pool_size">Managing Pool Size and Connection Age</a></li>
+	  <li><a href="#configuring_connection_testing">Configuring Connection Testing</a></li>
+	  <li><a href="#configuring_statement_pooling">Configuring Statement Pooling</a></li>
+	  <li><a href="#configuring_recovery">Configuring Recovery From Database Outages</a></li>
+	  <li><a href="#connection_customizers">Managing Connection Lifecycles with Connection Customizers</a></li>
+	  <li><a href="#configuring_unresolved">Configuring Unresolved Transaction Handling</a></li>
+	  <li><a href="#configuring_to_debug_and_workaround_broken_clients">Configuring to Debug and Workaround Broken Client Applications</a></li>
+	  <li><a href="#other_ds_configuration">Other DataSource Configuration</a></li>
+	  <li><a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a></li>
+	  <li><a href="#configuring_logging">Configuring Logging</a></li>
+	</ol>
+      </li>
+      <li><a href="#known_shortcomings">Performance</a></li>
+      <li><a href="#performance">Known shortcomings</a></li>
+      <li><a href="#feedback_and_support">Feedback and support</a></li>
+      <li><a href="#configuration_properties">Appendix A: Configuration Properties</a></li>
+      <li><a href="#configuration_files">Appendix B: Configuation Files, etc.</a></li>
+	<ol class="contents">
+	  <li><a href="#c3p0_properties">Overriding c3p0 defaults with a c3p0.properties file</a></li>
+	  <li><a href="#system_properties">Overriding c3p0 defaults with System properties</a></li>
+	  <li><a href="#c3p0-config.xml">Named and Per-User configuration: Overriding c3p0 defaults via c3p0-config.xml</a></li>
+	  <li><a href="#configuration_precedence">Precedence of Configuration Settings</a></li>
+	</ol>
+      <li><a href="#hibernate-specific">Appendix C: Hibernate-specific notes</a></li>
+      <li><a href="#tomcat-specific">Appendix D: Configuring c3p0 pooled DataSources for Apache Tomcat</a></li>
+      <li><a href="#jboss-specific">Appendix E: JBoss-specific notes</a></li>
+      <li><a href="#oracle-specific">Appendix F: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a></li>
+    </ol>
+      (See also the API Documentation <a href="apidocs/index.html">here</a>)
+    <hr/>
+    <h2><a name="quickstart">Quickstart</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	c3p0 was designed to be butt-simple to use. Just put
+	the jar file [<tt>lib/c3p0-@c3p0.version@.jar</tt>] in your application's
+	effective <tt>CLASSPATH</tt>, and make a DataSource like this:
+      </p>
+      <div class="example">
+import com.mchange.v2.c3p0.*;
+	
+...
+	
+ComboPooledDataSource cpds = new ComboPooledDataSource();
+cpds.setDriverClass( "org.postgresql.Driver" ); //loads the jdbc driver            
+cpds.setJdbcUrl( "jdbc:postgresql://localhost/testdb" );
+cpds.setUser("dbuser");                                  
+cpds.setPassword("dbpassword");                                  
+      </div>
+      <p>
+	<b>[Optional]</b> If you want to turn on PreparedStatement pooling, you must also set <tt>maxStatements</tt> 
+	and/or <tt>maxStatementsPerConnection</tt> (both default to 0):
+      </p>
+      <div class="example">
+cpds.setMaxStatements( 180 );                                  
+      </div>
+      <p>
+	Do whatever you want with your DataSource, which will be backed
+	by a Connection pool set up with default parameters. You
+	can bind the DataSource to a JNDI name service, or use it
+	directly, as you prefer.
+      </p>
+      <p>
+	When you are done, you can clean up the DataSource you've created
+	like this:
+      </p>
+      <div class="example">
+DataSources.destroy( cpds );
+      </div>
+      <p>
+	That's it! The rest is detail.
+      </p>
+    </div>
+    <h2><a name="basics">What is c3p0?</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	c3p0 is an easy-to-use library for making traditional JDBC drivers 
+	"enterprise-ready" by augmenting them with functionality defined by 
+	the jdbc3 spec and the optional extensions to jdbc2. In particular, 
+	c3p0 provides several useful services:
+      </p>
+      <ul>
+	<li>
+	  Classes which adapt traditional DriverManager-based JDBC
+	  drivers to the new <tt>javax.sql.DataSource</tt> scheme for acquiring
+	  database Connections.
+	</li>
+	<li>
+	  Transparent pooling of Connection and PreparedStatements
+	  behind DataSources which can "wrap" around traditional
+	  drivers or arbitrary unpooled DataSources.
+	</li>
+      </ul>
+      <p>
+	The library tries hard to get the details right:
+      </p>
+      <ul>
+	<li>
+	  c3p0 DataSources are both <tt>Referenceable</tt> and <tt>Serializable</tt>, and are thus
+	  suitable for binding to a wide-variety of JNDI-based naming services.
+	</li>
+	<li>
+	  Statement and ResultSets are carefully cleaned up when pooled
+	  Connections and Statements are checked in, to prevent resource-
+	  exhaustion when clients use the lazy but common resource-management
+	  strategy of only cleaning up their Connections....
+	</li>
+	<li>
+	  The library adopts the approach 
+	  defined by the JDBC 2 and 3 specification (even where these
+	  conflict with the library author's preferences). DataSources
+	  are written in the JavaBean style, offering all the required and
+	  most of the optional properties (as well as some non-standard ones),
+	  and no-arg constructors. All JDBC-defined internal interfaces are
+	  implemented (ConnectionPoolDataSource, PooledConnection,
+	  ConnectionEvent-generating Connections, etc.)
+	  You can mix c3p0 classes with compliant third-party implementations
+	  (although not all c3p0 features will work with external implementations). 
+	</li>
+      </ul>
+      <p>
+	c3p0 hopes to provide DataSource implementations more than suitable for 
+	use by high-volume "J2EE enterprise applications". Please provide feedback, bug-fixes, etc.!
+      </p>
+    </div>
+    <h2><a name="prerequisites">Prerequisites</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	c3p0 requires a level 1.3.x or above Java Runtime Environment, and
+	the JDBC 2.x or above javax.sql libraries. c3p0 works fine under
+	Java 1.4.x and 1.5.x as well.
+      </p>
+    </div>
+    <h2><a name="installation">Installation</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	Put the file <tt>lib/c3p0-@c3p0.version@.jar</tt>
+	somewhere in your CLASSPATH (or any other place where your application's
+	classloader will find it). That's it!
+      </p>
+    </div>
+    <h2><a name="using_c3p0">Using c3p0</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	From a users' perspective, c3p0 simply provides standard jdbc2 DataSource
+	objects. When creating these DataSources, users can control pooling-related, 
+	naming-related, and other properties (See <a href="#configuration_properties">Appendix A</a>). All pooling is entirely
+	transparent to users once a DataSource has been created.
+      </p>
+      <p>
+	There are three ways of acquiring c3p0 pool-backed DataSources: 1) directly instantiate and configure a 
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a> bean; 
+	2) use the DataSources factory class; or 3) "build your own" pool-backed
+	DataSource by directly instantiating <tt>PoolBackedDataSource</tt> and setting its <tt>ConectionPoolDataSource</tt>. Most
+	users will probably find instantiating <a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>
+	to be the most convenient approach. Once instantiated,
+	c3p0 DataSources can be bound to nearly any JNDI-compliant name service.
+      </p>
+      <p>
+	Regardless of how you create your DataSource, c3p0 will use defaults for any configuration parameters that
+	you do not specify programmatically. c3p0 has built-in, hard-coded defaults, but you can override these by creating
+	a file called <tt>c3p0.properties</tt> and storing it as a top-level resource in the same <tt>CLASSPATH</tt> (or ClassLoader)
+	that loads c3p0's jar file. As of c3p0-0.9.1, you can also supply a file called <tt>c3p0-config.xml</tt> for more advanced
+	configuration. See <a href="#configuration">Configuration</a> below.
+      </p>
+      <h3>
+	<a name="using_combopooleddatasource">Instantiating and Configuring a ComboPooledDataSource</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Perhaps the most straightforward way to create a c3p0 pooling DataSource is to instantiate an instance of 
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>com.mchange.v2.c3p0.ComboPooledDataSource</tt></a>. 
+	This is a JavaBean-style class with a public, no-arg constructor,
+	but before you use the DataSource, you'll have to be sure to set at least the property <tt>jdbcUrl</tt>. You may also
+	want to set <tt>user</tt> and <tt>password</tt>, and if you have not externally preloaded the old-style JDBC driver you'll
+	use you should set the <tt>driverClass</tt>.
+      </p>
+<div class="example">
+ComboPooledDataSource cpds = new ComboPooledDataSource();
+cpds.setDriverClass( "org.postgresql.Driver" ); //loads the jdbc driver            
+cpds.setJdbcUrl( "jdbc:postgresql://localhost/testdb" );
+cpds.setUser("swaldman");                                  
+cpds.setPassword("test-password");                                  
+	
+// the settings below are optional -- c3p0 can work with defaults
+cpds.setMinPoolSize(5);                                     
+cpds.setAcquireIncrement(5);
+cpds.setMaxPoolSize(20);
+	
+// The DataSource cpds is now a fully configured and usable pooled DataSource
+	
+...
+</div>
+      <p>
+	The defaults of any c3p0 DataSource are determined by configuration you supply, or
+	else revert to hard-coded defaults [see <a href="#configuration_properties">configuration properties</a>].
+	c3p0-0.9.1 and above supports <a href="#c3p0-config.xml">multiple, named configurations</a>.
+	If you wish to use a named configuration, construct your 
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>com.mchange.v2.c3p0.ComboPooledDataSource</tt></a>
+	with the configuration name as a constructor agument:
+      </p>
+      <div class="example">
+ComboPooledDataSource cpds = new ComboPooledDataSource("intergalactoApp");
+      </div>
+      <p>
+	Of course, you can still override any configuration properties programmatically, as above.
+      </p>
+      <h3>
+	<a name="using_datasources_factory">Using the DataSources factory class</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Alternatively, you can use the static factory class 
+	<a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>com.mchange.v2.c3p0.DataSources</tt></a> to build unpooled DataSources 
+	from traditional JDBC drivers, and to build pooled DataSources from unpooled DataSources:
+      </p>
+      <div class="example">
+DataSource ds_unpooled = DataSources.unpooledDataSource("jdbc:postgresql://localhost/testdb", 
+                                                        "swaldman", 
+                                                        "test-password");
+DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled );
+
+// The DataSource ds_pooled is now a fully configured and usable pooled DataSource.
+// The DataSource is using a default pool configuration, and Postgres' JDBC driver
+// is presumed to have already been loaded via the jdbc.drivers system property or an
+// explicit call to Class.forName("org.postgresql.Driver") elsewhere.
+	
+...
+      </div>
+      <p>
+	If you use the <a href="apidocs/com/mchange/v2/c3p0/DataSources.html">DataSources</a>
+	factory class, and you want to programmatically override default configuration
+	parameters, you can supply a map of override properties:
+      </p>
+      <div class="example">
+DataSource ds_unpooled = DataSources.unpooledDataSource("jdbc:postgresql://localhost/testdb", 
+                                                        "swaldman", 
+                                                        "test-password");
+							      
+Map overrides = new HashMap();
+overrides.put("maxStatements", "200");         //Stringified property values work
+overrides.put("maxPoolSize", new Integer(50)); //"boxed primitives" also work
+
+// create the PooledDataSource using the default configuration and our overrides
+ds_pooled = DataSources.pooledDataSource( ds_unpooled, overrides ); 
+
+// The DataSource ds_pooled is now a fully configured and usable pooled DataSource,
+// with Statement caching enabled for a maximum of up to 200 statements and a maximum
+// of 50 Connections.
+
+...
+      </div>
+      <p>
+	If you are using <a href="#c3p0-config.xml">named configurations</a>, you can specify the configuration
+	that defines the default configuration for your DataSource:
+      </p>
+      <div class="example">
+// create the PooledDataSource using the a named configuration and specified overrides
+ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoAppConfig", overrides ); 
+      </div>
+
+      <p><a id="showDataSourcesWithPoolConfig" 
+	    style="display: block"
+	    href="#" 
+	    onClick="return toggleDisplay('showDataSourcesWithPoolConfig', 'DataSourcesWithPoolConfig');"
+	    >Show deprecated PoolConfig approach...</a></p>
+      <div class="deprecated" style="display: none" id="DataSourcesWithPoolConfig">
+	<h5>Deprecated! Programmatic configuration via PoolConfig</h5>
+	<p>
+	  If you use the <a href="apidocs/com/mchange/v2/c3p0/DataSources.html">DataSources</a>
+	  factory class, and you want to programmatically override default configuration
+	  parameters, make use of the <a href="apidocs/com/mchange/v2/c3p0/PoolConfig.html"><tt>PoolConfig</tt></a> class:
+	</p>
+	<div class="example">
+DataSource ds_unpooled = DataSources.unpooledDataSource("jdbc:postgresql://localhost/testdb", 
+                                                        "swaldman", 
+                                                        "test-password");
+							      
+PoolConfig pc = new PoolConfig();
+pc.setMaxStatements(200);  //turn on Statement pooling
+
+// pass our overriding PoolConfig to the DataSources.pooledDataSource() factory method.
+
+ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc ); 
+
+// The DataSource ds_pooled is now a fully configured and usable pooled DataSource,
+// with Statement caching enabled for a maximum of up to 200 statements.
+
+...
+	</div>
+	<a id="hideDataSourcesWithPoolConfig" 
+	   href="#" 
+	   onClick="return toggleDisplay('showDataSourcesWithPoolConfig', 'DataSourcesWithPoolConfig');"
+	   >Hide deprecated PoolConfig approach</a>
+      </div>
+  
+      <div class="boxed">
+	<a name="forceOverrideBox" />
+	<h4>RARE: Forcing authentication information, regardless of (mis)configuration of the underlying (unpooled) DataSource</h4>
+	<p>
+	  You can wrap any DataSouce using <tt>DataSource.pooledDataSource( ... )</tt>, usually with no
+	  problem whatsoever. DataSources are supposed to indicate the username and password associated
+	  by default with Connections via standard properties <tt>user</tt> and <tt>password</tt>. 
+	  Some DataSource implementations do not offer these properties. Usually this is not at all
+	  a problem. <tt>c3p0</tt> works around this
+	  by acquiring "default" Connections from the DataSource if it can't find default authentication
+	  information, and a client has not specified the authentification information via 
+	  <tt>getConnection( user, password )</tt>.
+	</p>
+	<p>
+	  However, in rare circumstances, non-c3p0 unpooled DataSources provide a <tt>user</tt> property, 
+	  but not a password property, or you have access to a DataSource that you wish to wrap behind a pool,
+	  but you wish to override its build-in authentification defaults without actually modifying the <tt>user</tt>
+	  or <tt>password</tt> properties.
+	</p>
+	<p>
+	  <tt>c3p0</tt> provides configuation properties <tt>overrideDefaultUser</tt> and <tt>overrideDefaultPassword</tt>.
+	  If you set these properties, programmatically as above, or via any of c3p0's <a href="#configuration">configuration mechanisms</a>,
+	  <tt>c3p0</tt> PooledDataSources will ignore the user and password property associated with the underlying DataSource,
+	  and use the specified overrides instead.
+	</p>
+      </div>
+      <h3>
+	<a name="querying">Querying a PooledDataSource's current status</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 DataSources backed by a pool, which include implementations of 
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a> and
+	the objects returned by <tt><a href="apidocs/com/mchange/v2/c3p0/DataSources.html">DataSources</a>.pooledDataSource( ... )</tt>, 
+	all implement the interface
+	<a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>com.mchange.v2.c3p0.PooledDataSource</tt></a>, 
+	which makes available a number of methods for querying the status of
+	DataSource Connection pools. Below is sample code that queries a DataSource for its 
+	status:
+      </p>
+      <div class="example">
+// fetch a JNDI-bound DataSource
+InitialContext ictx = new InitialContext();
+DataSource ds = (DataSource) ictx.lookup( "java:comp/env/jdbc/myDataSource" );
+
+// make sure it's a c3p0 PooledDataSource
+if ( ds instanceof PooledDataSource)
+{
+  PooledDataSource pds = (PooledDataSource) ds;
+  System.err.println("num_connections: "      + pds.getNumConnectionsDefaultUser());
+  System.err.println("num_busy_connections: " + pds.getNumBusyConnectionsDefaultUser());
+  System.err.println("num_idle_connections: " + pds.getNumIdleConnectionsDefaultUser());
+  System.err.println();
+}
+else
+  System.err.println("Not a c3p0 PooledDataSource!");
+      </div>
+      <p>
+	The status querying methods all come in three overloaded forms, such as:
+      </p>
+      <ul>
+	<li><tt>public int getNumConnectionsDefaultUser()</tt></li>
+	<li><tt>public int getNumConnections(String username, String password)</tt></li>
+	<li><tt>public int getNumConnectionsAllUsers()</tt></li>
+      </ul>
+      <p>
+	c3p0 maintains separate pools for Connections with distinct
+	authentications. The various methods let you query the status of pools individually,
+	or aggregate statistics for all authentifications for which your DataSource is maintaining
+	pools. <i>Note that pool configuration parmeters such as <tt>maxPoolSize</tt> are enforced
+	  on a per-authentification basis!</i> For example, if you have set <tt>maxPoolSize</tt> to
+	20, and if the DataSource is managing connections under two username-password pairs [the
+	default, and one other pair established via a call to <tt>getConnection(user, password)</tt>, 
+	you should expect to see as many as 40 Connections from <tt>getNumConnectionsAllUsers()</tt>. 
+      </p>
+      <p>
+	<i>
+	  Most applications only acquire default-authenticated Connections from DataSources, and
+	  can typically just use the <tt>getXXXDefaultUser()</tt> to gather Connection statistics.
+	</i>
+      </p>
+      <p>
+        As well as Connection pool realted statistics, you can retrieve status information about each
+        DataSource's Thread pool.
+      	Please see <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt> 
+      	for a complete list of available operations.</a>
+      </p>
+      <div class="boxed">
+	<a name="using_c3p0_registry_box" />
+	<h4>Using C3P0Registry to get a reference to a DataSource</h4>
+	<p>
+	  If it's inconvenient or impossible to get a reference to your DataSource via JNDI or some other means,
+	  you can find all live c3p0 DataSources using the
+	  <a href="apidocs/com/mchange/v2/c3p0/C3P0Registry.html"><tt>C3P0Registry</tt></a> class, which includes
+	  three static methods to help you out:
+	</p>
+	<ul>
+	  <li><tt>public static Set getPooledDataSources()</tt></li>
+	  <li><tt>public static Set pooledDataSourcesByName( String dataSourceName )</tt></li>
+	  <li><tt>public static <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSource</a>  
+              pooledDataSourceByName( String dataSourceName )</tt></li>
+	</ul>
+	<p>
+	  The first method will hand you the Set of all live c3p0 
+	  <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a>. If you are sure
+	  your application only makes one <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a>,
+	  or you can distinguish between the DataSources by their configuration properties (inspected via "getters"), the 
+	  first method may be sufficient. Because this will not always be the case, c3p0 
+	  <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a> have a special property called
+	  <tt>dataSourceName</tt>. You can set the <tt>dataSourceName</tt> property directly when you construct your 
+	  DataSource, or dataSourceName can be set like any other property in a named or the default config. 
+	  Otherwise, <tt>dataSourceName</tt> will default to either 1) the name of your DataSource's configuration, if
+	  you constructed it with a <a href="#c3p0-config.xml">named configuration</a>; or 2) a unique (but unpredicatble)
+	  name if you are using the default configuration.
+	</p>
+	<p>
+	  There is no guarantee that a <tt>dataSourceName</tt> will be unique. For example, if two c3p0 DataSources share
+	  the same <a href="#c3p0-config.xml">named configuration</a>, and you have not set the <tt>dataSourceName</tt> programmatically, the two
+	  data sources will both share the name of the configuration. To get all of the DataSources with a particular
+	  <tt>dataSourceName</tt>, use <tt>pooledDataSourcesByName( ... )</tt>. If you've ensured that your DataSource's
+	  name is unique (as you will generally want to do, if you intend to use 
+	  <a href="apidocs/com/mchange/v2/c3p0/C3P0Registry.html"><tt>C3P0Registry</tt></a> to find your DataSources),
+	  you can use the convenience method <tt>pooledDataSourceByName( ... )</tt>, which will return your DataSource
+	  directly, or <tt>null</tt> if no DataSource with that name is available. If you use <tt>pooledDataSourceByName( ... )</tt>
+	  and more than one DataSource shares the name supplied, which one it will return is undefined.
+	</p>
+      </div>
+      <h3>
+	<a name="cleaning">Cleaning up after c3p0 PooledDataSources</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	The easy way to clean up after c3p0-created DataSources is to use the static destroy method
+	defined by the class <a href="apidocs/com/mchange/v2/c3p0/DataSources.html">DataSources</a>. Only 
+	<a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>s 
+	need to be cleaned up, but 
+	<a href="apidocs/com/mchange/v2/c3p0/DataSources.html">DataSources</a>.destroy( ... ) does no harm if it is called on an unpooled or non-c3p0
+	DataSource.
+      </p>
+      <div class="example">
+DataSource ds_pooled   = null;
+	
+try
+{
+  DataSource ds_unpooled = DataSources.unpooledDataSource("jdbc:postgresql://localhost/testdb", 
+                                                          "swaldman", 
+                                                          "test-password");
+  ds_pooled = DataSources.pooledDataSource( ds_unpooled );
+
+  // do all kinds of stuff with that sweet pooled DataSource...
+}
+finally
+{
+  DataSources.destroy( ds_pooled );
+}
+      </div>
+      <p>
+	Alternatively, c3p0's <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>
+	interface contains a <tt>close()</tt> method
+	that you can call when you know you are finished with a DataSource. So, you can cast a c3p0
+	derived DataSource to a <tt>PooledDataSource</tt> and close it:
+      </p>
+  <div class="example">
+static void cleanup(DataSource ds) throws SQLException
+{
+  // make sure it's a c3p0 PooledDataSource
+  if ( ds instanceof PooledDataSource)
+  {
+    PooledDataSource pds = (PooledDataSource) ds;
+    pds.close();
+  }     
+  else
+    System.err.println("Not a c3p0 PooledDataSource!");
+}
+  </div>
+      <p>
+	Unreferenced instances of <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>
+	that are not <tt>close()</tt>ed by clients
+	<tt>close()</tt> themselves prior to garbage collection in their <tt>finalize()</tt> methods. 
+	As always, finalization should be considered
+	a backstop and not a prompt or sure approach to resource cleanup.
+      </p>
+      <h3>
+	<a name="build_your_own">Advanced: Building your own PoolBackedDataSource</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	There is little reason for most programmers to do this, but you can build a PooledDataSource in a
+	step-by-step way by instantiating and configuring an unpooled 
+	<a href="apidocs/com/mchange/v2/c3p0/DriverManagerDataSource.html"><tt>DriverManagerDataSource</tt></a>, instantiating a
+	<a href="apidocs/com/mchange/v2/c3p0/WrapperConnectionPoolDataSource.html"><tt>WrapperConnectionPoolDataSource</tt></a>
+	 and setting the unpooled DataSource as its <tt>nestedDataSource</tt> property,
+	and then using that to set the <tt>connectionPoolDataSource</tt> property of a new 
+	<a href="apidocs/com/mchange/v2/c3p0/PoolBackedDataSource.html"><tt>PoolBackedDataSource</tt></a>.
+      </p>
+      <p>
+	This sequence of events is primarily interesting if your driver offers an implementation of ConnectionPoolDataSource, and you'd
+	like c3p0 to use that. Rather than using c3p0's 
+	<a href="apidocs/com/mchange/v2/c3p0/WrapperConnectionPoolDataSource.html"><tt>WrapperConnectionPoolDataSource</tt></a>, 
+	you can create a <a href="apidocs/com/mchange/v2/c3p0/PoolBackedDataSource.html"><tt>PoolBackedDataSource</tt></a>
+	and set its <tt>connectionPoolDataSource</tt> property. Statement pooling, 
+	<a href="apidocs/com/mchange/v2/c3p0/ConnectionCustomizer.html"><tt>ConnectionCustomizers</tt></a>, and many c3p0-specific properties
+	are unsupported with third party implementations of <tt>ConnectionPoolDataSource</tt>. (Third-party <tt>DataSource</tt> implementations
+	can be substituted for c3p0's 
+	<a href="apidocs/com/mchange/v2/c3p0/DriverManagerDataSource.html"><tt>DriverManagerDataSource</tt></a> with no significant loss of
+	functionality.)
+      </p>
+      <h3>
+	<a name="raw_connection_ops">Advanced: Raw Connection and Statement Operations</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	JDBC drivers sometimes define vendor-specific, non-standard API on Connection and Statement implementations. C3P0 wraps
+	these Objects behind a proxies, so you cannot cast C3P0-returned Connections or Statements to the vendor-specific implementation
+	classes. C3P0 does not provide any means of accessing the raw Connections and Statements directly, because C3P0 needs to keep
+	track of Statements and ResultSets created in order to prevent resource leaks and pool
+	corruption.
+      </p>
+      <p>
+	C3P0 does provide an API that allows you to invoke non-standard methods reflectively on an underlying
+	Connection. To use it, first cast the returned Connection to a 
+	<a href="apidocs/com/mchange/v2/c3p0/C3P0ProxyConnection.html"><tt>C3P0ProxyConnection</tt></a>. Then call
+	the method <tt>rawConnectionOperation</tt>, supplying the <tt>java.lang.reflect.Method</tt> object for
+	the non-standard method you wish to call as an argument. The <tt>Method</tt> you supply will be invoked
+	on the target you provide on the second argument (null for static methods), and using the arguments you
+	supply in the third argument to that function. For the target, and for any of the method arguments, you
+	can supply the special token <tt>C3P0ProxyConnection.RAW_CONNECTION</tt>, which will be replaced with
+	the underlying vendor-specific Connection object before the <tt>Method</tt> is invoked.
+      </p>
+      <p>
+	<a href="apidocs/com/mchange/v2/c3p0/C3P0ProxyStatement.html"><tt>C3P0ProxyStatement</tt></a> offers
+	an exactly analogous API.
+      </p>
+      <p>
+	Any Statements (including Prepared and CallableStatements) and ResultSets returned by raw operations
+	will be c3p0-managed, and will be properly cleaned-up on <tt>close()</tt> of the parent proxy Connection.
+	Users must take care to clean up any non-standard resources returned by a vendor-specific method.
+      </p>
+      <p>
+	Here's an example of using Oracle-specific API to call a static method on a raw Connection:
+      </p>
+      <div class="example">
+C3P0ProxyConnection castCon = (C3P0ProxyConnection) c3p0DataSource.getConnection();
+Method m = CLOB.class.getMethod("createTemporary", new Class[]{Connection.class, boolean.class, int.class});
+Object[] args = new Object[] {C3P0ProxyConnection.RAW_CONNECTION, Boolean.valueOf( true ), new Integer( 10 )};
+CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);			
+      </div>
+      <p>
+	<i>Note: C3P0 now includes special support for some Oracle-specific methods. 
+	  See <a href="#oracle-specific">Appendix F</a>.
+	</i>
+      </p>
+      <h2><a name="configuration">Configuration</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+      <h3>
+	<a name="programmatic_configuration"></a><a name="configuration_introduction">Introduction</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	While c3p0 does not <i>require</i> very much configuration, it is very tweakable. Most of the interesting
+	knobs and dials are represented as JavaBean properties. Following JavaBean conventions, we note that
+	if an Object has a property of type <tt>T</tt> called <tt>foo</tt>, it will have methods that look
+	like...
+	<blockquote><tt>
+	    public T getFoo();<br/>
+	    public void setFoo(T foo);
+	</tt></blockquote>
+	...or both, depending upon whether the property is read-only, write-only, or read-writable.
+      </p>
+      <p>
+	There are several ways to modify c3p0 properties: 
+	You can directly alter the property values associated with a particular DataSource in your code, 
+	or you can configure c3p0 externally, 
+	via a <a href="#c3p0_properties">simple Java properties file</a>,
+	via an <a href="#c3p0-config.xml">XML configuration file</a>, or  
+	via <a href="#system_properties">System properties</a>. Configuration files
+	are normally looked up under standard names (<tt>c3p0.properties</tt> or <tt>c3p0-config.xml</tt>)
+	at the top level of an application's classpath, but the XML configuration can be placed
+	anywhere in an application's file system, if the system property <tt>com.mchange.v2.c3p0.cfg.xml</tt> is set
+	(to an absolute filesystem path).
+      </p>
+      <p>
+	DataSources are usually configured before they are used, either
+	during or immediately following their construction. c3p0 does
+	support property modifications midstream, however.
+      </p>
+      <p>
+	If you obtain a DataSource by instantiating a 
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>, 
+	configure it by simply calling appropriate setter methods offered by that class
+	before attempting a call to <tt>getConnection()</tt>. See the example above.
+      </p>
+      <p>
+	If you obtain a DataSource by using factory methods of
+	the utility class <a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>com.mchange.v2.c3p0.DataSources</tt></a>,
+	and wish to use a non-default configuration, you can supply a Map of property names (beginning with lower-case letters)
+	to property values (either as Strings or "boxed" Java primitives like Integer or Boolean).
+      </p>
+      <p>
+	All tweakable properties are documented for reference
+	in <a href="#configuration_properties">Appendix A</a>. The most basic and important c3p0 configuration
+	topics are discussed below.
+      </p>
+      <h3>
+	<a name="basic_pool_configuration">Basic Pool Configuration</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 Connection pools are very easy to configure via the following basic parameters:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#acquireIncrement">acquireIncrement</a></li>
+	<li><a class="cfg_param" href="#initialPoolSize">initialPoolSize</a></li>
+	<li><a class="cfg_param" href="#maxPoolSize">maxPoolSize</a></li>
+	<li><a class="cfg_param" href="#maxIdleTime">maxIdleTime</a></li>
+	<li><a class="cfg_param" href="#minPoolSize">minPoolSize</a></li>
+      </ul>
+      <p>
+	<tt>initialPoolSize</tt>, <tt>minPoolSize</tt>, <tt>maxPoolSize</tt>
+	define the number of Connections that will be pooled. Please ensure that
+	<tt>minPoolSize &lt;= maxPoolSize</tt>. Unreasonable values of <tt>initialPoolSize</tt> will
+	be ignored, and <tt>minPoolSize</tt> will be used instead.
+      </p>
+      <p>
+	Within the range between <tt>minPoolSize</tt> and <tt>maxPoolSize</tt>, the number of Connections in
+	a pool varies according to usage patterns. The number of Connections increases whenever a Connection
+	is requested by a user, no Connections are available, and the pool has not yet reached <tt>maxPoolSize</tt>
+	in the number of Connections managed. Since Connection acquisition is very slow, it is almost always useful to
+	increase the number of Connections eagerly, in batches, rather than forcing each client to wait for a new
+	Connection to provoke a single acquisition when the load is increasing. <tt>acquireIncrement</tt> determines
+	how many Connections a c3p0 pool will attempt to acquire when the pool has run out of Connections. (Regardless
+	of <tt>acquireIncrement</tt>, the pool will never allow <tt>maxPoolSize</tt> to be exceeded.)
+      </p>
+      <p>
+	The number of Connections in a pool decreases whenever a pool tests a Connection and finds it to be broken (see
+	<a href="#configuring_connection_testing">Configuring Connection Testing</a> below), or when a Connection is expired
+	by the pool after sitting idle for a period of time, or for being too old (See <a href="#managing_pool_size">Managing Pool Size and Connection Age</a>.)
+      </p>
+      <h3>
+	<a name="managing_pool_size">Managing Pool Size and Connection Age</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Different applications have different needs with regard to trade-offs between performance, footprint, and reliability. C3P0
+	offers a wide variety of options for controlling how quickly pools that have grown large under load revert to <tt>minPoolSize</tt>,
+	and whether "old" Connections in the pool should be proactively replaced to maintain their reliablity.
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#maxConnectionAge">maxConnectionAge</a></li>
+	<li><a class="cfg_param" href="#maxIdleTime">maxIdleTime</a></li>
+	<li><a class="cfg_param" href="#maxIdleTimeExcessConnections">maxIdleTimeExcessConnections</a></li>
+      </ul>
+	 <p>
+    By default, pools will never expire Connections. If you wish
+	Connections to be expired over time in order to maintain "freshness", 
+	set <tt>maxIdleTime</tt> and/or <tt>maxConnectionAge</tt>. <tt>maxIdleTime</tt> defines how many seconds a
+	Connection should be permitted to go unused before being culled from the pool. <tt>maxConnectionAge</tt>
+	forces the pool to cull any Connections that were acquired from the database more than the set number of
+	seconds in the past.
+      </p>
+      <p>
+    <tt>maxIdleTimeExcessConnections</tt> is about minimizing the number of Connections held by c3p0 pools
+    when the pool is not under load. By default, c3p0 pools grow under load, but only shrink if Connections
+    fail a Connection test or are expired away via the parameters described above. Some users want their
+    pools to quickly release unnecessary Connections after a spike in usage that forces a large pool size.
+    You can achieve this by setting <tt>maxIdleTimeExcessConnections</tt> to a value much shorter than 
+    <tt>maxIdleTime</tt>, forcing Connections beyond your set minimum size to be released if they sit idle
+    for more than a short period of time.
+      </p>
+      <p>
+    Some general advice about all of these timeout parameters: Slow down! The point of Connection pooling is to
+    bear the cost of acquiring a Connection only once, and then to reuse the Connection many, many times.
+    Most databases support Connections that remain open for hours at a time. There's no need to churn through
+    all your Connections every few seconds or minutes. Setting <tt>maxConnectionAge</tt> or <tt>maxIdleTime</tt> to 1800 (30 minutes)
+    is quite aggressive. For most databases, several hours may be more appropriate. You can ensure the reliability
+    of your Connections by testing them, rather than by tossing them. (see
+	<a href="#configuring_connection_testing">Configuring Connection Testing</a>.) The only one of these parameters
+    that should generally be set to a few minutes or less is <tt>maxIdleTimeExcessConnections</tt>.
+      </p>
+      <h3>
+	<a name="configuring_connection_testing">Configuring Connection Testing</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 can be configured to test the Connections that it pools in a variety of ways, to
+	minimize the likelihood that your application will see broken or "stale" Connections.
+	Pooled Connections can go bad for a variety of reasons -- some JDBC drivers intentionally
+	"time-out" long-lasting database Connections; back-end databases or networks sometimes go down 
+	"stranding" pooled Connections; and Connections can simply become corrupted over time and use due
+	to resource leaks, driver bugs, or other causes.
+      </p>
+      <p>
+	c3p0 provides users a great deal of flexibility in testing Connections, via the following
+	configuration parameters:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#automaticTestTable">automaticTestTable</a></li>
+	<li><a class="cfg_param" href="#connectionTesterClassName">connectionTesterClassName</a></li>
+	<li><a class="cfg_param" href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a></li>
+	<li><a class="cfg_param" href="#preferredTestQuery">preferredTestQuery</a></li>
+	<li><a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a></li>
+	<li><a class="cfg_param" href="#testConnectionOnCheckout">testConnectionOnCheckout</a></li>
+      </ul>
+      <p>
+	<tt>idleConnectionTestPeriod</tt>, <tt>testConnectionOnCheckout</tt>, and
+	<tt>testConnectionOnCheckin</tt> control <u>when</u> Connections will be tested.
+	<tt>automaticTestTable</tt>, <tt>connectionTesterClassName</tt>, and <tt>preferredTestQuery</tt> control <u>how</u> they will be tested.
+      </p>
+      <p>
+	When configuring
+	Connection testing, first try to minimize the cost of each test. By default, Connections are tested
+	by calling the <tt>getTables()</tt> method on a Connection's associated <tt>DatabaseMetaData</tt>
+	object. This has the advantage of working with any database, and regardless of the database schema. However, empirically
+	a <tt>DatabaseMetaData.getTables()</tt> call is often much slower than a simple database query.
+      </p>
+      <p>
+	The most convenient way to speed up Connection testing is to define the parameter <tt>automaticTestTable</tt>. Using the name
+	you provide, c3p0 will create an empty table, and make a simple query against it to test the database. Alternatively, if your 
+	database schema
+	is fixed prior to your application's use of the database, you can simply define a test query with the <tt>preferredTestQuery</tt>
+	parameter. Be careful, however. Setting <tt>preferredTestQuery</tt> will lead to errors as Connection tests fail
+	if the query target table does not exist in your database table <i>prior to initialization of your DataSource</i>.
+	  </p>
+	  <p>
+	Advanced users may define any kind of Connection testing they wish, by implementing a 
+	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> and supplying the
+	fully qualified name of the class as <tt>connectionTesterClassName</tt>. If you'd like your custom ConnectionTesters
+	to honor and support the <tt>preferredTestQuery</tt> and <tt>automaticTestTable</tt> parameters, implement
+	<a href="apidocs/com/mchange/v2/c3p0/UnifiedConnectionTester.html">UnifiedConnectionTester</a>, most conveniently by extending
+	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionTester.html">AbstractConnectionTester</a>. See the <a href="apidocs/index.html">api docs</a>
+	for more information.
+      </p>
+      <p>
+	The most reliable time to test Connections is on check-out. But this is also the most costly choice
+	from a client-performance perspective. Most applications should work quite reliably using a combination of 
+	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionsOnCheckIn</tt>. Both the idle test and the check-in 
+	test are performed asynchronously, which leads to better performance, both perceived and actual.
+      </p>
+      <p>
+	Note that for many applications, high performance is more important than the risk of an occasional database exception.
+	In its default configuration, c3p0 does no Connection testing at all. Setting a fairly long 
+	<tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is an excellent, high-performance
+	approach.
+      </p>
+      <h3>
+	<a name="configuring_statement_pooling">Configuring Statement Pooling</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 implements transparent PreparedStatement pooling as defined by the JDBC spec. Under some circumstances,
+	statement pooling can dramatically improve application performance. Under other circumstances, the overhead of
+	statement pooling can slightly harm
+	performance. Whether and how much statement pooling will help depends on how much 
+	parsing, planning, and optimizing of queries your databases does when the statements are prepared. 
+	Databases (and JDBC drivers) vary widely
+	in this respect. It's a good idea to benchmark your application with and without statement pooling to 
+	see if and how much it helps.
+      </p>
+      <p>
+	You configure statement pooling in c3p0 via the following
+	configuration parameters:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#maxStatements">maxStatements</a></li>
+	<li><a class="cfg_param" href="#maxStatementsPerConnection">maxStatementsPerConnection</a></li>
+	<li><a class="cfg_param" href="#statementCacheNumDeferredCloseThreads">statementCacheNumDeferredCloseThreads</a></li>
+      </ul>
+      <p>
+	<tt>maxStatements</tt> is JDBC's standard parameter for controlling statement pooling. <tt>maxStatements</tt> defines the
+	total number <tt>PreparedStatements</tt> a DataSource will cache. The pool will destroy the least-recently-used PreparedStatement
+	when it hits this limit. This sounds simple, but it's actually a strange approach, because
+	cached statements conceptually belong to individual Connections; they are not global resources. To figure out a size
+	for <tt>maxStatements</tt> that does not "churn" cached statements, you need to consider the number of <i>frequently used</i> 
+	PreparedStatements in your application,	and multiply that by the number of Connections you expect in the pool (<tt>maxPoolSize</tt>
+	in a busy application).
+      </p>
+      <p>
+	<tt>maxStatementsPerConnection</tt> is a non-standard configuration parameter that makes a bit more
+	sense conceptually. It defines how many statements each pooled Connection is allowed to own.
+	You can set this to a bit more than the number of <tt>PreparedStatements</tt> your application <i>frequently</i>
+	uses, to avoid churning.
+      </p>
+      <p>
+	If either of these parameters are greater than zero, statement pooling will be enabled. If both
+	parameters are greater than zero, both limits will be enforced. If only one is greater than zero, statement pooling
+	will be enabled, but only one limit will be enforced.
+      </p>
+      <p>
+	If <tt>statementCacheNumDeferredCloseThreads</tt> is greater than zero, the Statement pool will defer physically close()ing cached Statements until
+	its parent Connection is not in use by any client or internally (in e.g. a test) by the pool itself. For some JDBC drivers
+	(especially Oracle), attempts to close a Statement freeze if the parent Connection is in use. This parameter defaults to 0.
+	Set it to a positive value if you observe "APPARENT DEADLOCKS" realted to Connection close tasks. Almost, that value should
+        be one: if you need more than one Thread dedicated solely to Statement destruction, you probably should set <tt>maxStatements</tt> and/or
+	<tt>maxStatementsPerConnection</tt> to higher values so you don't churn through cached Statements so quickly.
+      </p>
+      <h3>
+	<a name="configuring_recovery">Configuring Recovery From Database Outages</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 DataSources are designed (and configured by default) to recover from temporary database outages, such as
+	those which occur during a database restart or brief loss of network connectivity.
+	You can affect how c3p0 handles errors in acquiring Connections via the following
+	configurable properties:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#acquireRetryAttempts">acquireRetryAttempts</a></li>
+	<li><a class="cfg_param" href="#acquireRetryDelay">acquireRetryDelay</a></li>
+	<li><a class="cfg_param" href="#breakAfterAcquireFailure">breakAfterAcquireFailure</a></li>
+      </ul>
+      <p>
+	When a c3p0 DataSource attempts and fails to acquire a Connection, it will retry up
+	to <tt>acquireRetryAttempts</tt> times, with a delay of <tt>acquireRetryDelay</tt>
+	between each attempt. If all attempts fail, any clients waiting for Connections from
+	the DataSource will see an Exception, indicating that a Connection could not be acquired.
+	Note that clients do not see any Exception until a full round of attempts fail, which
+	may be some time after the initial Connection attempt. If <tt>acquireRetryAttempts</tt> 
+	is set to 0, c3p0 will attempt to acquire new Connections indefinitely, and calls to
+	<tt>getConnection()</tt> may block indefinitely waiting for a successful acquisition.
+      </p>
+      <p>
+	Once a full round of acquisition attempts fails, there are two possible policies. By
+	default, the c3p0 DataSource will remain active, and will try again to acquire Connections
+	in response to future requests for Connections. If you set <tt>breakAfterAcquireFailure</tt>
+	to <tt>true</tt>, the DataSource will consider itself broken after a failed round of
+	Connection attempts, and future client requests will fail immediately.
+      </p>
+      <p>
+	Note that if a database restart occurs, a pool may contain previously acquired but now
+	stale Connections. By default, these stale Connections will only be detected and
+	purged lazily, when an application attempts to use them, and sees an Exception. Setting
+	<tt>maxIdleTime</tt> or <tt>maxConnectionAge</tt> can help speed up the replacement of
+	broken Connections. (See <a href="#managing_pool_size">Managing ConnectionAge</a>.)
+	If you wish to avoid application Exceptions entirely, you must adopt a connection testing strategy that
+	is likely to detect stale Connections prior to their delivery to clients. (See 
+	"<a href="#configuring_connection_testing">Configuring Connection Testing</a>".) Even
+	with active Connection testing (<tt>testConnectionsOnCheckout</tt> set to <tt>true</tt>, or
+	<tt>testConnectionsOnCheckin</tt> and a short <tt>idleConnectionTestPeriod</tt>), your
+	application may see occasional Exceptions on database restart, for example if the restart 
+	occurs after a Connection to the database has already been checked out.
+      </p>
+      <h3>
+	<a name="connection_customizers">Managing Connection Lifecycles with Connection Customizer</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Application frequently wish to set up Connections in some standard, reusable way immediately after
+	Connection acquisitions. Examples of this include setting-up character encodings, or date and time
+	related behavior, using vendor-specific APIs or non-standard SQL statement executions. Occasionally
+	it is useful to override the default values of standard Connection properties such as <tt>transactionIsolation</tt>,
+	<tt>holdability</tt>, or <tt>readOnly</tt>. c3p0 provides a "hook" interface that you can implement,
+	which gives you the opportunity to modify or track Connections just after they are checked out from the
+	database, immediately just prior to being handed to clients on checkout, just prior to being returned
+	to the pool on check-in, and just prior to final destruction by the pool. The Connections handed
+	to ConnectionCustomizers are raw, physical Connections, with all vendor-specific API accessible.
+	See the API docs for <a href="apidocs/com/mchange/v2/c3p0/ConnectionCustomizer.html"><tt>ConnectionCustomizer</tt></a>.
+      </p>
+      <p>
+    To install a <tt>ConnectionCustomizer</tt> just implement the interface, make your class accessible
+    to c3p0's ClassLoader, and set the configuration parameter below:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#connectionCustomizerClassName">connectionCustomizerClassName</a></li>
+      </ul>
+      <p>
+	ConnectionCustomizers are required to be immutable classes with public no argument constructors.
+	They shouldn't store any state. For (rare) applications that wish to track the behavior of individual
+	DataSources with ConnectionCustomizers, the lifecycle methods each accept a DataSource-specific 
+	"identityToken", which is unique to each PooledDataSource.
+      </p>
+      <p>
+	Below is a sample <tt>ConnectionCustomizer</tt>. Implementations that do not need to override all
+	four <tt>ConnectionCustomizer</tt> methods can extend 
+	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionCustomizer.html"><tt>AbstractConnectionCustomizer</tt></a>
+	to inherit no-op implementations of all methods.  
+      </p>
+      <div class="example">
+import com.mchange.v2.c3p0.*;
+import java.sql.Connection;
+
+public class VerboseConnectionCustomizer
+{
+    public void onAcquire( Connection c, String pdsIdt )
+    { 
+       System.err.println("Acquired " + c + " [" + pdsIdt + "]"); 
+
+       // override the default transaction isolation of 
+       // newly acquired Connections
+       c.setTransactionIsolation( Connection.REPEATABLE_READ );
+    }
+
+    public void onDestroy( Connection c, String pdsIdt )
+    { System.err.println("Destroying " + c + " [" + pdsIdt + "]"); }
+
+    public void onCheckOut( Connection c, String pdsIdt )
+    { System.err.println("Checked out " + c + " [" + pdsIdt + "]"); }
+
+    public void onCheckIn( Connection c, String pdsIdt )
+    { System.err.println("Checking in " + c + " [" + pdsIdt + "]"); }
+}
+      </div>
+
+      <h3>
+	<a name="configuring_unresolved">Configuring Unresolved Transaction Handling</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Connections checked into a pool cannot have any unresolved transactional work associated with them.
+	If users have set <tt>autoCommit</tt> to <tt>false</tt> on a Connection, and c3p0 cannot guarantee
+	that there is no pending transactional work, c3p0 must either <tt>rollback()</tt> or <tt>commit()</tt>
+	on check-in (when a user calls <tt>close()</tt>). The JDBC spec is (unforgivably) silent on the question
+	of whether unresolved work should be committed or rolled back on Connection close. By default, c3p0
+	rolls back unresolved transactional work when a user calls <tt>close()</tt>.
+      </p>
+      <p>
+	You can adjust this behavior via the following configuration properties:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#autoCommitOnClose">autoCommitOnClose</a></li>
+	<li><a class="cfg_param" href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a></li>
+      </ul>
+      <p>
+	If you wish c3p0 to allow unresolved transactional work to commit on checkin, set <tt>autoCommitOnClose</tt>
+	to true. If you wish c3p0 to leave transaction management to you, and neither commit nor rollback (nor modify
+	the state of Connection <tt>autoCommit</tt>), you may set <tt>forceIgnoreUnresolvedTransactions</tt> to true. Setting
+	<tt>forceIgnoreUnresolvedTransactions</tt> is strongly discouraged, because if clients are not careful to
+	commit or rollback themselves prior to close(), or do not set Connection <tt>autoCommit</tt> consistently, bizarre
+	unreproduceable behavior and database lockups can occur.
+      </p>
+      <h3>
+	<a name="configuring_to_debug_and_workaround_broken_clients">Configuring to Debug and Workaround Broken Client Applications</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Sometimes client applications are sloppy about close()ing all Connections they check out. Eventually, 
+	the pool grows to <tt>maxPoolSize</tt>, and then runs out of Connections, because of these bad clients.
+      </p>
+      <p>
+    The right way to address this problem is to fix the client application. <tt>c3p0</tt> can help you debug,
+    by letting you know where Connections are checked out that occasionally don't get checked in. In rare and
+    unfortunate situations, development of the client application is closed, and even though it is buggy, you cannot fix it.
+    c3p0 can help you work around the broken application, preventing it from exhausting the pool. 
+      </p>
+      <p>
+    The following parameters can help you debug or workaround broken client applications.  
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a></li>
+	<li><a class="cfg_param" href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a></li>
+      </ul>
+      <p>
+    <tt>unreturnedConnectionTimeout</tt> defines a limit (in seconds) to how long a Connection may remain checked out.
+    If set to a nozero value, unreturned, checked-out Connections that exceed this limit will be summarily destroyed,
+    and then replaced in the pool. 
+    Obviously, you must take care to set this parameter to a value large enough that all intended operations
+    on checked out Connections have time to complete.
+    You can use this parameter to merely workaround unreliable client apps that fail to
+    close() Connections. 
+      </p>
+      <p>
+    Much better than working-around is fixing. If, <i>in addition to setting</i> <tt>unreturnedConnectionTimeout</tt>,
+    you set <tt>debugUnreturnedConnectionStackTraces</tt> to <tt>true</tt>,
+	then a stack trace will be captured
+    each time a Connection is checked-out. Whenever an unreturned Connection times out, that stack trace will be
+    printed, revealing where a Connection was checked out that was not checked in promptly. <tt>debugUnreturnedConnectionStackTraces</tt>
+    is intended to be used only for debugging, as capturing a stack trace can slow down Connection check-out.
+      </p>
+      <h3>
+	<a name="other_ds_configuration">Other DataSource Configuration</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	See <a href="#configuration_properties">Appendix A</a> for information about the following configuration properties:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#checkoutTimeout">checkoutTimeout</a></li>
+	<li><a class="cfg_param" href="#factoryClassLocation">factoryClassLocation</a></li>
+	<li><a class="cfg_param" href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a></li>
+	<li><a class="cfg_param" href="#numHelperThreads">numHelperThreads</a></li>
+	<li><a class="cfg_param" href="#usesTraditionalReflectiveProxies">usesTraditionalReflectiveProxies</a></li>
+      </ul>
+      <p>
+      	<tt>numHelperThreads</tt> and <tt>maxAdministrativeTaskTime</tt> help to configure the behavior
+      	of DataSource thread pools. By default, each DataSource has only three associated helper threads.
+      	If performance seems to drag under heavy load, or if you observe via JMX or direct inspection of
+      	a <tt>PooledDataSource</tt>, that the number of "pending tasks" is usually greater than zero, try
+      	increasing <tt>numHelperThreads</tt>. <tt>maxAdministrativeTaskTime</tt> may be useful for users
+      	experiencing tasks that hang indefinitely and "APPARENT DEADLOCK" messages. (See Appendix A for more.)
+      </p>
+      <p>
+      	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
+      	checked out and one cannot be supplied immediately. <tt>usesTraditionalReflectiveProxies</tt>, which is
+      	of little practical use, permits you to use an old, now superceded implementation of C3P0-generated proxy objects. (C3P0
+      	used to use reflective, dynamic proxies. Now, for enhanced performance, it uses code-generated, nonrefective
+      	implementations.) <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
+      	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
+      	who do not have c3p0 locally installed.
+      </p>
+      <h3>
+	<a name="jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	If JMX libraries and a JMX MBeanServer are available in your environment (they are include in JDK 1.5 and above), 
+	you can inspect and configure your c3p0 datasources via a JMX administration tool (such as jconsole, bundled with
+	jdk 1.5). You will find that c3p0 registers MBeans under <tt>com.mchange.v2.c3p0</tt>, one with statistics about the
+	library as a whole (called <tt>C3P0Registry</tt>), and an MBean for each <tt>PooledDataSource</tt> you deploy. You can view and
+	modify your DataSource's configuration properties, track the activity of Connection, Statement, and Thread pools, and reset
+	pools and DataSources via the <tt>PooledDataSource</tt> MBean. (You may wish to view the API docs of 
+	<a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a> for documentation of 
+	the available operations.)
+      </p>
+      <p>
+    If you do not want c3p0 to register MBeans with your JMX environment, you can suppress this
+    behavior with the following, set either as a System property or in <tt>c3p0.properties</tt>:
+      </p>
+      <div class="example">
+com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.management.NullManagementCoordinator      
+      </div>
+      <h3>
+	<a name="configuring_logging">Configuring Logging</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 uses a custom logging library similar to jakarta commons-logging. Log messages can be directed to
+	the popular log4j logging library, to the standard logging facility introduced with jdk1.4, or to
+	<tt>System.err</tt>. Nearly all configuration should be done at the level of your preferred logging
+	library. There are a very few configuration options specific to c3p0's logging, and usually the defaults
+	will be fine. Logging-related parameters
+	may be placed in your <tt>c3p0.properties</tt> file, in a file called <tt>mchange-log.properties</tt> at
+	the top-level of your classpath, or they may be defined as System properties. (The logging properties defined
+	below may <u>not</u> be defined in <tt>c3p0-config.xml</tt>!) See the 
+	<a href="#log_properties_box">box</a> below.
+      </p>
+      <p>
+	c3p0's logging behavior is affected by certain build-time options. If build-option <tt>c3p0.debug</tt> is set
+	to <tt>false</tt>, all messages at a logging level below INFO will be suppressed. Build-option <tt>c3p0.trace</tt> controls how fine-grained c3p0's below
+	INFO level reporting will be. For the moment, distributed
+	c3p0 binaries are compiled with <tt>debug</tt> set to <tt>true</tt> and <tt>trace</tt> set to its maximum level of <tt>10</tt>.
+	But binaries may eventually be
+	distributed with <tt>debug</tt> set to <tt>false</tt>. (For the moment, the performance impact of the logging level-checks seems
+	very small, and it's most flexible to compile in all the messages, and let your logging library control which are emitted.) When
+	c3p0 starts up, it emits the build-time values of debug and trace, along with the version and build time.
+      </p>
+      <dl class="log_properties">
+	<a name="log_properties_box"></a>
+	<dt><a name="com.mchange.v2.log.MLog" />com.mchange.v2.log.MLog</dt>
+	<dd>
+	  <div class="propdesc">
+	    Determines which library c3p0 will output log messages to. By default, if log4j is available,
+	    it will use that library, otherwise if jdk1.4 logging apis are available it will use those,
+	    and if neither are available, it will use a simple fallback that logs to <tt>System.err</tt>.
+	    If you want to directly control which library is used, you may set this property to one of:
+	    <ul>
+	      <li><tt>com.mchange.v2.log.log4j.Log4jMLog</tt></li>
+	      <li><tt>com.mchange.v2.log.jdk14logging.Jdk14MLog</tt></li>
+	      <li><tt>com.mchange.v2.log.FallbackMLog</tt></li>
+	    </ul>
+	    You may also set this property to a comma separated list of the above alternatives, to
+	    define an order of preference among logging libraries.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.log.NameTransformer" />com.mchange.v2.log.NameTransformer</dt>
+	<dd>
+	  <div class="propdesc">
+	    By default, c3p0 uses very fine-grained logging, in general with one logger for each
+	    c3p0 class. For a variety of reasons, some users may prefer fewer, more global loggers.
+	    You may opt for one-logger-per-package by setting <tt>com.mchange.v2.log.NameTransformer</tt>
+	    to the value <tt>com.mchange.v2.log.PackageNames</tt>. Advanced users can also define 
+	    other strategies for organizing the number and names of loggers by setting this variable
+	    to the fully-qualified class name of a custom implementation of the 
+	    <tt>com.mchange.v2.log.NameTransformer</tt> interface.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL" />com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</dt>
+	<dd>
+	  <div class="propdesc">
+	    If, whether by choice or by necessity, you are using c3p0's <tt>System.err</tt> fallback logger, you can
+	    use this parameter to control how detailed c3p0's logging should be. Any of the following values (taken
+	    from the jdk1.4 logging library) are acceptable:
+	    <ul>
+	      <li><tt>OFF</tt></li>
+	      <li><tt>SEVERE</tt></li>
+	      <li><tt>WARNING</tt></li>
+	      <li><tt>INFO</tt></li>
+	      <li><tt>CONFIG</tt></li>
+	      <li><tt>FINE</tt></li>
+	      <li><tt>FINER</tt></li>
+	      <li><tt>FINEST</tt></li>
+	      <li><tt>ALL</tt></li>
+	    </ul>
+	    This property defaults to <tt>INFO</tt>.
+	  </div>
+	</dd>
+      </dl>
+    </div>
+    <h2><a name="performance">Performance</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	Enhanced performance is the purpose of Connection and Statement pooling, and a
+	major goal of the c3p0 library. For most applications, Connection pooling
+	will provide a significant performance gain, especially if you are acquiring
+	an unpooled Connection for each client access. If you are letting a single,
+	shared Connection serve many clients to avoid Connection acquisition overhead, 
+	you may suffer performance issues and problems managing transactions when 
+	your Connection is under concurrent load; Connection pooling will enable you 
+	to switch to a one Connection-per-client model with little or no cost. 
+	If you are writing Enterprise Java Beans, you may be tempted to acquire a 
+	Connection once and not return it until the bean is about to be destroyed or
+	passivated. But this can be resource-costly, as dormant pooled 
+	beans needlessly hold the Connection's network and database resources. 
+	Connection pooling permits beans to only "own" 
+	a Connection while they are using it.  
+      </p>
+      <p>
+	But, there are performance costs to c3p0 as well. In order to implement 
+	automatic cleanup of unclosed <tt>ResultSets</tt> and <tt>Statements</tt> when parent resources 
+	are returned to pools, all client-visible <tt>Connections</tt>, <tt>ResultSets</tt>, <tt>Statements</tt> 
+	are really wrappers around objects provided by an underlying unpooled DataSource 
+	or "traditional" JDBC driver. Thus, there is some extra overhead to all JDBC calls.
+      </p>
+      <p>
+	Some attention has been paid to minimizing the "wrapper" overhead of c3p0. In
+	my environment, the wrapper overhead amounts from several hundreths to several
+	thousandths of the cost of Connection acquisition, so unless you are making
+	many, many JDBC calls in fast succession, there will be a net 
+	gain in performance and resource-utilization efficiency. 
+	Significantly, the overhead associated with ResultSet operations (where
+	one might iterate through a table with thousands of records) appears to be 
+	negligibly small.
+      </p>
+    </div>
+    <h2><a name="known_shortcomings">Known Shortcomings</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <ul>
+	<li>
+	  <p>
+	    Connections and Statements are pooled on a per-authentication basis.
+	    So, if one pool-backed DataSource is used to acquire Connections both
+	    for [<tt>user</tt>=alice, <tt>password</tt>=secret1] and [<tt>user</tt>=bob, <tt>password</tt>=secret2],
+	    there will be two distinct pools, and the DataSource might in the
+	    worst case manage twice the number of Connections specified by the
+	    <tt>maxPoolSize</tt> property.
+	  </p>
+	  <p>
+	    This fact is a natural consequence of the definition of the DataSource spec (which
+	    allows Connections to be acquired with multiple user authentications), and the
+	    requirement that all Connections in a single pool be functionally identical.
+	    This "issue" will not be changed or fixed. It's noted here just so you understand
+	    what's going on.
+	  </p>
+	</li>
+	<li>
+	  <p>
+	    The overhead of Statement pooling is too high. For drivers that
+	    do not perform significant preprocessing of PreparedStatements, the
+	    pooling overhead outweighs any savings. Statement pooling is thus
+	    turned off by default. If your driver does preprocess <tt>PreparedStatements</tt>,
+	    especially if it does so via IPC with the RDBMS, you will probably
+	    see a significant performance gain by turning Statement pooling on. (Do this by
+	    setting the configuration property <tt>maxStatements</tt> or <tt>maxStatementsPerConnection</tt>
+	    to a value greater than zero.).
+	  </p>
+	</li>
+      </ul>
+    </div>
+    <h2><a name="feedback_and_support">Feedback and Support</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	Please provide any and all feedback to &lt;<a href="mailto:swaldman@mchange.com">swaldman@mchange.com</a>&gt! 
+	Also, feel free to join and ask questions on the <tt>c3p0-users</tt> mailing list.
+	Sign up at <a href="http://sourceforge.net/projects/c3p0/">http://sourceforge.net/projects/c3p0/</a>
+      </p>
+      <p>  
+	Thank you for using c3p0!!!
+      </p>
+    </div>
+    <h2><a name="configuration_properties">Appendix A: Configuration Properties</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	c3p0 configuration properties can be divided into <a href="#javabeans-style-properties">JavaBeans-style Properties</a> and
+	<a href="#other-properties">Other Properties</a>.
+      </p>
+      <h3>
+	<a name="javabeans-style-properties">JavaBeans-style Properties</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	The following properties can be set directly in code as JavaBeans properties, 
+	via a <a href="#system_properties">System properties</a> or a <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>  file
+	(with <tt>c3p0.</tt> prepended to
+	the property name), or in a <a href="#c3p0-config.xml"><tt>c3p0-config.xml</tt></a> file. See the section on 
+	<a href="#configuration">Configuration</a> above.
+	Click on the property name for a full description. 
+      </p>
+      <table class="beanPropSummaryTable">
+	<tr>
+	  <td>
+	    <a href="#acquireIncrement">acquireIncrement</a><br/>
+	    <a href="#acquireRetryAttempts">acquireRetryAttempts</a><br/>
+	    <a href="#acquireRetryDelay">acquireRetryDelay</a><br/>
+	    <a href="#autoCommitOnClose">autoCommitOnClose</a><br/>
+	    <a href="#automaticTestTable">automaticTestTable</a><br/>
+	    <a href="#breakAfterAcquireFailure">breakAfterAcquireFailure</a><br/>
+	    <a href="#checkoutTimeout">checkoutTimeout</a><br/>
+	    <a href="#connectionCustomizerClassName">connectionCustomizerClassName</a><br/>
+	    <a href="#connectionTesterClassName">connectionTesterClassName</a><br/>
+	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
+	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
+	  </td>
+	  <td>
+	    <a href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a><br/>
+	    <a href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a><br/>
+	    <a href="#initialPoolSize">initialPoolSize</a><br/>
+	    <a href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a><br/>
+	    <a href="#maxConnectionAge">maxConnectionAge</a><br/>
+	    <a href="#maxIdleTime">maxIdleTime</a><br/>
+	    <a href="#maxIdleTimeExcessConnections">maxIdleTimeExcessConnections</a><br/>
+	    <a href="#maxPoolSize">maxPoolSize</a><br/>
+	    <a href="#maxStatements">maxStatements</a><br/>
+	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
+	    <a href="#minPoolSize">minPoolSize</a><br/>
+	  </td>
+	  <td>
+	    <a href="#numHelperThreads">numHelperThreads</a><br/>
+	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
+	    <a href="#overrideDefaultPassword">overrideDefaultPassword</a><br/>
+	    <a href="#password">password</a><br/>
+	    <a href="#preferredTestQuery">preferredTestQuery</a><br/>
+	    <a href="#propertyCycle">propertyCycle</a><br/>
+	    <a href="#statementCacheNumDeferredCloseThreads">statementCacheNumDeferredCloseThreads</a><br/>
+	    <a href="#testConnectionOnCheckin">testConnectionOnCheckin</a><br/>
+	    <a href="#testConnectionOnCheckout">testConnectionOnCheckout</a><br/>
+	    <a href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a><br/>
+	    <a href="#user">user</a><br/>
+	    <a href="#usesTraditionalReflectiveProxies">usesTraditionalReflectiveProxies</a><br/>
+	  </td>
+	</tr>
+      </table>
+      <dl class="properties">
+	<dt><a name="acquireIncrement" />acquireIncrement</dt>
+	<dd>
+	  <div class="default">Default: 3</div>
+	  <div class="propdesc">
+	    Determines how many connections at a time c3p0 will try to acquire when the pool is exhausted. 
+	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
+	  </div>
+	</dd>
+	<dt><a name="acquireRetryAttempts" />acquireRetryAttempts</dt>
+	<dd>
+	  <div class="default">Default: 30</div>
+	  <div class="propdesc">
+	    Defines how many times c3p0 will try to acquire a new Connection from the database before giving up. If
+	    this value is less than or equal to zero, c3p0 will keep trying to fetch a Connection indefinitely.	  
+	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
+	  </div>
+	</dd>
+	<dt><a name="acquireRetryDelay" />acquireRetryDelay</dt>
+	<dd>
+	  <div class="default">Default: 1000</div>
+	  <div class="propdesc">
+	    Milliseconds, time c3p0 will wait between acquire attempts.
+	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
+	  </div>
+	</dd>
+	<dt><a name="autoCommitOnClose" />autoCommitOnClose</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    The JDBC spec is unforgivably silent on what should happen to unresolved, pending
+            transactions on Connection close. C3P0's default policy is to rollback any uncommitted, pending
+            work. (I think this is absolutely, undeniably the right policy, but there is no consensus among JDBC driver vendors.) 
+            Setting <tt>autoCommitOnClose</tt> to true causes uncommitted pending work to be committed, rather than rolled
+            back on Connection close. [<i>Note: Since the spec is absurdly unclear on this question, application authors who wish
+              to avoid bugs and inconsistent behavior should ensure that all transactions are explicitly either committed or
+              rolled-back before close is called.</i>]
+	    [See <a href="#configuring_unresolved">"Configuring Unresolved Transaction Handling"</a>]
+	  </div>
+	</dd>
+	<dt><a name="automaticTestTable" />automaticTestTable</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    If provided, c3p0 will create an empty table of the specified name, and use queries against that table to
+	    test the Connection. If <tt>automaticTestTable</tt> is provided, c3p0 will generate its own test query, therefore
+	    any <tt>preferredTestQuery</tt> set will be ignored. You should not work with the named table after c3p0 creates
+	    it; it should be strictly for c3p0's use in testing your Connection. (If you define your own ConnectionTester, it
+	    must implement the <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>
+	    interface for this parameter to be useful.) [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
+	  </div>
+	</dd>
+	<dt><a name="breakAfterAcquireFailure" />breakAfterAcquireFailure</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    If true, a pooled DataSource will declare itself broken and be permanently closed if
+	    a Connection cannot be obtained from the database after making <tt>acquireRetryAttempts</tt> to acquire one.
+	    If false, failure to obtain a Connection will cause all Threads waiting for the pool to acquire a Connection
+	    to throw an Exception, but the DataSource will remain valid, and will attempt to acquire again following
+	    a call to <tt>getConnection()</tt>.
+	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
+	  </div>
+	</dd>
+	<dt><a name="checkoutTimeout" />checkoutTimeout</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    The number of milliseconds a client calling getConnection() will wait for a Connection to be checked-in or acquired
+	    when the pool is exhausted. Zero means wait indefinitely. Setting any positive value will cause the getConnection()
+	    call to time-out and break with an <tt>SQLException</tt> after the specified number of milliseconds.
+	  </div>
+	</dd>
+	<dt><a name="connectionCustomizerClassName" />connectionCustomizerClassName</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    The fully qualified class-name of an implememtation of the <a href="apidocs/com/mchange/v2/c3p0/ConnectionCustomizer.html"><tt>ConnectionCustomizer</tt></a>
+	    interface, which users can implement to set up Connections when they are acquired from the database, or on check-out, and potentially
+	    to clean things up on check-in and Connection destruction. If standard Connection properties (holdability, readOnly, or transactionIsolation)
+	    are set in the ConnectionCustomizer's onAcquire() method, these will override the Connection default values.
+	  </div>
+	</dd>
+	<dt><a name="connectionTesterClassName" />connectionTesterClassName</dt>
+	<dd>
+	  <div class="default">Default: com.mchange.v2.c3p0.impl.DefaultConnectionTester</div>
+	  <div class="propdesc">
+	    The fully qualified class-name of an implememtation of the <a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html"><tt>ConnectionTester</tt></a>
+	    interface, or <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html"><tt>QueryConnectionTester</tt></a> if you would like instances
+	    to have access to a user-configured <tt>preferredTestQuery</tt>. This can be used to customize how c3p0 DataSources test Connections, but with
+	    the introduction of <tt>automaticTestTable</tt> and <tt>preferredTestQuery</tt> configuration parameters, "rolling your own" should be overkill
+	    for most users.
+	    [See <a href="#configuring_connection_testing">"Configuring Connection Testing"]</a>
+	  </div>
+	</dd>
+	<dt><a name="debugUnreturnedConnectionStackTraces" />debugUnreturnedConnectionStackTraces</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+		If true, and if <tt><a href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a></tt> is set to a positive value,
+		then the pool will capture the stack trace (via an Exception) of all Connection checkouts, and the stack traces will be
+		printed when unreturned checked-out Connections timeout. This is intended to debug applications with Connection leaks, that
+		is applications that occasionally fail to return Connections, leading to pool growth, and eventually exhaustion (when the
+		pool hits <tt>maxPoolSize</tt> with all Connections checked-out and lost). This parameter should only be set while debugging,
+		as capturing the stack trace will slow down every Connection check-out.
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
+	<dt><a name="factoryClassLocation" />factoryClassLocation</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    DataSources that will be bound by JNDI and use that API's Referenceable interface
+            to store themselves may specify a URL from which the class capable of dereferencing 
+            a them may be loaded. If (as is usually the case) the c3p0 libraries will be locally
+            available to the JNDI service, leave this set as null.	
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
+	<dt><a name="forceIgnoreUnresolvedTransactions" />forceIgnoreUnresolvedTransactions</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    <b><i>Strongly disrecommended. Setting this to <tt>true</tt> may lead to subtle and bizarre bugs.</i></b>
+            This is a terrible setting, leave it alone unless absolutely necessary. It is here to workaround
+            broken databases / JDBC drivers that do not properly support transactions, but that allow Connections'
+            <tt>autoCommit</tt> flags to go to false regardless. If you are using a database that supports transactions
+            "partially" (this is oxymoronic, as the whole point of transactions is to perform operations reliably and
+            completely, but nonetheless such databases are out there), if you feel comfortable ignoring the fact that Connections
+            with <tt>autoCommit == false</tt> may be in the middle of transactions and may hold locks and other resources,
+            you may turn off c3p0's wise default behavior, which is to protect itself, as well as the usability and consistency
+            of the database, by either rolling back (default) or committing (see <tt>c3p0.autoCommitOnClose</tt> <i>above</i>)
+            unresolved transactions. <b>This should only be set to true when you are sure you are using a database that
+              allows Connections' autoCommit flag to go to false, but offers no other meaningful support of transactions. Otherwise
+              setting this to true is just a bad idea.</b>	
+	    [See <a href="#configuring_unresolved">"Configuring Unresolved Transaction Handling"</a>]
+	  </div>
+	</dd>
+	<dt><a name="idleConnectionTestPeriod"/>idleConnectionTestPeriod</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    If this is a number greater than 0, c3p0 will test all idle, pooled but unchecked-out connections, 
+	    every this number of seconds. [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
+	  </div>
+	</dd>
+	<dt><a name="initialPoolSize"/>initialPoolSize</dt>
+	<dd>
+	  <div class="default">Default: 3</div>
+	  <div class="propdesc">
+	    Number of Connections a pool will try to acquire upon startup. Should be between <tt>minPoolSize</tt> and
+	    <tt>maxPoolSize</tt>.
+	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
+	  </div>
+	</dd>
+	<dt><a name="maxAdministrativeTaskTime" />maxAdministrativeTaskTime</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    Seconds before c3p0's thread pool will try to interrupt an apparently hung task. <u>Rarely useful.</u> Many of c3p0's functions
+	    are not performed by client threads, but asynchronously by an internal thread pool. c3p0's asynchrony enhances
+	    client performance directly, and minimizes the length of time that critical locks are held by ensuring that slow
+	    jdbc operations are performed in non-lock-holding threads. If, however, some of these tasks "hang", that is
+	    they neither succeed nor fail with an Exception for a prolonged period of time, c3p0's thread pool can become
+	    exhausted and administrative tasks backed up. If the tasks are simply slow, the best way to resolve the problem
+	    is to increase the number of threads, via <a href="#numHelperThreads">numHelperThreads</a>. But if tasks
+	    sometimes hang indefinitely, you can use this parameter to force a call to the task thread's <tt>interrupt()</tt>
+	    method if a task exceeds a set time limit. [c3p0 will eventually recover from hung tasks anyway by signalling an "APPARENT
+	    DEADLOCK" (you'll see it as a warning in the logs), replacing the thread pool task threads, and interrupt()ing the
+	    original threads. But letting the pool go into APPARENT DEADLOCK and then recover means that for some periods,
+	    c3p0's performance will be impaired. So if you're seeing these messages, increasing <a href="#numHelperThreads">numHelperThreads</a>
+	    and setting <tt>maxAdministrativeTaskTime</tt> might help. <tt>maxAdministrativeTaskTime</tt> should be large enough
+	    that any resonable attempt to acquire a Connection from the database, to test a Connection, or two destroy a Connection, 
+	    would be expected to succeed or fail within the time set. Zero (the default) means tasks are never interrupted,
+	    which is the best and safest policy under most circumstances. If tasks are just slow, allocate more threads. If tasks
+	    are hanging forever, try to figure out why, and maybe setting <tt>maxAdministrativeTaskTime</tt> can help in the meantime.
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
+	<dt><a name="maxConnectionAge" />maxConnectionAge</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    Seconds, effectively a time to live. A Connection older than <tt>maxConnectionAge</tt> will be destroyed and 
+	    purged from the pool. This differs from <tt>maxIdleTime</tt> in that it refers to absolute age. Even a Connection
+	    which has not been much idle will be purged from the pool if it exceeds <tt>maxConnectionAge</tt>. Zero means
+	    no maximum absolute age is enforced.
+	  </div>
+	</dd>
+	<dt><a name="maxIdleTime" />maxIdleTime</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    Seconds a Connection can remain pooled but unused before being discarded. Zero means idle connections never expire.
+	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
+	  </div>
+	</dd>
+	<dt><a name="maxIdleTimeExcessConnections" />maxIdleTimeExcessConnections</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+		Number of seconds that Connections in excess of <tt>minPoolSize</tt> should be permitted to remain idle in the pool
+		before being culled. Intended for applications that wish to aggressively minimize the number of open Connections,
+		shrinking the pool back towards minPoolSize if, following a spike, the load level diminishes and Connections
+		acquired are no longer needed. If <tt>maxIdleTime</tt> is set, <tt>maxIdleTimeExcessConnections</tt> should be
+		smaller if the parameter is to have any effect. Zero means no enforcement, excess Connections are not idled out.
+	  </div>
+	</dd>
+	<dt><a name="maxPoolSize"/>maxPoolSize</dt>
+	<dd>
+	  <div class="default">Default: 15</div>
+	  <div class="propdesc">
+	    Maximum number of Connections a pool will maintain at any given time.
+	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
+	  </div>
+	</dd>
+	<dt><a name="maxStatements" />maxStatements</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    The size of c3p0's global PreparedStatement cache. If both <tt>maxStatements</tt> and <tt>maxStatementsPerConnection</tt>
+	    are zero, statement caching will not be enabled. If <tt>maxStatements</tt> is zero but <tt>maxStatementsPerConnection</tt>
+	    is a non-zero value, statement caching will be enabled, but no global limit will be enforced, only the per-connection maximum.
+	    <tt>maxStatements</tt> controls the total number of Statements cached,
+	    for all Connections. If set, it should be a fairly large number, as each pooled Connection requires its own,
+	    distinct flock of cached statements. As a guide, consider how many distinct PreparedStatements are used
+	    <i>frequently</i> in your application, and multiply that number by <tt>maxPoolSize</tt> to arrive at an appropriate
+	    value. Though <tt>maxStatements</tt> is the JDBC standard parameter for controlling statement caching, users may
+	    find c3p0's alternative <tt>maxStatementsPerConnection</tt> more intuitive to use.
+	    [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
+	  </div>
+	</dd>
+	<dt><a name="maxStatementsPerConnection" />maxStatementsPerConnection</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    The number of PreparedStatements c3p0 will cache for a single pooled Connection. 
+	    If both <tt>maxStatements</tt> and <tt>maxStatementsPerConnection</tt>
+	    are zero, statement caching will not be enabled. If <tt>maxStatementsPerConnection</tt> is zero but <tt>maxStatements</tt>
+	    is a non-zero value, statement caching will be enabled, and a global limit enforced, but otherwise no limit will be set 
+	    on the number of cached statements for a single Connection.
+	    If set, maxStatementsPerConnection should be set to about the number distinct PreparedStatements that are used
+	    <i>frequently</i> in your application, plus two or three extra so infrequently statements don't force the more common
+	    cached statements to be culled. Though <tt>maxStatements</tt> is the JDBC standard parameter for controlling statement caching,
+	    users may find <tt>maxStatementsPerConnection</tt> more intuitive to use.
+	    [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
+	  </div>
+	</dd>
+	<dt><a name="minPoolSize"/>minPoolSize</dt>
+	<dd>
+	  <div class="default">Default: 3</div>
+	  <div class="propdesc">
+	    Minimum number of Connections a pool will maintain at any given time.
+	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
+	  </div>
+	</dd>
+	<dt><a name="numHelperThreads" />numHelperThreads</dt>
+	<dd>
+	  <div class="default">Default: 3</div>
+	  <div class="propdesc">
+	    c3p0 is very asynchronous. Slow JDBC operations are generally 
+            performed by helper threads that don't hold contended locks. Spreading
+            these operations over multiple threads can significantly improve performance
+            by allowing multiple operations to be performed simultaneously.	
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
+	<dt><a name="overrideDefaultUser" />overrideDefaultUser</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    Forces the username that should by PooledDataSources when a user calls the default
+	    getConnection() method. This is primarily useful when applications are pooling Connections
+	    from a non-c3p0 unpooled DataSource. Applications that use <tt>ComboPooledDataSource</tt>, 
+	    or that wrap any c3p0-implemented unpooled DataSource can use the simple 
+	    <a href="#user">user</a> property.
+<!--
+	    C3P0 PooledDataSources, implicitly or explicity, are wrappers around unpooled DataSources.
+	    For most users, the unpooled DataSource is c3p0's own DriverManagerDataSource, but users are
+	    welcome to wrap other DataSource implementations. Per the JDBC 2.0 spec, DataSources may offer
+	    standard properties "user" and "password". If present, c3p0 PooledDataSources use these properties 
+	    to determine what kind of authentication to use. If absent, PooledDataSources use the unpooled 
+	    DataSource's default getConnection() method. Some DataSources offer one but not both of the
+	    standard properties, which confuses c3p0.
+--> 
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
+	<dt><a name="overrideDefaultPassword" />overrideDefaultPassword</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    Forces the password that should by PooledDataSources when a user calls the default
+	    getConnection() method. This is primarily useful when applications are pooling Connections
+	    from a non-c3p0 unpooled DataSource. Applications that use <tt>ComboPooledDataSource</tt>, 
+	    or that wrap any c3p0-implemented unpooled DataSource can use the simple
+	    <a href="#password">password</a> property.
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
+	<dt><a name="password" />password</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    For applications using <tt>ComboPooledDataSource</tt> or any 
+	    c3p0-implemented unpooled DataSources &mdash; <tt>DriverManagerDataSource</tt> or the
+	    DataSource returned by <tt>DataSources.unpooledDataSource( ... )</tt> &mdash;
+	    defines the password that will be used for the DataSource's default 
+	    <tt>getConnection()</tt> method. (See also <a href="#user">user</a>.)
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
+	<dt><a name="preferredTestQuery" />preferredTestQuery</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    Defines the query that will be executed for all connection tests, if the default ConnectionTester (or some
+	    other implementation of <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>,
+	    or better yet <a href="apidocs/com/mchange/v2/c3p0/FullQueryConnectionTester.html">FullQueryConnectionTester</a>) 
+	    is being used. Defining a <tt>preferredTestQuery</tt>
+	    that will execute quickly in your database may dramatically speed up Connection tests. (If no <tt>preferredTestQuery</tt>
+	    is set, the default ConnectionTester executes a <tt>getTables()</tt> call on the Connection's DatabaseMetaData.
+	    Depending on your database, this may execute more slowly than a "normal" database query.) 
+	    <b>NOTE: The table against
+        which your <tt>preferredTestQuery</tt> will be run must exist in the database schema <i>prior</i> to your initialization
+        of your DataSource. If your application defines its own schema, try <tt>automaticTestTable</tt> instead.</b>
+        [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
+	  </div>
+	</dd>
+	<dt><a name="propertyCycle" />propertyCycle</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    Maximum time in seconds before user configuration constraints are enforced.
+		Determines how frequently <tt>maxConnectionAge</tt>, <tt>maxIdleTime</tt>, <tt>maxIdleTimeExcessConnections</tt>,
+		<tt>unreturnedConnectionTimeout</tt> are enforced. c3p0 periodically checks the age of Connections to
+		see whether they've timed out. This parameter determines the period. Zero means automatic: A suitable period
+		will be determined by c3p0. [You can call <tt>getEffectivePropertyCycle...()</tt> methods on a c3p0
+		<a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSource</a> to find the period
+		automatically chosen.]
+	  </div>
+	</dd>
+
+	<dt><a name="statementCacheNumDeferredCloseThreads" />statementCacheNumDeferredCloseThreads</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+            If set to a value greater than 0, the statement cache will track when Connections are in use, and only destroy
+	    Statements when their parent Connections are not otherwise in use. Although closing of
+	    a Statement while the parent Connection is in use is formally within spec, some databases
+	    and/or JDBC drivers, most notably Oracle, do not handle the case well and freeze, leading
+	    to deadlocks. Setting this parameter to a positive value should eliminate the issue. This parameter
+	    should only be set if you observe that attempts by c3p0 to close() cached statements freeze (usually
+	    you'll see <tt>APPARENT DEADLOCKS</tt> in your logs). If set, this parameter should almost always be set to <tt>1</tt>.
+	    Usually, if you need more than one Thread dedicated solely to destroying cached Statements, you should set <tt>maxStatements</tt>
+	    and/or <tt>maxStatementsPerConnection</tt> so that you don't churn through Statements so quickly.
+            [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
+	    <div class="per-user">Does Not Support Per-User Overrides.</div>
+	  </div>
+	</dd>
+	<dt><a name="testConnectionOnCheckin" />testConnectionOnCheckin</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+            If true, an operation will be performed asynchronously at every connection checkin to verify that the connection is valid.
+	    Use in combination with <tt>idleConnectionTestPeriod</tt> for quite reliable, always asynchronous Connection testing.
+	    Also, setting an <tt>automaticTestTable</tt> or <tt>preferredTestQuery</tt> will usually speed up all connection tests.
+            [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
+	  </div>
+	</dd>
+	<dt><a name="testConnectionOnCheckout" />testConnectionOnCheckout</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    <b><i>Use only if necessary. Expensive.</i></b>
+            If true, an operation will be performed at every connection checkout to verify that the connection is valid.
+            <b>Better choice:</b> verify connections periodically using <tt>idleConnectionTestPeriod</tt>. Also, setting an
+	    <tt>automaticTestTable</tt> or <tt>preferredTestQuery</tt> will usually speed up all connection tests.
+            [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
+	  </div>
+	</dd>
+	<dt><a name="unreturnedConnectionTimeout" />unreturnedConnectionTimeout</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+		Seconds. If set, if an application checks out but then fails to check-in [i.e. close()] a Connection
+		within the specified period of time, the pool will unceremoniously destroy() the Connection. This permits
+		applications with occasional Connection leaks to survive, rather than eventually exhausting the Connection
+		pool. And that's a shame. Zero means no timeout, applications are expected to close() their own Connections.
+		Obviously, if a non-zero value is set, it should be to a value longer than any Connection should reasonably
+		be checked-out. Otherwise, the pool will occasionally kill Connections in active use, which is bad. 
+	    <b><i>This is basically a bad idea, but it's a commonly requested feature. Fix your $%!@% applications
+	    so they don't leak Connections! Use this temporarily in combination with 
+	    <tt>debugUnreturnedConnectionStackTraces</tt> to figure out
+	    where Connections are being checked-out that don't make it back into the pool!</i></b>
+	  </div>
+	</dd>
+	<dt><a name="user" />user</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    For applications using <tt>ComboPooledDataSource</tt> or any 
+	    c3p0-implemented unpooled DataSources &mdash; <tt>DriverManagerDataSource</tt> or the
+	    DataSource returned by <tt>DataSources.unpooledDataSource()</tt> &mdash;
+	    defines the username that will be used for the DataSource's default 
+	    <tt>getConnection()</tt> method. (See also <a href="#password">password</a>.)
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	<dt><a name="usesTraditionalReflectiveProxies" />usesTraditionalReflectiveProxies</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    c3p0 originally used reflective dynamic proxies for implementations of Connections and other JDBC
+	    interfaces. As of c3p0-0.8.5, non-reflective, code-generated implementations are used instead. As
+	    this was a major change, and the old codebase had been extensively used and tested, this parameter
+	    was added to allow users to revert of they had problems. The new, non-reflexive implementation is
+	    faster, and has now been widely deployed and tested, so it is unlikely that this parameter will be useful.
+	    Both the old reflective and newer non-reflective codebases are being maintained, but support for the
+	    older codebase may (or may not) be dropped in the future.
+ 	  </div>
+	</dd>
+      </dl>
+      <h3>
+	<a name="other-properties">Other Properties</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	The following configuration properties affect the behavior of the c3p0 library as a whole. They
+	may be set as system properties, or in a <a href="#c3p0_properties"><tt>c3p0.properties</tt></a> file.
+      </p>
+      <div class="other_properties_desc">
+    <h4>Locating Configuration Information</h4>
+    <p>
+      Normally, c3p0's configuration information is placed in a either a c3p0-config.xml or c3p0.properties file
+      at the top-level of an application's CLASSPATH. However, if you wish to place configuration information
+      elsewhere, you may place c3p0 configuration information (in the <a href="#c3p0-config.xml">XML file format</a> only!) anywhere you'd like
+      in the filesystem visible to your application. Just set the following property to the full, absolute path
+      of the XML config file: 
+    </p>
+ 	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.cfg.xml</li>
+	</ul>
+	<h4>Logging-related properties</h4>
+	<p>
+	  The following properties affect c3p0's logging behavior. Please see <a href="#configuring_logging">Configuring Logging</a>
+	  above for specific information.
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.log.MLog</li>
+	  <li>com.mchange.v2.log.NameTransformer</li>
+	  <li>com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</li>
+	</ul>
+	<h4>Configuring JMX</h4>
+	<p>
+	  The following property controls c3p0's JMX management interface. Plese see 
+	  <a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a> above
+	  for more information.
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.management.ManagementCoordinator</li>
+	</ul>
+	<h4>Configuring the VMID</h4>
+	<p>
+	  Is it better to be beautiful or correct? Beginning with c3p0-0.9.1, c3p0 opts somewhat reluctantly for correctness.
+	</p>
+	<p>
+	  Here's the deal. Every c3p0 DataSource is allocated a unique "identity token", which is used to ensure that multiple
+	  JNDI lookups of the same PooledDataSource always return the same instance, even if the JNDI name-server stores a
+	  Serialized or Referenced instance. Previously, c3p0 was happy for generated IDs to be unique within a single VM (and it
+	  didn't even get that quite right, before c3p0-0.9.1). But in theory, one VM might look up two different DataSources,
+	  generated by two different VMs, that by unlikely coincidence have the same "identity token", leading to errors as one
+	  of the two DataSources sneakily substitutes for the second. Though this hypothetical issue has never been reported in practice,
+	  c3p0 resolves it by prepending a VMID to its identity tokens. This makes them long and ugly, but correct.
+	</p>
+	<p>
+	  If you don't like the long and ugly VMID, you can set your own, or you can turn off this solution to a hypothetical
+	  non-problem entirely with the following property:
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.VMID</li>
+	</ul>
+	<p>
+	  Set it to <tt>NONE</tt> to turn off the VMID, set it to <tt>AUTO</tt> to let c3p0 generate a VMID,
+	  or provide any other String to set the VMID that will be used directly. The default is <tt>AUTO</tt>.
+	</p>
+	<h4>Experimental properties</h4>
+	<p>
+	  c3p0-0.9.1 includes a new implementation of asynchronous Connection acquisition that
+	  should improve c3p0's performance and resource utilization in cases where database
+	  acquisition attempts, for whatever reason, occasionally fail. The new implementation
+	  should be significantly better than the "traditional" Connection acquisition strategy,
+	  but was added too late in the c3p0-0.9.1 development cycle to be fully tested and
+	  enabled by default. Users are encouraged to try the new implementation, both because
+	  it is better, and to help iron out any unanticipated problems.
+	</p>
+	<p>
+	  For a full description of the new implementation and the resource bottleneck it is
+	  designed to overcome, please see the <tt>CHANGELOG</tt> entry for <tt>c3p0-0.9.1-pre11</tt>.
+	</p>
+	<p>
+	  As of c3p0-0.9.2 this feature is enabled by default. To revert to the traditional Connection
+	  acquisition behavior, set the following parameter to <tt>false</tt>.
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.resourcepool.experimental.useScatteredAcquireTask</li>
+	</ul>
+      </div>
+    </div>
+    <hr/>
+      <h2>
+	<a name="configuration_files">Appendix B: Configuration Files, etc.</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h2>
+      <div class="sectiontext">
+	<p>
+	  c3p0 configuration parameters can be set 
+	  <a href="#programmatic_configuration">directly in Java code</a>, 
+	  via a <a href="#c3p0_properties">simple Java properties file</a>,
+	  via an <a href="#c3p0-config.xml">XML configuration file</a>, or  
+	  via <a href="#system_properties">System properties</a>.
+	  Any which way
+	  works (the the XML configuration is most powerful, though, as it supports multiple named configurations and
+	  per-user overrides. Choose whatever works best for you.
+	</p>
+	<h3>
+	  <a name="c3p0_properties">Overriding c3p0 defaults via <tt>c3p0.properties</tt></a>
+	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+	</h3>
+	<p>
+	  To override the library's built-in defaults, create a file called <tt>c3p0.properties</tt>
+	  and place it at the "root" of your classpath or classloader. For a typical standalone
+	  application, that means place the file in a directory named in your <tt>CLASSPATH</tt>
+	  environment variable. For a typical web-application, the file should be placed in 
+	  <tt>WEB-INF/classes</tt>. In general, the file must be available as a classloader
+	  resource under the name <tt>/c3p0.properties</tt>, in the classloader that loaded
+	  c3p0's jar file. Review the API docs (especilly <tt>getResource...</tt> methods) of 
+	  <tt>java.lang.Class</tt>, <tt>java.lang.ClassLoader</tt>, and <tt>java.util.ResourceBundle</tt> 
+	  if this is unfamiliar.
+	</p>
+	<p>
+	  The format of <tt>c3p0.properties</tt> should be a normal Java Properties file format,
+	  whose keys are c3p0 configurable properties. See <a href="#configuration_properties">Appendix A</a>.
+	  for the specifics. An example <tt>c3p0.properties</tt> file is produced below:
+	</p>
+	<div class="example">
+# turn on statement pooling
+c3p0.maxStatements=150
+	
+# close pooled Connections that go unused for
+# more than half an hour
+c3p0.maxIdleTime=1800
+	</div>
+	<h3>
+	  <a name="system_properties">Overriding c3p0 defaults with System properties</a>
+	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+	</h3>
+	<p>
+	  c3p0 properties can also be defined as System properties, using the same "c3p0." prefix for properties
+	  specified in a <tt>c3p0.properties</tt> file.
+	</p>
+	<div class="example">
+swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0App
+	</div>
+	<p>
+	  System properties override settings in c3p0.properties. Please see 
+	  <a href="#configuration_precedence">Precedence of Configuration Settings</a> for more information.
+	</p>
+	<h3>
+	  <a name="c3p0-config.xml">Named and Per-User configuration: Overriding c3p0 defaults via <tt>c3p0-config.xml</tt></a>
+	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+	</h3>
+	<p>
+	  As of c3p0-0.9.1, you can define multiple configurations in an XML configuration file, and specify in your code which
+	  configuration to use. For any configurations (including the unnamed default configuration), you can define overrides
+	  for a particular database user. For example, if several applications access your database under different authentication
+	  credentials, you might define <tt>maxPoolSize</tt> to be 100 for user <tt>highVolumeApp</tt>, but only 10 for user 
+	  <tt>lowLoadApp</tt>. (Recall that Connections associated with different authentication credentials
+	  are of necessity separated into separate pools, so it makes sense that these could be configured separately.)
+	</p>
+	<p>
+	  You can use the XML config file for all c3p0 configuration, including configuration of defaults. However, for users who
+	  don't want or need the extra complexity, the c3p0.properties file will continue to be supported.
+	</p>
+	<p>
+	  By default, c3p0 will look for an XML configuration file in its classloader's resource path under the name "/c3p0-config.xml".
+	  That means the XML file should be placed in a directly or jar file directly named in your applications CLASSPATH, in WEB-INF/classes,
+	  or some similar location.
+	</p>
+	<p>
+	  If you prefer not to bundle your configuration with your code, you can specify an ordinary filesystem location for c3p0's
+	  configuration file via the system property <tt>com.mchange.v2.c3p0.cfg.xml</tt>.
+	</p>
+	<p>
+	  Here is an example <tt>c3p0-config.xml</tt> file:
+	</p>
+	<div class="example">
+&lt;c3p0-config&gt;
+  &lt;default-config&gt;
+    &lt;property name="automaticTestTable"&gt;con_test&lt;/property&gt;
+    &lt;property name="checkoutTimeout"&gt;30000&lt;/property&gt;
+    &lt;property name="idleConnectionTestPeriod"&gt;30&lt;/property&gt;
+    &lt;property name="initialPoolSize"&gt;10&lt;/property&gt;
+    &lt;property name="maxIdleTime"&gt;30&lt;/property&gt;
+    &lt;property name="maxPoolSize"&gt;100&lt;/property&gt;
+    &lt;property name="minPoolSize"&gt;10&lt;/property&gt;
+    &lt;property name="maxStatements"&gt;200&lt;/property&gt;
+
+    &lt;user-overrides user="test-user"&gt;
+      &lt;property name="maxPoolSize"&gt;10&lt;/property&gt;
+      &lt;property name="minPoolSize"&gt;1&lt;/property&gt;
+      &lt;property name="maxStatements"&gt;0&lt;/property&gt;
+    &lt;/user-overrides&gt;
+
+  &lt;/default-config&gt;
+
+  &lt;!-- This app is massive! --&gt;
+  &lt;named-config name="intergalactoApp"&gt; 
+    &lt;property name="acquireIncrement"&gt;50&lt;/property&gt;
+    &lt;property name="initialPoolSize"&gt;100&lt;/property&gt;
+    &lt;property name="minPoolSize"&gt;50&lt;/property&gt;
+    &lt;property name="maxPoolSize"&gt;1000&lt;/property&gt;
+
+    &lt;!-- intergalactoApp adopts a different approach to configuring statement caching --&gt;
+    &lt;property name="maxStatements"&gt;0&lt;/property&gt; 
+    &lt;property name="maxStatementsPerConnection"&gt;5&lt;/property&gt;
+
+    &lt;!-- he's important, but there's only one of him --&gt;
+    &lt;user-overrides user="master-of-the-universe"&gt; 
+      &lt;property name="acquireIncrement"&gt;1&lt;/property&gt;
+      &lt;property name="initialPoolSize"&gt;1&lt;/property&gt;
+      &lt;property name="minPoolSize"&gt;1&lt;/property&gt;
+      &lt;property name="maxPoolSize"&gt;5&lt;/property&gt;
+      &lt;property name="maxStatementsPerConnection"&gt;50&lt;/property&gt;
+    &lt;/user-overrides&gt;
+  &lt;/named-config&gt;
+&lt;/c3p0-config&gt;
+	</div>
+	<p>
+	  To use a named configuration, you specify the config name when creating your DataSource. For example, using
+	  <a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>:
+	</p>
+	<div class="example">
+ComboPooledDataSource cpds = new ComboPooledDataSource("intergalactoApp");  
+	</div>
+	<p>
+	  Or using the
+	  <a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>DataSources</tt></a> factory class:
+	</p>
+	<div class="example">
+DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoApp" );
+	</div>
+<!--	
+	<h3>
+	  <a name="programmatic_configuration">Programmatic configuration of DataSource instances</a>
+	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+	</h3>
+  -->
+	<h3>
+	  <a name="configuration_precedence">Precedence of Configuration Settings</a>
+	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+	</h3>
+	<p>
+	  c3p0 now permits configuration parameters to be set in a number of different ways and places. Fortunately,
+	  there is a clear order of precedence that determines which configuration will "take" in the event of conflicting
+	  settings. Conceptually, c3p0 goes down this list from top to bottom, using the first setting it finds. 
+	</p>
+	<p>
+	  Most applications will never use per-user or named configurations. For these applications, we
+	  present a simplified precedence hierarchy:
+	</p>
+	<div align="center">
+	  <ol class="precedence">
+	    <li>Configuration values programmatically set.</li>
+	    <li>System property setting of configuration value.</li>
+	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
+	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
+	    <li>c3p0's hard-coded default values.</li>
+	  </ol>
+	</div>
+	<p>
+	  For applications that do use named and per-user configurations, here is the complete, normative precedence hierarchy:
+	</p>
+	<div align="center">
+	  <ol class="precedence">
+	    <li>
+	      User-specific overrides programmatically set via:
+	      <ul>
+		<li><a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html#setUserOverridesAsString"><tt>ComboPooledDataSource.setUserOverridesAsString()</tt></a></li>
+		<li><a href="apidocs/com/mchange/v2/c3p0/WrapperConnectionPoolDataSource.html#setUserOverridesAsString"><tt>WrapperConnectionPoolDataSource.setUserOverridesAsString()</tt></a></li>
+	      </ul>
+	      Note that programmatically setting user-specific overrides <u>replaces</u> all user-specific configuration taken from
+	      other sources. If you want to merge programmatic changes with preconfigured overrides, you'll have to use <tt>getUserOverridesAsString()</tt>
+	      and modify the original settings before replacing.
+	    </li>
+	    <li>User-specific overrides taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>User-specific overrides taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>Non-user-specific values programmatically set.</li>
+	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>System property setting of configuration value.</li>
+	    <li>Non-user-specific values taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>Values specified in a <tt>c3p0.properties</tt> file</li>
+	    <li>c3p0's hard-coded default values.</li>
+	  </ol>
+	</div>
+      </div>
+      <h2>
+	<a name="hibernate-specific">Appendix C: Hibernate-specific notes</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h2>
+      <div class="sectiontext">
+      <p>
+	Hibernate's C3P0ConnectionProvider explicitly sets 7 c3p0 configuration properties, based on your hibernate
+	configuration, <b>overriding</b> any configuration you may have set in a <tt>c3p0.properties</tt> file. If you
+	are using Hibernate's C3P0ConnectionProvider you <b>must</b> set the following
+	properties in your hibernate configuration, using hibernate-specific configuration keys. All other properties
+	must be defined as usual in a <tt>c3p0.properties</tt> file. This is confusing, and will hopefully be simplified
+	some time in the future, but for now...
+      </p>
+      <p>
+	The following properties must be set in your hibernate configuration:
+      </p>
+      <div class="hibernate_props">
+	<table class="hibernate_props">
+	  <tr>
+	    <th>c3p0-native property name</th><th>hibernate configuration key</th>
+	  </tr>
+	  <tr>
+	    <td>c3p0.acquireIncrement</td><td>hibernate.c3p0.acquire_increment</td>
+	  </tr>
+	  <tr>
+	    <td>c3p0.idleConnectionTestPeriod</td><td>hibernate.c3p0.idle_test_period</td>
+	  </tr>
+	  <tr>
+	    <td>c3p0.initialPoolSize</td><td><span class="hibparam_comment">not available -- uses minimum size</span></td>
+	  </tr>
+	  <tr>
+	    <td>c3p0.maxIdleTime</td><td>hibernate.c3p0.timeout</td>
+	  </tr>
+	  <tr>
+	    <td>c3p0.maxPoolSize</td><td>hibernate.c3p0.max_size</td>
+	  </tr>
+	  <tr>
+	    <td>c3p0.maxStatements</td><td>hibernate.c3p0.max_statements</td>
+	  </tr>
+	  <tr>
+	    <td>c3p0.minPoolSize</td><td>hibernate.c3p0.min_size</td>
+	  </tr>
+	  <tr>
+	    <td>c3p0.testConnectionsOnCheckout&nbsp;</td><td>hibernate.c3p0.validate <span class="hibparam_comment">hibernate 2.x only!</span></td>
+	  </tr>
+	</table>
+      </div>
+      <p>
+	Remember -- these, and <i>only these</i>, properties must be defined in your hibernate configuration, or else
+	they will be set to hibernate-specified defaults. All other configuration properties that you wish to set
+	should be defined in a <tt>c3p0.properties</tt>	file. (See <a href="#c3p0_properties">"Overriding c3p0 defaults via c3p0.properties"</a>.)
+      </p>
+    </div>
+    <hr/>
+    <h2><a name="tomcat-specific">Appendix D: Configuring c3p0 DataSources in Tomcat</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	You can easily configure Apache's Tomcat web application server to use c3p0 pooled DataSources. 
+	Below is a Tomcat 5.0  sample config to get you started. It's a fragment of Tomcat's <tt>conf/server.xml</tt> file,
+	which should be modified to suit and placed inside a <tt>&lt;Context&gt;</tt> element.
+      </p>
+      <div class="example">
+&lt;Resource name="jdbc/pooledDS" auth="Container" type="com.mchange.v2.c3p0.ComboPooledDataSource" /&gt;
+&lt;ResourceParams name="jdbc/pooledDS"&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;factory&lt;/name&gt;
+    &lt;value&gt;org.apache.naming.factory.BeanFactory&lt;/value&gt;
+  &lt;/parameter&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;driverClass&lt;/name&gt;
+    &lt;value&gt;org.postgresql.Driver&lt;/value&gt;
+  &lt;/parameter&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;jdbcUrl&lt;/name&gt;
+    &lt;value&gt;jdbc:postgresql://localhost/c3p0-test&lt;/value&gt;
+  &lt;/parameter&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;user&lt;/name&gt;
+    &lt;value&gt;swaldman&lt;/value&gt;
+  &lt;/parameter&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;password&lt;/name&gt;
+    &lt;value&gt;test&lt;/value&gt;
+  &lt;/parameter&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;minPoolSize&lt;/name&gt;
+    &lt;value&gt;5&lt;/value&gt;
+  &lt;/parameter&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;maxPoolSize&lt;/name&gt;
+    &lt;value&gt;15&lt;/value&gt;
+  &lt;/parameter&gt;
+  &lt;parameter&gt;
+    &lt;name&gt;acquireIncrement&lt;/name&gt;
+    &lt;value&gt;5&lt;/value&gt;
+  &lt;/parameter&gt;
+&lt;/ResourceParams&gt;
+      </div>
+      <p>For Tomcat 5.5, try something like the following (thanks to Carl F. Hall for the sample!):</p>
+      <div class="example">
+	&lt;Resource auth="Container"
+	          description="DB Connection"
+		  driverClass="com.mysql.jdbc.Driver"
+		  maxPoolSize="4"
+		  minPoolSize="2"
+		  acquireIncrement="1"
+		  name="jdbc/TestDB"
+		  user="test"
+		  password="ready2go"
+		  factory="org.apache.naming.factory.BeanFactory"
+		  type="com.mchange.v2.c3p0.ComboPooledDataSource"
+		  jdbcUrl="jdbc:mysql://localhost:3306/test?autoReconnect=true" /&gt;
+      </div>
+      <p>
+	The rest is standard J2EE stuff: You'll need to declare your DataSource reference in your <tt>web.xml</tt>
+	file:
+      </p>
+	
+      <div class="example">
+&lt;resource-ref&gt;
+  &lt;res-ref-name&gt;jdbc/pooledDS&lt;/res-ref-name&gt;
+  &lt;res-type&gt;javax.sql.DataSource&lt;/res-type&gt;
+  &lt;res-auth&gt;Container&lt;/res-auth&gt;
+&lt;/resource-ref&gt;
+      </div>
+      <p>      
+	And you can access your DataSource from code within your web application like this:
+      </p>
+      <div class="example">
+InitialContext ic = new InitialContext();
+DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
+      </div>
+      <p>
+	That's it!
+      </p>
+    </div>
+    <hr/>
+    <h2><a name="jboss-specific">Appendix E: JBoss-specific notes</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	To use c3p0 with JBoss:
+	<ol>
+	  <li>
+	    Place c3p0's jar file in the <tt>lib</tt> directory of your 
+	    jboss server instance (e.g. <tt>${JBOSS_HOME}/server/default/lib</tt>)
+	  </li>
+	  <li>
+	    Modify the file below, and save it as <tt>c3p0-service.xml</tt> in the 
+	    <tt>deploy</tt> directory of your jboss server (e.g. <tt>${JBOSS_HOME}/server/default/deploy</tt>).
+	    Note that parameters must be capitalized in this file, but otherwise they are defined as described
+	    above.
+	  </li>
+	</ol>
+    <p>
+        <div id="showDeprecatedJbossConfigName" style="display: block">
+        <b>Note:</b> <a href="#" onClick="return toggleDisplay('showDeprecatedJbossConfigName', 'DeprecatedJbossConfigName');">
+        Users of c3p0 jboss support prior to c3p0-0.9.1 please click here!</a>
+        </div>
+	</p>
+	<div class="deprecated" id="DeprecatedJbossConfigName">
+	<p>
+	   <b>Please note: As of c3p0-0.9.1, the class name of the jboss configuration mbean has changed
+	      to <tt>com.mchange.v2.c3p0.jboss.C3P0PooledDataSource</tt> (from <tt>com.mchange.v2.c3p0.mbean.C3P0PooledDataSource</tt>),
+	      in order to distinguish what is really jboss-specific functionality from c3p0's more general JMX
+	      support.</b> 
+	</p>
+	<p>
+	      The old jboss config mbeans are deprecated, but will still work. However, support for new configuration
+	      parameters will only be added under the new name. Updating requires a one-word change to your <tt>c3p0-service.xml</tt>,
+	      change "mbean" to "jboss" where your old file says 'code="com.mchange.v2.c3p0.mbean.C3P0PooledDataSource"'. Just do it! 
+	</p>
+	<p>
+		<a id="hideDataSourcesWithPoolConfig" 
+	   	href="#" 
+	   	onClick="return toggleDisplay('showDeprecatedJbossConfigName', 'DeprecatedJbossConfigName');"
+	   	>Hide box.</a>
+	 <p>
+      </div>
+	
+	</div>
+      <div class="example">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE server&gt;
+
+&lt;server&gt;
+
+   &lt;mbean code="com.mchange.v2.c3p0.jboss.C3P0PooledDataSource"
+          name="jboss:service=C3P0PooledDataSource"&gt;
+     
+      &lt;attribute name="JndiName"&gt;java:PooledDS&lt;/attribute&gt;
+      &lt;attribute name="JdbcUrl"&gt;jdbc:postgresql://localhost/c3p0-test&lt;/attribute&gt;
+      &lt;attribute name="DriverClass"&gt;org.postgresql.Driver&lt;/attribute&gt;
+      &lt;attribute name="User"&gt;swaldman&lt;/attribute&gt;
+      &lt;attribute name="Password"&gt;test&lt;/attribute&gt;
+
+      &lt;!-- Uncomment and set any of the optional parameters below --&gt;
+      &lt;!-- See c3p0's docs for more info.                         --&gt;
+
+      &lt;!-- &lt;attribute name="AcquireIncrement"&gt;3&lt;/attribute&gt;                         --&gt;
+      &lt;!-- &lt;attribute name="AcquireRetryAttempts"&gt;30&lt;/attribute&gt;                    --&gt;
+      &lt;!-- &lt;attribute name="AcquireRetryDelay"&gt;1000&lt;/attribute&gt;                     --&gt;
+      &lt;!-- &lt;attribute name="AutoCommitOnClose"&gt;false&lt;/attribute&gt;                    --&gt;
+      &lt;!-- &lt;attribute name="AutomaticTestTable"&gt;&lt;/attribute&gt;                        --&gt;
+      &lt;!-- &lt;attribute name="BreakAfterAcquireFailure"&gt;false&lt;/attribute&gt;             --&gt;
+      &lt;!-- &lt;attribute name="CheckoutTimeout"&gt;0&lt;/attribute&gt;                          --&gt;
+      &lt;!-- &lt;attribute name="ConnectionCustomizerClassName"&gt;&lt;/attribute&gt;             --&gt;
+      &lt;!-- &lt;attribute name="ConnectionTesterClassName"&gt;&lt;/attribute&gt;                 --&gt;
+      &lt;!-- &lt;attribute name="Description"&gt;A pooled c3p0 DataSource&lt;/attribute&gt;       --&gt;
+      &lt;!-- &lt;attribute name="DebugUnreturnedConnectionStackTraces"&gt;false&lt;/attribute&gt; --&gt;
+      &lt;!-- &lt;attribute name="FactoryClassLocation"&gt;&lt;/attribute&gt;                      --&gt;
+      &lt;!-- &lt;attribute name="ForceIgnoreUnresolvedTransactions"&gt;false&lt;/attribute&gt;    --&gt;
+      &lt;!-- &lt;attribute name="IdleConnectionTestPeriod"&gt;0&lt;/attribute&gt;                 --&gt;
+      &lt;!-- &lt;attribute name="InitialPoolSize"&gt;3&lt;/attribute&gt;                          --&gt;
+      &lt;!-- &lt;attribute name="MaxAdministrativeTaskTime"&gt;0&lt;/attribute&gt;                --&gt;
+      &lt;!-- &lt;attribute name="MaxConnectionAge"&gt;0&lt;/attribute&gt;                         --&gt;
+      &lt;!-- &lt;attribute name="MaxIdleTime"&gt;0&lt;/attribute&gt;                              --&gt;
+      &lt;!-- &lt;attribute name="MaxIdleTimeExcessConnections"&gt;0&lt;/attribute&gt;             --&gt;
+      &lt;!-- &lt;attribute name="MaxPoolSize"&gt;15&lt;/attribute&gt;                             --&gt;
+      &lt;!-- &lt;attribute name="MaxStatements"&gt;0&lt;/attribute&gt;                            --&gt;
+      &lt;!-- &lt;attribute name="MaxStatementsPerConnection"&gt;0&lt;/attribute&gt;               --&gt;
+      &lt;!-- &lt;attribute name="MinPoolSize"&gt;0&lt;/attribute&gt;                              --&gt;
+      &lt;!-- &lt;attribute name="NumHelperThreads"&gt;3&lt;/attribute&gt;                         --&gt;
+      &lt;!-- &lt;attribute name="PreferredTestQuery"&gt;&lt;/attribute&gt;                        --&gt;
+      &lt;!-- &lt;attribute name="TestConnectionOnCheckin"&gt;false&lt;/attribute&gt;              --&gt;
+      &lt;!-- &lt;attribute name="TestConnectionOnCheckout"&gt;false&lt;/attribute&gt;             --&gt;
+      &lt;!-- &lt;attribute name="UnreturnedConnectionTimeout"&gt;0&lt;/attribute&gt;              --&gt;
+      &lt;!-- &lt;attribute name="UsesTraditionalReflectiveProxies"&gt;false&lt;/attribute&gt;     --&gt;
+
+
+      &lt;depends&gt;jboss:service=Naming&lt;/depends&gt;
+   &lt;/mbean&gt;
+
+&lt;/server&gt;
+      </div>
+      </p>
+    </div>
+    <hr/>
+    <h2><a name="oracle-specific">Appendix F: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
+    <div class="sectiontext">
+      <p>
+	The Oracle thin JDBC driver provides a non-standard API for creating temporary BLOBs and CLOBs that
+	requires users to call methods on the raw, Oracle-specific Connection implementation. Advanced users
+	might use the <a href="#raw_connection_ops">raw connection operations</a> described above to access this
+	functionality, but a convenience class is available in a separate jar file (<tt>c3p0-oracle-thin-extras-@c3p0.version@.jar</tt>)
+	for easier access to this functionality. Please see the 
+	<a href="apidocs-oracle-thin/index.html">API docs for <tt>com.mchange.v2.c3p0.dbms.OracleUtils</tt></a>
+	for details.
+      </p>
+    </div>
+    <hr/>
+    <a href="#contents">Back to Contents</a>
+  </body>
+</html>

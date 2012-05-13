@@ -1,0 +1,119 @@
+<data-source-impl>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <general>java.io</general>
+     <general>java.sql</general>
+     <general>java.util</general>
+     <general>javax.sql</general>
+     <general>javax.naming</general>
+     <general>com.mchange.v2.ser</general>
+     <general>com.mchange.v2.sql</general>
+     <general>com.mchange.v2.coalesce</general>
+     <general>com.mchange.v2.c3p0</general>
+  </imports>
+  <output-class>PoolBackedDataSource</output-class>
+  <implements>
+    <interface>DataSource</interface>
+    <interface>PoolingDataSource</interface>
+  </implements>
+  <properties> 
+    <property>
+       <type>ConnectionPoolDataSource</type>
+       <name>connectionPoolDataSource</name>
+       <on-realize-function-name>
+           _resetPoolManager
+       </on-realize-function-name>
+    </property>
+    <property>
+       <type>int</type>
+       <name>numHelperThreads</name>
+       <default-value-expression>C3P0Defaults.numHelperThreads()</default-value-expression>
+    </property>
+  </properties> 
+  <interface-impl>
+   <![CDATA[
+    //implementation of javax.sql.DataSource
+    public Connection getConnection() throws SQLException
+    {
+	PooledConnection pc = getPoolManager().getPool().checkoutPooledConnection();
+	return pc.getConnection();
+    }
+
+    public Connection getConnection(String username, String password) throws SQLException
+    { 
+	PooledConnection pc = getPoolManager().getPool(username, password).checkoutPooledConnection();
+	return pc.getConnection();
+    }
+
+    public PrintWriter getLogWriter() throws SQLException
+    { return assertCpds().getLogWriter(); }
+
+    public void setLogWriter(PrintWriter out) throws SQLException
+    { assertCpds().setLogWriter( out ); }
+
+    public int getLoginTimeout() throws SQLException
+    { return assertCpds().getLoginTimeout(); }
+
+    public void setLoginTimeout(int seconds) throws SQLException
+    { assertCpds().setLoginTimeout( seconds ); }
+
+    //implementation of com.mchange.v2.c3p0.PoolingDataSource
+    public int getNumConnections() throws SQLException
+    { return getPoolManager().getPool().getNumConnections(); }
+
+    public int getNumIdleConnections() throws SQLException
+    { return getPoolManager().getPool().getNumIdleConnections(); }
+
+    public int getNumBusyConnections() throws SQLException
+    { return getPoolManager().getPool().getNumBusyConnections(); }
+
+    public int getNumConnections(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getNumConnections(); }
+
+    public int getNumIdleConnections(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getNumIdleConnections(); }
+
+    public int getNumBusyConnections(String username, String password) throws SQLException
+    { return getPoolManager().getPool(username, password).getNumBusyConnections(); }
+
+    public int getNumConnectionsAllPools() throws SQLException
+    { return getPoolManager().getNumConnectionsAllPools(); }
+   ]]>
+  </interface-impl>
+  <other-code>
+   <![CDATA[
+     final static String NO_CPDS_ERR_MSG =
+       "Attempted to use an uninitialized PoolBackedDataSource. " +
+       "Please call setConnectionPoolDataSource( ... ) to initialize.";
+
+     transient C3P0PooledConnectionPoolManager poolManager;
+
+     void _resetPoolManager()
+     {
+	if ( poolManager != null )
+	    {
+		poolManager.close();
+		poolManager = null;
+	    }
+     }
+
+     private ConnectionPoolDataSource assertCpds() throws SQLException
+     {
+         if ( connectionPoolDataSource == null )
+           throw new SQLException(NO_CPDS_ERR_MSG);
+         return connectionPoolDataSource;
+     }
+
+     private C3P0PooledConnectionPoolManager getPoolManager() throws SQLException
+     {
+	if (poolManager == null)
+	    poolManager = new C3P0PooledConnectionPoolManager(assertCpds(), numHelperThreads);
+        return poolManager;	    
+     }
+   ]]>
+  </other-code>
+</data-source-impl>
+
+
+
+

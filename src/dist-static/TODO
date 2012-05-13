@@ -1,0 +1,28 @@
+full status dump operations from JMX beans (two methods, one std err onr to logger at INFO level?) 
+
+Statement cache statistics exposed via JMX.
+Interface to Statement-caching statistics
+
+make asynchronous checkins optional, let the default depend on the value of testConnectionOnCheckin.
+
+A shortcut in acquire tasks that bails before attempting an acquire if the acquisition
+is no longer necessary.
+
+Make visible rootCause exceptions when Connection test fails. (Looks implemented, but I don't see them. Debug.)
+
+Less confusing hibernate ConnectionProvider.
+
+JUnit testing regime.
+
+some validation stuff in C3P0PooledConnectionPoolManager...
+
+
+
+
+
+
+
+
+
+
+

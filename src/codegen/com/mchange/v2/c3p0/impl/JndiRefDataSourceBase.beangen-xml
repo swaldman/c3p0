@@ -1,0 +1,53 @@
+<!-- DON'T FORGET TO CALL C3P0Registry.register( this ) AT CONSTRUCTION OF CONCRETE SUBCLASS -->
+
+<beangen>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <specific>java.util.Hashtable</specific>
+     <specific>javax.naming.Name</specific>
+     <specific>com.mchange.v2.c3p0.cfg.C3P0Config</specific>
+  </imports>
+  <output-class>JndiRefDataSourceBase</output-class>
+  <extends>IdentityTokenResolvable</extends>
+  <properties> 
+    <property>
+       <type>Object</type>
+       <name>jndiName</name>
+       <defensive-copy>
+           (jndiName instanceof Name ? ((Name) jndiName).clone() : jndiName /* String */)
+       </defensive-copy>
+       <constrained />
+       <bound />
+    </property>
+    <property>
+       <type>Hashtable</type>
+       <name>jndiEnv</name>
+       <defensive-copy>
+           (jndiEnv != null ? (Hashtable) jndiEnv.clone() : null)
+       </defensive-copy>
+       <bound />
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>caching</name>
+       <default-value>true</default-value>
+       <bound />
+    </property>
+    <property>
+       <type>String</type>
+       <name>identityToken</name>
+       <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>factoryClassLocation</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("factoryClassLocation", C3P0Defaults.factoryClassLocation())</default-value>
+       <bound />
+    </property>
+  </properties>
+</beangen>
+
+
+

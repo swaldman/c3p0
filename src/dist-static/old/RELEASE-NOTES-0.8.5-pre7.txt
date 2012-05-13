@@ -1,0 +1,63 @@
+                            RELEASE NOTES
+                           c3p0-0.8.5-pre7
+                         <-=-=-=-=-=-=-=-=->
+
+Lots of new features, and more than a few bug fixes. For more information,
+check out the docs relating to the following config params:
+
+  + automaticTestTable    
+      (most convenient way to speed up connection testing)
+
+  + preferredTestQuery         
+      (alternative way to speed up connection testing)
+
+  + testConnectionOnCheckin    
+      (combine with idleConnectionTestPeriod to ensure frequent, 
+       but always asynchronous testing)
+
+  + checkoutTimeout           
+      (control how long clients hang waiting for Connection acquisition 
+       or check-in to an empty pool)
+
+  + maxStatementsPerConnection 
+      (more sensible way of specifying how many statements to cache)
+
+...also previously added 0.8.5 params for configuring pool behavior
+when Conection acquisition for the database is unreliable:
+
+  + acquireRetryAttempts
+      (how many times should the pool try to acquire a Connection from
+       the database?)
+
+  + acquireRetryDelay 
+      (how long should the pool wait after a Connection acquisition failure
+       before trying again?)
+
+  + breakAfterAcquireFailure 
+      (if a pool can't acquire a Connection after acquireRetryAttempts, 
+       should the pool declare itself broken, or give up momentarily but
+       try again in response to future client requests)
+
+...and previously added features:
+   + raw connection operations
+   + Oracle large object utilities
+
+---
+
+Version 0.8.5-pre4 and above contains a major, relatively untested, restructuring of
+c3p0's codebase. This new implementation should be faster and more maintainable
+than the original, but it needs to have its tires kicked a good bit to be sure
+it is production ready...
+
+Please do try it out, and send feedback to Steve Waldman <swaldman@mchange.com>!
+
+--> If you have problems, don't despair! You can revert to the traditional codebase
+--> by setting the parameter 'usesTraditionalReflectiveProxies' to true. 
+
+See c3p0's documentation for information on how to set configuration parameters.
+
+Thanks for using c3p0, and thanks in advance for your feedback and bug reports!
+
+          Steve Waldman <swaldman@mchange.com>
+          Machinery For Change, Inc.
+

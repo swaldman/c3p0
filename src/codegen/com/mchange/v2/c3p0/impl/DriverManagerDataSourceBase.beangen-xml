@@ -1,0 +1,71 @@
+<beangen>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <general>java.util</general>
+     <specific>com.mchange.v2.c3p0.impl.AuthMaskingProperties</specific>
+     <specific>com.mchange.v2.c3p0.cfg.C3P0Config</specific>
+  </imports>
+  <modifiers>
+     <modifier>public</modifier>
+     <modifier>abstract</modifier>
+  </modifiers>
+  <output-class>DriverManagerDataSourceBase</output-class>
+  <extends>IdentityTokenResolvable</extends>
+  <properties> 
+    <property>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+       <type>String</type>
+       <name>driverClass</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("driverClass", C3P0Defaults.driverClass())</default-value>
+       <bound/>
+    </property>
+    <property>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+       <type>String</type>
+       <name>jdbcUrl</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("jdbcUrl", C3P0Defaults.jdbcUrl())</default-value>
+    </property>
+    <property>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+       <type>Properties</type>
+       <name>properties</name>
+       <defensive-copy>
+           (Properties) AuthMaskingProperties.fromAnyProperties( properties )
+       </defensive-copy>
+       <default-value>new AuthMaskingProperties()</default-value>
+       <bound/>
+    </property>
+    <property>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+       <type>String</type>
+       <name>description</name>
+    </property>
+    <property>
+       <type>String</type>
+       <name>identityToken</name>
+       <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <variable><modifiers><modifier>protected</modifier></modifiers></variable>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+       <type>String</type>
+       <name>factoryClassLocation</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("factoryClassLocation", C3P0Defaults.factoryClassLocation())</default-value>
+    </property>
+  </properties>
+</beangen>
+
+
+
+

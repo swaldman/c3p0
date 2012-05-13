@@ -1,0 +1,21 @@
+Hi.
+
+Building c3p0 should be as easy as editing build.properties and typing ant.
+
+There is a dependency: You'll need mchange-commons.jar, which is bundled
+in the lib directory of this distribution as a convenince. Source for
+mchange-commons is available for download via the c3p0 project at sourceforge.
+
+Please send any feedback / questions to Steve Waldman <swaldman@mchange.com>
+
+All of the test related properties are very optional. There are various
+test tasks in the build file, but they are ad-hoc and unsupported. Someday
+I plan to get with jUnit and do real testing, but that day has not yet come. 
+Until then, you, my dear user, are my primary testing engine. Sorry.
+
+      Steve Waldman <swaldman@mchange.com>
+      Machinery For Change, Inc.
+
+
+
+

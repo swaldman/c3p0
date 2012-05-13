@@ -1,0 +1,53 @@
+c3p0-0.9.0
+----------
+
+*******************************************************************
+* --> All of these issues are rare, and we believe c3p0-0.9.0 <-- *
+* --> to be the most appropriate version of the library for   <-- *
+* --> most users!                                             <-- *
+*******************************************************************
+
+As of release, the following issues have been reported, but have not been understood or resolved
+to the satisfaction of the developers.  All of these are issues that the developers have not been
+able to reproduce, making them hard to fix. Any help in tracking down these problems would be 
+greatly appreciated.
+
+Known Issues
+============
+
+	RARE reports of InterruptedException on client threads, especially at database recovery
+
+	   + Two users have reported observing InterruptedExceptions on client threads, one upon 
+	     database recovery after an outage and one upon trying to acquire a cached PreparedStatement.
+	     c3p0 does not call interrup() on client Threads, except for Threads wait()ing for
+	     Connections in a pool that is close()ing. The reported Exceptions do not involve a pool
+	     close(). It may be that some non-c3p0 is interruting() these Threads, and c3p0 is
+	     simply the first library to react to the interrupted state. [Thanks to Scott Russell and
+	     Pkumar for these reports.]
+
+	RARE reports of retention of closed Connections:
+
+	   + One user has documented retention of Connections for some time after they have been
+	     closed. He tracked the problem down to a retained reference in the Thread Pool's
+	     deadlock detector. This reference is now nulled out early, and there have been no 
+	     further reports of prolonged retention, but the cause of the original apparent retention 
+	     has not been adequately explained. [Thanks to Venkatesh Seetharamaiah for this report.]
+
+	RARE reports c3p0/jTDS deadlocks:
+
+	   + Although most c3p0/jTDS issues have been resolved as of this release of c3p0 and
+    	     the latest release of jTDS (thanks guys!), there is at least one outstanding report
+	     of an unexplained deadlock when c3p0 attempts to close pooled jTDS Connnections. (These 
+	     appear as occasional "APPARENT DEADLOCK" dumps at WARN level to whatever logger is
+	     in use. We believe that most c3p0/jTDS users do NOT experience this issue, and are
+	     eager for further reports or feedback of any sort that might shed light upon the
+	     problem. [Thanks to Guillaume Chevallier for this report.]
+
+	     (Users who experience this problem may resolve it by turning off statement caching,
+	     but we'd prefer you give us more information about what went wrong so we can resolve
+	     the problem if you experience this issue.)
+
+
+
+	     
+

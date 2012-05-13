@@ -1,0 +1,20 @@
+ _____________________________________
+   .................................
+   ..(c3p0).........................
+   ............a.........fresh......
+   ....coat.......of........stucco..
+   .........over.......that.....old.
+   ...jdbc........driver............
+   .................................
+ -------------------------------------
+      versions 0.8.4 and above
+           23-Dec-2003
+
+-> Feedback to Steve Waldman <swaldman@mchange.com> <-
+-> Please! :)                                       <-
+
+Hi. c3p0's docs have been HTML-ized, and moved to the "doc"
+directory of this distribution. Please check that out.
+
+Sorry all you plain text fans!
+

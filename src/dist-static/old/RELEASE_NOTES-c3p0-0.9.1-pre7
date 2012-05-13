@@ -1,0 +1,77 @@
+RELEASE NOTES, c3p0-0.9.1-pre7
+
+This release contains a lot of changes and improvements for a minor
+release. Please give the library a very thorough beating. Your 
+testing and feedback are very much appreciated, to
+Steve Waldman <swaldman@mchange.com>, please.
+
+Given the fairly large changes, I'd be cautious about using this
+release in production.
+
+The documentation has not yet been updated. Among the new features 
+in this release are...
+
+   + JDK 1.5 JMX instrumentation of both Connection
+     and Thread pool data.
+   
+   + A ConnectionCustomizer interface that users can
+     implement for setting up Connections, including
+     Connection state properties (holdability, 
+     transactionIsolation, readOnly), prior to entry
+     into the pool (or on check-out). (Use the 
+     connectionCustomizerClassName config parameter
+     to attach your customizer to a PooledDataSource.)
+
+   + maxIdleTimeExcessConnections lets users control
+     how quickly pools shrink to their minimum size
+     if unused. (This differs from maxIdleTime, which
+     is intended to maintain the validity of Connections
+     maxIdleTime will time-out old Connections regardless 
+     of pool size, sometimes forcing the pool to acquire 
+     new Connections. maxExcessConnectionIdleTime stops
+     expiring Connections once minPoolSize has been
+     achieve. minPoolSize should be set to a smaller value 
+     than maxIdleTime.) [For these params, 0 means
+     do not enforce, times are in seconds, they default
+     to 0.]
+
+   + New parameters permit debugging and working 
+     around Connection leaks caused by sloppy client 
+     applications. After unreturnedConnectionTimeout
+     seconds, checked-out Connections are destroyed
+     by the pool. If debugUnreturnedConnectionStackTraces
+     is set to "true", stack traces are captured at
+     every Connection checkout, and printed for 
+     Connections that have to be cleaned up by the pool.
+     [For unreturnedConnectionTimeout, 0 means 
+     do not enforce, time is in seconds, default is 0.]
+     debugUnreturnedConnectionStackTraces defaults to
+     false.]
+
+   + maxConnectionAge lets pools time out pooled 
+     Connections based on then absolute age of the
+     Connection, rather than idle time. [0 means do 
+     not enforce, times are in seconds, default is
+     to 0.]
+
+   + propertyCycle controls how frequently c3p0 checks
+     resources against these various timeouts. The
+     default is 0 (seconds), which means c3p0 will
+     automatically set a reasonable rate given the
+     timeout property values. (The effective 
+     propertyCycle, whether manually or automatically
+     set, is exposed via JMX.)
+
+   + Many other bugfixes and improvements, which should
+     improve pool concurrency and performance, and will
+     hopefully make thread pool deadlocks ("APPARENT 
+     DEADLOCK" messages) much more rare.
+
+c3p0-0.9.1-pre6 added other important features, including
+an optional XML config file, user-specific overrides
+of config parameters, and named configurations, so that
+multiple DataSources with distinct configurations can
+be specified without having to set DataSource properties
+in code.
+
+Please let me know how this stuff works for you!

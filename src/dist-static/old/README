@@ -1,0 +1,152 @@
+ _____________________________________
+   .................................
+   ..(c3p0).........................
+   ............a.........fresh......
+   ....coat.......of........stucco..
+   .........over.......that.....old.
+   ...jdbc........driver............
+   .................................
+ -------------------------------------
+           version 0.8.2
+           11-May-2003
+
+-> Feedback to Steve Waldman <swaldman@mchange.com> <-
+-> Please! :)                                       <-
+
+What is it?
+------------
+
+c3p0 is an easy-to-use library for making traditional JDBC drivers 
+"enterprise-ready" by augmenting them with functionality defined by 
+the jdbc3 spec and the optional extensions to jdbc2. In particular, 
+c3p0 provides several useful services:
+
+     * Classes which adapt traditional DriverManager-based JDBC
+       drivers to the new javax.sql.DataSource scheme for acquiring
+       database Connections.
+
+     * Transparent pooling of Connection and PreparedStatements
+       behind DataSources which can "wrap" around traditional
+       drivers or arbitrary unpooled DataSources.
+
+The library tries hard to get the details right:
+
+     * Referenceable and Serializable implementations of DataSources
+       are provided, suitable for binding to a wide-variety of JNDI 
+       naming services. [NOTE -- this will be substantially revised
+       in the next release!!!]
+
+     * Statement and ResultSets are carefully cleaned up when pooled
+       Connections and Statements are checked it, to prevent resource-
+       exhaustion when clients use lazy but common resource-management
+       strategies.
+
+     * The library adopts the approach and uses the internal interfaces
+       defined by the JDBC 2 and 3 specification (even where these
+       conflict with the current author's preferences...). DataSources
+       are written in the JavaBean style, offering all the required and
+       most of the optional properties (as well as some non-standard ones),
+       and no-arg constructors.
+
+c3p0 hopes to provide DataSource implementations more than suitable for 
+use by high-volume "J2EE enterprise applications". Version 0.8.2 is a
+beta-quality release of the library. Please provide feedback, bug-fixes, etc.!
+
+
+Requirements
+------------
+
+c3p0 requires a level 1.3.x or above Java Runtime Environment, and
+the JDBC 2.x or above javax.sql libraries. c3p0 works fine under
+Java 1.4.x, but a few (advanced) JDBC3 features are not yet supported.
+c3p0 will only build under JDK 1.3.x. (Full JDBC3 / JDK 1.4.x build support
+coming soon.)
+
+
+Installation
+------------
+
+Put the file c3p0-0.8.2.jar and the aforementioned required libraries
+somewhere in your CLASSPATH (or any other place where your application's
+classloader will find it). That's it!
+
+
+Use
+---
+
+From a users' perspective, c3p0 simply provides standard jdbc2 DataSource
+objects. When acquiring these DataSources, users can control pooling-related, 
+naming-related, and other properties. Most users need only acquaint themselves
+with one classes: DataSources. Fussy users may be interested in the PoolConfig
+class. See the api docs for more information, and the examples directory for, um, 
+examples.
+
+
+Known Shortcomings
+------------------
+
+     * Connections and Statements are pooled on a per-authentication basis.
+       So, if one pool-backed DataSource is used to acquire Connections both
+       for [user=alice, password=secret1] and [user=bob, password=secret2],
+       there will be two distinct pools, and the DataSource might in the
+       worst case manage twice the number of Connections specified by the
+       maxPoolSize property.
+
+     * The overhead of Statement Pooling is too high. For drivers that
+       do not perform significant preprocessing of PreparedStatements, the
+       pooling overhead outweighs any savings. Statement Pooling is thus
+       turned off by default. If your driver does preprocess PreparedStatements,
+       especially if it does so via IPC with the RDBMS, you will probably
+       see a performance gain by turning StatementCaching on. (Do this by
+       defining a value for maxStatements greater than zero.);
+
+     * jdbc3 conformance is incomplete. Transparent Statement pooling has been
+       implemented, but most new API has not.
+
+
+Unknown Shortcomings
+--------------------
+
+It should be considered beta quality software. Please try it out, and provide
+feedback to <swaldman@mchange.com> about what sucks!
+
+
+Performance
+-----------
+
+Enhanced performance is the goal of Connection and Statement pooling, and a
+major goal of the c3p0 library. For most applications, Connection pooling
+will provide a significant performance gain, especially if you are acquiring
+an unpooled Connection for each client Thread. If you are letting a single,
+shared Connection serve many clients to avoid Connection acquisition overhead, 
+you may suffer performance issues and problems managing transactions when 
+your Connection is under concurrent load; Connection pooling will enable you 
+to switch to a one Connection-per-client-thread model with little or no cost. 
+If you are writing Enterprise Java Beans, you may be tempted to acquire a 
+Connection once and not return it until the bean is about to go away (or enter 
+the "does not exist" state). But this can be resource-costly, as dormant pooled 
+beans use Connection resources. Connection pooling permits beans to only "own" 
+a Connection while they are using it.  
+
+But, there are performance costs to c3p0 as well. In order to implement 
+automatic cleanup of unclosed ResultSets and Statements when parent resources 
+are returned to pools, all client-visible Connections, ResultSets, Statements 
+are really wrappers around objects provided by an underlying unpooled DataSource 
+or "traditional" JDBC driver. Thus, there is some extra overhead to all JDBC calls.
+
+Some attention has been paid to minimizing the "wrapper" overhead of c3p0. In
+my environment, the wrapper overhead amounts to several hundreths to several
+thousandths of the cost of Connection acquisition, so unless you are making
+many, many JDBC calls while managing a client, there will be a net performance
+gain. Significantly, the overhead associated with ResultSet operations (where
+one might iterate through a table with thousands of records) appears to be 
+negligibly small.
+
+Feedback
+--------
+
+Please provide any and all feedback to <swaldman@mchange.com>! Thank you
+for trying c3p0!!!
+
+  
+

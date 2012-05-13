@@ -1,0 +1,38 @@
+<c3p0-config>
+  <default-config>
+    <!-- <property name="automaticTestTable">con_test</property> -->
+    <!-- <property name="checkoutTimeout">30000</property> -->
+    <!-- <property name="idleConnectionTestPeriod">30</property> -->
+    <!-- <property name="initialPoolSize">10</property> -->
+    <!-- <property name="maxIdleTime">30</property> -->
+    <!-- <property name="maxIdleTimeExcessConnections">10</property> -->
+    <!-- <property name="maxConnectionAge">60</property> -->
+    <!-- <property name="propertyCycle">1</property> -->
+    <!-- <property name="maxPoolSize">25</property> -->
+    <!-- <property name="minPoolSize">5</property> -->
+    <!-- <property name="maxStatements">0</property> -->
+    <!-- <property name="maxStatementsPerConnection">5</property> -->
+    <!-- <property name="maxAdministrativeTaskTime">4</property> -->
+    <!-- <property name="connectionCustomizerClassName">com.mchange.v2.c3p0.test.TestConnectionCustomizer</property> -->
+    <!-- <property name="unreturnedConnectionTimeout">15</property> -->
+    <!-- <property name="debugUnreturnedConnectionStackTraces">true</property> -->
+
+    <!--
+    <user-overrides user="swaldman">
+      <property name="debugUnreturnedConnectionStackTraces">true</property>
+    </user-overrides>
+    -->
+
+  </default-config>
+
+<!--
+  <named-config name="dumbTestConfig">
+    <property name="maxStatements">200</property>
+    <property name="jdbcUrl">jdbc:test</property>
+    <user-overrides user="poop">
+      <property name="maxStatements">300</property>
+    </user-overrides>
+   </named-config>
+-->
+
+</c3p0-config>

@@ -1,0 +1,56 @@
+<!-- DON'T FORGET TO CALL C3P0Registry.register( this ) AT CONSTRUCTION OF CONCRETE SUBCLASS -->
+
+<beangen>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <specific>javax.sql.DataSource</specific>
+     <specific>javax.sql.ConnectionPoolDataSource</specific>
+     <specific>com.mchange.v2.c3p0.cfg.C3P0Config</specific>
+  </imports>
+  <output-class>PoolBackedDataSourceBase</output-class>
+  <extends>IdentityTokenResolvable</extends>
+  <properties> 
+    <property>
+       <type>ConnectionPoolDataSource</type>
+       <name>connectionPoolDataSource</name>
+       <bound/><!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <constrained/><!-- ComboPooledDataSource requires the nested DataSources to be of c3p0 types -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>int</type>
+       <name>numHelperThreads</name>
+       <default-value>C3P0Config.initializeIntPropertyVar("numHelperThreads", C3P0Defaults.numHelperThreads())</default-value>
+       <bound/><!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>identityToken</name>
+       <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>String</type>
+       <name>dataSourceName</name>
+       <default-value>null</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+
+    <property>
+       <type>String</type>
+       <name>factoryClassLocation</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("factoryClassLocation", C3P0Defaults.factoryClassLocation())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+  </properties> 
+</beangen>
+
+
+
+

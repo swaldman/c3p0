@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE server>
+
+<server>
+
+   <mbean code="com.mchange.v2.c3p0.mbean.C3P0PooledDataSource"
+          name="jboss:service=C3P0PooledDataSource">
+     
+      <attribute name="JndiName">java:PooledDS</attribute>
+      <attribute name="JdbcUrl">jdbc:postgresql://localhost/c3p0-test</attribute>
+      <attribute name="DriverClass">org.postgresql.Driver</attribute>
+      <attribute name="User">swaldman</attribute>
+      <attribute name="Password">test</attribute>
+
+      <!-- Uncomment and set any of the optional parameters below -->
+      <!-- See c3p0's docs for more info.                         -->
+
+      <!-- <attribute name="AcquireIncrement">3</attribute>                     -->
+      <!-- <attribute name="AcquireRetryAttempts">30</attribute>                -->
+      <!-- <attribute name="AcquireRetryDelay">1000</attribute>                 -->
+      <!-- <attribute name="AutoCommitOnClose">false</attribute>                -->
+      <!-- <attribute name="AutomaticTestTable"></attribute>                    -->
+      <!-- <attribute name="BreakAfterAcquireFailure">false</attribute>         -->
+      <!-- <attribute name="CheckoutTimeout">0</attribute>                      -->
+      <!-- <attribute name="ConnectionTesterClassName">0</attribute>            -->
+      <!-- <attribute name="Description">A pooled c3p0 DataSource</attribute>   -->
+      <!-- <attribute name="FactoryClassLocation"></attribute>                  -->
+      <!-- <attribute name="ForceIgnoreUnresolvedTransactions">true</attribute> -->
+      <!-- <attribute name="IdleConnectionTestPeriod">-1</attribute>            -->
+      <!-- <attribute name="InitialPoolSize">3</attribute>                      -->
+      <!-- <attribute name="MaxIdleTime">0</attribute>                          -->
+      <!-- <attribute name="MaxPoolSize">15</attribute>                         -->
+      <!-- <attribute name="MaxStatements">0</attribute>                        -->
+      <!-- <attribute name="MaxStatementsPerConnection">0</attribute>           -->
+      <!-- <attribute name="MinPoolSize">0</attribute>                          -->
+      <!-- <attribute name="NumHelperThreads">3</attribute>                     -->
+      <!-- <attribute name="PreferredTestQuery"></attribute>                    -->
+      <!-- <attribute name="TestConnectionOnCheckin">false</attribute>          -->
+      <!-- <attribute name="TestConnectionOnCheckout">false</attribute>         -->
+      <!-- <attribute name="UsesTraditionalReflectiveProxies">false</attribute> -->
+
+
+      <depends>jboss:service=Naming</depends>
+   </mbean>
+
+</server>
+
+   
