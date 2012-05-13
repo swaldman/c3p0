@@ -1,0 +1,136 @@
+<data-source-impl>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <general>java.io</general>
+     <general>java.sql</general>
+     <general>java.util</general>
+     <general>javax.sql</general>
+     <general>javax.naming</general>
+     <general>com.mchange.v2.ser</general>
+     <general>com.mchange.v2.sql</general>
+     <general>com.mchange.v2.coalesce</general>
+  </imports>
+  <output-class>DriverManagerDataSource</output-class>
+  <implements>
+    <interface>DataSource</interface>
+  </implements>
+  <properties> 
+    <property>
+       <type>String</type>
+       <name>driverClass</name>
+       <on-realize-function-name>
+           _realizeDriverClass
+       </on-realize-function-name>
+       <serializable/>
+    </property>
+    <property>
+       <type>String</type>
+       <name>jdbcUrl</name>
+       <serializable/>
+    </property>
+    <property>
+       <type>Properties</type>
+       <name>properties</name>
+       <serializable/>
+       <defensive-copy>
+           (Properties) properties.clone()
+       </defensive-copy>
+       <default-value-expression>new Properties()</default-value-expression>
+    </property>
+    <property>
+       <type>String</type>
+       <name>description</name>
+       <serializable/>
+    </property>
+    <property>
+       <type>String</type>
+       <name>user</name>
+       <virtual>
+          <getter-code>
+             return properties.getProperty( SqlUtils.DRIVER_MANAGER_USER_PROPERTY ); 
+          </getter-code>
+          <setter-code>
+             _setUser( user ); 
+          </setter-code>
+       </virtual>
+    </property>
+    <property>
+       <type>String</type>
+       <name>password</name>
+       <virtual>
+          <getter-code>
+             return properties.getProperty( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY ); 
+          </getter-code>
+          <setter-code>
+             _setPassword( password ); 
+          </setter-code>
+       </virtual>
+    </property>
+  </properties>
+  <interface-impl>
+   <![CDATA[
+    //implementation of javax.sql.DataSource
+    public final Connection getConnection() throws SQLException
+    { return DriverManager.getConnection( jdbcUrl, properties ); }
+
+    public final Connection getConnection(String username, String password) throws SQLException
+    { return DriverManager.getConnection( jdbcUrl, overrideProps(username, password) );  }
+
+    public final PrintWriter getLogWriter() throws SQLException
+    { return DriverManager.getLogWriter(); }
+
+    public final void setLogWriter(PrintWriter out) throws SQLException
+    { DriverManager.setLogWriter( out ); }
+
+    public final int getLoginTimeout() throws SQLException
+    { return DriverManager.getLoginTimeout(); }
+
+    public final void setLoginTimeout(int seconds) throws SQLException
+    { DriverManager.setLoginTimeout( seconds ); }
+   ]]>
+  </interface-impl>
+  <other-code>
+   <![CDATA[
+      private void _setUser(String user)
+      {
+	  if (user != null)
+	      properties.put( SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user ); 
+	  else
+	      properties.remove( SqlUtils.DRIVER_MANAGER_USER_PROPERTY );
+      }
+
+      private void _setPassword(String password)
+      {
+	  if (password != null)
+	      properties.put( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password ); 
+	  else
+	      properties.remove( SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY );
+      }
+
+      private final Properties overrideProps(String user, String password)
+      {
+	  //Properties overriding = new Properties( properties );
+	  Properties overriding = (Properties) properties.clone();
+	  overriding.put(SqlUtils.DRIVER_MANAGER_USER_PROPERTY, user);
+	  overriding.put(SqlUtils.DRIVER_MANAGER_PASSWORD_PROPERTY, password);
+	  return overriding;
+      }
+
+      //why does nested class code have trouble seeing this if it's private? 
+      void _realizeDriverClass()
+      {
+	  try
+	      {
+		  if (driverClass != null)
+		      Class.forName( driverClass ); 
+	      }
+	  catch (Exception e)
+	      { e.printStackTrace(); }
+      }
+   ]]>
+  </other-code>
+</data-source-impl>
+
+
+
+

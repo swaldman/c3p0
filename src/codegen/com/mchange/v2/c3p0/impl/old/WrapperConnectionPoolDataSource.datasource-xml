@@ -1,0 +1,186 @@
+<data-source-impl>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <general>java.io</general>
+     <general>java.sql</general>
+     <general>java.util</general>
+     <general>javax.sql</general>
+     <general>javax.naming</general>
+     <general>com.mchange.v2.ser</general>
+     <general>com.mchange.v2.sql</general>
+     <general>com.mchange.v2.coalesce</general>
+     <general>com.mchange.v2.c3p0</general>
+  </imports>
+  <output-class>WrapperConnectionPoolDataSource</output-class>
+  <implements>
+    <interface>ConnectionPoolDataSource</interface>
+  </implements>
+  <properties> 
+    <property>
+       <type>DataSource</type>
+       <name>nestedDataSource</name>
+       <on-realize-function-name>
+           _findAuth
+       </on-realize-function-name>
+    </property>
+    <property>
+       <type>int</type>
+       <name>maxStatements</name>
+       <default-value-expression>C3P0Defaults.maxStatements()</default-value-expression>
+    </property>
+    <property>
+       <type>int</type>
+       <name>initialPoolSize</name>
+       <default-value-expression>C3P0Defaults.initialPoolSize()</default-value-expression>
+    </property>
+    <property>
+       <type>int</type>
+       <name>minPoolSize</name>
+       <default-value-expression>C3P0Defaults.minPoolSize()</default-value-expression>
+    </property>
+    <property>
+       <type>int</type>
+       <name>maxPoolSize</name>
+       <default-value-expression>C3P0Defaults.maxPoolSize()</default-value-expression>
+    </property>
+    <property>
+       <type>int</type>
+       <name>idleConnectionTestPeriod</name>
+       <default-value-expression>C3P0Defaults.idleConnectionTestPeriod()</default-value-expression>
+    </property>
+    <property>
+       <type>int</type>
+       <name>maxIdleTime</name>
+       <default-value-expression>C3P0Defaults.maxIdleTime()</default-value-expression>
+    </property>
+    <property>
+       <type>int</type>
+       <name>propertyCycle</name>
+       <default-value-expression>C3P0Defaults.propertyCycle()</default-value-expression>
+    </property>
+    <property>
+       <type>int</type>
+       <name>acquireIncrement</name>
+       <default-value-expression>C3P0Defaults.acquireIncrement()</default-value-expression>
+    </property>
+    <property>
+       <type>String</type>
+       <name>connectionTesterClassName</name>
+       <on-realize-function-name>_instantiateConnectionTester</on-realize-function-name>
+       <default-value-expression>
+          C3P0Defaults.connectionTester().getClass().getName()
+       </default-value-expression>
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>testConnectionOnCheckout</name>
+       <default-value-expression>
+          C3P0Defaults.testConnectionOnCheckout()
+       </default-value-expression>
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>autoCommitOnClose</name>
+       <default-value-expression>C3P0Defaults.autoCommitOnClose()</default-value-expression>
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>forceIgnoreUnresolvedTransactions</name>
+       <default-value-expression>C3P0Defaults.forceIgnoreUnresolvedTransactions()</default-value-expression>
+    </property>
+    <property>
+       <type>String</type>
+       <name>user</name>
+       <virtual>
+           <getter-code>
+              return auth.getUser(); 
+           </getter-code> 
+       </virtual>
+       <read-only/>
+    </property>
+    <property>
+       <type>String</type>
+       <name>password</name>
+       <virtual>
+           <getter-code>
+              return auth.getPassword(); 
+           </getter-code> 
+       </virtual>
+       <read-only/>
+    </property>
+  </properties>
+  <interface-impl>
+   <![CDATA[
+    //implementation of javax.sql.ConnectionPoolDataSource
+    public PooledConnection getPooledConnection()
+	throws SQLException
+    { 
+       return new C3P0PooledConnection( nestedDataSource.getConnection(), 
+                                        this.isAutoCommitOnClose(), 
+                                        this.isForceIgnoreUnresolvedTransactions() ); 
+    } 
+ 
+    public PooledConnection getPooledConnection(String user, String password)
+	throws SQLException
+    { 
+	return new C3P0PooledConnection( nestedDataSource.getConnection(user, password), 
+                                         this.isAutoCommitOnClose(), 
+                                         this.isForceIgnoreUnresolvedTransactions() ); 
+    }
+ 
+    public PrintWriter getLogWriter()
+	throws SQLException
+    { return nestedDataSource.getLogWriter(); }
+
+    public void setLogWriter(PrintWriter out)
+	throws SQLException
+    { nestedDataSource.setLogWriter( out ); }
+
+    public void setLoginTimeout(int seconds)
+	throws SQLException
+    { nestedDataSource.setLoginTimeout( seconds ); }
+
+    public int getLoginTimeout()
+	throws SQLException
+    { return nestedDataSource.getLoginTimeout(); }
+   ]]>
+  </interface-impl>
+  <other-code>
+   <![CDATA[
+     transient ConnectionTester connectionTester = C3P0Defaults.connectionTester();
+     transient DbAuth           auth             = null;
+
+     void _instantiateConnectionTester()
+     {
+        try
+        {
+	   this.connectionTester 
+	       = (ConnectionTester) Class.forName( connectionTesterClassName ).newInstance();
+        }
+        catch( Exception e )
+        { 
+           e.printStackTrace();
+           throw new RuntimeException("Could not instantiate specified connection tester class: " +
+                                       this.connectionTesterClassName);
+        }  
+     }
+
+     void _findAuth()
+     {
+       try
+       {
+         this.auth = C3P0ImplUtils.findAuth(nestedDataSource);
+       }
+       catch ( SQLException e )
+       { 
+         e.printStackTrace();
+         this.auth = C3P0ImplUtils.NULL_AUTH;
+       }
+     }
+   ]]>
+  </other-code>
+</data-source-impl>
+
+
+
+

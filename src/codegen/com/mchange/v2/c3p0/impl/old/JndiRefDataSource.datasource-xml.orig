@@ -1,0 +1,116 @@
+<data-source-impl>
+  <package>com.mchange.v2.c3p0.impl</package>
+  <imports>
+     <general>java.io</general>
+     <general>java.sql</general>
+     <general>java.util</general>
+     <general>javax.sql</general>
+     <general>javax.naming</general>
+     <general>com.mchange.v2.ser</general>
+     <general>com.mchange.v2.sql</general>
+     <general>com.mchange.v2.coalesce</general>
+  </imports>
+  <output-class>JndiRefDataSource</output-class>
+  <implements>
+    <interface>DataSource</interface>
+  </implements>
+  <properties> 
+    <property>
+       <type>Object</type>
+       <name>jndiName</name>
+       <serializable/>
+       <defensive-copy>
+           (jndiName instanceof Name ? ((Name) jndiName).clone() : jndiName /* String */)
+       </defensive-copy>
+       <setter>
+           <validate>
+   	      if (! (jndiName instanceof Name || jndiName instanceof String) )
+	         throw new IllegalArgumentException("jndiName must be a String or " +
+			 		            "a javax.naming.Name");
+           </validate>
+       </setter>
+    </property>
+    <property>
+       <type>Hashtable</type>
+       <name>jndiEnv</name>
+       <serializable/>
+       <defensive-copy>
+           (Hashtable) jndiEnv.clone()
+       </defensive-copy>
+    </property>
+    <property>
+       <type>boolean</type>
+       <name>caching</name>
+       <default-value-expression>true</default-value-expression>
+    </property>
+  </properties>
+  <interface-impl>
+   <![CDATA[
+    /* DataSource methods */
+    public Connection getConnection() throws SQLException
+    { return inner().getConnection(); }
+
+    public Connection getConnection(String a, String b) throws SQLException
+    { return inner().getConnection(a, b); }
+
+    public PrintWriter getLogWriter() throws SQLException
+    { return inner().getLogWriter(); }
+
+    public int getLoginTimeout() throws SQLException
+    { return inner().getLoginTimeout(); }
+
+    public void setLogWriter(PrintWriter a) throws SQLException
+    { inner().setLogWriter(a); }
+
+    public void setLoginTimeout(int a) throws SQLException
+    { inner().setLoginTimeout(a); }
+   ]]>
+  </interface-impl>
+  <other-code>
+   <![CDATA[
+    //MT: protected by this' lock in all cases
+    transient DataSource cachedInner;
+
+    //MT: called only from inner(), effectively synchrtonized
+    private DataSource dereference() throws SQLException
+    {
+	try
+	    {
+		InitialContext ctx;
+		if (jndiEnv != null)
+		    ctx = new InitialContext( jndiEnv );
+		else
+		    ctx = new InitialContext();
+		if (jndiName instanceof String)
+		    return (DataSource) ctx.lookup( (String) jndiName );
+		else if (jndiName instanceof Name)
+		    return (DataSource) ctx.lookup( (Name) jndiName );
+		else
+		    throw new SQLException("Could not find DataSource with " +
+					   "JNDI name: " + jndiName);
+	    }
+	catch( NamingException e )
+	    {
+		e.printStackTrace();
+		throw SqlUtils.toSQLException( e ); 
+	    }
+    }
+
+    private synchronized DataSource inner() throws SQLException
+    {
+	if (cachedInner != null)
+	    return cachedInner;
+	else
+	    {
+		DataSource out = dereference();
+		if (caching)
+		    cachedInner = out;
+		return out;
+	    }
+    }
+   ]]>
+  </other-code>
+</data-source-impl>
+
+
+
