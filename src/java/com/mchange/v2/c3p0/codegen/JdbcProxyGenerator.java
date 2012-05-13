@@ -573,6 +573,12 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 super.generateDelegateCode( intfcl, genclass, method, iw );
                 iw.println( "parentPooledConnection.markNewTypeMap( " +  CodegenUtils.generatedArgumentName( 0 ) + " );");
             }
+	    else if ( mname.equals("getWarnings") || mname.equals("clearWarnings") )
+	    {
+                //do nothing with txn_known_resolved
+
+                super.generateDelegateCode( intfcl, genclass, method, iw );
+	    }
             else if ( mname.equals("close") )
             {
                 iw.println("if (! this.isDetached())");
@@ -608,8 +614,10 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             else
             {
                 iw.println("txn_known_resolved = " + 
-                                ( mname.equals("commit") || mname.equals( "rollback" ) || mname.equals( "setAutoCommit" ) ) +
-                ';');
+			   ( mname.equals("commit") || 
+			     mname.equals( "rollback" ) || 
+			     mname.equals( "setAutoCommit" ) ) +
+			   ';');
                 iw.println();
                 super.generateDelegateCode( intfcl, genclass, method, iw );
             }

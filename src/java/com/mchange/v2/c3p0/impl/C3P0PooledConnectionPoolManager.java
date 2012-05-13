@@ -136,7 +136,7 @@ public final class C3P0PooledConnectionPoolManager
 
     private synchronized void poolsInit()
     {
-        this.timer = new Timer( true );
+        this.timer = new Timer("C3P0PooledConnectionPoolManager-AdminTaskTimer", true );
 
         int matt = this.getMaxAdministrativeTaskTime();
 
