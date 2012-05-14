@@ -610,7 +610,10 @@ public abstract class GooGooStatementCache
     { return stmtToKey.keySet().contains( ps ); }
 
     private void refreshStatement( PreparedStatement ps ) throws Exception
-    { ps.clearParameters(); }
+    { 
+	ps.clearParameters(); 
+	ps.clearBatch();
+    }
 
     private void printStats()
     {
