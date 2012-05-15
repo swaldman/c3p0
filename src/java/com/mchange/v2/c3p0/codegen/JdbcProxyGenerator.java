@@ -898,6 +898,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         iw.println("void attach( NewPooledConnection parentPooledConnection )");
         iw.println("{");
         iw.upIndent();
+        //iw.println("System.err.println( \"attach( \" +  parentPooledConnection + \" )\" );");
         iw.println("this.parentPooledConnection = parentPooledConnection;");
         iw.println("parentPooledConnection.addConnectionEventListener( cel );");
         iw.downIndent();

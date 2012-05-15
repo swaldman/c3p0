@@ -72,7 +72,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     boolean              connection_error_signaled = false;
 
     //MT: thread-safe, volatile
-    volatile NewProxyConnection exposedProxy = null;
+    volatile NewProxyConnection exposedProxy  = null;
     volatile boolean isolation_lvl_nondefault = false; 
     volatile boolean catalog_nondefault       = false; 
     volatile boolean holdability_nondefault   = false; 
@@ -345,6 +345,9 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 	//DEBUG
 	//new Exception("MARKING CLOSED").printStackTrace();
 
+	//System.err.println("markClosedProxyConnection:");
+	//printConnectionListeners();
+
         SQLException trouble = null;
         try
         {
@@ -397,12 +400,26 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         }
         finally
         {
+	    //System.err.println("BEFORE:");
+	    //printConnectionListeners();
+
             if (trouble != null)
+	    {
+		//System.err.println("TROUBLE: " + trouble);
                 fireConnectionErrorOccurred( trouble ); //should not be invoked from a sync'ed block
-            else
-            {
-                fireConnectionClosed(); //should not be invoked from a sync'ed block
-            }
+	    }
+
+	    // prior to 0.9.2-pre2, fireConnectionClosed() was the else case of the if statement above.
+	    //
+	    // we now fireConnectionClosed() unconditionally, so that proxies properly
+	    // detach themselves even if there was "trouble" during attempted cleanups.
+	    // users can do no more that try to close a Connection; we should unconditionally
+	    // get as much cleanup done as we can after they do.
+
+            fireConnectionClosed(); //should not be invoked from a sync'ed block
+
+	    //System.err.println("AFTER:");
+	    //printConnectionListeners();
         }
     }
 
