@@ -569,6 +569,8 @@
       <filterchain>
 	<replacetokens>
 	  <token key="c3p0.version" value="${c3p0.version}"/>
+	  <token key="mchange-commons.version" value="${mchange-commons.version}"/>
+	  <token key="c3p0.copyright.year"     value="${c3p0.copyright.year}" />
 	</replacetokens>
       </filterchain>
     </copy>

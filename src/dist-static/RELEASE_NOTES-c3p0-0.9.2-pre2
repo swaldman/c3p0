@@ -1,4 +1,4 @@
-RELEASE NOTES, c3p0-0.9.2-pre1
+RELEASE NOTES, c3p0-0.9.2-pre2
 ==============================
 
 Some highlights:
@@ -22,23 +22,22 @@ Some highlights:
        or committed before close(), respecting your unresolved transaction configuration.
        (see config parameter unresolvedConnectionTimeout in docs).
 
-+ You must now include two jar files (c3p0 and mchange-commons) in your CLASSPATH
++ You must now include two jar files (c3p0 and mchange-commons-java) in your CLASSPATH
   rather than just one. Both can be found in the lib directory of the binary distribution.
   (Please provide feedback; if this is very inconvenient I can bundle it all up into 
   a unified jar.)
 
 Some structural changes:
 
-+ Source distributions will no longer be distributed on sourceforge as jar or zip files.
-  Please use Mercurial [ http://mercurial.selenic.com/ ] to download the latest source
-  code. Once you have installed Mercurial, downloading source should be as easy as...
++ Development of c3p0 and mchange-commons-java have migrated to github:
 
-     hg clone http://c3p0.hg.sourceforge.net:8000/hgroot/c3p0/mchange-commons
-     hg clone http://c3p0.hg.sourceforge.net:8000/hgroot/c3p0/c3p0
+     https://github.com/swaldman/c3p0
+     https://github.com/swaldman/mchange-commons-java
 
-  Note that c3p0 depends (heavily) on the mchange-commons library.
+   Note that c3p0 depends (heavily) on the mchange-commons library.
 
-I apologize very, very much for disappearing for a couple of years.
+I apologize very, very much for disappearing for a few of years. Your guess is as
+good as mine as to where I have been.
 
 As always, please give the library a very thorough beating. Your testing and feedback 
 are very much appreciated, to Steve Waldman <swaldman@mchange.com>, please.

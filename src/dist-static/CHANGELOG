@@ -1,3 +1,33 @@
+c3p0-0.9.2-pre2
+	-- Updated the build file to make it easy to update versions and dates
+	   on source code headers.
+	-- ResultSets are now automatically closed and their proxies dereferenced
+	   as soon as parent Statements are closed, rather than waiting for the parent 
+	   Connection to close as we did before. Thanks to jo-hennig and soronthar for 
+	   calling attention to this issue.
+	-- When a ProxyConnection is marked closed, we now fire a connectionClosed
+	   event even if an Exception occurred during cleanup, to be sure that proxies 
+	   detach. We still fire a connectionErrorOccurred prior to connectionClosed, 
+	   so that listeners (especially C3P0PooledConnectionPool) can invalidate the 
+	   can't-be-cleaned-up PooledConnection.
+	-- Modified GooGooStatementCache to call clearBatch on PreparedStatement checkin, 
+	   so that stale batches from prior use of Statements are never visible to new 
+	   users. Many thanks to David Carr for pointing out the problem and the fix.
+	-- getWarnings and clearWarnings no longer set the txn_known_resolved flag to false.
+	   Thanks to Manuel Darveau for pointing out the unnecessary caution.
+	-- Gave C3P0PooledConnectionPoolManager's timer a name. Thanks to Matt Kusnierz 
+	   for the suggestion.
+	-- Fixed an infinite loop in ComboPooledDataSource, which occurred following
+	   some Exceptions, which provoked calls to toString() to build the Exception
+	   message, which call itself provoked an Exception, ad infinitum. All potentially
+	   Exception-provoking attribute lookups are now excluded from toString(). Many
+	   thanks to Svante v. Erichsen for calling attention to this problem and 
+	   suggesting a fix.
+	-- Modified the build so that JDK 1.4 compatible versions of c3p0-0.9.2
+	   can be generated easily. (c3p0-0.9.2 will be the last version of c3p0
+	   to support JDK 1.4 builds.)
+        -- Moved development onto github. See https://github.com/swaldman/c3p0, with
+	   a dependency against https://github.com/swaldman/mchange-commons-java
 c3p0-0.9.2-pre1
         -- Rationalized management of the ConnectionEventListener that checks in 
            PooledConnections on proxy Connection close(). Now added on check-out and 
