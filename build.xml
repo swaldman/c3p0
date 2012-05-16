@@ -6,7 +6,10 @@
   <property file="../settings/build-c3p0.properties" />
   <property file="build.properties" />
 
-  <property name="c3p0.version" value="0.9.2-pre1" />
+  <property name="c3p0.version" value="0.9.2-pre2" />
+
+  <property name="c3p0.copyright.year" value="2012" />
+
   <property name="c3p0.name"    value="c3p0-${c3p0.version}" />
 
   <!-- feel free to preempt these parameters in build properties -->
@@ -677,6 +680,26 @@
   </target>
 
   <target name="all" depends="dist,srcdist" />
+
+ <!-- Misc Utilities -->
+
+  <target name="update-source-headers-in-place">
+    <replaceregexp flags="m">
+      <regexp pattern="^ \* Distributed as part of c3p0 v\..*$" />
+      <substitution expression=" * Distributed as part of c3p0 v.${c3p0.version}" />
+      <fileset dir="${java.src.dir}">
+	<include name="**/*.java" />
+      </fileset>
+    </replaceregexp>
+    <replaceregexp flags="m">
+      <regexp pattern="^ \* Copyright \(C\) (\d{4}) Machinery For Change, Inc\.\s*$" />
+      <substitution expression=" * Copyright (C) ${c3p0.copyright.year} Machinery For Change, Inc." />
+      <fileset dir="${java.src.dir}">
+	<include name="**/*.java" />
+      </fileset>
+    </replaceregexp>
+  </target>
+
 
 </project>
 
