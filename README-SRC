@@ -2,16 +2,28 @@ Hi.
 
 Building c3p0 should be as easy as editing build.properties and typing ant.
 
-There is a dependency: You'll need mchange-commons.jar, which is bundled
-in the lib directory of this distribution as a convenince. Source for
-mchange-commons is available for download via the c3p0 project at sourceforge.
+  *****************************************************************************
+  * NOTE: This version of c3p0 supports the JDBC 3 spec, not JDBC 4, and must *
+  *       be built under JDK 1.5 (or 1.4, with some tweaking). The next major *
+  *       version of c3p0 will support JDBC 4 and JDK 1.6+, but we're not     *
+  *       there yet.                                                          *
+  *****************************************************************************
+
+There is a dependency: You'll need an mchange-commons-java jar file, which is bundled
+in the lib directory of c3p0's binary distribution as a convenience. 
+
+Development snapshots and source for c3p0 are available on github as..
+
+   https://github.com/swaldman/c3p0
+
+Development snapshots and source for mchange-commons-java is also available on github...
+
+   https://github.com/swaldman/mchange-commons-java
 
 Please send any feedback / questions to Steve Waldman <swaldman@mchange.com>
 
 All of the test related properties are very optional. There are various
-test tasks in the build file, but they are ad-hoc and unsupported. Someday
-I plan to get with jUnit and do real testing, but that day has not yet come. 
-Until then, you, my dear user, are my primary testing engine. Sorry.
+test tasks in the build file, but they are ad-hoc and unsupported. 
 
       Steve Waldman <swaldman@mchange.com>
       Machinery For Change, Inc.
