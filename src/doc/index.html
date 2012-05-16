@@ -1094,7 +1094,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	If <tt>statementCacheNumDeferredCloseThreads</tt> is greater than zero, the Statement pool will defer physically close()ing cached Statements until
 	its parent Connection is not in use by any client or internally (in e.g. a test) by the pool itself. For some JDBC drivers
 	(especially Oracle), attempts to close a Statement freeze if the parent Connection is in use. This parameter defaults to 0.
-	Set it to a positive value if you observe "APPARENT DEADLOCKS" realted to Connection close tasks. Almost, that value should
+	Set it to a positive value if you observe "APPARENT DEADLOCKS" realted to Connection close tasks. Almost always, that value should
         be one: if you need more than one Thread dedicated solely to Statement destruction, you probably should set <tt>maxStatements</tt> and/or
 	<tt>maxStatementsPerConnection</tt> to higher values so you don't churn through cached Statements so quickly.
       </p>
@@ -1896,7 +1896,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    to deadlocks. Setting this parameter to a positive value should eliminate the issue. This parameter
 	    should only be set if you observe that attempts by c3p0 to close() cached statements freeze (usually
 	    you'll see <tt>APPARENT DEADLOCKS</tt> in your logs). If set, this parameter should almost always be set to <tt>1</tt>.
-	    Usually, if you need more than one Thread dedicated solely to destroying cached Statements, you should set <tt>maxStatements</tt>
+	    Basically, if you need more than one Thread dedicated solely to destroying cached Statements, you should set <tt>maxStatements</tt>
 	    and/or <tt>maxStatementsPerConnection</tt> so that you don't churn through Statements so quickly.
             [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
 	    <div class="per-user">Does Not Support Per-User Overrides.</div>
