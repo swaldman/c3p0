@@ -30,6 +30,7 @@ import com.mchange.v2.codegen.*;
 import com.mchange.v2.codegen.intfc.*;
 import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.C3P0ProxyStatement;
+import com.mchange.v2.c3p0.impl.ProxyResultSetDetachable;
 
 public abstract class JdbcProxyGenerator extends DelegatorGenerator
 {
@@ -132,6 +133,8 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.downIndent();
                 iw.println("else throw new InternalError(\042Must be Statement or DatabaseMetaData -- Bad Creator: \042 + creator);");
 
+		iw.println("if (creatorProxy instanceof ProxyResultSetDetachable) ((ProxyResultSetDetachable) creatorProxy).detachProxyResultSet( this );");
+
                 iw.println("this.detach();");
                 iw.println("inner.close();");
                 iw.println("this.inner = null;");
@@ -193,7 +196,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         private final static boolean CONCURRENT_ACCESS_DEBUG = false;
 
         {
-            this.setExtraInterfaces( new Class[] { C3P0ProxyStatement.class } );
+            this.setExtraInterfaces( new Class[] { C3P0ProxyStatement.class, ProxyResultSetDetachable.class } );
         }
 
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
@@ -209,7 +212,9 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.println("ResultSet innerResultSet = inner." + CodegenUtils.methodCall( method ) + ";");
                 iw.println("if (innerResultSet == null) return null;");
                 iw.println("parentPooledConnection.markActiveResultSetForStatement( inner, innerResultSet );");
-                iw.println("return new NewProxyResultSet( innerResultSet, parentPooledConnection, inner, this );"); 
+                iw.println("NewProxyResultSet out = new NewProxyResultSet( innerResultSet, parentPooledConnection, inner, this );"); 
+		iw.println("synchronized ( myProxyResultSets ) { myProxyResultSets.add( out ); }");
+		iw.println("return out;");
             }
             else if ( mname.equals("getConnection") )
             {
@@ -227,7 +232,35 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.println("if (! this.isDetached())");
                 iw.println("{");
                 iw.upIndent();
-
+		//iw.println("System.err.println(\042Closing proxy Statement: \042 + this);");
+		iw.println("synchronized ( myProxyResultSets )");
+                iw.println("{");
+                iw.upIndent();
+		iw.println("for( Iterator ii = myProxyResultSets.iterator(); ii.hasNext(); )");
+		iw.println("{");
+		iw.upIndent();
+		iw.println("ResultSet closeMe = (ResultSet) ii.next();");
+		iw.println("ii.remove();");
+		iw.println();
+		iw.println("try { closeMe.close(); }");
+		iw.println("catch (SQLException e)");
+		iw.println("{");
+		iw.upIndent();
+                iw.println("if (logger.isLoggable( MLevel.WARNING ))");
+                iw.upIndent();
+                iw.println("logger.log( MLevel.WARNING, \042Exception on close of apparently orphaned ResultSet.\042, e);");
+		iw.downIndent();
+		iw.downIndent();
+		iw.println("}");
+                iw.println("if (logger.isLoggable( MLevel.FINE ))");
+                iw.upIndent();
+                iw.println("logger.log( MLevel.FINE, this + \042 closed orphaned ResultSet: \042 +closeMe);");
+		iw.downIndent();
+		iw.downIndent();
+		iw.println("}");
+		iw.downIndent();
+		iw.println("}");
+		iw.println();
                 iw.println("if ( is_cached )");
                 iw.upIndent();
                 iw.println("parentPooledConnection.checkinStatement( inner );");
@@ -330,7 +363,21 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
             iw.println("boolean is_cached;");
             iw.println("NewProxyConnection creatorProxy;");
+	    iw.println();
+	    iw.println("// Although formally unnecessary, we sync access to myProxyResultSets on");
+	    iw.println("// that set's own lock, in case clients (illegally but not uncommonly) close()");
+	    iw.println("// the Statement from a Thread other than the one they use in general");
+	    iw.println("// with the Statement");
+	    iw.println("HashSet myProxyResultSets = new HashSet();");
             iw.println();
+	    iw.println("public void detachProxyResultSet( ResultSet prs )");
+	    iw.println("{");
+	    iw.upIndent();
+	    //iw.println("System.err.println(\042detachProxyResultSet\042);");
+	    iw.println("synchronized (myProxyResultSets) { myProxyResultSets.remove( prs ); }");
+	    iw.downIndent();
+	    iw.println("}");
+	    iw.println();
             iw.print( CodegenUtils.fqcnLastElement( genclass ) );
             iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + 
             " inner, NewPooledConnection parentPooledConnection, boolean cached, NewProxyConnection cProxy )");
@@ -375,6 +422,8 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         {
             super.generateExtraImports( iw );
             iw.println("import java.lang.reflect.InvocationTargetException;");
+            iw.println("import java.util.HashSet;");
+            iw.println("import java.util.Iterator;");
         }
 
 
