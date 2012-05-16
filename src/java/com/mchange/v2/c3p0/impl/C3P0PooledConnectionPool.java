@@ -362,11 +362,12 @@ public final class C3P0PooledConnectionPool
 
                 public void refurbishIdleResource( Object resc ) throws Exception
                 { 
+		    // no need to test in-use status of Connection, idle, can't be in-use
 		    PooledConnection pc = (PooledConnection) resc;		    
                     if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
                         finerLoggingTestPooledConnection( resc, "IDLE CHECK" );
                     else
-                        testPooledConnection( resc );
+                        idleTestPooledConnection( resc );
                 }
 
                 private void finerLoggingTestPooledConnection(Object resc, String testImpetus) throws Exception
@@ -389,13 +390,19 @@ public final class C3P0PooledConnectionPool
                     }
                 }
 
+                private void idleTestPooledConnection(Object resc) throws Exception
+		{ testPooledConnection( resc, null, true ); }
+
                 private void testPooledConnection(Object resc) throws Exception
 		{ testPooledConnection( resc, null ); }
 
                 private void testPooledConnection(Object resc, Connection proxyConn) throws Exception
+		{ testPooledConnection( resc, proxyConn, false ); }
+
+		private void testPooledConnection(Object resc, Connection proxyConn, boolean idle_check) throws Exception
                 { 
                     PooledConnection pc = (PooledConnection) resc;
-		    assert !Boolean.FALSE.equals(pooledConnectionInUse( pc )); //null or true are okay
+		    assert idle_check || !Boolean.FALSE.equals(pooledConnectionInUse( pc )); //null or true are okay
 
                     Throwable[] throwableHolder = EMPTY_THROWABLE_HOLDER;
                     int status;
@@ -403,7 +410,7 @@ public final class C3P0PooledConnectionPool
                     Throwable rootCause = null;
                     try	
                     { 
-			// No! Connection must be maked in use PRIOR TO Connection test
+			// No! Connection must be marked in use PRIOR TO Connection test
                         //waitMarkPooledConnectionInUse( pc ); 
                         
                         // if this is a c3p0 pooled-connection, let's get underneath the
@@ -418,7 +425,7 @@ public final class C3P0PooledConnectionPool
                             // if it's the slow, default query, faster to test the raw Connection 
                             if (testQuery == null && connectionTesterIsDefault && c3p0PooledConnections)
                                 testConn = ((AbstractC3P0PooledConnection) pc).getPhysicalConnection();
-                            else //test will likely be faster on the proxied Connection, because the test query is probably cached
+                            else //test will likely be faster on the proxied Connection, because the test query is probably in the statement cache
                                 testConn = (proxyConn == null ? (openedConn = pc.getConnection()) : proxyConn); 
                         }
                         else //where there's no statement cache, better to use the physical connection, if we can get it
