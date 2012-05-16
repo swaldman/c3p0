@@ -194,7 +194,9 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
             if ( exposedProxy == null )
             {
                 exposedProxy = new NewProxyConnection( physicalConnection, this );
- 		//firstPull = new Exception("FIRST PULL");
+
+		// debug
+		//firstPull = new Exception("FIRST PULL");
             }
             else
             {
@@ -204,7 +206,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 			       "c3p0 -- Uh oh... getConnection() was called on a PooledConnection when " +
 			       "it had already provided a client with a Connection that has not yet been " +
 			       "closed. This probably indicates a bug in the connection pool!!!"
- 			       //, new Exception("UhOhStackTrace", firstPull)
+ 			       //, new Exception("UhOhStackTrace", firstPull) //debug
 			       );
 
 		// when tracing firstPull, don't forget to uncomment line that clears it
