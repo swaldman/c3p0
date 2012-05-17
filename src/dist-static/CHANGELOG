@@ -1,4 +1,6 @@
 c3p0-0.9.2-pre2
+	-- Fixed issue where idle Connections being tested by the pool
+	   were not properly marked with the statement cache as "in-use".
 	-- Updated the build file to make it easy to update versions and dates
 	   on source code headers.
 	-- ResultSets are now automatically closed and their proxies dereferenced
