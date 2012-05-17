@@ -34,6 +34,7 @@ public final class RawConnectionOpTest
 {
     public static void main(String[] argv)
     {
+	ComboPooledDataSource cpds = null;
 	try
 	    {
 		String jdbc_url    = null;
@@ -58,7 +59,7 @@ public final class RawConnectionOpTest
 		if (! jdbc_url.startsWith("jdbc:") )
 		    usage();
 				    
-		ComboPooledDataSource cpds = new ComboPooledDataSource();
+		cpds = new ComboPooledDataSource();
 		cpds.setJdbcUrl( jdbc_url );
 		cpds.setUser( username );
 		cpds.setPassword( password );
@@ -91,11 +92,13 @@ public final class RawConnectionOpTest
   				System.err.println( TestUtils.physicalConnectionIdentityHashCode( check ) == ihc.intValue() );
   			    }
   			finally
-  			    { /* if (check != null) check.close(); */ }
+  			    { if (check != null) check.close(); }
   		    }
 	    }
 	catch (Exception e)
 	    { e.printStackTrace(); }
+	finally
+	    { if (cpds != null) cpds.close(); }
     }
 
     private static void usage()

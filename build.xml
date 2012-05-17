@@ -113,6 +113,7 @@
     <fileset dir="${j2ee.jar.dir}" includes="*.jar" />
     <pathelement location="${test.jdbc.driver.jar.file}" />
     <pathelement location="${log4j.jar.file}" />
+    <pathelement location="${junit.jar.file}" />
   </path>
   
   <target name="init">
