@@ -1,4 +1,9 @@
 c3p0-0.9.2-pre2
+	-- Added support for deployment to Maven central repository to build.xml,
+	   and noted this version's coordinates in the repository.
+	-- Added a src directory to the distribution, containing jarred java
+	   sources (including codegenerated sources) intended for debuggers/IDEs.
+	   As a convenience, mchange-commons-java sources are included as well.
 	-- Fixed issue where idle Connections being tested by the pool
 	   were not properly marked with the statement cache as "in-use".
 	-- Updated the build file to make it easy to update versions and dates
@@ -7,6 +12,12 @@ c3p0-0.9.2-pre2
 	   as soon as parent Statements are closed, rather than waiting for the parent 
 	   Connection to close as we did before. Thanks to jo-hennig and soronthar for 
 	   calling attention to this issue.
+	-- Modified (in mchange commons library) ThreadPoolAsynchronousRunner to
+	   occasionally (stochastically) call Timer.purge() when maxAdministrativeTaskTime
+	   settings leads to frequent cancellations of TimerTasks. Thanks to Kevin Conaway, 
+	   who observed memory issues from the piling up of canceled but unpurged TimerTasks.
+	-- Modified (in mchange commons library) VersionUtils to be more tolerant
+	   of unusual version Strings. Thanks to martyhu for the suggestion.   
 	-- When a ProxyConnection is marked closed, we now fire a connectionClosed
 	   event even if an Exception occurred during cleanup, to be sure that proxies 
 	   detach. We still fire a connectionErrorOccurred prior to connectionClosed, 
