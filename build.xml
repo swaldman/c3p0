@@ -36,6 +36,8 @@
   <property name="build.testresults.dir"             value="${build.dir}/testresults" />
   <property name="build.srcdist.dir"                 value="${build.dir}/srcdist" />
   <property name="build.jar.file"                    value="${build.dir}/${c3p0.name}.jar" />
+  <property name="build.javadoc.jar.file"            value="${build.dir}/${c3p0.name}-javadoc.jar" />
+  <property name="build.sources.jar.file"            value="${build.dir}/${c3p0.name}-sources.jar" />
   <property name="dbms.dir"                          value="dbms" />
   <property name="dbms.oracle.thin.antproj.dir"      value="${dbms.dir}/oracle-thin" />
   <property name="dbms.oracle.thin.antproj.dist.dir" value="${dbms.oracle.thin.antproj.dir}/dist" />
@@ -45,6 +47,7 @@
   <property name="open.dist"                         value="${dist.dir}/${bindist.name}" />
   <property name="open.dist.doc.dir"                 value="${open.dist}/doc" />
   <property name="open.dist.lib.dir"                 value="${open.dist}/lib" />
+  <property name="open.dist.src.dir"                 value="${open.dist}/src" />
   <property name="docwebapp.war.file.name"           value="docweb.war" />
   <property name="docwebapp.war.file"                value="${build.docwebear.dir}/${docwebapp.war.file.name}" />
   <property name="docwebear.file"                    value="${build.dir}/c3p0-docweb.ear" />
@@ -547,16 +550,32 @@
 	-->
   </target>
 
-  <target name="javadocs" depends="init">
+  <target name="javadoc" depends="init">
     <javadoc packagenames="com.mchange.v2.c3p0"
-             sourcepath="${java.src.dir}"
              destdir="${build.apidocs.dir}" 
              classpathref="build-classpath" 
              windowtitle="${c3p0.name} API Documentation"
-	     />
+	     >
+      <fileset dir="${java.src.dir}" />
+      <fileset dir="${build.codegen.dir}" />
+     </javadoc>
   </target>
 
-  <target name="basic-open-dist" depends="jar, javadocs">
+   <target name="javadoc-jar" depends="javadoc">
+     <jar jarfile="${build.javadoc.jar.file}">
+       <fileset dir="${build.apidocs.dir}" />
+     </jar>
+   </target>
+
+   <target name="sources-jar" depends="init">
+     <jar jarfile="${build.sources.jar.file}">
+       <fileset dir="${java.src.dir}" includes="**/*.java" />
+       <fileset dir="${build.codegen.dir}" includes="**/*.java" />
+     </jar>
+   </target>
+
+
+  <target name="basic-open-dist" depends="jar, javadoc, sources-jar">
     <copy toDir="${open.dist}">
       <fileset dir="${static.dist.src}">
 	<exclude name="*~" />
@@ -581,6 +600,8 @@
     <copy toDir="${open.dist.doc.dir}/apidocs">
       <fileset dir="${build.apidocs.dir}" />
     </copy>
+    <copy toDir="${open.dist.src.dir}" file="${build.sources.jar.file}" />
+    <copy toDir="${open.dist.src.dir}" file="${mchange-commons.sources.jar.file}" />
     <copy file="${mchange-commons.jar.file}" toDir="${open.dist.lib.dir}" />
     <copy file="${build.jar.file}" toDir="${open.dist.lib.dir}" />
   </target>
@@ -703,6 +724,149 @@
     </replaceregexp>
   </target>
 
+   <!-- publishing to maven || see https://docs.sonatype.org/display/Repository/Sonatype+OSS+Maven+Repository+Usage+Guide -->
+   <property name="maven.snapshots.repository.id"  value="sonatype-nexus-snapshots" />
+   <property name="maven.snapshots.repository.url" value="https://oss.sonatype.org/content/repositories/snapshots" />
+   <property name="maven.staging.repository.id"    value="sonatype-nexus-staging" />
+   <property name="maven.staging.repository.url"   value="https://oss.sonatype.org/service/local/staging/deploy/maven2" />
+
+   <property name="maven.src.dir"                  value="${src.dir}/maven" />
+   <property name="build.maven-snapshot.dir"       value="${build.dir}/maven-snapshot" />
+   <property name="maven.snapshot.version"         value="${c3p0.version}-SNAPSHOT" />
+   <property name="maven.snapshot.jar.file"        value="${build.maven-snapshot.dir}/c3p0-${maven.snapshot.version}.jar" />
+
+   <property name="build.maven-release.dir"        value="${build.dir}/maven-release" />
+   <property name="maven.release.version"          value="${c3p0.version}-RELEASE" />
+   <property name="maven.release.jar.file"         value="${build.maven-release.dir}/c3p0-${maven.release.version}.jar" />
+   <property name="maven.release.javadoc.jar.file" value="${build.maven-release.dir}/c3p0-${maven.release.version}-javadoc.jar" />
+   <property name="maven.release.sources.jar.file" value="${build.maven-release.dir}/c3p0-${maven.release.version}-sources.jar" />
+
+   <!--
+      deploy-maven-snapshot seems to work if plaintext passwords are entered into settings.xml, but fails
+      to work when encrypted passwords are set. To workaround, run the taks and let the task fail, then cd into
+      build/maven-snapshot and type the following command:
+
+      mvn -Durl=https://oss.sonatype.org/content/repositories/snapshots -DrepositoryId=sonatype-nexus-snapshots -DpomFile=pom.xml -Dfile=c3p0-0.9.2_pre2-SNAPSHOT.jar deploy:deploy-file
+
+      Better yet, let's just use the exec task to do the same...
+    -->
+   <target name="deploy-maven-snapshot" depends="jar">
+     <mkdir dir="${build.maven-snapshot.dir}" />
+     <copy todir="${build.maven-snapshot.dir}" file="${maven.src.dir}/pom.xml">
+       <filterchain>
+	 <replacetokens>
+	   <token key="c3p0.version.maven"   value="${maven.snapshot.version}"/>
+	 </replacetokens>
+       </filterchain>
+     </copy>
+     <copy tofile="${maven.snapshot.jar.file}" file="${main.jar.file}" />
+
+     <!--
+     <artifact:mvn>
+       <arg value="org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy-file" />
+       <arg value="-Durl=${maven.snapshots.repository.url}" />
+       <arg value="-DrepositoryId=${maven.snapshots.repository.id}" />
+       <arg value="-DpomFile=${build.maven-snapshot.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.snapshot.jar.file}" />
+     </artifact:mvn>
+     -->
+     <exec executable="mvn" resolveexecutable="false">
+       <arg value="org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy-file" />
+       <arg value="-Durl=${maven.snapshots.repository.url}" />
+       <arg value="-DrepositoryId=${maven.snapshots.repository.id}" />
+       <arg value="-DpomFile=${build.maven-snapshot.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.snapshot.jar.file}" />
+     </exec>
+   </target>
+
+   <!--
+      artifact:mvn + plugin doesn't handle encrypted passwords and gpg passphrases properly.
+      we just "exec" Maven with appropriate arguments.
+
+      note that gpg.passphrase should be set as a system property!
+    -->
+   <target name="stage-maven-release" depends="jar,javadoc-jar,sources-jar">
+     <mkdir dir="${build.maven-release.dir}" />
+     <copy todir="${build.maven-release.dir}" file="${maven.src.dir}/pom.xml">
+       <filterchain>
+	 <replacetokens>
+	   <token key="c3p0.version.maven"   value="${maven.release.version}"/>
+	 </replacetokens>
+       </filterchain>
+     </copy>
+     <copy tofile="${maven.release.jar.file}"         file="${main.jar.file}" />
+     <copy tofile="${maven.release.javadoc.jar.file}" file="${javadoc.jar.file}" />
+     <copy tofile="${maven.release.sources.jar.file}" file="${sources.jar.file}" />
+ 
+     <!-- sign and deploy the main artifact -->
+     <!--
+     <artifact:mvn>
+       <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+       <arg value="-Durl=${maven.staging.repository.url}" />
+       <arg value="-DrepositoryId=${maven.staging.repository.id}" />
+       <arg value="-DpomFile=${build.maven-release.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.release.jar.file}" />
+       <arg value="-Pgpg" />
+     </artifact:mvn>
+     -->
+     <exec executable="mvn" resolveexecutable="false">
+       <arg value="-Durl=${maven.staging.repository.url}" />
+       <arg value="-DrepositoryId=${maven.staging.repository.id}" />
+       <arg value="-DpomFile=${build.maven-release.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.release.jar.file}" />
+       <arg value="-Dgpg.passphrase=${gpg.passphrase}" />
+       <arg value="-Pgpg" />
+       <arg value="gpg:sign-and-deploy-file" />
+     </exec>
+	
+
+     <!-- sign and deploy the javadoc artifact -->
+     <!--
+     <artifact:mvn>
+       <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+       <arg value="-Durl=${maven.staging.repository.url}" />
+       <arg value="-DrepositoryId=${maven.staging.repository.id}" />
+       <arg value="-DpomFile=${build.maven-release.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.release.javadoc.jar.file}" />
+       <arg value="-Dclassifier=javadoc" />
+       <arg value="-Pgpg" />
+     </artifact:mvn>
+     -->
+     <exec executable="mvn" resolveexecutable="false">
+       <arg value="-Durl=${maven.staging.repository.url}" />
+       <arg value="-DrepositoryId=${maven.staging.repository.id}" />
+       <arg value="-DpomFile=${build.maven-release.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.release.javadoc.jar.file}" />
+       <arg value="-Dgpg.passphrase=${gpg.passphrase}" />
+       <arg value="-Dclassifier=javadoc" />
+       <arg value="-Pgpg" />
+       <arg value="gpg:sign-and-deploy-file" />
+     </exec>
+
+     <!-- sign and deploy the sources artifact -->
+     <!--
+     <artifact:mvn>
+       <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+       <arg value="-Durl=${maven.staging.repository.url}" />
+       <arg value="-DrepositoryId=${maven.staging.repository.id}" />
+       <arg value="-DpomFile=${build.maven-release.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.release.sources.jar.file}" />
+       <arg value="-Dclassifier=sources" />
+       <arg value="-Pgpg" />
+     </artifact:mvn>
+     -->
+     <exec executable="mvn" resolveexecutable="false">
+       <arg value="-Durl=${maven.staging.repository.url}" />
+       <arg value="-DrepositoryId=${maven.staging.repository.id}" />
+       <arg value="-DpomFile=${build.maven-release.dir}/pom.xml" />
+       <arg value="-Dfile=${maven.release.sources.jar.file}" />
+       <arg value="-Dgpg.passphrase=${gpg.passphrase}" />
+       <arg value="-Dclassifier=sources" />
+       <arg value="-Pgpg" />
+       <arg value="gpg:sign-and-deploy-file" />
+     </exec>
+
+   </target>
 
 </project>
 
