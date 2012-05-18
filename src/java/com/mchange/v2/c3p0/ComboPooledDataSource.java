@@ -101,7 +101,9 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
                     "user",
                     "userOverridesAsString",
                     "allUsers",
-                    "connectionPoolDataSource"
+                    "connectionPoolDataSource",
+		    "propertyChangeListeners",
+		    "vetoableChangeListeners"
     } ) );
 
     // not reassigned post-ctor; mutable elements protected by their own locks
