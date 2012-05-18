@@ -759,7 +759,7 @@
 	 </replacetokens>
        </filterchain>
      </copy>
-     <copy tofile="${maven.snapshot.jar.file}" file="${main.jar.file}" />
+     <copy tofile="${maven.snapshot.jar.file}" file="${build.jar.file}" />
 
      <!--
      <artifact:mvn>
@@ -794,9 +794,9 @@
 	 </replacetokens>
        </filterchain>
      </copy>
-     <copy tofile="${maven.release.jar.file}"         file="${main.jar.file}" />
-     <copy tofile="${maven.release.javadoc.jar.file}" file="${javadoc.jar.file}" />
-     <copy tofile="${maven.release.sources.jar.file}" file="${sources.jar.file}" />
+     <copy tofile="${maven.release.jar.file}"         file="${build.jar.file}" />
+     <copy tofile="${maven.release.javadoc.jar.file}" file="${build.javadoc.jar.file}" />
+     <copy tofile="${maven.release.sources.jar.file}" file="${build.sources.jar.file}" />
  
      <!-- sign and deploy the main artifact -->
      <!--
