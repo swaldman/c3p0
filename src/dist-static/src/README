@@ -1,0 +1,16 @@
+The jar files here include c3p0's Java source code and source for the mchange-commons-java library.
+they may be helpful for debugging purposes. However, they mix handwritten and automatically generated code,
+and are not intended for standalone use in rebuilding the libraries. 
+
+To modify or build c3p0, please download the full source distribution, now
+available on github at
+
+     https://github.com/swaldman/c3p0
+
+You'll find the full mchange-commons-java source distrubution at
+
+     https://github.com/swaldman/mchange-commons-java
+
+Thanks!
+
+
