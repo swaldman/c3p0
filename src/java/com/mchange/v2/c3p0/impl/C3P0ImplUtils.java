@@ -262,6 +262,16 @@ public final class C3P0ImplUtils
 	    }
     }
 
+    /*
+     * This method is called ONLY when user-visible proxy Connections are close()ing,
+     * or when the PooledConnection that hosts pCon is close()ing. It is NOT called
+     * on commit() and/or rollback() of a continuing user Connection. Given that "fresh"
+     * user Connections always begin with autoCommit = true, the logic here is good.
+     * We do not setAutoCommit( true ) underneath users holding visible Connections.
+     *
+     * Perhaps we should rename this to resetTxnStateOnProxyConnectionClose to avoid
+     * confusion...
+     */ 
     static void resetTxnState( Connection pCon, 
 			       boolean forceIgnoreUnresolvedTransactions, 
 			       boolean autoCommitOnClose, 
