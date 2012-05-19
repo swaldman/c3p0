@@ -1,4 +1,4 @@
-RELEASE NOTES, c3p0-0.9.2-pre2
+RELEASE NOTES, c3p0-0.9.2-pre3
 ==============================
 
 Some highlights:
@@ -15,7 +15,7 @@ Some highlights:
 
 + There are some other minor improvements and fixes: 
 
-    -- the more granual and efficient "scattered" Connection acquisition algorithm that 
+    -- the more granular and efficient "scattered" Connection acquisition algorithm that 
        was "experimental" in the previous release is enabled by default
 
     -- unreturned Connections that are timed out (bad! bad!) are either rolled back (default)
