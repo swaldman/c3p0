@@ -1,3 +1,7 @@
+	-- Required tests of PooledConnections to own the locks associated with those
+	   PooledConnections in order to prevent occasional deadlocks when PooledConnection.close()
+	   coincides with a Connection test. Many thanks to an anonymous SourceForge user for
+	   calling attention to this issue.
 c3p0-0.9.2-pre2
 	-- Added support for deployment to Maven central repository to build.xml,
 	   and noted this version's coordinates in the repository.
