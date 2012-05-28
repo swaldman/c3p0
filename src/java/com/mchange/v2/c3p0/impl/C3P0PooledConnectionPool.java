@@ -247,34 +247,36 @@ public final class C3P0PooledConnectionPool
 
                 public void refurbishResourceOnCheckout( Object resc ) throws Exception
                 {
-                    if ( connectionCustomizer != null )
-                    {
-                        Connection physicalConnection = null;
-                        try
-                        { 
-                            physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
-                            waitMarkPhysicalConnectionInUse( physicalConnection );
-			    if ( testConnectionOnCheckout )
+		    synchronized (resc) 
+		    {
+			if ( connectionCustomizer != null )
+			{
+			    Connection physicalConnection = null;
+			    try
+			    { 
+				physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
+				waitMarkPhysicalConnectionInUse( physicalConnection );
+				if ( testConnectionOnCheckout )
 				{
 				    if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
 					finerLoggingTestPooledConnection( resc, "CHECKOUT" );
 				    else
 					testPooledConnection( resc );
 				}
-                            connectionCustomizer.onCheckOut( physicalConnection, parentDataSourceIdentityToken );
-                        }
-                        catch (ClassCastException e)
-                        {
-                            throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
-                                            " PooledConnection: " + resc + 
-                                            "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
-                        }
-                        finally
-                        { unmarkPhysicalConnectionInUse(physicalConnection); }
-                    }
-		    else
-		    {
-			if ( testConnectionOnCheckout )
+				connectionCustomizer.onCheckOut( physicalConnection, parentDataSourceIdentityToken );
+			    }
+			    catch (ClassCastException e)
+			    {
+				throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
+							      " PooledConnection: " + resc + 
+							      "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+			    }
+			    finally
+			    { unmarkPhysicalConnectionInUse(physicalConnection); }
+			}
+			else
+			{
+			    if ( testConnectionOnCheckout )
 			    {
 				PooledConnection pc = (PooledConnection) resc;
 				try
@@ -292,25 +294,31 @@ public final class C3P0PooledConnectionPool
 				    unmarkPooledConnectionInUse(pc); 
 				}
 			    }
+			}
 		    }
                 }
 
 		// TODO: refactor this by putting the connectionCustomizer if logic inside the (currently repeated) logic
                 public void refurbishResourceOnCheckin( Object resc ) throws Exception
                 {
-                    if ( connectionCustomizer != null )
-                    {
-                        Connection physicalConnection = null;
-                        try
-                        { 
-                            physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
+		    Connection proxyToClose = null; // can't close a proxy while we own parent PooledConnection's lock.
+		    try
+		    {
+		      synchronized( resc )
+		      {
+			if ( connectionCustomizer != null )
+			{
+			    Connection physicalConnection = null;
+			    try
+			    { 
+				physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
                             
-			    // so by the time we are checked in, all marked-for-destruction statements should be closed.
-                            waitMarkPhysicalConnectionInUse( physicalConnection );
-                            connectionCustomizer.onCheckIn( physicalConnection, parentDataSourceIdentityToken );
-                            SQLWarnings.logAndClearWarnings( physicalConnection );
+				// so by the time we are checked in, all marked-for-destruction statements should be closed.
+				waitMarkPhysicalConnectionInUse( physicalConnection );
+				connectionCustomizer.onCheckIn( physicalConnection, parentDataSourceIdentityToken );
+				SQLWarnings.logAndClearWarnings( physicalConnection );
 
-			    if ( testConnectionOnCheckin )
+				if ( testConnectionOnCheckin )
 				{ 
 				    if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
 					finerLoggingTestPooledConnection( resc, "CHECKIN" );
@@ -318,30 +326,30 @@ public final class C3P0PooledConnectionPool
 					testPooledConnection( resc );
 				}
 
-                        }
-                        catch (ClassCastException e)
-                        {
-                            throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
-                                            " PooledConnection: " + resc + 
-                                            "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
-                        }
-                        finally
-                        { unmarkPhysicalConnectionInUse(physicalConnection); }
-                    }
-                    else
-                    {
-                        PooledConnection pc = (PooledConnection) resc;
-                        Connection con = null;
+			    }
+			    catch (ClassCastException e)
+			    {
+				throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
+							      " PooledConnection: " + resc + 
+							      "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+			    }
+			    finally
+			    { unmarkPhysicalConnectionInUse(physicalConnection); }
+			}
+			else
+			{
+			    PooledConnection pc = (PooledConnection) resc;
+			    Connection con = null;
 
-                        try
-                        {
+			    try
+			    {
 
-			    // so by the time we are checked in, all marked-for-destruction statements should be closed.
-                            waitMarkPooledConnectionInUse( pc );
-                            con = pc.getConnection();
-                            SQLWarnings.logAndClearWarnings(con);
+				// so by the time we are checked in, all marked-for-destruction statements should be closed.
+				waitMarkPooledConnectionInUse( pc );
+				con = pc.getConnection();
+				SQLWarnings.logAndClearWarnings(con);
 
-			    if ( testConnectionOnCheckin )
+				if ( testConnectionOnCheckin )
 				{ 
 				    if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
 					finerLoggingTestPooledConnection( resc, con, "CHECKIN" );
@@ -349,30 +357,38 @@ public final class C3P0PooledConnectionPool
 					testPooledConnection( resc, con );
 				}
 
-                        }
-                        finally
-                        {
-                            // close the proxy Connection
-                            ConnectionUtils.attemptClose(con);
-                            
-                            unmarkPooledConnectionInUse( pc );
-                        }
-                    }
+			    }
+			    finally
+			    {
+				proxyToClose = con;
+				unmarkPooledConnectionInUse( pc );
+			    }
+			}
+		      }
+		    }
+		    finally
+		    {
+			// close any opened proxy Connection
+			ConnectionUtils.attemptClose(proxyToClose);
+		    }
                 }
 
                 public void refurbishIdleResource( Object resc ) throws Exception
                 { 
-		    PooledConnection pc = (PooledConnection) resc;		    
-		    try
+		    synchronized( resc )
+		    {
+			PooledConnection pc = (PooledConnection) resc;		    
+			try
 			{
-                            waitMarkPooledConnectionInUse( pc );
+			    waitMarkPooledConnectionInUse( pc );
 			    if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
 				finerLoggingTestPooledConnection( resc, "IDLE CHECK" );
 			    else
 				testPooledConnection( resc );
 			}
-		    finally
+			finally
 			{ unmarkPooledConnectionInUse( pc ); }
+		    }
                 }
 
                 private void finerLoggingTestPooledConnection(Object resc, String testImpetus) throws Exception

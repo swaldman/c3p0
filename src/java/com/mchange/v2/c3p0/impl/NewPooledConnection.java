@@ -573,6 +573,8 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
     private void close( Throwable cause, boolean forced ) throws SQLException
     {
+	assert Thread.holdsLock( this );
+
         if ( this.invalidatingException == null )
         {
             List closeExceptions = new LinkedList();
