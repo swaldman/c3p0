@@ -824,12 +824,13 @@
        <arg value="-DpomFile=${build.maven-release.dir}/pom.xml" />
        <arg value="-Dfile=${maven.release.jar.file}" />
        <arg value="-Dgpg.passphrase=${gpg.passphrase}" />
-       <arg value="-Pgpg" />
-       <arg value="gpg:sign-and-deploy-file" />
 
        <!-- work around Maven 2.2.1 corrupt multithreading bug -->
        <!-- see http://jira.codehaus.org/browse/MNG-4742 http://jira.codehaus.org/browse/MNG-4301 -->
        <arg value="-Dmaven.artifact.threads=1" /> 
+
+       <arg value="-Pgpg" />
+       <arg value="gpg:sign-and-deploy-file" />
      </exec>
 	
 
@@ -852,12 +853,13 @@
        <arg value="-Dfile=${maven.release.javadoc.jar.file}" />
        <arg value="-Dgpg.passphrase=${gpg.passphrase}" />
        <arg value="-Dclassifier=javadoc" />
-       <arg value="-Pgpg" />
-       <arg value="gpg:sign-and-deploy-file" />
 
        <!-- work around Maven 2.2.1 corrupt multithreading bug -->
        <!-- see http://jira.codehaus.org/browse/MNG-4742 http://jira.codehaus.org/browse/MNG-4301 -->
        <arg value="-Dmaven.artifact.threads=1" /> 
+
+       <arg value="-Pgpg" />
+       <arg value="gpg:sign-and-deploy-file" />
      </exec>
 
      <!-- sign and deploy the sources artifact -->
@@ -879,12 +881,13 @@
        <arg value="-Dfile=${maven.release.sources.jar.file}" />
        <arg value="-Dgpg.passphrase=${gpg.passphrase}" />
        <arg value="-Dclassifier=sources" />
-       <arg value="-Pgpg" />
-       <arg value="gpg:sign-and-deploy-file" />
 
        <!-- work around Maven 2.2.1 corrupt multithreading bug -->
        <!-- see http://jira.codehaus.org/browse/MNG-4742 http://jira.codehaus.org/browse/MNG-4301 -->
        <arg value="-Dmaven.artifact.threads=1" /> 
+
+       <arg value="-Pgpg" />
+       <arg value="gpg:sign-and-deploy-file" />
      </exec>
 
    </target>
