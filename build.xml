@@ -779,6 +779,11 @@
        <arg value="-Durl=${maven.snapshots.repository.url}" />
        <arg value="-DrepositoryId=${maven.snapshots.repository.id}" />
        <arg value="-DpomFile=${build.maven-snapshot.dir}/pom.xml" />
+
+       <!-- work around Maven 2.2.1 corrupt multithreading bug -->
+       <!-- see http://jira.codehaus.org/browse/MNG-4742 http://jira.codehaus.org/browse/MNG-4301 -->
+       <arg value="-Dmaven.artifact.threads=1" /> 
+
        <arg value="-Dfile=${maven.snapshot.jar.file}" />
      </exec>
    </target>
@@ -821,6 +826,10 @@
        <arg value="-Dgpg.passphrase=${gpg.passphrase}" />
        <arg value="-Pgpg" />
        <arg value="gpg:sign-and-deploy-file" />
+
+       <!-- work around Maven 2.2.1 corrupt multithreading bug -->
+       <!-- see http://jira.codehaus.org/browse/MNG-4742 http://jira.codehaus.org/browse/MNG-4301 -->
+       <arg value="-Dmaven.artifact.threads=1" /> 
      </exec>
 	
 
@@ -845,6 +854,10 @@
        <arg value="-Dclassifier=javadoc" />
        <arg value="-Pgpg" />
        <arg value="gpg:sign-and-deploy-file" />
+
+       <!-- work around Maven 2.2.1 corrupt multithreading bug -->
+       <!-- see http://jira.codehaus.org/browse/MNG-4742 http://jira.codehaus.org/browse/MNG-4301 -->
+       <arg value="-Dmaven.artifact.threads=1" /> 
      </exec>
 
      <!-- sign and deploy the sources artifact -->
@@ -868,6 +881,10 @@
        <arg value="-Dclassifier=sources" />
        <arg value="-Pgpg" />
        <arg value="gpg:sign-and-deploy-file" />
+
+       <!-- work around Maven 2.2.1 corrupt multithreading bug -->
+       <!-- see http://jira.codehaus.org/browse/MNG-4742 http://jira.codehaus.org/browse/MNG-4301 -->
+       <arg value="-Dmaven.artifact.threads=1" /> 
      </exec>
 
    </target>
