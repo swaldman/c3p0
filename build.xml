@@ -740,7 +740,7 @@
    <property name="maven.snapshot.jar.file"        value="${build.maven-snapshot.dir}/c3p0-${maven.snapshot.version}.jar" />
 
    <property name="build.maven-release.dir"        value="${build.dir}/maven-release" />
-   <property name="maven.release.version"          value="${c3p0.version}-RELEASE" />
+   <property name="maven.release.version"          value="${c3p0.version}" />
    <property name="maven.release.jar.file"         value="${build.maven-release.dir}/c3p0-${maven.release.version}.jar" />
    <property name="maven.release.javadoc.jar.file" value="${build.maven-release.dir}/c3p0-${maven.release.version}-javadoc.jar" />
    <property name="maven.release.sources.jar.file" value="${build.maven-release.dir}/c3p0-${maven.release.version}-sources.jar" />
