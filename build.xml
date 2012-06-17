@@ -6,7 +6,7 @@
   <property file="../settings/build-c3p0.properties" />
   <property file="build.properties" />
 
-  <property name="c3p0.version" value="0.9.2-pre3" />
+  <property name="c3p0.version" value="0.9.2-pre4" />
 
   <property name="c3p0.copyright.year" value="2012" />
 
@@ -63,7 +63,7 @@
   <property name="j2ee.jar.dir"      value="." />
 
   <path id="codegen-classpath">
-    <pathelement location="${mchange-commons.jar.file}" />
+    <pathelement location="${mchange-commons-java.jar.file}" />
     <pathelement location="${build.classes.dir}" />
     <pathelement path="${j2ee.classpath}" />
     <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
@@ -73,7 +73,7 @@
   <property name="codegen.classpath" refid="codegen-classpath" />
 
   <path id="build-classpath">
-    <pathelement location="${mchange-commons.jar.file}" />
+    <pathelement location="${mchange-commons-java.jar.file}" />
     <pathelement location="${build.classes.dir}" />
     <pathelement path="${j2ee.classpath}" />
     <fileset dir="${j2ee.jar.base.dir}" includes="**/*.jar" />
@@ -108,7 +108,7 @@
   
   <path id="test-classpath">
     <pathelement location="${build.test.props.dir}" />
-    <pathelement location="${mchange-commons.jar.file}" />
+    <pathelement location="${mchange-commons-java.jar.file}" />
     <pathelement location="${build.jar.file}" />
     <pathelement location="${test.classes.dir}" />
     <pathelement path="${j2ee.classpath}" />
@@ -284,7 +284,7 @@
 	<attribute name="Implementation-Vendor-Id" value="com.mchange" />
 	<attribute name="Implementation-Vendor" value="Machinery For Change, Inc." />
 	<attribute name="Implementation-Version" value="${c3p0.version}" />
-	<attribute name="Class-Path" value="${mchange-commons.jar.file.name}" />
+	<attribute name="Class-Path" value="${mchange-commons-java.jar.file.name}" />
       </manifest>
       <fileset dir="${build.classes.dir}" />
     </jar>
@@ -294,7 +294,7 @@
     <ant dir="${dbms.oracle.thin.antproj.dir}" target="${subproject.target}" inheritAll="false">
       <property name="c3p0.version" value="${c3p0.version}" />
       <property name="c3p0.jar.file" location="${build.jar.file}" />
-      <property name="mchange-commons.jar.file" location="${mchange-commons.jar.file}" />
+      <property name="mchange-commons-java.jar.file" location="${mchange-commons-java.jar.file}" />
       <property name="oracle-thin.jdbc.jar.file" value="${oracle-thin.jdbc.jar.file}" />
     </ant>
   </target>
@@ -593,7 +593,7 @@
       <filterchain>
 	<replacetokens>
 	  <token key="c3p0.version" value="${c3p0.version}"/>
-	  <token key="mchange-commons.version" value="${mchange-commons.version}"/>
+	  <token key="mchange-commons-java.version" value="${mchange-commons-java.version}"/>
 	  <token key="c3p0.copyright.year"     value="${c3p0.copyright.year}" />
 	</replacetokens>
       </filterchain>
@@ -605,8 +605,8 @@
       <fileset dir="${build.apidocs.dir}" />
     </copy>
     <copy toDir="${open.dist.src.dir}" file="${build.sources.jar.file}" />
-    <copy toDir="${open.dist.src.dir}" file="${mchange-commons.sources.jar.file}" />
-    <copy file="${mchange-commons.jar.file}" toDir="${open.dist.lib.dir}" />
+    <copy toDir="${open.dist.src.dir}" file="${mchange-commons-java.sources.jar.file}" />
+    <copy file="${mchange-commons-java.jar.file}" toDir="${open.dist.lib.dir}" />
     <copy file="${build.jar.file}" toDir="${open.dist.lib.dir}" />
   </target>
 
@@ -696,7 +696,7 @@
 -->
     </copy>
     <mkdir dir="${build.srcdist.dir}/lib" />
-    <copy todir="${build.srcdist.dir}/lib" file="${mchange-commons.jar.file}" />
+    <copy todir="${build.srcdist.dir}/lib" file="${mchange-commons-java.jar.file}" />
 
     <zip destfile="${dist.dir}/${srcdist.name}.zip">
       <zipfileset dir="${build.srcdist.dir}" prefix="${srcdist.name}" />
@@ -759,7 +759,8 @@
      <copy todir="${build.maven-snapshot.dir}" file="${maven.src.dir}/pom.xml">
        <filterchain>
 	 <replacetokens>
-	   <token key="c3p0.version.maven"   value="${maven.snapshot.version}"/>
+	   <token key="c3p0.version.maven"                   value="${maven.snapshot.version}"/>
+	   <token key="mchange-commons-java.version.maven"   value="${mchange-commons-java.version}"/>
 	 </replacetokens>
        </filterchain>
      </copy>
@@ -799,7 +800,8 @@
      <copy todir="${build.maven-release.dir}" file="${maven.src.dir}/pom.xml">
        <filterchain>
 	 <replacetokens>
-	   <token key="c3p0.version.maven"   value="${maven.release.version}"/>
+	   <token key="c3p0.version.maven"                   value="${maven.release.version}"/>
+	   <token key="mchange-commons-java.version.maven"   value="${mchange-commons-java.version}"/>
 	 </replacetokens>
        </filterchain>
      </copy>
