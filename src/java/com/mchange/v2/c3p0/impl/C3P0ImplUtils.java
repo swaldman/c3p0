@@ -41,7 +41,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import com.mchange.lang.ByteUtils;
 import com.mchange.v2.encounter.EncounterCounter;
-import com.mchange.v2.encounter.EqualityEncounterCounter;
+import com.mchange.v2.encounter.WeakIdentityEncounterCounter;
 import com.mchange.v2.lang.VersionUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
@@ -80,13 +80,28 @@ public final class C3P0ImplUtils
 		    long_tokens = false;
 		
 		if (long_tokens)
-		    ID_TOKEN_COUNTER = new EqualityEncounterCounter();
+		    ID_TOKEN_COUNTER = createEncounterCounter()
 		else
 		    ID_TOKEN_COUNTER = null;
 	    }
 	else
-	    ID_TOKEN_COUNTER = new EqualityEncounterCounter();
+	    ID_TOKEN_COUNTER = createEncounterCounter();
      }
+    
+    // Note that is important that EncounterCounters be based on identity hash code here,
+    // since they will be used to test IdentityTokenized, whose equals methods aren't well-formed,
+    // until their identity tokens are allocated, which is what we are doing here.
+    //
+    // We are using weak semantics, which should be fine and minimizes the possibility of unwanted
+    // memory retention here. There is a hypothetical corner case, whereunder, with a single VM/ClassLoader,
+    // an IdentityTokenized might be created with a given identityHashCode, then serialized or stored as a reference,
+    // then closed within the VM, then another IdentityTokenized with coincidentally the same identityHashCode could
+    // be allocated, then the origial referenced or deserialized, again within the same VM/ClassLoader. This
+    // very, very unlikely case is not dangerous enough to justify the memory cost of strong semantics. In the
+    // very unlikely event it should ever prove an issue, we can add some randomness to the within-VM/ClassLoader
+    // portion of the tokens.
+    private static EncounterCounter createEncounterCounter()
+    { return EncounterCounterUtils.createWeak( IdentityHashCodeIdenticator.INSTANCE ); }
     
     public final static String VMID_PROPKEY = "com.mchange.v2.c3p0.VMID";
     private final static String VMID_PFX;
