@@ -113,7 +113,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	try
 	    {
 		if (configName != null)
-		    C3P0Config.bindNamedConfigToBean( this, configName ); 
+		    C3P0Config.bindNamedConfigToBean( this, configName, true ); 
 	    }
 	catch (Exception e)
 	    {

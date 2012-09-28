@@ -173,7 +173,13 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
         PropertyChangeListener wcpdsStateUpdater = new PropertyChangeListener()
         {
             public void propertyChange( PropertyChangeEvent evt )
-            { updateLocalVarsFromCpdsProp(); }
+            { 
+                String propName = evt.getPropertyName();
+                Object val = evt.getNewValue();
+
+                if ( "connectionPoolDataSource".equals( propName ) )
+		    updateLocalVarsFromCpdsProp(); 
+	    }
         };
         this.addPropertyChangeListener( wcpdsStateUpdater );
     }
@@ -187,7 +193,7 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
     public ComboPooledDataSource(String configName)
     { 
         this();
-        initializeNamedConfig( configName );
+        initializeNamedConfig( configName, true );
     }
 
 //  // workaround sun big id #6342411 (in which reflective
@@ -468,15 +474,6 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
         this.resetPoolManager( false );
     }
 
-    public String getUserOverridesAsString()
-    { return wcpds.getUserOverridesAsString(); }
-
-    public void setUserOverridesAsString( String userOverridesAsString ) throws PropertyVetoException
-    { 
-        wcpds.setUserOverridesAsString( userOverridesAsString ); 
-        this.resetPoolManager( false );
-    }
-
     public int getMaxAdministrativeTaskTime()
     { return wcpds.getMaxAdministrativeTaskTime(); }
 
@@ -521,6 +518,18 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
         wcpds.setUnreturnedConnectionTimeout( unreturnedConnectionTimeout ); 
         this.resetPoolManager( false );
     }
+
+    public String getUserOverridesAsString()
+    { return wcpds.getUserOverridesAsString(); }
+
+    public void setUserOverridesAsString(String uoas) throws PropertyVetoException
+    {
+        wcpds.setUserOverridesAsString( uoas ); 
+        this.resetPoolManager( false );
+    }
+
+    public Map getUserOverrides()
+    { return wcpds.getUserOverrides(); }
 
     public boolean isDebugUnreturnedConnectionStackTraces()
     { return wcpds.isDebugUnreturnedConnectionStackTraces(); }
