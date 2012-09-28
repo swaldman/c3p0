@@ -34,6 +34,9 @@ public final class PoolBackedDataSource extends AbstractPoolBackedDataSource imp
     { this( true ); }
 
     public PoolBackedDataSource(String configName)
-    { super( configName ); }
+    { 
+	this(); 
+        initializeNamedConfig( configName, false );
+    }
 }
 

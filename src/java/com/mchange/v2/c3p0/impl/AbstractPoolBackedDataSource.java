@@ -63,30 +63,30 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
         setUpPropertyEvents();
     }
 
-    protected AbstractPoolBackedDataSource(String configName)
-    { 
-        this( true );
-        initializeNamedConfig( configName );
-    }
-
     private void setUpPropertyEvents()
     {
         PropertyChangeListener l = new PropertyChangeListener()
         {
+	    // we reset for all bound props: connectionPoolDataSource, numHelperThreads, identityToken
             public void propertyChange( PropertyChangeEvent evt )
-            { resetPoolManager(); }
+            { resetPoolManager( false ); }
         };
         this.addPropertyChangeListener( l );
     }
 
-
-    protected void initializeNamedConfig(String configName)
+    // ComboPooledDataSource always has an internal WrapperConnectionPooledDataSource, so
+    // userOverrides (which belong to the ConnectionPoolDataSource) can always be set and
+    // forwarded to the nested cpds.
+    //
+    // PoolBackedDataSource does not always have a nested ConnectionPoolDataSource. UserOverrides
+    // must be set on the nested ConnectionPoolDataSource to have effect.
+    protected void initializeNamedConfig(String configName, boolean shouldBindUserOverridesAsString)
     {
         try
         {
             if (configName != null)
             {
-                C3P0Config.bindNamedConfigToBean( this, configName ); 
+                C3P0Config.bindNamedConfigToBean( this, configName, shouldBindUserOverridesAsString ); 
                 if ( this.getDataSourceName().equals( this.getIdentityToken() ) ) //dataSourceName has not been specified in config
                     this.setDataSourceName( configName );
             }
