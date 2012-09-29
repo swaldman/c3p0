@@ -1,3 +1,4 @@
+        -- Factored out VMID generation into mchange-commons-java.
 c3p0-0.9.2-pre4
 	-- Fixed broken version on Maven dependency to mchange-commons-java.
 	   Version was hardcoded, now uses version number that c3p0 was built
