@@ -1,3 +1,7 @@
+	-- Unsynchronized access to identityToken in the various identityTokenized 
+	   beans, marking the property volatile instead. This should resolve an 
+	   occasional deadlock. Many thanks to Phillip Henry, see 
+	   https://sourceforge.net/tracker/?func=detail&atid=383690&aid=3552097&group_id=25357
 	-- Fixed a bug whereunder PoolBackedDataSources threw an Exception
 	   trying to bind per-user overrides that properly should be bound
 	   only to WrapperConnectionPoolDataSource (or to ComboPooledDataSource,
