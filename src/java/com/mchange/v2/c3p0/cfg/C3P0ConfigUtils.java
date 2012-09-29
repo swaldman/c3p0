@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.2-pre3
+ * Distributed as part of c3p0 v.0.9.2-pre5
  *
  * Copyright (C) 2012 Machinery For Change, Inc.
  *
@@ -153,6 +153,29 @@ public final class C3P0ConfigUtils
 	    { sampleExc = e; }
 
 	return out;
+    }
+
+    /**
+     * @return null if no per-user override is found
+     */
+    public static Object extractUserOverride(String propName, String userName, Map userOverrides)
+    {
+	Map specificUserOverrides = (Map) userOverrides.get( userName ); 
+	if (specificUserOverrides != null)
+	    return specificUserOverrides.get( propName );
+	else
+	    return null;
+    }
+
+    public static Boolean extractBooleanOverride(String propName, String userName, Map userOverrides)
+    {
+	Object check = extractUserOverride( propName, userName, userOverrides);
+	if ( check == null || check instanceof Boolean )
+	    return (Boolean) check;
+	else if (check instanceof String)
+	    return Boolean.valueOf( (String) check );
+	else
+	    throw new ClassCastException("Parameter '" + propName + "' as overridden for user '" + userName + "' is " + check + ", which cannot be converted to Boolean.");
     }
 
     private C3P0ConfigUtils()

@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.2-pre3
+ * Distributed as part of c3p0 v.0.9.2-pre5
  *
  * Copyright (C) 2012 Machinery For Change, Inc.
  *
@@ -199,7 +199,16 @@ public final class C3P0Config
 
     final static Collection SKIP_BIND_PROPS = Arrays.asList( new String[] {"loginTimeout", "properties"} );
 
-    public static void bindNamedConfigToBean(Object bean, String configName) throws IntrospectionException
+    public static void bindUserOverridesAsString(Object bean, String uoas) throws Exception
+    {
+	Method m = bean.getClass().getMethod( "setUserOverridesAsString", SUOAS_ARGS );
+	m.invoke( bean, new Object[] { uoas } );
+    }
+
+    public static void bindUserOverridesToBean(Object bean, String configName) throws Exception
+    { bindUserOverridesAsString( bean, getUserOverridesAsString( configName ) ); }
+
+    public static void bindNamedConfigToBean(Object bean, String configName, boolean shouldBindUserOverridesAsString) throws IntrospectionException
     {
 	Map defaultUserProps = C3P0Config.getUnspecifiedUserProperties( configName );
 	BeansUtils.overwriteAccessiblePropertiesFromMap( defaultUserProps, 
@@ -212,8 +221,8 @@ public final class C3P0Config
 							 false);
 	try
 	    {
-		Method m = bean.getClass().getMethod( "setUserOverridesAsString", SUOAS_ARGS );
-		m.invoke( bean, new Object[] {getUserOverridesAsString( configName )} );
+		if ( shouldBindUserOverridesAsString )
+		    bindUserOverridesToBean( bean, configName ); 
 	    }
 	catch (NoSuchMethodException e)
 	    {

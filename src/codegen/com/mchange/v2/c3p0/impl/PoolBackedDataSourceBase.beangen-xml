@@ -27,11 +27,27 @@
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
+
+       <!--
+          identityToken is now volatile, rather than being protected by synchronization, in order to
+	  avoid rare deadlocks [ see https://sourceforge.net/tracker/?func=detail&atid=383690&aid=3552097&group_id=25357 ]
+
+	  since identityToken is a bound property, unsynchronized access introduces a potential race condition
+	  in which a simultaneous resettings of the variable could lead to missing or superfluous firings of
+	  propertyChangeEvents, as those event firings are controlled by a test of new and old values that
+	  might become stale under concurrent modification. In actual practice, identityToken is intended to be
+	  set only once and by a single thread; tolerating this race seems like an acceptible risk. if out
+	  of some surplus of fastidiousness the risk of this hypothetical race becomes too great to bear,
+	  we can introduce fine-grained locking for identityToken. but it hardly seems worth the trouble.
+	  swaldman, 2012-09-29
+       -->
+
+       <variable><modifiers><modifier>private</modifier><modifier>volatile</modifier></modifiers></variable>
        <type>String</type>
        <name>identityToken</name>
        <bound/> <!-- the C3P0PooledConnectionPoolManager will need to be reset when this changes -->
-       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
-       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+       <getter><modifiers><modifier>public</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier></modifiers></setter>
     </property>
     <property>
        <type>String</type>
@@ -40,7 +56,6 @@
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
-
     <property>
        <type>String</type>
        <name>factoryClassLocation</name>

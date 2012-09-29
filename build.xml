@@ -6,7 +6,7 @@
   <property file="../settings/build-c3p0.properties" />
   <property file="build.properties" />
 
-  <property name="c3p0.version" value="0.9.2-pre5" />
+  <property name="c3p0.version" value="0.9.2" />
 
   <property name="c3p0.copyright.year" value="2012" />
 
@@ -312,6 +312,24 @@
     </antcall>
   </target>
 
+  <target name="compile-junit" depends="compile">
+    <javac destdir="${test.classes.dir}" 
+           classpathref="test-classpath" 
+	   source="${jvm.target.version}"
+	   target="${jvm.target.version}"
+           debug="on">
+      <sourcepath>
+	<pathelement location="${java.src.dir}" />
+      </sourcepath>
+      <src>
+	<pathelement location="${java.src.dir}" />
+      </src>
+      <include name="**/junit/**" />
+      <include name="**/*JUnitTestCase.*" />
+      <patternset refid="common-excludes" />
+    </javac>
+  </target>
+
   <target name="test-init" depends="jar">
     <mkdir dir="${build.test.props.dir}" />
     <copy toDir="${build.test.props.dir}">
@@ -530,7 +548,7 @@
     </java>
   </target>
 
-  <target name="junit-tests" depends="test-init" if="junit.jar.file">
+  <target name="junit-tests" depends="test-init,compile-junit" if="junit.jar.file">
     <mkdir dir="${build.testresults.dir}" />
     <junit printsummary="true" showoutput="true" haltonfailure="true"> 
       <classpath refid="test-classpath" />
@@ -539,7 +557,7 @@
 	<propertyref builtin="commandline" />
       </syspropertyset>
       <batchtest fork="yes" toDir="${build.testresults.dir}">
-	<fileset dir="${build.classes.dir}">
+	<fileset dir="${test.classes.dir}">
 	  <include name="**/*JUnitTestCase.class"/>
 	</fileset>
       </batchtest>
