@@ -33,6 +33,7 @@ import java.util.Map;
 import java.sql.*;
 import javax.sql.*;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
 import com.mchange.v2.c3p0.impl.*;
 import com.mchange.v2.log.*;
 
@@ -144,13 +145,13 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	if (conn == null)
 	    throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
 				   "DataSource: " + getNestedDataSource());
-	if ( this.isUsesTraditionalReflectiveProxies() )
+	if ( this.isUsesTraditionalReflectiveProxies( this.getUser() ) )
 	    {
 		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
 		return new C3P0PooledConnection( conn, 
 						 connectionTester,
-						 this.isAutoCommitOnClose(), 
-						 this.isForceIgnoreUnresolvedTransactions(),
+						 this.isAutoCommitOnClose( this.getUser() ), 
+						 this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
 						 cc,
 						 pdsIdt); 
 	    }
@@ -158,9 +159,9 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    {
 		return new NewPooledConnection( conn, 
 						connectionTester,
-						this.isAutoCommitOnClose(), 
-						this.isForceIgnoreUnresolvedTransactions(),
-						this.getPreferredTestQuery(),
+						this.isAutoCommitOnClose( this.getUser() ), 
+						this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
+						this.getPreferredTestQuery( this.getUser() ),
 						cc,
 						pdsIdt); 
 	    }
@@ -183,13 +184,13 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	if (conn == null)
 	    throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
 				   "DataSource: " + getNestedDataSource());
-	if ( this.isUsesTraditionalReflectiveProxies() )
+	if ( this.isUsesTraditionalReflectiveProxies( user ) )
 	    {
 		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
 		return new C3P0PooledConnection( conn,
 						 connectionTester,
-						 this.isAutoCommitOnClose(), 
-						 this.isForceIgnoreUnresolvedTransactions(),
+						 this.isAutoCommitOnClose( user ), 
+						 this.isForceIgnoreUnresolvedTransactions( user ),
 						 cc,
 						 pdsIdt);
 	    }
@@ -197,14 +198,50 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    {
 		return new NewPooledConnection( conn, 
 						connectionTester,
-						this.isAutoCommitOnClose(), 
-						this.isForceIgnoreUnresolvedTransactions(),
-						this.getPreferredTestQuery(),
+						this.isAutoCommitOnClose( user ), 
+						this.isForceIgnoreUnresolvedTransactions( user ),
+						this.getPreferredTestQuery( user ),
 						cc,
 						pdsIdt); 
 	    }
     }
- 
+
+    private boolean isAutoCommitOnClose( String userName )
+    {
+	if ( userName == null )
+	    return this.isAutoCommitOnClose();
+
+	Boolean override = C3P0ConfigUtils.extractBooleanOverride( "autoCommitOnClose", userName, userOverrides );
+	return ( override == null ? this.isAutoCommitOnClose() : override.booleanValue() );
+    }
+
+    private boolean isForceIgnoreUnresolvedTransactions( String userName )
+    {
+	if ( userName == null )
+	    return this.isForceIgnoreUnresolvedTransactions();
+
+	Boolean override = C3P0ConfigUtils.extractBooleanOverride( "forceIgnoreUnresolvedTransactions", userName, userOverrides );
+	return ( override == null ? this.isForceIgnoreUnresolvedTransactions() : override.booleanValue() );
+    }
+
+    private boolean isUsesTraditionalReflectiveProxies( String userName )
+    {
+	if ( userName == null )
+	    return this.isUsesTraditionalReflectiveProxies();
+
+	Boolean override = C3P0ConfigUtils.extractBooleanOverride( "usesTraditionalReflectiveProxies", userName, userOverrides );
+	return ( override == null ? this.isUsesTraditionalReflectiveProxies() : override.booleanValue() );
+    }
+
+    private String getPreferredTestQuery( String userName )
+    {
+	if ( userName == null )
+	    return this.getPreferredTestQuery();
+
+	String override = (String) C3P0ConfigUtils.extractUserOverride( "preferredTestQuery", userName, userOverrides );
+	return (override == null ? this.getPreferredTestQuery() : override);
+    }
+
     public PrintWriter getLogWriter()
 	throws SQLException
     { return getNestedDataSource().getLogWriter(); }

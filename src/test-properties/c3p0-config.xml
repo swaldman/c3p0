@@ -20,11 +20,14 @@
     <!-- <property name="driverClass">org.postgresql.Driver</property> -->
     <!-- <property name="jdbcUrl">jdbc:postgresql://localhost/c3p0-test</property> -->
 
-    <!--
+
     <user-overrides user="swaldman">
+      <!--
+      <property name="unreturnedConnectionTimeout">5</property>
       <property name="debugUnreturnedConnectionStackTraces">true</property>
+      -->
+      <!-- <property name="preferredTestQuery">select poop from doop</property> --><!-- intentionally broken -->
     </user-overrides>
-    -->
 
   </default-config>
 

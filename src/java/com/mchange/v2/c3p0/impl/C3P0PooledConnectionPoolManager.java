@@ -432,13 +432,9 @@ public final class C3P0PooledConnectionPoolManager
     {
         Object out = null;
 
-        if (userName != null)
-        {
             //userOverrides are usually config file defined, unless rarely used forceUserOverrides is supplied!
-            Map specificUserOverrides = (Map) userOverrides.get( userName ); 
-            if (specificUserOverrides != null)
-                out = specificUserOverrides.get( propName );
-        }
+        if (userName != null)
+	    out = C3P0ConfigUtils.extractUserOverride( propName, userName, userOverrides );
 
         if (out == null && flatPropertyOverrides != null) //flatPropertyOverrides is a rarely used mechanism for forcing a config
             out = flatPropertyOverrides.get( propName );
