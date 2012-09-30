@@ -20,7 +20,13 @@ Some highlights:
 
     -- unreturned Connections that are timed out (bad! bad!) are either rolled back (default)
        or committed before close(), respecting your unresolved transaction configuration.
-       (see config parameter unresolvedConnectionTimeout in docs).
+       (see config parameter unresolvedConnectionTimeout in docs)
+
+    -- c3p0 is now actively maintained for deployment as a managed dependency on
+       Sonatype's central maven repository
+
+    -- Miscellaneous fixes for bugs/deadlocks/resource-leaks, see CHANGELOG (and many thanks
+       to users who've helped track these issues down!)
 
 + You must now include two jar files (c3p0 and mchange-commons-java) in your CLASSPATH
   rather than just one. Both can be found in the lib directory of the binary distribution.

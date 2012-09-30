@@ -1,3 +1,4 @@
+	-- Updated RELEASE_NOTES, set version to 0.9.2
 c3p0-0.9.2-pre5
 	-- Some fixes of issues with per-user config overrides, verified and
 	   updated docs with respect to per-user configs.
