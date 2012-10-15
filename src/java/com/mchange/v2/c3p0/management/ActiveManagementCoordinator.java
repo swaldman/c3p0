@@ -146,6 +146,6 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
     }
     
     private String getPdsObjectNameStr(PooledDataSource pds)
-    { return "com.mchange.v2.c3p0:type=PooledDataSource[" + pds.getIdentityToken() + "]"; }
+    { return "com.mchange.v2.c3p0:type=PooledDataSource,identityToken=" + pds.getIdentityToken(); }
 }
 
