@@ -43,6 +43,7 @@ import javax.management.MBeanOperationInfo;
 import javax.management.MBeanParameterInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.management.ObjectInstance;
 import javax.management.ReflectionException;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
@@ -120,6 +121,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
 
     PooledDataSource pds;
     String mbeanName;
+    String oldPdsName;
     MBeanServer mbs;
     
     ConnectionPoolDataSource cpds;
@@ -137,8 +139,14 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             String propName = evt.getPropertyName();
             Object val = evt.getNewValue();
 
-            if ("nestedDataSource".equals(propName) || "connectionPoolDataSource".equals(propName))
+            if ("nestedDataSource".equals(propName) || "connectionPoolDataSource".equals(propName)) {
                 reinitialize();
+            } else if ("dataSourceName".equals(propName)) {
+                if (evt.getOldValue() != null) {
+                    oldPdsName = evt.getOldValue().toString();
+                }
+                reinitialize();
+           }
         }
     };
 
@@ -147,10 +155,11 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
     { 
         this.pds = pds; 
         this.mbeanName = mbeanName;
+	this.oldPdsName = pds.getDataSourceName();
         this.mbs = mbs;
         
         if (pds instanceof ComboPooledDataSource)
-            /* do nothing */;
+            ((ComboPooledDataSource) pds).addPropertyChangeListener(pcl);
         else if (pds instanceof AbstractPoolBackedDataSource)
             ((AbstractPoolBackedDataSource) pds).addPropertyChangeListener(pcl);
         else
@@ -224,17 +233,18 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             // that the MBeanInfo is reread.
             try
             {
-                ObjectName oname = ObjectName.getInstance( mbeanName );
+                ObjectName oname = ObjectName.getInstance( mbeanName + ",name=" + oldPdsName );
                 if (mbs.isRegistered( oname ))
                 {
                     mbs.unregisterMBean( oname );
                     if (logger.isLoggable(MLevel.FINER))
-                        logger.log(MLevel.FINER, "MBean: " + mbeanName + " unregistered, in order to be reregistered after update.");
+                        logger.log(MLevel.FINER, "MBean: " + oname.toString() + " unregistered, in order to be reregistered after update.");
                 }
+		oname = ObjectName.getInstance(mbeanName + ",name=" + pds.getDataSourceName());
                 mbs.registerMBean( this, oname );
                 if (logger.isLoggable(MLevel.FINER))
-                    logger.log(MLevel.FINER, "MBean: " + mbeanName + " registered.");
-                
+                    logger.log(MLevel.FINER, "MBean: " + oname.toString() + " registered.");
+		
                 return null;
             }
             catch (Exception e)
