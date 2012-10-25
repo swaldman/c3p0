@@ -13,7 +13,7 @@ Look here for the most recent [CHANGELOG](https://github.com/swaldman/c3p0/blob/
 
 Please address comments and questions to the [library author](mailto:swaldman@mchange.com), although keep in mind he is an abysmal correspondent and basically an asshole. Despite that, your feedback is very much appreciated. You may also open issues on github and/or sourceforge.
 
-Thank you for your interest in c3p0. I do hope that you find it useful.
+Thank you for your interest in c3p0. I do hope that you find it useful!
 
 
 
