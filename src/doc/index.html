@@ -1318,6 +1318,12 @@ public class VerboseConnectionCustomizer
 	the available operations.)
       </p>
       <p>
+	The name under which mbeans for c3p0 PooledDataSources will be registered includes the property
+	<a class="cfg_param" href="#dataSourceName">dataSourceName</a>. 
+	So, if you set this property, you can ensure that semanically equivalent data sources
+	are identifiable across application restarts.
+      </p>
+      <p>
     If you do not want c3p0 to register MBeans with your JMX environment, you can suppress this
     behavior with the following, set either as a System property or in <tt>c3p0.properties</tt>:
       </p>
@@ -1512,6 +1518,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <a href="#checkoutTimeout">checkoutTimeout</a><br/>
 	    <a href="#connectionCustomizerClassName">connectionCustomizerClassName</a><br/>
 	    <a href="#connectionTesterClassName">connectionTesterClassName</a><br/>
+	    <a href="#dataSourceName">dataSourceName</a><br/>
 	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
 	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	  </td>
@@ -1637,6 +1644,20 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    the introduction of <tt>automaticTestTable</tt> and <tt>preferredTestQuery</tt> configuration parameters, "rolling your own" should be overkill
 	    for most users.
 	    [See <a href="#configuring_connection_testing">"Configuring Connection Testing"]</a>
+	  </div>
+	</dd>
+	<dt><a name="dataSourceName" />dataSourceName</dt>
+	<dd>
+	  <div class="default">Default: if configured with a <a href="#c3p0-config.xml">named config</a>, the config name, otherwise the pool's "identity token"</div>
+	  <div class="propdesc">
+	       Every c3p0 pooled data source is given a <tt>dataSourceName</tt>, which serves two purposes. It helps users find DataSources via
+	       <a href="#using_c3p0_registry_box">C3P0Registry</a>, and it is included in the name of JMX mBeans in order to help 
+	       track and distinguish between multiple c3p0 DataSources even across application or JVM restarts. <tt>dataSourceName</tt>
+	       defaults to the pool's configuration name, if a <a href="#c3p0-config.xml">named config</a> was used, or else to an "identity token" (an
+	       opaque, guaranteed unique String associated with every c3p0 DataSource). You may update this property to any name you find convenient.
+	       <tt>dataSourceName</tt> is <i>not</i> guaranteed to be unique &mdash; for example, multiple DataSource created from the same named
+	       configuration will share the same <tt>dataSourceName</tt>. But if you are going to make use of <tt>dataSourceName</tt>,
+	       you will probably want to ensure that all pooled DataSources within your JVM do have unique names.
 	  </div>
 	</dd>
 	<dt><a name="debugUnreturnedConnectionStackTraces" />debugUnreturnedConnectionStackTraces</dt>

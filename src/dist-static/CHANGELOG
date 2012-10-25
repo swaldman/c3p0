@@ -1,4 +1,9 @@
-	-- Updated RELEASE_NOTES, set version to 0.9.2
+        -- Included (excellent, very lightweight) patch by Bryan Varner [ https://github.com/bvarner ]
+	   that includes the property dataSourceName in the registered name of c3p0
+	   JMX mbeans. As Varner writes, "This allows you to query mbeans by stable name patterns,
+	   allowing for reliable instrumentation via JMX between VM instances." Many thanks
+	   to Bryan Varner.
+	-- Updated RELEASE_NOTES
 c3p0-0.9.2-pre5
 	-- Some fixes of issues with per-user config overrides, verified and
 	   updated docs with respect to per-user configs.

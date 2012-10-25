@@ -267,6 +267,11 @@ public final class C3P0Registry
     public synchronized static Set getPooledDataSources()
     { return (Set) unclosedPooledDataSources.clone(); }
 
+    /**
+     *
+     * @return the set of all PooledDataSources sharing the given dataSourceName
+     *
+     */
     public synchronized static Set pooledDataSourcesByName( String dataSourceName )
     {
         Set out = new HashSet();
@@ -279,6 +284,13 @@ public final class C3P0Registry
         return out;
     }
 
+    /**
+     * <b>Note:</b> If multiple PooledDataSources in your JVM share the same <tt>dataSourceName</tt>, which of those
+     *              multiple DataSources will be returned by this method is undefined!
+     *
+     * @return a PooledDataSource with the given <tt>dataSourceName</tt>, if at least one exists. <tt>null</tt> otherwise.
+     *
+     */
     public synchronized static PooledDataSource pooledDataSourceByName( String dataSourceName )
     {
         for (Iterator ii = unclosedPooledDataSources.iterator(); ii.hasNext(); )
