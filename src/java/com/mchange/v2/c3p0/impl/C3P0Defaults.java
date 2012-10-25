@@ -74,6 +74,8 @@ public final class C3P0Defaults
     private final static String USER_OVERRIDES_AS_STRING         = null;
     private final static String USER                             = null;
 
+    private final static String DATA_SOURCE_NAME                 = null;
+
     private static Set KNOWN_PROPERTIES;
 
     static
@@ -208,5 +210,8 @@ public final class C3P0Defaults
 
     public static int maxConnectionAge()
     { return MAX_CONNECTION_AGE; }
+
+    public static String dataSourceName()
+    { return DATA_SOURCE_NAME; }
 }
 

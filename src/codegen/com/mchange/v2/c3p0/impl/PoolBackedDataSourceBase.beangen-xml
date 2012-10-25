@@ -53,7 +53,7 @@
        <type>String</type>
        <name>dataSourceName</name>
        <bound/>
-       <default-value>null</default-value>
+       <default-value>C3P0Config.initializeStringPropertyVar("dataSourceName", C3P0Defaults.dataSourceName())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>

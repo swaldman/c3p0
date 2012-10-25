@@ -17,6 +17,8 @@
     <!-- <property name="unreturnedConnectionTimeout">15</property> -->
     <!-- <property name="debugUnreturnedConnectionStackTraces">true</property> -->
 
+    <!-- <property name="dataSourceName">poop</property> -->
+
     <!-- <property name="driverClass">org.postgresql.Driver</property> -->
     <!-- <property name="jdbcUrl">jdbc:postgresql://localhost/c3p0-test</property> -->
 
@@ -32,14 +34,15 @@
   </default-config>
 
 
-  <!--
+<!--
   <named-config name="dumbTestConfig">
     <property name="maxStatements">200</property>
     <property name="jdbcUrl">jdbc:test</property>
+    <property name="dataSourceName">scoop</property>
     <user-overrides user="poop">
       <property name="maxStatements">300</property>
     </user-overrides>
    </named-config>
-   -->
+-->
 
 </c3p0-config>
