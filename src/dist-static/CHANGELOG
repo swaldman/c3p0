@@ -1,3 +1,8 @@
+	-- Added a README.md file for github.
+	-- Updated documentation to include dataSourceName as a config parameter, and to describe
+	   its use in generating stable JMX identifers.
+        -- Made dataSourceName a first-class config parameter, configurable in all the usual ways,
+	   to help support its use for stable JMX names.
         -- Included (excellent, very lightweight) patch by Bryan Varner [ https://github.com/bvarner ]
 	   that includes the property dataSourceName in the registered name of c3p0
 	   JMX mbeans. As Varner writes, "This allows you to query mbeans by stable name patterns,
