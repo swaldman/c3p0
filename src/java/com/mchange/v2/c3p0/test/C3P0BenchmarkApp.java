@@ -121,7 +121,7 @@ public final class C3P0BenchmarkApp
 
       //ds_pooled = DataSources.pooledDataSource(ds_unpooled);
         
-		//ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
+                //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
  		ComboPooledDataSource cpds = new ComboPooledDataSource();
  		//cpds.setJdbcUrl( jdbc_url );
  		//cpds.setUser( username );
