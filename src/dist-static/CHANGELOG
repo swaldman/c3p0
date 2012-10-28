@@ -1,3 +1,5 @@
+        -- Added a DEBUG STACK TRACE at log level FINEST in BasicResourcePool for tracking the cause
+	   of resource exclusion.
 	-- Added a README.md file for github.
 	-- Updated documentation to include dataSourceName as a config parameter, and to describe
 	   its use in generating stable JMX identifers.
