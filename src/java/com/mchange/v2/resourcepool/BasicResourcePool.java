@@ -540,7 +540,7 @@ class BasicResourcePool implements ResourcePool
                 {
                     card.checkout_time = System.currentTimeMillis();
                     if (debug_store_checkout_exceptions)
-                        card.checkoutStackTraceException = new Exception("DEBUG ONLY: Overdue resource check-out stack trace.");
+                        card.checkoutStackTraceException = new Exception("DEBUG STACK TRACE: Overdue resource check-out stack trace.");
                 }
             }
         }
@@ -1032,7 +1032,7 @@ class BasicResourcePool implements ResourcePool
                 logger.log( MLevel.FINEST, 
                                 this + ": Destroyiong a resource on an active pool, synchronousy while holding pool's lock! " +
                                 "(not a bug, but a potential bottleneck... is there a good reason for this?)", 
-                                new Exception("DEBUG STACK TRACE") );
+                                new Exception("DEBUG STACK TRACE: resource destruction while holding lock.") );
 
             r.run();
         }
@@ -1510,6 +1510,8 @@ class BasicResourcePool implements ResourcePool
         excluded.add(resc);
         if (Debug.DEBUG && unused.contains(resc) )
             throw new InternalError( "We should only \"exclude\" checked-out resources!" );
+	if ( Debug.DEBUG && logger.isLoggable( MLevel.FINEST ) )
+	    logger.log( MLevel.FINEST, "Excluded resource " + resc, new Exception("DEBUG STACK TRACE: Excluded resource stack trace"));
         asyncFireResourceRemoved( resc, true, managed.size(), unused.size(), excluded.size() );
     }
 
