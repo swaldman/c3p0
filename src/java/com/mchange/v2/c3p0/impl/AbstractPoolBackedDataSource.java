@@ -505,7 +505,7 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
         if (poolManager == null)
         {
             ConnectionPoolDataSource cpds = assertCpds();
-            poolManager = new C3P0PooledConnectionPoolManager(cpds, null, null, this.getNumHelperThreads(), this.getIdentityToken());
+            poolManager = new C3P0PooledConnectionPoolManager(cpds, null, null, this.getNumHelperThreads(), this.getIdentityToken(), this.getDataSourceName());
             if (logger.isLoggable(MLevel.INFO))
                 logger.info("Initializing c3p0 pool... " + this.toString()  /* + "; using pool manager: " + poolManager */);
         }
