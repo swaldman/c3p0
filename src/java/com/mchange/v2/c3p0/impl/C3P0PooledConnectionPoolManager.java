@@ -66,6 +66,7 @@ public final class C3P0PooledConnectionPoolManager
     final Map userOverrides;
     final DbAuth defaultAuth;
     final String parentDataSourceIdentityToken;
+    final String parentDataSourceName;
     /* MT: end independently thread-safe, never reassigned post-ctor or factory */
 
     /* MT: unchanging after constructor completes */
@@ -134,20 +135,38 @@ public final class C3P0PooledConnectionPoolManager
 	return out;
     }
 
+    private String idString()
+    {
+	StringBuffer sb = new StringBuffer(512);
+	sb.append("C3P0PooledConnectionPoolManager");
+	sb.append('[');
+	sb.append("identityToken->");
+	sb.append(parentDataSourceIdentityToken);
+	if (parentDataSourceIdentityToken == null || (! parentDataSourceIdentityToken.equals( parentDataSourceName )))
+	{
+	    sb.append(", dataSourceName->");
+	    sb.append( parentDataSourceName );
+	}
+	sb.append(']');
+	return sb.toString();
+    }
+
     private synchronized void poolsInit()
     {
-        this.timer = new Timer("C3P0PooledConnectionPoolManager-AdminTaskTimer", true );
+	String idStr = idString();
+
+        this.timer = new Timer(idStr + "-AdminTaskTimer", true );
 
         int matt = this.getMaxAdministrativeTaskTime();
 
-	this.taskRunner = createTaskRunner( num_task_threads, matt, timer, "C3P0PooledConnectionPoolManager-Helper Thread" );
+	this.taskRunner = createTaskRunner( num_task_threads, matt, timer, idStr + "-HelperThread" );
         //this.taskRunner = new RoundRobinAsynchronousRunner( num_task_threads, true );
         //this.rpfact = ResourcePoolFactory.createInstance( taskRunner, timer );
 
         int num_deferred_close_threads = this.getStatementCacheNumDeferredCloseThreads();
 	
 	if (num_deferred_close_threads > 0)
-	    this.deferredStatementDestroyer = createTaskRunner( num_deferred_close_threads, matt, timer, "C3P0PooledConnectionPoolManager-Deferred Statement Destroyer Thread" );
+	    this.deferredStatementDestroyer = createTaskRunner( num_deferred_close_threads, matt, timer, idStr + "-DeferredStatementDestroyerThread" );
 	else
 	    this.deferredStatementDestroyer = null;
 
@@ -195,7 +214,8 @@ public final class C3P0PooledConnectionPoolManager
 					   Map flatPropertyOverrides,     // Map of properties, usually null
 					   Map forceUserOverrides,        // userNames to Map of properties, usually null
 					   int num_task_threads,
-					   String parentDataSourceIdentityToken)
+					   String parentDataSourceIdentityToken,
+					   String parentDataSourceName)
     throws SQLException
     {
         try
@@ -204,6 +224,7 @@ public final class C3P0PooledConnectionPoolManager
             this.flatPropertyOverrides = flatPropertyOverrides;
             this.num_task_threads = num_task_threads;
             this.parentDataSourceIdentityToken = parentDataSourceIdentityToken;
+	    this.parentDataSourceName = parentDataSourceName;
 
             DbAuth auth = null;
 
