@@ -108,7 +108,9 @@ public final class C3P0BenchmarkApp
 
 		//ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
 		//ds_pooled = DataSources.pooledDataSource( ds_unpooled );
-      ds_unpooled = new DriverManagerDataSource();
+
+		ds_unpooled = new DriverManagerDataSource();
+		//ds_unpooled = new FreezableDriverManagerDataSource();
 
    		//DataSource ds_unpooled_screwy = C3P0TestUtils.unreliableCommitDataSource( ds_unpooled );
    		//ds_pooled = DataSources.pooledDataSource( ds_unpooled_screwy );
@@ -119,7 +121,7 @@ public final class C3P0BenchmarkApp
 //  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
 //  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, "foo", "goo" );
 
-      //ds_pooled = DataSources.pooledDataSource(ds_unpooled);
+		//ds_pooled = DataSources.pooledDataSource(ds_unpooled);
         
                 //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
  		ComboPooledDataSource cpds = new ComboPooledDataSource();

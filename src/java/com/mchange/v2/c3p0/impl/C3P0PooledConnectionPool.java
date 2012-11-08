@@ -79,10 +79,44 @@ public final class C3P0PooledConnectionPool
 
     final ThrowableHolderPool thp = new ThrowableHolderPool();
 
+    final InUseLockFetcher inUseLockFetcher;
+
     public int getStatementDestroyerNumConnectionsInUse()                           { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsInUse(); }
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatements()   { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsWithDeferredDestroyStatements(); }
-    public int getStatementDestroyerNumDeferredDestroyStatements()                  { return scache == null ? -1 : scache.getStatementDestroyerNumDeferredDestroyStatements(); }  
+    public int getStatementDestroyerNumDeferredDestroyStatements()                  { return scache == null ? -1 : scache.getStatementDestroyerNumDeferredDestroyStatements(); } 
 
+    /**
+     *  This "lock fetcher" crap is a lot of ado about very little.
+     *  In theory, there is a hazard that pool maintenance tasks could
+     *  get sufficiently backed up in the Thread pool that say, multple
+     *  Connection tests might run simultaneously. That would be okay,
+     *  but the Statement cache's "mark-in-use" functionality doesn't
+     *  track nested use of resources. So we enforce exclusive, sequential
+     *  execution of internal tests by requiring the tests hold a lock.
+     *  But what lock to hold? The obvious choice is the tested resource's
+     *  lock, but NewPooledConnection is designed for use by clients that
+     *  do not hold its lock. So, we give NewPooledConnection an internal
+     *  Object, an "inInternalUseLock", and lock on this resource instead.
+     */
+
+    private interface InUseLockFetcher
+    {
+	public Object getInUseLock(Object resc);
+    }
+
+    private static class ResourceItselfInUseLockFetcher implements InUseLockFetcher
+    {
+	public Object getInUseLock(Object resc) { return resc; }
+    }
+
+    private static class C3P0PooledConnectionNestedLockLockFetcher implements InUseLockFetcher
+    {
+	public Object getInUseLock(Object resc)
+	{ return ((NewPooledConnection) resc).inInternalUseLock; }
+    }
+
+    private static InUseLockFetcher RESOURCE_ITSELF_IN_USE_LOCK_FETCHER = new ResourceItselfInUseLockFetcher();
+    private static InUseLockFetcher C3P0_POOLED_CONNECION_NESTED_LOCK_LOCK_FETCHER = new C3P0PooledConnectionNestedLockLockFetcher();
 
     C3P0PooledConnectionPool( final ConnectionPoolDataSource cpds,
                     final DbAuth auth,
@@ -134,6 +168,8 @@ public final class C3P0PooledConnectionPool
             
             this.c3p0PooledConnections = (cpds instanceof WrapperConnectionPoolDataSource);
             this.effectiveStatementCache = c3p0PooledConnections && (scache != null);
+
+	    this.inUseLockFetcher = (c3p0PooledConnections ? C3P0_POOLED_CONNECION_NESTED_LOCK_LOCK_FETCHER : RESOURCE_ITSELF_IN_USE_LOCK_FETCHER);
 
             class PooledConnectionResourcePoolManager implements ResourcePool.Manager
             {	
@@ -247,7 +283,7 @@ public final class C3P0PooledConnectionPool
 
                 public void refurbishResourceOnCheckout( Object resc ) throws Exception
                 {
-		    synchronized (resc) 
+		    synchronized (inUseLockFetcher.getInUseLock(resc))
 		    {
 			if ( connectionCustomizer != null )
 			{
@@ -304,7 +340,7 @@ public final class C3P0PooledConnectionPool
 		    Connection proxyToClose = null; // can't close a proxy while we own parent PooledConnection's lock.
 		    try
 		    {
-		      synchronized( resc )
+		      synchronized (inUseLockFetcher.getInUseLock(resc))
 		      {
 			if ( connectionCustomizer != null )
 			{
@@ -375,7 +411,7 @@ public final class C3P0PooledConnectionPool
 
                 public void refurbishIdleResource( Object resc ) throws Exception
                 { 
-		    synchronized( resc )
+		    synchronized (inUseLockFetcher.getInUseLock(resc))
 		    {
 			PooledConnection pc = (PooledConnection) resc;		    
 			try
