@@ -61,6 +61,12 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     final Map                    dflt_typeMap;
     final ConnectionEventSupport ces;
 
+    // thread-safe post c'tor constant, accessed directly by C3P0PooledConnectionPool
+    // since the StatementCache "in-use" marker doesn't nest, we have to ensure that
+    // internal uses Connection tests don't overlap. (External use, due to checkout,
+    // is no problem, no internal operation are performed on checked-out PooledConnections
+    final Object inInternalUseLock = new Object();
+
     //MT:  protected by this' lock
     GooGooStatementCache scache                    = null;
     Throwable            invalidatingException     = null;

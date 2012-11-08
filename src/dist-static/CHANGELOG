@@ -1,3 +1,8 @@
+	-- Added some logic that continues to enforce sequential (i.e. nonsimultaneous) use of
+	   PooledConnections in Connection tests, without requiriing Threads to use NewPooledConnection's
+	   lock. Clients of NewPooledConnection should not hold its lock directly, to avoid
+	   potential deadlocks due to Connection eent handlers. [Many thanks to Jan Zuchhold
+	   for calling attention to this problem.]
         -- Added a DEBUG STACK TRACE at log level FINEST in BasicResourcePool for tracking the cause
 	   of resource exclusion.
 	-- Added a README.md file for github.
