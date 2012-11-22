@@ -207,6 +207,10 @@
 	 font-size: smaller;
          margin-top: 0.5em;
       }
+      span.deprecated {
+         color: red;
+         font-weight: bold;
+      }
       span.hibparam_comment {
          font-family: optima, helvetica, arial, sans-serif;
          font-style: italic;
@@ -323,8 +327,8 @@
 	  <li><a href="#configuring_logging">Configuring Logging</a></li>
 	</ol>
       </li>
-      <li><a href="#known_shortcomings">Performance</a></li>
-      <li><a href="#performance">Known shortcomings</a></li>
+      <li><a href="#performance">Performance</a></li>
+      <li><a href="#known_shortcomings">Known shortcomings</a></li>
       <li><a href="#feedback_and_support">Feedback and support</a></li>
       <li><a href="#configuration_properties">Appendix A: Configuration Properties</a></li>
       <li><a href="#configuration_files">Appendix B: Configuation Files, etc.</a></li>
@@ -1284,7 +1288,7 @@ public class VerboseConnectionCustomizer
 	<li><a class="cfg_param" href="#factoryClassLocation">factoryClassLocation</a></li>
 	<li><a class="cfg_param" href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a></li>
 	<li><a class="cfg_param" href="#numHelperThreads">numHelperThreads</a></li>
-	<li><a class="cfg_param" href="#usesTraditionalReflectiveProxies">usesTraditionalReflectiveProxies</a></li>
+	<li><a class="cfg_param" href="#usesTraditionalReflectiveProxies"><s>usesTraditionalReflectiveProxies</s></a></li>
       </ul>
       <p>
       	<tt>numHelperThreads</tt> and <tt>maxAdministrativeTaskTime</tt> help to configure the behavior
@@ -1297,7 +1301,7 @@ public class VerboseConnectionCustomizer
       <p>
       	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
       	checked out and one cannot be supplied immediately. <tt>usesTraditionalReflectiveProxies</tt>, which is
-      	of little practical use, permits you to use an old, now superceded implementation of C3P0-generated proxy objects. (C3P0
+      	of little practical use and now formally deprecated, permits you to use an old, now superceded implementation of C3P0-generated proxy objects. (C3P0
       	used to use reflective, dynamic proxies. Now, for enhanced performance, it uses code-generated, nonrefective
       	implementations.) <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
       	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
@@ -1547,7 +1551,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <a href="#testConnectionOnCheckout">testConnectionOnCheckout</a><br/>
 	    <a href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a><br/>
 	    <a href="#user">user</a><br/>
-	    <a href="#usesTraditionalReflectiveProxies">usesTraditionalReflectiveProxies</a><br/>
+	    <a href="#usesTraditionalReflectiveProxies"><s>usesTraditionalReflectiveProxies</s></a><br/>
 	  </td>
 	</tr>
       </table>
@@ -1972,11 +1976,12 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <tt>getConnection()</tt> method. (See also <a href="#password">password</a>.)
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
-	<dt><a name="usesTraditionalReflectiveProxies" />usesTraditionalReflectiveProxies</dt>
+	<dt><a name="usesTraditionalReflectiveProxies" /><s>usesTraditionalReflectiveProxies</s></dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
-	    c3p0 originally used reflective dynamic proxies for implementations of Connections and other JDBC
+	    <span class="deprecated">Deprecated.</span> c3p0 originally used reflective dynamic proxies for 
+	    implementations of Connections and other JDBC
 	    interfaces. As of c3p0-0.8.5, non-reflective, code-generated implementations are used instead. As
 	    this was a major change, and the old codebase had been extensively used and tested, this parameter
 	    was added to allow users to revert of they had problems. The new, non-reflexive implementation is
