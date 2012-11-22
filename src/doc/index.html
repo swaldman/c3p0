@@ -1300,8 +1300,9 @@ public class VerboseConnectionCustomizer
       </p>
       <p>
       	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
-      	checked out and one cannot be supplied immediately. <tt>usesTraditionalReflectiveProxies</tt>, which is
-      	of little practical use and now formally deprecated, permits you to use an old, now superceded implementation of C3P0-generated proxy objects. (C3P0
+      	checked out and one cannot be supplied immediately. <tt>usesTraditionalReflectiveProxies</tt> is
+      	of little practical use and is now formally deprecated. It permits you to use an old, now superceded 
+	implementation of C3P0-generated proxy objects. (C3P0
       	used to use reflective, dynamic proxies. Now, for enhanced performance, it uses code-generated, nonrefective
       	implementations.) <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
       	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
