@@ -1,3 +1,4 @@
+c3p0-0.9.2-pre6
 	-- Added some logic that continues to enforce sequential (i.e. nonsimultaneous) use of
 	   PooledConnections in Connection tests, without requiriing Threads to use NewPooledConnection's
 	   lock. Clients of NewPooledConnection should not hold its lock directly, to avoid
