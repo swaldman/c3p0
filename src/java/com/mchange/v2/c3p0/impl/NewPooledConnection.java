@@ -703,7 +703,15 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                 try
                 { rs.close(); }
                 catch ( SQLException e )
-                { closeExceptions.add(e); }
+                { 
+		    closeExceptions.add(e);
+
+
+		    if ( logger.isLoggable( MLevel.FINER ) )
+			logger.log( MLevel.FINER, 
+				    "An Exception occurred while trying to cleanup the following ResultSet: " + rs, 
+				    e);
+ 		}
             }
         }
         resultSetsForStatements.clear();
@@ -717,7 +725,14 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
             try
             { stmt.close(); }
             catch ( SQLException e )
-            { closeExceptions.add(e); }
+            { 
+		closeExceptions.add(e); 
+
+		if ( logger.isLoggable( MLevel.FINER ) )
+		    logger.log( MLevel.FINER, 
+				"An Exception occurred while trying to cleanup the following uncached Statement: " + stmt, 
+				e);
+	    }
 
             ii.remove();
         }

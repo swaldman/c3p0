@@ -1,3 +1,6 @@
+	-- Added some extra logging (at level FINER [or DEBUG] to NewPooledConnection, in hopes
+	   that it will be helpful in tracking down Exceptions that occur during automatic cleanup
+	   of unclosed Statements and ResultSets.
 c3p0-0.9.2-pre6
 	-- Added some logic that continues to enforce sequential (i.e. nonsimultaneous) use of
 	   PooledConnections in Connection tests, without requiriing Threads to use NewPooledConnection's
