@@ -1,3 +1,8 @@
+	-- Added hooks [in mchange-commons-java] to com.mchange.v2.codegen.intc.DelegatorGenerator
+	   to permit reflective delegation of methods not declared by the main interface. Added
+	   some unproblematic JDBC4 methods to generated PreparedStatement proxies in order (hopefully)
+	   to workaround hibernate issues. (see https://hibernate.onjira.com/browse/HHH-7801 and
+	   https://hibernate.onjira.com/browse/HHH-7778 )
 	-- Added some extra logging (at level FINER [or DEBUG] to NewPooledConnection, in hopes
 	   that it will be helpful in tracking down Exceptions that occur during automatic cleanup
 	   of unclosed Statements and ResultSets.
