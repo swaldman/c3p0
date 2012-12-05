@@ -199,6 +199,14 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             this.setExtraInterfaces( new Class[] { C3P0ProxyStatement.class, ProxyResultSetDetachable.class } );
         }
 
+	// DEBUG ONLY
+	//
+        // protected void generateReflectiveDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	// {
+	//     iw.println("logger.log(MLevel.INFO, \042Reflective delegate: " + method + "\042);");
+	//     super.generateReflectiveDelegateCode( intfcl, genclass, method, iw );
+	// }
+
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             iw.println("maybeDirtyTransaction();");
@@ -1028,10 +1036,19 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             DelegatorGenerator stgen = new NewProxyAnyStatementGenerator();
             DelegatorGenerator cngen = new NewProxyConnectionGenerator();
 
+	    // Usually stgen can be used for all three Statement types. However, we have temporarily
+	    // implemented some very partial JDBC4 methods to maintain Hibernate support, prior to full JDBC4
+	    // support in a future version. To do this, we'll need to force some methods into the PreparedStatement
+	    // (and therefore CallableStatement) interfaces, methods that don't exist in the current JDBC3 build.
+	    // We should be able to get rid of psgen (in favor of stgen above) when we are actually building against
+	    // JDBC4 (so we don't need to artificially inject methods).
+            DelegatorGenerator psgen = new NewProxyAnyStatementGenerator();
+	    psgen.setReflectiveDelegateMethods( JDBC4TemporaryPreparedStatementMethods.class.getMethods() );
+
             genclass( cngen, Connection.class, "com.mchange.v2.c3p0.impl.NewProxyConnection", srcroot );
             genclass( stgen, Statement.class, "com.mchange.v2.c3p0.impl.NewProxyStatement", srcroot );
-            genclass( stgen, PreparedStatement.class, "com.mchange.v2.c3p0.impl.NewProxyPreparedStatement", srcroot );
-            genclass( stgen, CallableStatement.class, "com.mchange.v2.c3p0.impl.NewProxyCallableStatement", srcroot );
+            genclass( psgen, PreparedStatement.class, "com.mchange.v2.c3p0.impl.NewProxyPreparedStatement", srcroot );
+            genclass( psgen, CallableStatement.class, "com.mchange.v2.c3p0.impl.NewProxyCallableStatement", srcroot );
             genclass( rsgen, ResultSet.class, "com.mchange.v2.c3p0.impl.NewProxyResultSet", srcroot );
             genclass( mdgen, DatabaseMetaData.class, "com.mchange.v2.c3p0.impl.NewProxyDatabaseMetaData", srcroot );
         }
@@ -1072,5 +1089,32 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             if (sb.charAt(i) == '.')
                 sb.setCharAt(i, '/');
         return sb.toString();
+    }
+
+    /* 
+     *  TEMPORARY CRITICAL JDBC4 METHOD SUPPORT (for Hibernate)
+     *
+     *  As of c3p0-0.9.2, JDBC4 remains unsupported. Full support of Statement caching
+     *  given new means of generating PreparedStatements will require a significant update
+     *  of the statement cache, which just isn't there yet. However, Hibernate now uses some
+     *  JDBC4 methods, and we'll add a temporary fix to support those methods until the
+     *  JDBC4 spec is fully supported.
+     */
+
+    interface JDBC4TemporaryPreparedStatementMethods
+    {
+	public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException;
+	public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException;
+	public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException;
+	public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException;
+	public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException;
+	public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException;
+	public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException;
+	public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException;
+	public void setClob(int parameterIndex, Reader reader, long length) throws SQLException;
+	public void setClob(int parameterIndex, Reader reader) throws SQLException;
+
+	// test only
+	// public void finalize() throws Throwable;
     }
 }
