@@ -1,0 +1,58 @@
+#
+# This file is detritus from various testing attempts
+# the values below may change, and often do not represent
+# reasonable values for the parameters.
+#
+
+c3p0.testConnectionOnCheckout=true
+c3p0.testConnectionOnCheckin=true
+#c3p0.dataSourceName=poop
+c3p0.minPoolSize=10
+c3p0.maxPoolSize=40
+c3p0.checkoutTimeout=2000
+c3p0.idleConnectionTestPeriod=30
+c3p0.idleConnectionTestPeriod=1
+c3p0.maxConnectionAge=1
+c3p0.maxIdleTime=2
+c3p0.maxIdleTimeExcessConnections=1
+c3p0.propertyCycle=1
+c3p0.numHelperThreads=10
+c3p0.unreturnedConnectionTimeout=15
+c3p0.debugUnreturnedConnectionStackTraces=true
+c3p0.maxStatements=20
+c3p0.maxStatementsPerConnection=5
+c3p0.maxAdministrativeTaskTime=3
+c3p0.preferredTestQuery=SELECT 1
+#c3p0.preferredTestQuery=SXLECT 1
+#c3p0.preferredTestQuery=SELECT a FROM emptyyukyuk WHERE a = 5
+#c3p0.preferredTestQuery=SELECT a FROM testpbds WHERE a = 5
+c3p0.statementCacheNumDeferredCloseThreads=1
+#c3p0.usesTraditionalReflectiveProxies=true
+#c3p0.automaticTestTable=PoopyTestTable
+c3p0.acquireIncrement=10
+#c3p0.acquireRetryDelay=1000
+#c3p0.acquireRetryAttempts=60
+#c3p0.connectionTesterClassName=com.mchange.v2.c3p0.test.AlwaysFailConnectionTester
+c3p0.initialPoolSize=15
+
+c3p0.jdbcUrl=@c3p0.jdbcUrl@
+c3p0.driverClass=@c3p0.driverClass@
+c3p0.user=@c3p0.user@
+c3p0.password=@c3p0.password@
+ 
+#com.mchange.v2.log.MLog=com.mchange.v2.log.log4j.Log4jMLog
+com.mchange.v2.log.MLog=com.mchange.v2.log.jdk14logging.Jdk14MLog
+#com.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog
+#com.mchange.v2.log.NameTransformer=com.mchange.v2.log.PackageNames
+#com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL=ALL
+
+#com.mchange.v2.c3p0.VMID=poop
+
+#com.mchange.v2.resourcepool.experimental.useScatteredAcquireTask=false
+
+
+
+
+
+
+

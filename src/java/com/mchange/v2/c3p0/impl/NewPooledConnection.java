@@ -589,6 +589,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
             cleanupResultSets( closeExceptions );
 
             // cleanup uncached Statements
+	    // System.err.println(this + ".close( ... ) -- uncachedActiveStatements: " + uncachedActiveStatements);
             cleanupUncachedStatements( closeExceptions );
 
             // cleanup cached Statements
