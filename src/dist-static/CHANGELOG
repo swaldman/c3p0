@@ -1,3 +1,4 @@
+c3p0-0.9.2-pre7
 	-- Added hooks [in mchange-commons-java] to com.mchange.v2.codegen.intc.DelegatorGenerator
 	   to permit reflective delegation of methods not declared by the main interface. Added
 	   some unproblematic JDBC4 methods to generated PreparedStatement proxies in order (hopefully)
