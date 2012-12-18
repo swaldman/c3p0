@@ -137,7 +137,6 @@ public final class C3P0ConfigUtils
     {
 	Properties out = new Properties();
 
-	SecurityException sampleExc = null;
 	try
 	    {
 		for (Iterator ii = C3P0Defaults.getKnownProperties().iterator(); ii.hasNext(); )
@@ -150,7 +149,13 @@ public final class C3P0ConfigUtils
 		    }
 	    }
 	catch (SecurityException e)
-	    { sampleExc = e; }
+	    { 
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, 
+				"A SecurityException occurred while trying to read c3p0 System properties. " + 
+				"c3p0 configuration set via System properties may be ignored!",
+				e );
+	    }
 
 	return out;
     }
