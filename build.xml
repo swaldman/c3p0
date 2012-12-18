@@ -6,7 +6,7 @@
   <property file="../settings/build-c3p0.properties" />
   <property file="build.properties" />
 
-  <property name="c3p0.version" value="0.9.2-pre7" />
+  <property name="c3p0.version" value="0.9.2-pre8" />
 
   <property name="c3p0.copyright.year" value="2012" />
 

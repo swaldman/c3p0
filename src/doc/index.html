@@ -890,8 +890,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	via <a href="#system_properties">System properties</a>. Configuration files
 	are normally looked up under standard names (<tt>c3p0.properties</tt> or <tt>c3p0-config.xml</tt>)
 	at the top level of an application's classpath, but the XML configuration can be placed
-	anywhere in an application's file system, if the system property <tt>com.mchange.v2.c3p0.cfg.xml</tt> is set
-	(to an absolute filesystem path).
+	anywhere in an application's file system or classpath, if the system property <a href="#locating_configuration_information"><tt>com.mchange.v2.c3p0.cfg.xml</tt></a> is set.
       </p>
       <p>
 	DataSources are usually configured before they are used, either
@@ -2004,7 +2003,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	may be set as system properties, or in a <a href="#c3p0_properties"><tt>c3p0.properties</tt></a> file.
       </p>
       <div class="other_properties_desc">
-    <h4>Locating Configuration Information</h4>
+    <h4><a name="locating_configuration_information">Locating Configuration Information</a></h4>
     <p>
       Normally, c3p0's configuration information is placed in a either a c3p0-config.xml or c3p0.properties file
       at the top-level of an application's CLASSPATH. However, if you wish to place configuration information
@@ -2015,6 +2014,10 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
  	<ul class="other_props_list">
 	  <li>com.mchange.v2.c3p0.cfg.xml</li>
 	</ul>
+    <p>
+      If you set this property to a value beginning with <tt>classloader:</tt>, c3p0 will search for an XML config file as a ClassLoader resource,
+      in any location you specify under your classpath, including jar-file <tt>META-INF</tt> directories.
+    </p>
 	<h4>Logging-related properties</h4>
 	<p>
 	  The following properties affect c3p0's logging behavior. Please see <a href="#configuring_logging">Configuring Logging</a>
@@ -2163,7 +2166,8 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	</p>
 	<p>
 	  If you prefer not to bundle your configuration with your code, you can specify an ordinary filesystem location for c3p0's
-	  configuration file via the system property <tt>com.mchange.v2.c3p0.cfg.xml</tt>.
+	  configuration file via the system property <tt>com.mchange.v2.c3p0.cfg.xml</tt>. (You can also use this property to specify an
+	  alternative location in the ClassLoader resource path, e.g. <tt>META-INF</tt>. See <a href="#locating_configuration_information">Locating Configuration Information</a>.) 
 	</p>
 	<p>
 	  Here is an example <tt>c3p0-config.xml</tt> file:

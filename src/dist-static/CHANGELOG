@@ -1,3 +1,19 @@
+	-- We now allow users to place an XML formatted config file in arbitrary locations under
+	   the classpath (i.e. as ClassLoader resource), including jar file META-INF directories.
+	   If the config property com.mchange.v2.c3p0.cfg.xml begins with "classloader:", the remainder of
+	   the String will be interpreted as a ClassLoader resource path. Thanks to Sam Razialruh for
+	   suggesting this feature.
+	-- In DataSources.pooledDataSource( DataSource unpooledDataSource, Properties props ), switched
+	   from using keySet().iterator() to the propertyNames() Enumeration to properly capture keys
+	   set in the Properties object's defaults. Thanks to Jisakiel in SourceForge for calling attention
+	   to this issue.
+        -- Modified DelegatorGenerator [in mchange-commons-java] to delegate reflectively at
+	   runtime via the main delegation interface (by default, and in c3p0's proxies), rather
+	   than via the runtime class, which may not be public. (Added a bit of API to DelegatorGenerator
+	   so that users can specify whether reflective delegation should be via the main
+	   delegation interface, some other expected superclass or interface, or the actual
+	   runtime class.) Many thanks to Kiran Kollipara for pointing out the risk of IllegalAccessExceptions
+	   under the previous implementation.
 c3p0-0.9.2-pre7
 	-- Added hooks [in mchange-commons-java] to com.mchange.v2.codegen.intc.DelegatorGenerator
 	   to permit reflective delegation of methods not declared by the main interface. Added

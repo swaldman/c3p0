@@ -30,7 +30,8 @@ import com.mchange.v2.cfg.MultiPropertiesConfig;
 
 public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 {
-    final static String XML_CFG_FILE_KEY = "com.mchange.v2.c3p0.cfg.xml";
+    final static String XML_CFG_FILE_KEY            = "com.mchange.v2.c3p0.cfg.xml";
+    final static String CLASSLOADER_RESOURCE_PREFIX = "classloader:";
 
     public C3P0Config findConfig() throws Exception
     {
@@ -57,16 +58,36 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	    }
 	else
 	    {
-		InputStream is = new BufferedInputStream( new FileInputStream( cfgFile ) );
+		cfgFile = cfgFile.trim();
+
+		InputStream is = null;
 		try
 		    {
+			if ( cfgFile.startsWith( CLASSLOADER_RESOURCE_PREFIX ) )
+			{
+			    ClassLoader cl = this.getClass().getClassLoader();
+			    String rsrcPath = cfgFile.substring( CLASSLOADER_RESOURCE_PREFIX.length() );
+
+			    // eliminate leading slash because ClassLoader.getResource
+			    // is always absolute and does not expect a leading slash
+			    if (rsrcPath.startsWith("/")) 
+				rsrcPath = rsrcPath.substring(1);
+
+			    is = cl.getResourceAsStream( rsrcPath );
+			    if ( is == null )
+				throw new FileNotFoundException("Specified ClassLoader resource '" + rsrcPath + "' could not be found. " +
+								"[ Found in configuration: " + XML_CFG_FILE_KEY + '=' + cfgFile + " ]");
+			}
+			else
+			    is = new BufferedInputStream( new FileInputStream( cfgFile ) );
+
 			C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromInputStream( is );
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
 			out = xmlConfig;
 		    }
 		finally
 		    {
-			try {is.close();}
+			try { if (is != null) is.close();}
 			catch (Exception e)
 			    { e.printStackTrace(); }
 		    }

@@ -28,6 +28,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -306,9 +307,9 @@ public final class DataSources
 	//return pooledDataSource( unpooledDataSource, new PoolConfig( props ) ); 
 
 	Properties peeledProps = new Properties();
-	for (Iterator ii = props.keySet().iterator(); ii.hasNext(); )
+	for (Enumeration e = props.propertyNames(); e.hasMoreElements(); )
 	    {
-		String propKey = (String) ii.next();
+		String propKey = (String) e.nextElement();
 		String propVal = props.getProperty( propKey );
 		String peeledKey = (propKey.startsWith("c3p0.") ? propKey.substring(5) : propKey );
 		peeledProps.put( peeledKey, propVal );
