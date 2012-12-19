@@ -1,3 +1,6 @@
+c3p0-0.9.2-pre8
+	-- Added logging (at level FINE, in com.mchange.v2.c3p0.impl.C3P0PooledConnectionPoolManager) when
+	   a pool is initialized for a new authentication within a DataSource.
 	-- We now allow users to place an XML formatted config file in arbitrary locations under
 	   the classpath (i.e. as ClassLoader resource), including jar file META-INF directories.
 	   If the config property com.mchange.v2.c3p0.cfg.xml begins with "classloader:", the remainder of

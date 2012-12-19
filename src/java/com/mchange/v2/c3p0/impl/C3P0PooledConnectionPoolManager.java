@@ -318,6 +318,9 @@ public final class C3P0PooledConnectionPoolManager
         {
             out = createPooledConnectionPool(auth);
             authsToPools.put( auth, out );
+
+	    if ( logger.isLoggable( MLevel.FINE ) )
+		logger.log( MLevel.FINE, "Created new pool for auth, username (masked): '" + auth.getMaskedUserString() + "'." );
         }
         return out;
     }

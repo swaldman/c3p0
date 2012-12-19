@@ -44,6 +44,27 @@ public final class DbAuth implements Serializable
     public String getPassword()
     { return password; }
 
+    public String getMaskedUserString()
+    { return getMaskedUserString(2, 8); }
+
+    private String getMaskedUserString( int chars_to_reveal, int total_chars )
+    {
+	if ( username == null ) return "null";
+	else
+	{ 
+	    StringBuffer sb = new StringBuffer(32);
+	    if ( username.length() >= chars_to_reveal )
+	    {
+		sb.append( username.substring(0, chars_to_reveal) );
+		for (int i = 0, len = total_chars - chars_to_reveal; i < len; ++i)
+		    sb.append('*');
+	    }
+	    else
+		sb.append( username );
+	    return sb.toString();
+	 }
+    }
+
     public boolean equals(Object o)
     {
 	if (this == o)
