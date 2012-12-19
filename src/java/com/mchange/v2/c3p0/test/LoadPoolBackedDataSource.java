@@ -32,10 +32,9 @@ import com.mchange.v2.c3p0.DriverManagerDataSource;
 
 public final class LoadPoolBackedDataSource
 {
-    final static int NUM_THREADS = 50;
+    final static int NUM_THREADS = 100;
     final static int ITERATIONS_PER_THREAD = 1000;
 
-    static Random random = new Random();
     static DataSource ds;
 
     public static void main(String[] argv)
@@ -101,15 +100,14 @@ public final class LoadPoolBackedDataSource
 		Thread[] threads = new Thread[NUM_THREADS];
 		for (int i = 0; i < NUM_THREADS; ++i)
 		    {
-			Thread t = new ChurnThread();
+			Thread t = new ChurnThread(i);
 			threads[i] = t;
 			t.start();
 			System.out.println("THREAD MADE [" + i + "]");
-			Thread.sleep(1000);
+			Thread.sleep(500);
 		    }
 		for (int i = 0; i < NUM_THREADS; ++i)
 		    threads[i].join();
-		
 	    }
 	catch (Exception e)
 	    { e.printStackTrace(); }
@@ -139,6 +137,13 @@ public final class LoadPoolBackedDataSource
 
     static class ChurnThread extends Thread
     {
+	Random random = new Random();
+
+	int num;
+
+	public ChurnThread(int num)
+	{ this.num = num; }
+
 	public void run()
 	{
 	    try
@@ -156,17 +161,20 @@ public final class LoadPoolBackedDataSource
                         executeSelect( con );
                         break;
                     case 1:
-                        executeInsert( con );
+                        executeInsert( con, random );
                         break;
                     case 2:
                         executeDelete( con );
                         break;
                     }
 				    PooledDataSource pds = (PooledDataSource) ds;
+				    System.out.println("iteration: (" + num + ", " + i + ')');
 				    System.out.println( pds.getNumConnectionsDefaultUser() );
 				    System.out.println( pds.getNumIdleConnectionsDefaultUser() );
 				    System.out.println( pds.getNumBusyConnectionsDefaultUser() );
 				    System.out.println( pds.getNumConnectionsAllUsers() );
+
+				    Thread.sleep(1);
 				}
 			    finally
 				{ ConnectionUtils.attemptClose( con ); }
@@ -179,7 +187,7 @@ public final class LoadPoolBackedDataSource
 	}
     }
 
-    static void executeInsert(Connection con) throws SQLException
+    static void executeInsert(Connection con, Random random) throws SQLException
     {
 	Statement stmt = null;
 	try

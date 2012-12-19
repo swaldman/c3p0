@@ -35,7 +35,6 @@ public final class PSLoadPoolBackedDataSource
     final static String SELECT_STMT = "SELECT count(*) FROM testpbds";
     final static String DELETE_STMT = "DELETE FROM testpbds";
 
-    static Random random = new Random();
     static DataSource ds;
 
     public static void main(String[] argv)
@@ -103,12 +102,12 @@ public final class PSLoadPoolBackedDataSource
 		    }
 
 		//for (int i = 0; i < 5; ++i)
-		for (int i = 0; i < 50; ++i)
+		for (int i = 0; i < 100; ++i)
 		    {
 			Thread t = new ChurnThread();
 			t.start();
 			System.out.println("THREAD MADE [" + i + "]");
-			Thread.sleep(1000);
+			Thread.sleep(500);
 		    }
 		
 	    }
@@ -118,6 +117,9 @@ public final class PSLoadPoolBackedDataSource
 
     static class ChurnThread extends Thread
     {
+	Random random = new Random();
+
+
 	public void run()
 	{
 	    try
@@ -132,13 +134,13 @@ public final class PSLoadPoolBackedDataSource
 				    switch (select)
 					{
 					case 0:
-					    executeSelect( con );
+					    executeSelect( con, random );
 					    break;
 					case 1:
-					    executeInsert( con );
+					    executeInsert( con, random );
 					    break;
 					case 2:
-					    executeDelete( con );
+					    executeDelete( con, random );
 					    break;
 					}
 				    //Thread.sleep(5000);
@@ -149,6 +151,7 @@ public final class PSLoadPoolBackedDataSource
 				{ ConnectionUtils.attemptClose( con ); }
 
 			    //Thread.sleep( random.nextInt( 1000 ) );
+			    Thread.sleep(1);
 			}
 		}
 	    catch (Exception e)
@@ -156,7 +159,7 @@ public final class PSLoadPoolBackedDataSource
 	}
     }
 
-    static void executeInsert(Connection con) throws SQLException
+    static void executeInsert(Connection con, Random random) throws SQLException
     {
 	PreparedStatement pstmt = null;
 	try
@@ -177,7 +180,7 @@ public final class PSLoadPoolBackedDataSource
 	    }
     }
 
-    static void executeSelect(Connection con) throws SQLException
+    static void executeSelect(Connection con, Random random) throws SQLException
     {
 	long l = System.currentTimeMillis();
 	PreparedStatement pstmt = null;
@@ -197,7 +200,7 @@ public final class PSLoadPoolBackedDataSource
 	    }
     }
 
-    static void executeDelete(Connection con) throws SQLException
+    static void executeDelete(Connection con, Random random) throws SQLException
     {
     PreparedStatement pstmt = null;
     ResultSet rs   = null;

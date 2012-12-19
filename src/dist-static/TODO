@@ -1,23 +1,10 @@
-full status dump operations from JMX beans (two methods, one std err onr to logger at INFO level?) 
+-- in-use locking of NewPooledConnections ResourcePool.Manager tasks in C3P0PooledConnectionPool is 
+   unnecessary and hard to reason aboout in light of NewPooledConnection locks, pool semantics
+   enforce exclusive use by maintenance tasks, there is no need to re-enforce exclusive access at all
+   (delayed until after 0.9.2 release only because things are stable and I'd want this further tested
+   before showing up in a final release)
 
-Statement cache statistics exposed via JMX.
-Interface to Statement-caching statistics
-
-make asynchronous checkins optional, let the default depend on the value of testConnectionOnCheckin.
-
-A shortcut in acquire tasks that bails before attempting an acquire if the acquisition
-is no longer necessary.
-
-Make visible rootCause exceptions when Connection test fails. (Looks implemented, but I don't see them. Debug.)
-
-Less confusing hibernate ConnectionProvider.
-
-JUnit testing regime.
-
-some validation stuff in C3P0PooledConnectionPoolManager...
-
-
-
+-- undo hackish reflective delgation of JDBC4 PreparedStatement methods once we build against JDBC4 libs
 
 
 
