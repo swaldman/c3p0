@@ -1676,7 +1676,8 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 		printed when unreturned checked-out Connections timeout. This is intended to debug applications with Connection leaks, that
 		is applications that occasionally fail to return Connections, leading to pool growth, and eventually exhaustion (when the
 		pool hits <tt>maxPoolSize</tt> with all Connections checked-out and lost). This parameter should only be set while debugging,
-		as capturing the stack trace will slow down every Connection check-out.
+		as capturing the stack trace will slow down every Connection check-out. 
+		[See <a href="#configuring_to_debug_and_workaround_broken_clients">"Configuring to Debug and Workaround Broken Client Applications"</a>]
 	  </div>
 	</dd>
 	<dt><a name="factoryClassLocation" />factoryClassLocation</dt>
@@ -1966,6 +1967,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    so they don't leak Connections! Use this temporarily in combination with 
 	    <tt>debugUnreturnedConnectionStackTraces</tt> to figure out
 	    where Connections are being checked-out that don't make it back into the pool!</i></b>
+	    [See <a href="#configuring_to_debug_and_workaround_broken_clients">"Configuring to Debug and Workaround Broken Client Applications"</a>]
 	  </div>
 	</dd>
 	<dt><a name="user" />user</dt>
@@ -2288,15 +2290,8 @@ DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoA
       </h2>
       <div class="sectiontext">
       <p>
-	Hibernate's C3P0ConnectionProvider explicitly sets 7 c3p0 configuration properties, based on your hibernate
-	configuration, <b>overriding</b> any configuration you may have set in a <tt>c3p0.properties</tt> file. If you
-	are using Hibernate's C3P0ConnectionProvider you <b>must</b> set the following
-	properties in your hibernate configuration, using hibernate-specific configuration keys. All other properties
-	must be defined as usual in a <tt>c3p0.properties</tt> file. This is confusing, and will hopefully be simplified
-	some time in the future, but for now...
-      </p>
-      <p>
-	The following properties must be set in your hibernate configuration:
+	Hibernate's C3P0ConnectionProvider renames 7 c3p0 configuration properties, which, if set in your hibernate
+	configuration, <b>will override</b> any configuration you may have set in a <tt>c3p0.properties</tt> file: 
       </p>
       <div class="hibernate_props">
 	<table class="hibernate_props">
@@ -2330,9 +2325,19 @@ DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoA
 	</table>
       </div>
       <p>
-	Remember -- these, and <i>only these</i>, properties must be defined in your hibernate configuration, or else
-	they will be set to hibernate-specified defaults. All other configuration properties that you wish to set
-	should be defined in a <tt>c3p0.properties</tt>	file. (See <a href="#c3p0_properties">"Overriding c3p0 defaults via c3p0.properties"</a>.)
+	You can set any c3p0 properties in your hibernate config using the prefix <tt>hibernate.c3p0</tt>. For example
+      </p>
+      <div class="example">
+hibernate.c3p0.unreturnedConnectionTimeout=30
+hibernate.c3p0.debugUnreturnedConnectionStackTraces=true
+      </div>
+      <p>
+	might be set to help <a href="#configuring_to_debug_and_workaround_broken_clients">debug Connection leaks</a>.
+      </p>
+      <p>
+	You can always set c3p0 config in a <tt>c3p0.properties</tt> or <tt>c3p0-config.xml</tt> file 
+	(see <a href="#c3p0_properties">"Overriding c3p0 defaults via c3p0.properties"</a>, <a href="#c3p0-config.xml">"Overriding c3p0 defaults via c3p0-config.xml"</a>),
+	but <i>any cofiguration set in Hibernate config files will override c3p0-native configuation!</i>
       </p>
     </div>
     <hr/>
