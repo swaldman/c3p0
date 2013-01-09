@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.2-pre8
+ * Distributed as part of c3p0 v.0.9.2
  *
  * Copyright (C) 2012 Machinery For Change, Inc.
  *
