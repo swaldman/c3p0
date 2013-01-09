@@ -6,6 +6,9 @@
 
 -- undo hackish reflective delgation of JDBC4 PreparedStatement methods once we build against JDBC4 libs
 
+-- it would be insanely easy to get rid of the recursiveness in BasicResourcePool.checkoutResource( ... ).
+   worth doing? it's tail-recursive, best to just wait 'til that's optimized in Java?
+
 
 
 

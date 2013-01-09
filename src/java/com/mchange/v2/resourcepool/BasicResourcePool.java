@@ -509,7 +509,7 @@ class BasicResourcePool implements ResourcePool
      * by the semantics of wait(), a timeout of zero means forever.
      */
     public Object checkoutResource( long timeout )
-    throws TimeoutException, ResourcePoolException, InterruptedException
+	throws TimeoutException, ResourcePoolException, InterruptedException
     {
         Object resc = prelimCheckoutResource( timeout );
 
@@ -554,7 +554,7 @@ class BasicResourcePool implements ResourcePool
     }
 
     private synchronized Object prelimCheckoutResource( long timeout )
-    throws TimeoutException, ResourcePoolException, InterruptedException
+	throws TimeoutException, ResourcePoolException, InterruptedException
     {
         try
         {
