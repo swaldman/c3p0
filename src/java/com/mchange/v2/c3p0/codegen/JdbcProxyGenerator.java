@@ -1043,7 +1043,10 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	    // We should be able to get rid of psgen (in favor of stgen above) when we are actually building against
 	    // JDBC4 (so we don't need to artificially inject methods).
             DelegatorGenerator psgen = new NewProxyAnyStatementGenerator();
-	    psgen.setReflectiveDelegateMethods( JDBC4TemporaryPreparedStatementMethods.class.getMethods() );
+
+	    // The 1.4 branch doesn't and probably won't support reflective access to JDBC4 methods
+	    //
+	    //psgen.setReflectiveDelegateMethods( JDBC4TemporaryPreparedStatementMethods.class.getMethods() );
 
             genclass( cngen, Connection.class, "com.mchange.v2.c3p0.impl.NewProxyConnection", srcroot );
             genclass( stgen, Statement.class, "com.mchange.v2.c3p0.impl.NewProxyStatement", srcroot );

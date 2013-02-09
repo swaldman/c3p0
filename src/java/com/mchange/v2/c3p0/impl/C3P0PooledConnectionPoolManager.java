@@ -155,7 +155,11 @@ public final class C3P0PooledConnectionPoolManager
     {
 	String idStr = idString();
 
-        this.timer = new Timer(idStr + "-AdminTaskTimer", true );
+	// Can't give timers names in jdk14
+        //
+	//this.timer = new Timer(idStr + "-AdminTaskTimer", true );
+
+	this.timer = new Timer( true );
 
         int matt = this.getMaxAdministrativeTaskTime();
 
