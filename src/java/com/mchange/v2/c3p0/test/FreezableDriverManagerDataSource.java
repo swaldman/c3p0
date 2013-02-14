@@ -280,4 +280,16 @@ public final class FreezableDriverManagerDataSource extends DriverManagerDataSou
             throw new IOException("Unsupported Serialized Version: " + version);
         }
     }
+
+
+    // JDBC4 Wrapper stuff
+    public boolean isWrapperFor(Class<?> iface) throws SQLException
+    {
+	return false;
+    }
+
+    public <T> T unwrap(Class<T> iface) throws SQLException
+    {
+	throw new SQLException(this + " is not a Wrapper for " + iface.getName());
+    }
 }

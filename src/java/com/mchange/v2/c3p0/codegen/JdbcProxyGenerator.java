@@ -44,6 +44,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         this.setGenerateWrappingConstructor( true );
         this.setClassModifiers( Modifier.PUBLIC | Modifier.FINAL );
         this.setMethodModifiers( Modifier.PUBLIC | Modifier.FINAL );
+
     }
 
     abstract String getInnerTypeName();
@@ -56,6 +57,12 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             String mname   = method.getName();
+	    if ( jdbc4WrapperMethod( mname ) )
+	    {
+		generateWrapperDelegateCode( intfcl, genclass, method, iw );
+		return;
+	    }
+
             Class  retType = method.getReturnType();
 
             if ( ResultSet.class.isAssignableFrom( retType ) )
@@ -108,10 +115,18 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
+	    
+            String mname   = method.getName();
+	    if ( jdbc4WrapperMethod( mname ) )
+	    {
+		generateWrapperDelegateCode( intfcl, genclass, method, iw );
+		return;
+	    }
+
+            Class  retType = method.getReturnType();
+
             iw.println("if (proxyConn != null) proxyConn.maybeDirtyTransaction();");
             iw.println();
-            String mname   = method.getName();
-            Class  retType = method.getReturnType();
 
             if ( mname.equals("close") )
             {
@@ -209,11 +224,18 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
-            iw.println("maybeDirtyTransaction();");
-            iw.println();
 
             String mname   = method.getName();
+	    if ( jdbc4WrapperMethod( mname ) )
+	    {
+		generateWrapperDelegateCode( intfcl, genclass, method, iw );
+		return;
+	    }
+
             Class  retType = method.getReturnType();
+
+            iw.println("maybeDirtyTransaction();");
+            iw.println();
 
             if ( ResultSet.class.isAssignableFrom( retType ) )
             {
@@ -466,6 +488,12 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             String mname = method.getName();
+	    if ( jdbc4WrapperMethod( mname ) )
+	    {
+		generateWrapperDelegateCode( intfcl, genclass, method, iw );
+		return;
+	    }
+
             if (mname.equals("createStatement"))
             {
                 iw.println("txn_known_resolved = false;");
@@ -835,16 +863,48 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("import java.lang.reflect.InvocationTargetException;");
             iw.println("import com.mchange.v2.util.ResourceClosedException;");
         }
+
+	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	{
+	    if ("setClientInfo".equals(method.getName()))
+	    {
+		iw.println("try");
+		iw.println("{");
+		iw.upIndent();
+
+		super.generatePreDelegateCode( intfcl, genclass, method, iw );
+		
+	    }
+	    else
+		super.generatePreDelegateCode( intfcl, genclass, method, iw );
+	}
+
+	protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
+	{
+	    if ("setClientInfo".equals(method.getName()))
+	    {
+		super.generatePostDelegateCode( intfcl, genclass, method, iw );
+		
+		iw.downIndent();
+		iw.println("}");
+		iw.println("catch (Exception e)");
+		iw.println("{ throw SqlUtils.toSQLClientInfoException( e ); }");
+	    }
+	    else
+		super.generatePostDelegateCode( intfcl, genclass, method, iw );
+	}
     }
 
     protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
     {
-        generateTryOpener( iw );
+	if (! jdbc4WrapperMethod( method.getName() ) )
+	    generateTryOpener( iw );
     }
 
     protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
     {
-        generateTryCloserAndCatch( intfcl, genclass, method, iw );
+	if (! jdbc4WrapperMethod( method.getName() ) )
+	    generateTryCloserAndCatch( intfcl, genclass, method, iw );
     }
 
     void generateTryOpener( IndentedWriter iw ) throws IOException
@@ -983,6 +1043,28 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         iw.println();
         iw.println("boolean isDetached()");
         iw.println("{ return (this.parentPooledConnection == null); }");
+
+	/*
+
+	// Support JDBC4 Wrapper interface
+	String wrappedLiteral = intfcl.getName() + ".class";
+	iw.println();
+	iw.println("public boolean isWrapperFor(Class<?> iface) throws SQLException");
+	iw.println("{");
+	iw.upIndent();
+	iw.println("return ( " + wrappedLiteral + "== iface || " + wrappedLiteral + ".isAssignableFrom( iface ) );" );
+	iw.downIndent();
+	iw.println("}");
+	iw.println();
+	iw.println("public <T> T unwrap(Class<T> iface) throws SQLException");
+	iw.println("{");
+	iw.upIndent();
+	iw.println("if (this.isWrapperFor( iface )) return inner;");
+	iw.println("else throw new SQLException( this + \042 is not a wrapper for \042 + iface.getName());");
+	iw.downIndent();
+	iw.println("}");
+
+	*/
     }
 
     protected void writeDetachBody(IndentedWriter iw) throws IOException
@@ -1014,6 +1096,26 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
     void generateExtraConstructorCode( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
     {}
 
+    // Support JDBC4 Wrapper interface
+    private static void generateWrapperDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
+    {
+	String mname = method.getName();
+	if ("isWrapperFor".equals( mname ))
+	{
+	    String wrappedLiteral = intfcl.getName() + ".class";
+	    iw.println("return ( " + wrappedLiteral + "== a || " + wrappedLiteral + ".isAssignableFrom( a ) );" );
+	}
+	else if ("unwrap".equals( mname ))
+	{
+	    String wrappedLiteral = intfcl.getName() + ".class";
+	    iw.println("if (this.isWrapperFor( a )) return inner;");
+	    iw.println("else throw new SQLException( this + \042 is not a wrapper for \042 + a.getName());");
+	}
+    }
+
+    private static boolean jdbc4WrapperMethod(String mname)
+    { return "unwrap".equals(mname) || "isWrapperFor".equals(mname); }
+ 
     public static void main( String[] argv )
     {
         try
@@ -1036,19 +1138,26 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             DelegatorGenerator stgen = new NewProxyAnyStatementGenerator();
             DelegatorGenerator cngen = new NewProxyConnectionGenerator();
 
+	    /*
+	     * Eliminating for c3p0-0.9.5
+
 	    // Usually stgen can be used for all three Statement types. However, we have temporarily
 	    // implemented some very partial JDBC4 methods to maintain Hibernate support, prior to full JDBC4
 	    // support in a future version. To do this, we'll need to force some methods into the PreparedStatement
 	    // (and therefore CallableStatement) interfaces, methods that don't exist in the current JDBC3 build.
 	    // We should be able to get rid of psgen (in favor of stgen above) when we are actually building against
 	    // JDBC4 (so we don't need to artificially inject methods).
-            DelegatorGenerator psgen = new NewProxyAnyStatementGenerator();
-	    psgen.setReflectiveDelegateMethods( JDBC4TemporaryPreparedStatementMethods.class.getMethods() );
+            //DelegatorGenerator psgen = new NewProxyAnyStatementGenerator();
+	    //psgen.setReflectiveDelegateMethods( JDBC4TemporaryPreparedStatementMethods.class.getMethods() );
+
+	    */
 
             genclass( cngen, Connection.class, "com.mchange.v2.c3p0.impl.NewProxyConnection", srcroot );
             genclass( stgen, Statement.class, "com.mchange.v2.c3p0.impl.NewProxyStatement", srcroot );
-            genclass( psgen, PreparedStatement.class, "com.mchange.v2.c3p0.impl.NewProxyPreparedStatement", srcroot );
-            genclass( psgen, CallableStatement.class, "com.mchange.v2.c3p0.impl.NewProxyCallableStatement", srcroot );
+            //genclass( psgen, PreparedStatement.class, "com.mchange.v2.c3p0.impl.NewProxyPreparedStatement", srcroot );
+            //genclass( psgen, CallableStatement.class, "com.mchange.v2.c3p0.impl.NewProxyCallableStatement", srcroot );
+            genclass( stgen, PreparedStatement.class, "com.mchange.v2.c3p0.impl.NewProxyPreparedStatement", srcroot );
+            genclass( stgen, CallableStatement.class, "com.mchange.v2.c3p0.impl.NewProxyCallableStatement", srcroot );
             genclass( rsgen, ResultSet.class, "com.mchange.v2.c3p0.impl.NewProxyResultSet", srcroot );
             genclass( mdgen, DatabaseMetaData.class, "com.mchange.v2.c3p0.impl.NewProxyDatabaseMetaData", srcroot );
         }
@@ -1101,6 +1210,9 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
      *  JDBC4 spec is fully supported.
      */
 
+    /*
+     * Eliminating for c3p0-0.9.5
+     *
     interface JDBC4TemporaryPreparedStatementMethods
     {
 	public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException;
@@ -1117,4 +1229,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	// test only
 	// public void finalize() throws Throwable;
     }
+
+    */
 }

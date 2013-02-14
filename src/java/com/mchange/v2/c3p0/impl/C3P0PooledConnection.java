@@ -34,6 +34,7 @@ import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.stmt.*;
 import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.util.ConnectionEventSupport;
+import com.mchange.v2.c3p0.util.StatementEventSupport;
 import com.mchange.v2.lang.ObjectUtils;
 
 public final class C3P0PooledConnection extends AbstractC3P0PooledConnection
@@ -96,6 +97,7 @@ public final class C3P0PooledConnection extends AbstractC3P0PooledConnection
 
     //MT: thread-safe
     final ConnectionEventSupport ces = new ConnectionEventSupport(this);
+    final StatementEventSupport ses = new StatementEventSupport(this);
 
     //MT: threadsafe, but reassigned (on close)
     volatile Connection physicalConnection;
@@ -356,6 +358,20 @@ public final class C3P0PooledConnection extends AbstractC3P0PooledConnection
 
     public void removeConnectionEventListener(ConnectionEventListener listener)
     { ces.removeConnectionEventListener( listener ); }
+
+    public void addStatementEventListener(StatementEventListener sel)
+    { 
+	if (logger.isLoggable( MLevel.INFO ))
+	    logger.info( "Per the JDBC4 spec, " + this.getClass().getName() + 
+			 " accepts StatementListeners, but for now there is no circumstance under which they are notified!"  );
+
+	ses.addStatementEventListener( sel );  
+    }
+
+    public void removeStatementEventListener(StatementEventListener sel)
+    { 
+	ses.removeStatementEventListener( sel );  
+    }
 
     private void reset() throws SQLException
     { reset( false ); }

@@ -109,7 +109,7 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
     // not reassigned post-ctor; mutable elements protected by their own locks
     // when (very rarely) necessery, we sync this -> wcpds -> dmds
 
-    // note that serialization of these guys happens via out superclass
+    // note that serialization of these guys happens via our superclass
     // we just have to make sure they get properly reset on deserialization
     transient DriverManagerDataSource         dmds;
     transient WrapperConnectionPoolDataSource wcpds;
@@ -603,6 +603,20 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
         default:
             throw new IOException("Unsupported Serialized Version: " + version);
         }
+    }
+
+    // JDBC4 Wrapper stuff
+    public boolean isWrapperFor(Class<?> iface) throws SQLException
+    {
+	return  ( iface == DataSource.class || iface.isAssignableFrom(DataSource.class) );
+    }
+
+    public <T> T unwrap(Class<T> iface) throws SQLException
+    {
+	if (this.isWrapperFor( iface ))
+	    return (T) dmds;
+	else
+	    throw new SQLException(this + " is not a Wrapper for " + iface.getName());
     }
 }
 

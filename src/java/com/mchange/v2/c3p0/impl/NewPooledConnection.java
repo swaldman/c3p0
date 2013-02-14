@@ -60,6 +60,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     final boolean                dflt_readOnly;
     final Map                    dflt_typeMap;
     final ConnectionEventSupport ces;
+    final StatementEventSupport  ses; //JDBC4, accepts registrations, but for now, never notifies!
 
     // thread-safe post c'tor constant, accessed directly by C3P0PooledConnectionPool
     // since the StatementCache "in-use" marker doesn't nest, we have to ensure that
@@ -116,6 +117,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         this.dflt_readOnly                     = (supports_setReadOnly ? carefulCheckReadOnly(con) : false);
         this.dflt_typeMap                      = (supports_setTypeMap && (carefulCheckTypeMap(con) == null) ? null : Collections.EMPTY_MAP);
         this.ces                               = new ConnectionEventSupport(this);
+        this.ses                               = new StatementEventSupport(this);
     }
 
     private static int carefulCheckHoldability(Connection con)
@@ -257,6 +259,23 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
     public void printConnectionListeners()
     { ces.printListeners(); }
+
+    public void addStatementEventListener(StatementEventListener sel)
+    { 
+	if (logger.isLoggable( MLevel.INFO ))
+	    logger.info( "Per the JDBC4 spec, " + this.getClass().getName() + 
+			 " accepts StatementListeners, but for now there is no circumstance under which they are notified!"  );
+
+	ses.addStatementEventListener( sel );  
+    }
+
+    public void removeStatementEventListener(StatementEventListener sel)
+    { 
+	ses.removeStatementEventListener( sel );  
+    }
+
+    public void printStatementListeners()
+    { ses.printListeners(); }
 
     // api for C3P0PooledConnectionPool
     public synchronized void initStatementCache( GooGooStatementCache scache )
