@@ -1,3 +1,5 @@
+	-- Handle JDBC4 Connection,isValid properly
+	-- Lots of updates to get c3p0 to proxy and compile JDBC4
 	-- Removed some jdk14 support stuff from build.properties
 c3p0-0.9.2
 	-- Updated documentation re hibernate configuration. (Documentation was several years stale.)
