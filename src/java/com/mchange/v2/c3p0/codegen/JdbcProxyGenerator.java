@@ -696,6 +696,12 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             {
                 iw.println("return this.isDetached();");
             }
+            else if ( mname.equals("isValid") )
+            {
+                iw.println("if (this.isDetached()) return false;");
+
+                super.generateDelegateCode( intfcl, genclass, method, iw );
+            }
             else
             {
                 iw.println("txn_known_resolved = " + 
@@ -893,6 +899,12 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	    else
 		super.generatePostDelegateCode( intfcl, genclass, method, iw );
 	}
+    }
+
+    //totally superfluous, but included to be "regular" and very specific, and as a hook for "general" overrides in future
+    protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
+    {
+	super.generateDelegateCode( intfcl, genclass, method, iw );
     }
 
     protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
