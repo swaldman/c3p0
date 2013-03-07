@@ -29,9 +29,11 @@ import java.beans.PropertyVetoException;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Hashtable;
+import java.util.logging.Logger;
 import javax.naming.NamingException;
 import javax.naming.Reference;
 import javax.naming.Referenceable;
@@ -307,5 +309,10 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	sb.append("]");
 	return sb.toString();
     }
+
+	
+    // JDK7 add-on
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException
+    { throw new SQLFeatureNotSupportedException("javax.sql.DataSource.getParentLogger() is not currently supported by " + this.getClass().getName());}
 }
 
