@@ -70,6 +70,7 @@ public final class ComboPooledDataSource extends AbstractPoolBackedDataSource im
                     "numUnclosedOrphanedConnectionsDefaultUser",
                     "numUserPools",
                     "effectivePropertyCycleDefaultUser",
+                    "parentLogger",
                     "startTimeMillisDefaultUser",
                     "statementCacheNumCheckedOutDefaultUser",
                     "statementCacheNumCheckedOutStatementsAllUsers",
