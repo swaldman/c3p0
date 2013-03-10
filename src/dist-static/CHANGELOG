@@ -1,3 +1,8 @@
+	-- Included 'com.mchange.v2.log.jdk14logging.suppressStackWalk' in c3p0 docs.
+	-- In mchange-commons: Added a config property for jdk14 logging users:
+	   'com.mchange.v2.log.jdk14logging.suppressStackWalk' allows clients to speed up logging
+	   by suppressing analyzing the stack trace for the caller. (Only the name of the logger will
+	   be given.)
 	-- Modified DataSource to include an (unsupported) getParentLogger() method for JDK7 builds
 	-- Handle JDBC4 Connection.isValid properly
 	-- Lots of updates to get c3p0 to proxy and compile JDBC4

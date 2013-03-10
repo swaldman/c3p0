@@ -1392,6 +1392,14 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <tt>com.mchange.v2.log.NameTransformer</tt> interface.
 	  </div>
 	</dd>
+	<dt><a name="com.mchange.v2.log.jdk14logging.suppressStackWalk" />com.mchange.v2.log.jdk14logging.suppressStackWalk</dt>
+	<dd>
+	  By default, if you are using c3p0 with the JDK's built-in logging library, each logged message
+	  analyzes the stack to determine the class and method doing the logging. At normal log levels (e.g. INFO),
+	  c3p0 emits few logging messages, and this isn't a problem. But if you want to run c3p0 in production
+	  under more verbose logging, all the stack trace walks might exact a cost. Set this parameter to true and
+	  the name of the logger will appear in messages rather than the stack-walked calling class and method.
+	</dd>
 	<dt><a name="com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL" />com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</dt>
 	<dd>
 	  <div class="propdesc">
@@ -2028,6 +2036,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<ul class="other_props_list">
 	  <li>com.mchange.v2.log.MLog</li>
 	  <li>com.mchange.v2.log.NameTransformer</li>
+	  <li>com.mchange.v2.log.jdk14logging.suppressStackWalk</li>
 	  <li>com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</li>
 	</ul>
 	<h4>Configuring JMX</h4>
