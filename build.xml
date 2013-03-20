@@ -8,7 +8,7 @@
 
   <property name="c3p0.version" value="0.9.5-pre1" />
 
-  <property name="c3p0.copyright.year" value="2012" />
+  <property name="c3p0.copyright.year" value="2013" />
 
   <property name="c3p0.name"    value="c3p0-${c3p0.version}" />
 
