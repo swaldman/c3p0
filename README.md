@@ -1,7 +1,10 @@
 #### c3p0 ####
 
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
-support for caching and reuse of PreparedStatements.
+support for caching and reuse of PreparedStatements. It is licensed under 
+[LGPL v.2.1](https://github.com/swaldman/c3p0/blob/master/src/dist-static/LICENSE-LGPL)
+or [EPL v.1.0](https://github.com/swaldman/c3p0/blob/master/src/dist-static/LICENSE-EPL), 
+at your option.
 
 c3p0 is now maintained on [github](https://github.com/swaldman/c3p0).
 
