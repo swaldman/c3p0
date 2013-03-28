@@ -1815,7 +1815,7 @@ class BasicResourcePool implements ResourcePool
 		    recheck = true;
 		}
 
-		// to avoid doing a race conditon, we now decrement within doAcquire() while
+		// to avoid a race conditon, we now decrement within doAcquire() while
 		// holding the BasicResourcePool's lock.
                 //decrementPendingAcquires(); 
 
