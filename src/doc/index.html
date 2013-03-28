@@ -1382,6 +1382,16 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    define an order of preference among logging libraries.
 	  </div>
 	</dd>
+	<dt><a name="com.mchange.v2.log.jdk14logging.suppressStackWalk" />com.mchange.v2.log.jdk14logging.suppressStackWalk</dt>
+	<dd>
+	  <div class="propdesc">
+	    Under JDK standard logging, the logging library may inspect stack traces to determine the class
+	    and method from which a log message was generated. That can be helpful, but it is also slow.
+	    <tt>com.mchange.v2.log.jdk14logging.suppressStackWalk</tt> now defaults to <tt>true</tt>,
+	    and logger names are logged in place of class names. To return to the original slow but
+	    more informative approach, set this property to false.
+	  </div>
+	</dd>
 	<dt><a name="com.mchange.v2.log.NameTransformer" />com.mchange.v2.log.NameTransformer</dt>
 	<dd>
 	  <div class="propdesc">
@@ -2029,6 +2039,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	</p>
 	<ul class="other_props_list">
 	  <li>com.mchange.v2.log.MLog</li>
+	  <li>com.mchange.v2.log.jdk14logging.suppressStackWalk</li>
 	  <li>com.mchange.v2.log.NameTransformer</li>
 	  <li>com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</li>
 	</ul>

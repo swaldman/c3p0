@@ -1,3 +1,7 @@
+	-- actually documented 'com.mchange.v2.log.jdk14logging.suppressStackWalk'. i said i had earlier
+	   but apparently not
+	-- set 'com.mchange.v2.log.jdk14logging.suppressStackWalk' to true by default in mchange-commons-java
+c3p0-0.9.5-pre1
 	-- Included 'com.mchange.v2.log.jdk14logging.suppressStackWalk' in c3p0 docs.
 	-- In mchange-commons: Added a config property for jdk14 logging users:
 	   'com.mchange.v2.log.jdk14logging.suppressStackWalk' allows clients to speed up logging
