@@ -1387,9 +1387,10 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	  <div class="propdesc">
 	    Under JDK standard logging, the logging library may inspect stack traces to determine the class
 	    and method from which a log message was generated. That can be helpful, but it is also slow.
-	    <tt>com.mchange.v2.log.jdk14logging.suppressStackWalk</tt> now defaults to <tt>true</tt>,
-	    and logger names are logged in place of class names. To return to the original slow but
-	    more informative approach, set this property to false.
+	    Setting this configuration parameter to true will suppress this stack walk, and reduce the
+	    overhead of logging. <b>This property now defaults to <tt>true</tt>,
+	    and logger names are logged in place of class names.</b> To return to the original slower but
+	    more informative approach, explicitly set the property to false.
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.log.NameTransformer" />com.mchange.v2.log.NameTransformer</dt>
