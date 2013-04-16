@@ -20,6 +20,7 @@
   <property name="srcdist.name"                      value="${c3p0.name}.src" />
   <property name="src.dir"                           value="src" />
   <property name="java.src.dir"                      value="${src.dir}/java" />
+  <property name="rsrc.src.dir"                      value="${src.dir}/resources" />
   <property name="codegen.src.dir"                   value="${src.dir}/codegen" />
   <property name="doc.src.dir"                       value="${src.dir}/doc" />
   <property name="docwebapp.src.dir"                 value="${src.dir}/docweb/docwebapp" />
@@ -287,6 +288,7 @@
 	<attribute name="Class-Path" value="${mchange-commons-java.jar.file.name}" />
       </manifest>
       <fileset dir="${build.classes.dir}" />
+      <fileset dir="${rsrc.src.dir}" />
     </jar>
   </target>
 
