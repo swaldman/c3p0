@@ -60,32 +60,23 @@ public final class C3P0Config
 
     final static MLogger logger;
 
-    final static MultiPropertiesConfig CONFIG;
+    final static MultiPropertiesConfig MPCONFIG;
 
     static
     {
-// 	Set knownProps = new HashSet();
-// 	knownProps.add("acquireIncrement");
-// 	knownProps.add("acquireRetryAttempts");
-// 	knownProps.add("acquireRetryDelay");
-// 	knownProps.add("autoCommitOnClose");
-// 	knownProps.add("automaticTestTable");
-// 	knownProps.add("breakAfterAcqireFailure");
-// 	knownProps.add("checkoutTimeout");
-// 	knownProps.add("connectionTesterClassName");
-// 	knownProps.add("factoryClassLocation");
-// 	knownProps.add("forceIgnoreUnresolvedTransactions");
-// 	knownProps.add("idleConnectionTestPeriod");
-// 	knownProps.add("initialPoolSize");
-// 	knownProps.add("maxIdleTime");
-// 	knownProps.add("maxPoolSize");
-
 	C3P0Config protoMain;
 
 	logger = MLog.getLogger( C3P0Config.class );
-	CONFIG = MultiPropertiesConfig.readVmConfig( logger );
 
-	String cname = CONFIG.getProperty( CFG_FINDER_CLASSNAME_KEY );
+	// these should be specified in /mchange-config-resource-paths
+	// but just in case that is overridden or omitted...
+
+	String[] defaults = {"hocon:/reference.conf", "/mchange-commons.properties", "/mchange-log.properties"};
+	String[] preempts = {"hocon:/application.conf", "/c3p0.properties", "/"};
+
+	MPCONFIG = MultiPropertiesConfig.readVmConfig( defaults, preempts, logger );
+
+	String cname = MPCONFIG.getProperty( CFG_FINDER_CLASSNAME_KEY );
 
 	C3P0ConfigFinder cfgFinder = null;
 	try
@@ -150,13 +141,13 @@ public final class C3P0Config
     }
 
     static String getPropFileConfigProperty( String prop )
-    { return CONFIG.getProperty( prop ); }
+    { return MPCONFIG.getProperty( prop ); }
 
     static Properties findResourceProperties()
-    { return CONFIG.getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }
+    { return MPCONFIG.getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }
 
     static Properties findAllC3P0Properties()
-    { return CONFIG.getPropertiesByPrefix("c3p0"); }
+    { return MPCONFIG.getPropertiesByPrefix("c3p0"); }
 
 
     public static String getUnspecifiedUserProperty( String propKey, String configName )
