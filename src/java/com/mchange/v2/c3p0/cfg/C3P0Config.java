@@ -54,9 +54,13 @@ public final class C3P0Config
 
     public final static String DEFAULT_CONFIG_NAME = "default";
 
+    public final static String PROPS_FILE_RSRC_PATH     = "/c3p0.properties";
+
     public final static C3P0Config MAIN;
 
-    final static MLogger logger = MLog.getLogger( C3P0Config.class );
+    final static MLogger logger;
+
+    final static MultiPropertiesConfig CONFIG;
 
     static
     {
@@ -78,7 +82,10 @@ public final class C3P0Config
 
 	C3P0Config protoMain;
 
-	String cname = MultiPropertiesConfig.readVmConfig().getProperty( CFG_FINDER_CLASSNAME_KEY );
+	logger = MLog.getLogger( C3P0Config.class );
+	CONFIG = MultiPropertiesConfig.readVmConfig( logger );
+
+	String cname = CONFIG.getProperty( CFG_FINDER_CLASSNAME_KEY );
 
 	C3P0ConfigFinder cfgFinder = null;
 	try
@@ -141,6 +148,16 @@ public final class C3P0Config
 		    logger.log( MLevel.WARNING, "Unknown c3p0-config property: " + prop);
 	    }
     }
+
+    static String getPropFileConfigProperty( String prop )
+    { return CONFIG.getProperty( prop ); }
+
+    static Properties findResourceProperties()
+    { return CONFIG.getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }
+
+    static Properties findAllC3P0Properties()
+    { return CONFIG.getPropertiesByPrefix("c3p0"); }
+
 
     public static String getUnspecifiedUserProperty( String propKey, String configName )
     {

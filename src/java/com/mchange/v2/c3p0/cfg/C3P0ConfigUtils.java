@@ -137,13 +137,13 @@ public final class C3P0ConfigUtils
     }
     
     public static String getPropFileConfigProperty( String prop )
-    { return MultiPropertiesConfig.readVmConfig().getProperty( prop ); }
+    { return C3P0Config.getPropFileConfigProperty( prop ); }
 
-    private static Properties findResourceProperties()
-    { return MultiPropertiesConfig.readVmConfig().getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }
+    public static Properties findResourceProperties()
+    { return C3P0Config.findResourceProperties(); }
 
     private static Properties findAllC3P0Properties()
-    { return MultiPropertiesConfig.readVmConfig().getPropertiesByPrefix("c3p0"); }
+    { return C3P0Config.findAllC3P0Properties(); }
 
     static Properties findAllC3P0SystemProperties()
     {

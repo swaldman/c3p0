@@ -118,6 +118,7 @@
     <pathelement location="${test.jdbc.driver.jar.file}" />
     <pathelement location="${log4j.jar.file}" />
     <pathelement location="${junit.jar.file}" />
+    <pathelement path="${extra.test.classpath}" />
   </path>
   
   <target name="init">

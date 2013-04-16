@@ -39,6 +39,7 @@ import java.util.Properties;
 import java.io.InputStream;
 import java.io.IOException;
 import com.mchange.v1.io.InputStreamUtils;
+import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
 import com.mchange.v2.c3p0.impl.C3P0Defaults;
 import com.mchange.v2.cfg.MultiPropertiesConfig;
 import com.mchange.v2.log.MLevel;
@@ -97,15 +98,13 @@ public final class PoolConfig
     public final static String PREFERRED_TEST_QUERY                 = "c3p0.preferredTestQuery";
     public final static String FACTORY_CLASS_LOCATION               = "c3p0.factoryClassLocation";
     
-    public final static String DEFAULT_CONFIG_RSRC_PATH = "/c3p0.properties";
-    
     final static PoolConfig DEFAULTS;
 
     static
     {
 	logger = MLog.getLogger( PoolConfig.class );
 
-	Properties rsrcProps = findResourceProperties();
+	Properties rsrcProps = C3P0ConfigUtils.findResourceProperties();
 	PoolConfig rsrcDefaults = extractConfig( rsrcProps, null );
 
 	Properties sysProps;
@@ -616,32 +615,5 @@ public final class PoolConfig
 	    pcfg.setFactoryClassLocation( defaults.getFactoryClassLocation() );
 	else
 	    pcfg.setFactoryClassLocation( C3P0Defaults.factoryClassLocation() );
-    }
-
-    private static Properties findResourceProperties()
-    { return MultiPropertiesConfig.readVmConfig().getPropertiesByResourcePath(DEFAULT_CONFIG_RSRC_PATH); }
-
-    private static Properties origFindResourceProperties()
-    {
- 	Properties props = new Properties();
-
- 	InputStream is = null; 
- 	try
- 	    {
- 		is = PoolConfig.class.getResourceAsStream(DEFAULT_CONFIG_RSRC_PATH);
- 		if ( is != null )
- 		    props.load( is );
- 	    }
- 	catch (IOException e)
- 	    {
- 		//e.printStackTrace();
- 		if ( logger.isLoggable( MLevel.WARNING ) )
- 		    logger.log( MLevel.WARNING, "An IOException occurred while trying to read Pool properties!", e );
- 		props = new Properties(); 
- 	    }
- 	finally
- 	    { InputStreamUtils.attemptClose( is ); }
-
- 	return props;
     }
 }

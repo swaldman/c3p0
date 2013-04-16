@@ -57,7 +57,7 @@ class BasicResourcePool implements ResourcePool
     final static boolean USE_SCATTERED_ACQUIRE_TASK;
     static
     {
-        String checkScattered = com.mchange.v2.cfg.MultiPropertiesConfig.readVmConfig().getProperty(USE_SCATTERED_ACQUIRE_TASK_KEY);
+        String checkScattered = com.mchange.v2.cfg.MultiPropertiesConfig.readVmConfig( logger ).getProperty(USE_SCATTERED_ACQUIRE_TASK_KEY);
         if (checkScattered != null && checkScattered.trim().toLowerCase().equals("false"))
         {
             USE_SCATTERED_ACQUIRE_TASK = false;
