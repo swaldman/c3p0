@@ -120,7 +120,7 @@ public final class C3P0Registry
     {
         classNamesToConnectionTesters.put(C3P0Defaults.connectionTesterClassName(), C3P0Defaults.connectionTester());
 
-        String userManagementCoordinator = C3P0ConfigUtils.getPropFileConfigProperty(MC_PARAM);
+        String userManagementCoordinator = C3P0ConfigUtils.getPropsFileConfigProperty(MC_PARAM);
         if (userManagementCoordinator != null)
         {
             try

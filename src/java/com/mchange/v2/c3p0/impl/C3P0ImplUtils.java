@@ -40,7 +40,7 @@ import java.util.*;
 import java.lang.reflect.*;
 
 import com.mchange.v2.c3p0.*;
-import com.mchange.v2.cfg.MultiPropertiesConfig;
+import com.mchange.v2.c3p0.cfg.*;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -117,7 +117,7 @@ public final class C3P0ImplUtils
     
     static
     {
-        String vmid = MultiPropertiesConfig.readVmConfig().getProperty(VMID_PROPKEY);
+        String vmid = C3P0Config.getPropsFileConfigProperty( VMID_PROPKEY );
         if (vmid == null || (vmid = vmid.trim()).equals("") || vmid.equals("AUTO"))
             VMID_PFX = UidUtils.VM_ID + '|';
         else if (vmid.equals("NONE"))

@@ -136,8 +136,8 @@ public final class C3P0ConfigUtils
 	return new C3P0Config( defaults, configNamesToNamedScopes ); 
     }
     
-    public static String getPropFileConfigProperty( String prop )
-    { return C3P0Config.getPropFileConfigProperty( prop ); }
+    public static String getPropsFileConfigProperty( String prop )
+    { return C3P0Config.getPropsFileConfigProperty( prop ); }
 
     public static Properties findResourceProperties()
     { return C3P0Config.findResourceProperties(); }

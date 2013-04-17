@@ -38,7 +38,6 @@ package com.mchange.v2.c3p0.cfg;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Properties;
-import com.mchange.v2.cfg.MultiPropertiesConfig;
 
 public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 {
@@ -56,7 +55,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	// properties in the XML
 	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
 
-	String cfgFile = MultiPropertiesConfig.readVmConfig().getProperty( XML_CFG_FILE_KEY );
+	String cfgFile = C3P0Config.getPropsFileConfigProperty( XML_CFG_FILE_KEY );
 	if (cfgFile == null)
 	    {
 		C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromDefaultResource();

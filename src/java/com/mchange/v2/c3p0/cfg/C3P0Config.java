@@ -54,7 +54,7 @@ public final class C3P0Config
 
     public final static String DEFAULT_CONFIG_NAME = "default";
 
-    public final static String PROPS_FILE_RSRC_PATH     = "/c3p0.properties";
+    public final static String PROPS_FILE_RSRC_PATH = "/c3p0.properties";
 
     public final static C3P0Config MAIN;
 
@@ -74,7 +74,7 @@ public final class C3P0Config
 	String[] defaults = {"hocon:/reference.conf", "/mchange-commons.properties", "/mchange-log.properties"};
 	String[] preempts = {"hocon:/application.conf", "/c3p0.properties", "/"};
 
-	MPCONFIG = MultiPropertiesConfig.readVmConfig( defaults, preempts, logger );
+	MPCONFIG = MConfig.readVmConfig( defaults, preempts );
 
 	String cname = MPCONFIG.getProperty( CFG_FINDER_CLASSNAME_KEY );
 
@@ -140,7 +140,7 @@ public final class C3P0Config
 	    }
     }
 
-    static String getPropFileConfigProperty( String prop )
+    public static String getPropsFileConfigProperty( String prop )
     { return MPCONFIG.getProperty( prop ); }
 
     static Properties findResourceProperties()

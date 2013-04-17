@@ -41,7 +41,6 @@ import java.io.IOException;
 import com.mchange.v1.io.InputStreamUtils;
 import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
 import com.mchange.v2.c3p0.impl.C3P0Defaults;
-import com.mchange.v2.cfg.MultiPropertiesConfig;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
