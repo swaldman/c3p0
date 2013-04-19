@@ -12,5 +12,6 @@ hocon:/reference.conf
 /mchange-log.properties
 hocon:/application.conf
 /c3p0.properties
+hocon:/c3p0.conf
 /
 
