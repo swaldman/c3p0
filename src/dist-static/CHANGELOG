@@ -1,3 +1,8 @@
+	-- Added and documented HOCON / typesafe config libary support, available if (and only if) 
+	   the typesafe config library is included with the application.
+	-- Refactored mchange-commons-java to eliminate very rare potential deadlocks under simultaneous
+	   ClassLoading of file in cfg and log packages, and defined a facade into the cfg library use of
+	   which should eliminate the possibility of such deadlocks if it is used assiduously.
 	-- actually documented 'com.mchange.v2.log.jdk14logging.suppressStackWalk'. i said i had earlier
 	   but apparently not
 	-- set 'com.mchange.v2.log.jdk14logging.suppressStackWalk' to true by default in mchange-commons-java

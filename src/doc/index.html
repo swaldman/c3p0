@@ -21,6 +21,9 @@
       a.cfg_param {
          font-family: monospace;
       }
+      a.small {
+         font-size: smaller;
+      }
       body {
          font-family: optima, helvetica, arial, sans-serif;
       }
@@ -260,7 +263,6 @@
       ul.pointerlist {
          list-style: square;
       }
-
     </style>
   </head>
   <body>
@@ -339,6 +341,7 @@
       <li><a href="#configuration_files">Appendix B: Configuation Files, etc.</a></li>
 	<ol class="contents">
 	  <li><a href="#c3p0_properties">Overriding c3p0 defaults with a c3p0.properties file</a></li>
+	  <li><a href="#c3p0_conf">Overriding c3p0 defaults with "HOCON" (typesafe-config) configuration files</a></li>
 	  <li><a href="#system_properties">Overriding c3p0 defaults with System properties</a></li>
 	  <li><a href="#c3p0-config.xml">Named and Per-User configuration: Overriding c3p0 defaults via c3p0-config.xml</a></li>
 	  <li><a href="#configuration_precedence">Precedence of Configuration Settings</a></li>
@@ -2110,6 +2113,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	  c3p0 configuration parameters can be set 
 	  <a href="#programmatic_configuration">directly in Java code</a>, 
 	  via a <a href="#c3p0_properties">simple Java properties file</a>,
+	  via a <a href="#c3p0_conf">Typesafe "HOCON" file</a>,
 	  via an <a href="#c3p0-config.xml">XML configuration file</a>, or  
 	  via <a href="#system_properties">System properties</a>.
 	  Any which way
@@ -2144,6 +2148,66 @@ c3p0.maxStatements=150
 # more than half an hour
 c3p0.maxIdleTime=1800
 	</div>
+	<h3>
+	  <a name="c3p0_conf">Overriding c3p0 defaults with "HOCON" (typesafe-config) configuration files</a>
+	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+	</h3>
+	<p>
+	  Typesafe has defined a <a href="https://github.com/typesafehub/config">very nice configuration file format</a> called "<a href="https://github.com/typesafehub/config/blob/master/HOCON.md">HOCON</a>".
+	</p>
+	<p>
+	  c3p0 does not include Typesafe's library, but if you bundle it with your application,
+	  c3p0 will support configuration in this format. You may place c3p0 configuration in the standard <tt>/application.conf</tt> or <tt>/reference.conf</tt> files,
+	  or you may use a special <tt>/c3p0.conf</tt> file. (These files must be placed as top-level ClassLoader resources, see <a href="#c3p0_properties">above</a>.)
+	  The Typesafe config library can be <a href="http://search.maven.org/#artifactdetails%7Ccom.typesafe%7Cconfig%7C1.0.0%7Cbundle">downloaded from the Maven Central Repository</a>.
+	</p>
+	<p><i>
+	    Remember, HOCON configuration in only supported if you explicitly bundle the Typesafe config library
+	    with your application. The library is not included with c3p0's binary distribution, nor is it downloaded
+	    with c3p0 as a transitive dependency!
+	</i></p>
+	<p>
+	  Here are some examples of setting c3p0 configuration in HOCON:
+	</p>
+	<div class="example">
+c3p0 {
+  # turn on statement pooling
+  maxStatements=150
+	
+  # close pooled Connections that go unused for
+  # more than half an hour
+  maxIdleTime=1800
+}
+	</div>
+	<p>
+	  Note that you <i>must</i> specify ordinary config params explicitly inside a c3p0 scope one way or another, even in a <tt>c3p0.conf</tt> file.
+	  "Dot notation" can be used equivalently to scopes:
+	</p>
+	<div class="example">
+# equivalent to the example above, and
+# identical to the properties file format.
+
+c3p0.maxStatements=150
+c3p0.maxIdleTime=1800
+	</div>
+	<p>Also, the following two specifications are equivalent:</p>
+	<div class="example">
+# properties-file-ish specification
+com.mchange.v2.log.MLog=com.mchange.v2.log.log4j.Log4jMLog
+
+# scoped specification of the same
+com {
+  mchange {
+    v2 {
+      log {
+        MLog="com.mchange.v2.log.log4j.Log4jMLog"
+      }
+    }
+  }
+}
+
+	</div>
+
 	<h3>
 	  <a name="system_properties">Overriding c3p0 defaults with System properties</a>
 	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -2268,7 +2332,10 @@ DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoA
 	    <li>Configuration values programmatically set.</li>
 	    <li>System property setting of configuration value.</li>
 	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
+	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
 	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
+	    <li>Configuration values in a  <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
+	    <li>Configuration values in a  <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
 	</div>
@@ -2293,7 +2360,10 @@ DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoA
 	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
 	    <li>System property setting of configuration value.</li>
 	    <li>Non-user-specific values taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
-	    <li>Values specified in a <tt>c3p0.properties</tt> file</li>
+	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
+	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
+	    <li>Configuration values in a  <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
+	    <li>Configuration values in a  <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
 	</div>
