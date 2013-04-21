@@ -1,5 +1,8 @@
-	-- Added and documented HOCON / typesafe config libary support, available if (and only if) 
-	   the typesafe config library is included with the application.
+c3p0-0.9.5-pre2
+	-- Added support for SLF4J / logback logging, defined short aliases for adapters to
+	   the various logging libraries, updated documentation with new logging features
+	-- Added and documented HOCON / typesafe-config libary support, available if (and only if) 
+	   the typesafe-config library is included with the application.
 	-- Refactored mchange-commons-java to eliminate very rare potential deadlocks under simultaneous
 	   ClassLoading of file in cfg and log packages, and defined a facade into the cfg library use of
 	   which should eliminate the possibility of such deadlocks if it is used assiduously.

@@ -1348,11 +1348,13 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
       </h3>
       <p>
 	c3p0 uses a custom logging library similar to jakarta commons-logging. Log messages can be directed to
-	the popular log4j logging library, to the standard logging facility introduced with jdk1.4, or to
+	the popular log4j logging library, to <a href="http://www.slf4j.org/">slf4j</a> (with its <a href="http://logback.qos.ch/">logback backend</a>), 
+	to the standard logging facility introduced with jdk1.4, or to
 	<tt>System.err</tt>. Nearly all configuration should be done at the level of your preferred logging
 	library. There are a very few configuration options specific to c3p0's logging, and usually the defaults
 	will be fine. Logging-related parameters
-	may be placed in your <tt>c3p0.properties</tt> file, in a file called <tt>mchange-log.properties</tt> at
+	may be placed in your <tt>c3p0.properties</tt> file, in 
+	<a href="#c3p0_conf">HOCON configuration files</a>, in a file called <tt>mchange-log.properties</tt> at
 	the top-level of your classpath, or they may be defined as System properties. (The logging properties defined
 	below may <u>not</u> be defined in <tt>c3p0-config.xml</tt>!) See the 
 	<a href="#log_properties_box">box</a> below.
@@ -1378,10 +1380,18 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    If you want to directly control which library is used, you may set this property to one of:
 	    <ul>
 	      <li><tt>com.mchange.v2.log.log4j.Log4jMLog</tt></li>
-	      <li><tt>com.mchange.v2.log.jdk14logging.Jdk14MLog</tt></li>
+	      <li><tt>com.mchange.v2.log.slf4j.Slf4jMLog</tt></li>
+	      <li><tt>com.mchange.v2.log.jdk14logging.Jdk14MLog</tt>></li>
 	      <li><tt>com.mchange.v2.log.FallbackMLog</tt></li>
 	    </ul>
-	    You may also set this property to a comma separated list of the above alternatives, to
+	    Alternatively, the following abbreviations are supported:
+	    <ul>
+	      <li><tt>log4j</tt></li>
+	      <li><tt>slf4j</tt></li>
+	      <li><tt>jul, jdk14, java.util.logging</tt></li>
+	      <li><tt>fallback</tt></li>
+	    </ul>
+	    You may also set this property to a comma separated list of any mix the above alternatives, to
 	    define an order of preference among logging libraries.
 	  </div>
 	</dd>
