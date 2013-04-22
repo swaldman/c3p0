@@ -1126,12 +1126,13 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	String mname = method.getName();
 	if ("isWrapperFor".equals( mname ))
 	{
-	    String wrappedLiteral = intfcl.getName() + ".class";
-	    iw.println("return ( " + wrappedLiteral + "== a || a.isAssignableFrom( " + wrappedLiteral + " ) );" );
+	    //String wrappedLiteral = intfcl.getName() + ".class";
+	    String wrappedIntfc = intfcl.getName() + ".class";
+	    String wrappedClass = "inner.getClass()";
+	    iw.println("return ( " + wrappedIntfc + "== a || a.isAssignableFrom( " + wrappedClass + " ) );" );
 	}
 	else if ("unwrap".equals( mname ))
 	{
-	    String wrappedLiteral = intfcl.getName() + ".class";
 	    iw.println("if (this.isWrapperFor( a )) return inner;");
 	    iw.println("else throw new SQLException( this + \042 is not a wrapper for \042 + a.getName());");
 	}
