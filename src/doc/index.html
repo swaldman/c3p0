@@ -26,6 +26,7 @@
       }
       body {
          font-family: optima, helvetica, arial, sans-serif;
+         line-height: 1.25;
       }
       dl.properties {
          padding: 0em 3em 0em 3em;
@@ -255,6 +256,8 @@
       table.hibernate_props td {
          font-family: monospace;
       }
+      tt {
+      }
       ul.other_props_list {
          list-style: none;
          font-family: monospace;
@@ -306,11 +309,11 @@
 	  <li><a href="#using_combopooleddatasource">Using ComboPooledDataSource</a></li>
 	  <li><a href="#using_datasources_factory">Using the DataSouces factory class</a></li>
 	  <ul class="box">
-	  	<li><a href="#forceOverrideBox">Box: Overriding authentication information (from non-c3p0 DataSources)</a></li>
+	    <li><a href="#forceOverrideBox">Box: Overriding authentication information (from non-c3p0 DataSources)</a></li>
 	  </ul>
 	  <li><a href="#querying">Querying Pool Status</a></li>
 	  <ul class="box">
-	  	<li><a href="#using_c3p0_registry_box">Box: Using C3P0Registry to find a reference to a DataSource</a></li>
+	    <li><a href="#using_c3p0_registry_box">Box: Using C3P0Registry to find a reference to a DataSource</a></li>
 	  </ul>
 	  <li><a href="#cleaning">Cleaning Up Pool Resources</a></li>
 	  <li><a href="#build_your_own">Advanced: Building Your Own PoolBackedDataSource</a></li>
@@ -324,6 +327,9 @@
 	  <li><a href="#basic_pool_configuration">Basic Pool Configuration</a></li>
 	  <li><a href="#managing_pool_size">Managing Pool Size and Connection Age</a></li>
 	  <li><a href="#configuring_connection_testing">Configuring Connection Testing</a></li>
+	  <ul class="box">
+	    <li><a href="#simple_advice_on_connection_testing">Box: Simple advice on Connection testing </a></li>
+	  </ul>
 	  <li><a href="#configuring_statement_pooling">Configuring Statement Pooling</a></li>
 	  <li><a href="#configuring_recovery">Configuring Recovery From Database Outages</a></li>
 	  <li><a href="#connection_customizers">Managing Connection Lifecycles with Connection Customizers</a></li>
@@ -1028,8 +1034,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	When configuring
 	Connection testing, first try to minimize the cost of each test. By default, Connections are tested
 	by calling the <tt>getTables()</tt> method on a Connection's associated <tt>DatabaseMetaData</tt>
-	object. This has the advantage of working with any database, and regardless of the database schema. However, empirically
-	a <tt>DatabaseMetaData.getTables()</tt> call is often much slower than a simple database query.
+	object. This has the advantage of working with any database, and regardless of the database schema. However, 
+	a call to <tt>DatabaseMetaData.getTables()</tt> is often much slower than a simple database query.
       </p>
       <p>
 	The most convenient way to speed up Connection testing is to define the parameter <tt>automaticTestTable</tt>. Using the name
@@ -1038,8 +1044,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	is fixed prior to your application's use of the database, you can simply define a test query with the <tt>preferredTestQuery</tt>
 	parameter. Be careful, however. Setting <tt>preferredTestQuery</tt> will lead to errors as Connection tests fail
 	if the query target table does not exist in your database table <i>prior to initialization of your DataSource</i>.
-	  </p>
-	  <p>
+      </p>
+      <p>
 	Advanced users may define any kind of Connection testing they wish, by implementing a 
 	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> and supplying the
 	fully qualified name of the class as <tt>connectionTesterClassName</tt>. If you'd like your custom ConnectionTesters
@@ -1051,15 +1057,81 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       <p>
 	The most reliable time to test Connections is on check-out. But this is also the most costly choice
 	from a client-performance perspective. Most applications should work quite reliably using a combination of 
-	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionsOnCheckIn</tt>. Both the idle test and the check-in 
-	test are performed asynchronously, which leads to better performance, both perceived and actual.
+	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionOnCheckIn</tt>. Both the idle test and the check-in 
+	test are performed asynchronously, which can lead to better performance, both perceived and actual.
       </p>
       <p>
-	Note that for many applications, high performance is more important than the risk of an occasional database exception.
+	For some applications, high performance is more important than the risk of an occasional database exception.
 	In its default configuration, c3p0 does no Connection testing at all. Setting a fairly long 
 	<tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is an excellent, high-performance
 	approach.
       </p>
+      <div class="boxed">
+	<a name="simple_advice_on_connection_testing" />
+	<h4>Simple advice on Connection testing</h4>
+	<p>
+	  If you don't know what to do, try this:
+	</p>
+	<ol type="1">
+	  <li>
+	    <p>
+	      Use <tt><b>SELECT 1</b></tt> for your <tt>preferredTestQuery</tt>, if you are running MySQL or Postgres.
+	      For other databases, look for 
+	      <a href="http://stackoverflow.com/questions/3668506/efficient-sql-test-query-or-validation-query-that-will-work-across-all-or-most">suggestions here</a>.
+	      Leave <tt>automatedTestTable</tt> undefined.
+	    </p>
+	  </li>
+	  <li>
+	    <p>
+	      Begin by setting <tt>testConnectionOnCheckOut</tt> to <tt>true</tt> and get your application to run correctly and stably.
+	      If you are happy with your application's performance, <i>you can stop here!</i> This is the simplest, most reliable form of
+	      Connection-testing, but it does have a client-visible performance cost.
+	    </p>
+	  </li>
+	  <li>
+	    <p>If you'd like to improve performance by eliminating Connection testing from clients' code path:</p>
+	    <ol type="a">
+	      <li><p>Set <tt>testConnectionOnCheckOut</tt> to <tt>false</tt></p></li>
+	      <li><p>Set <tt>testConnectionOnCheckIn</tt> to <tt>true</tt></p></li>
+	      <li>
+		<p>
+		  Set <tt>idleConnectionTestPeriod</tt> to <tt>30</tt>, fire up you application and observe.
+		  This is a pretty robust setting, all Connections will tested on check-in and every 30 seconds thereafter while in the pool.
+		  Your application should experience broken or stale Connections only very rarely, and the pool should
+		  recover from a database shutdown and restart quickly. But there is some overhead associated 
+		  with all that Connection testing.
+		</p>
+	      </li>
+	      <li>
+		<p>
+		  If database restarts will be rare so quick recovery is not an
+		  issue, consider reducing the frequency of tests by <tt>idleConnectionTestPeriod</tt> to, say, <tt>300</tt>,
+		  and see whether clients are troubled by stale or broken Connections. If not, stick with <tt>300</tt>, or try an
+		  even bigger number. Consider setting <tt>testConnectionOnCheckIn</tt> back to false to avoid unnecessary tests
+		  on checkin. Alternatively, if your application does encounter bad Connections, consider reducing <tt>idleConnectionTestPeriod</tt>
+		  and set <tt>testConnectionOnCheckIn</tt> back to <tt>true</tt>. There are no correct or incorrect values for these parameters:
+		  you are trading off overhead for reliability in deciding how frequently to test. The exact numbers are not so critical.
+		  It's usually easy to find configurations that perform well. It's rarely worth spending time in pursuit of "optimal" values here.
+		</p>
+	      </li>
+	    </ol>
+	  </li>
+	</ol>
+	<p>
+	  So, when should you stick with simple and reliable (Step 2 above), and when is it worth going for better performance (Step 3)?
+	  In general, it depends on how much work clients typically do with Connections once they check them out. If clients usually
+	  make complex queries and/or perform multiple operations, adding the extra cost of one fast test per checkout will not much affect
+	  performance. But if your application typically checks out a Connection and performs one simple query with it, throwing in an additional
+	  test can really slow things down.
+	</p>
+	<p>
+	  That's nice in theory, but often people don't really have a good sense of how much work clients perform on average.
+	  The best thing to do is usually to try Step 3, see if it helps (however you measure performance), see if it hurts (is your application
+	  troubled by broken Connections? does it recover from database restarts well enough?), and then decide. You can always go back to
+	  simple, slow, and robust. Just set <tt>testConnectionOnCheckOut</tt> to <tt>true</tt>, <tt>testConnectionOnCheckIn</tt> to <tt>false</tt>,
+	  and set <tt>idleConnectionTestPeriod</tt> to <tt>0</tt>. 	  <i>But do be sure to set an efficient</i> <tt>preferredTestQuery</tt> <i>!!!</i>
+	</p>
+      </div>
       <h3>
 	<a name="configuring_statement_pooling">Configuring Statement Pooling</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -1152,8 +1224,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	If you wish to avoid application Exceptions entirely, you must adopt a connection testing strategy that
 	is likely to detect stale Connections prior to their delivery to clients. (See 
 	"<a href="#configuring_connection_testing">Configuring Connection Testing</a>".) Even
-	with active Connection testing (<tt>testConnectionsOnCheckout</tt> set to <tt>true</tt>, or
-	<tt>testConnectionsOnCheckin</tt> and a short <tt>idleConnectionTestPeriod</tt>), your
+	with active Connection testing (<tt>testConnectionOnCheckout</tt> set to <tt>true</tt>, or
+	<tt>testConnectionOnCheckin</tt> and a short <tt>idleConnectionTestPeriod</tt>), your
 	application may see occasional Exceptions on database restart, for example if the restart 
 	occurs after a Connection to the database has already been checked out.
       </p>
@@ -1972,10 +2044,12 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
-	    <b><i>Use only if necessary. Expensive.</i></b>
             If true, an operation will be performed at every connection checkout to verify that the connection is valid.
-            <b>Better choice:</b> verify connections periodically using <tt>idleConnectionTestPeriod</tt>. Also, setting an
-	    <tt>automaticTestTable</tt> or <tt>preferredTestQuery</tt> will usually speed up all connection tests.
+            <b><i>Be sure to set an efficient</i></b> <tt>preferredTestQuery</tt> <b><i>or</i></b> <tt>automaticTestTable</tt> 
+	    <b><i>if you set this to</i></b> <tt>true</tt>. 
+	    <b><i>Performing the (expensive) default Connection test on every client checkout will harm client performance.</i></b>
+	    Testing Connections in checkout is the simplest and most reliable form of Connection testing, but
+	    for better performance, consider verifying connections periodically using <tt>idleConnectionTestPeriod</tt>. 
             [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
 	  </div>
 	</dd>
@@ -2414,7 +2488,7 @@ DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoA
 	    <td>c3p0.minPoolSize</td><td>hibernate.c3p0.min_size</td>
 	  </tr>
 	  <tr>
-	    <td>c3p0.testConnectionsOnCheckout&nbsp;</td><td>hibernate.c3p0.validate <span class="hibparam_comment">hibernate 2.x only!</span></td>
+	    <td>c3p0.testConnectionOnCheckout&nbsp;</td><td>hibernate.c3p0.validate <span class="hibparam_comment">hibernate 2.x only!</span></td>
 	  </tr>
 	</table>
       </div>
