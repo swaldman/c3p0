@@ -1,3 +1,7 @@
+	-- Made constructors of delegated proxies package-visible rather than public. Many thanks to 
+	   Oliver Zemann for calling attention to this issue.
+	-- Some fixes and improvements to cfg and log libraries, so that fewer superfluous warnings
+	   get emitted on startup.
 c3p0-0.9.5-pre2
 	-- Modified unwrap / isWrapperFor methods in proxies to be more permissive, to accept class
 	   objects for superinterfaces of the wrapped interface as well as of implementation

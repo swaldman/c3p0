@@ -46,7 +46,7 @@ import com.mchange.v2.c3p0.impl.ProxyResultSetDetachable;
 
 public abstract class JdbcProxyGenerator extends DelegatorGenerator
 {
-    final static boolean PREMATURE_DETACH_DEBUG = false;
+    private final static boolean PREMATURE_DETACH_DEBUG = false;
 
     JdbcProxyGenerator()
     {
@@ -57,6 +57,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         this.setClassModifiers( Modifier.PUBLIC | Modifier.FINAL );
         this.setMethodModifiers( Modifier.PUBLIC | Modifier.FINAL );
 
+	this.setWrappingConstructorModifiers( 0 ); //default visibility
     }
 
     abstract String getInnerTypeName();
