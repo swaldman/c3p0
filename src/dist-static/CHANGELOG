@@ -1,9 +1,10 @@
-
+	-- Fixed ClassCastException when (now deprecated!) usesTraditionalReflectiveProxies is set to
+	   true. Many thanks to Konrad Garus for reporting the issue.
 	-- NewProxyConnectionGenerator has been modified so that Connections only mark transactions
 	   as known-resolved after the putatively resolving operation has successfully completed,
 	   rather than when it is merely attempted.
-	-- With FINEST/TRACE debug logging, full JVM stack traces are now emitted during
-	   APPARENT DEADLOCKS, to help debug any deadlocks within the JVM.
+	-- With FINEST/TRACE debug logging, full JVM stack traces are now emitted during any
+	   ThreadPoolAsynchronousRunner APPARENT DEADLOCKS, to help debug any deadlocks within the JVM.
 	-- Made constructors of delegated proxies package-visible rather than public. Many thanks to
 	   Oliver Zemann for calling attention to this issue.
 	-- Some fixes and improvements to cfg and log libraries, so that fewer superfluous warnings

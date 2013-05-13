@@ -124,7 +124,7 @@ public final class C3P0PooledConnectionPool
     private static class C3P0PooledConnectionNestedLockLockFetcher implements InUseLockFetcher
     {
 	public Object getInUseLock(Object resc)
-	{ return ((NewPooledConnection) resc).inInternalUseLock; }
+	{ return ((AbstractC3P0PooledConnection) resc).inInternalUseLock; }
     }
 
     private static InUseLockFetcher RESOURCE_ITSELF_IN_USE_LOCK_FETCHER = new ResourceItselfInUseLockFetcher();
