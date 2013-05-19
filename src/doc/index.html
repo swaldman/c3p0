@@ -2242,7 +2242,10 @@ c3p0.maxIdleTime=1800
 	<p>
 	  c3p0 does not include Typesafe's library, but if you bundle it with your application,
 	  c3p0 will support configuration in this format. You may place c3p0 configuration in the standard <tt>/application.conf</tt> or <tt>/reference.conf</tt> files,
-	  or you may use a special <tt>/c3p0.conf</tt> file. (These files must be placed as top-level ClassLoader resources, see <a href="#c3p0_properties">above</a>.)
+	  or you may use a special <tt>/c3p0.conf</tt> file. 
+	  (These files must be placed as top-level ClassLoader resources, see <a href="#c3p0_properties">above</a>.)
+	  <tt>/application.json</tt>, <tt>/application.properties</tt>, and <tt>c3p0.json</tt> are also supported,
+	  and <a href="https://github.com/typesafehub/config/#uses-of-substitutions">substitutions</a> from <tt>/c3p0.properties</tt> will be resolved.
 	  The Typesafe config library can be <a href="http://search.maven.org/#artifactdetails%7Ccom.typesafe%7Cconfig%7C1.0.0%7Cbundle">downloaded from the Maven Central Repository</a>.
 	</p>
 	<p><i>
@@ -2414,9 +2417,10 @@ DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoA
 	<div align="center">
 	  <ol class="precedence">
 	    <li>Configuration values programmatically set.</li>
-	    <li>System property setting of configuration value.</li>
+	    <li>Configuration values set in system properties.</li>
 	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
 	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
+	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
 	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
 	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
 	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
