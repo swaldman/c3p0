@@ -1,3 +1,8 @@
+	-- Fixed bug in HOCON support where files that include substitutions like ${myScope.varName}
+	   would throw a ConfigException.NotResolved. These substitutions are now resolved. Many thanks
+	   to Stjepan Buljat for calling attention to this issue.
+	-- Support standard HOCON config files application.properties and application.json as well
+	   as application.conf
 	-- Made constructors of delegated proxies package-visible rather than public. Many thanks to 
 	   Oliver Zemann for calling attention to this issue.
 	-- Some fixes and improvements to cfg and log libraries, so that fewer superfluous warnings

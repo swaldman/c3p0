@@ -1,7 +1,4 @@
 #
-# example file, using config files expected by various 
-# mchange libraries.
-#
 # note that later files "shadow" earlier ones, and that
 # the name '/' is reserved as a special token for
 # System properties.
@@ -11,7 +8,9 @@ hocon:/reference.conf
 /mchange-commons.properties
 /mchange-log.properties
 hocon:/application.conf
-/c3p0.properties
+hocon:/application.json
+hocon:/application.properties
 hocon:/c3p0.conf
+/c3p0.properties
 /
 
