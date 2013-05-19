@@ -717,13 +717,22 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             }
             else
             {
-                iw.println("txn_known_resolved = " + 
-			   ( mname.equals("commit") || 
-			     mname.equals( "rollback" ) || 
-			     mname.equals( "setAutoCommit" ) ) +
-			   ';');
-                iw.println();
+		boolean known_resolved = 
+		    ( mname.equals("commit") || 
+		      mname.equals( "rollback" ) || 
+		      mname.equals( "setAutoCommit" ) );
+
+		if (! known_resolved)
+		{
+			iw.println("txn_known_resolved = false;");
+			iw.println();
+		}
                 super.generateDelegateCode( intfcl, genclass, method, iw );
+		if (known_resolved)
+		{
+			iw.println();
+			iw.println("txn_known_resolved = true;");
+		}
             }
         }
 

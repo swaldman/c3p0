@@ -3,6 +3,13 @@
 	   to Stjepan Buljat for calling attention to this issue.
 	-- Support standard HOCON config files application.properties and application.json as well
 	   as application.conf
+	-- Fixed ClassCastException when (now deprecated!) usesTraditionalReflectiveProxies is set to
+	   true. Many thanks to Konrad Garus for reporting the issue.
+	-- NewProxyConnectionGenerator has been modified so that Connections only mark transactions
+	   as known-resolved after the putatively resolving operation has successfully completed,
+	   rather than when it is merely attempted.
+	-- With FINEST/TRACE debug logging, full JVM stack traces are now emitted during any
+	   ThreadPoolAsynchronousRunner APPARENT DEADLOCKS, to help debug any deadlocks within the JVM.
 	-- Made constructors of delegated proxies package-visible rather than public. Many thanks to 
 	   Oliver Zemann for calling attention to this issue.
 	-- Some fixes and improvements to cfg and log libraries, so that fewer superfluous warnings
@@ -13,7 +20,7 @@ c3p0-0.9.5-pre2
 	   classes.
 	-- Added support for SLF4J / logback logging, defined short aliases for adapters to
 	   the various logging libraries, updated documentation with new logging features
-	-- Added and documented HOCON / typesafe-config libary support, available if (and only if) 
+	-- Added and documented HOCON / typesafe-config libary support, available if (and only if)
 	   the typesafe-config library is included with the application.
 	-- Refactored mchange-commons-java to eliminate very rare potential deadlocks under simultaneous
 	   ClassLoading of file in cfg and log packages, and defined a facade into the cfg library use of
