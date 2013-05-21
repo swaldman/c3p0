@@ -582,71 +582,72 @@ public final class C3P0PooledConnectionPool
 
                 public void destroyResource(Object resc, boolean checked_out) throws Exception
                 { 
-                    try
-                    {
-			waitMarkPooledConnectionInUse((PooledConnection) resc);
-                                
-                        if ( connectionCustomizer != null )
-                        {
-                            Connection physicalConnection = null;
-                            try
-                            { 
-                                physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
-                                
-                                connectionCustomizer.onDestroy( physicalConnection, parentDataSourceIdentityToken );
-                            }
-                            catch (ClassCastException e)
-                            {
-                                throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
-                                                " PooledConnection: " + resc + 
-                                                "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
-                            }
-                            catch (Exception e)
-                            {
-                                if (logger.isLoggable( MLevel.WARNING ))
-                                    logger.log( MLevel.WARNING,
-                                                    "An exception occurred while executing the onDestroy() method of " + connectionCustomizer +
-                                                    ". c3p0 will attempt to destroy the target Connection regardless, but this issue " +
-                                                    " should be investigated and fixed.",
-                                                    e );
-                            }
-                        }
-
-                        if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
-                            logger.log( MLevel.FINER, "Preparing to destroy PooledConnection: " + resc);
-
-			if (c3p0PooledConnections)
-			    ((AbstractC3P0PooledConnection) resc).closeMaybeCheckedOut( checked_out );
-			else
-			    ((PooledConnection) resc).close();
-
-                        // inaccurate, as Connections can be removed more than once
-                        //connectionCounter.decrement();
-
-                        if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
-                            logger.log( MLevel.FINER, 
-                                            "Successfully destroyed PooledConnection: " + resc );
-                        //". Currently open Connections: " + connectionCounter.getValue() +
-                        //"; Failed close count: " + failedCloseCounter.getValue() +
-                        //"; Total processed by this pool: " + totalOpenedCounter.getValue());
-                    }
-                    catch (Exception e)
-                    {
-                        //failedCloseCounter.increment();
-
-                        if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
-                            logger.log( MLevel.FINER, "Failed to destroy PooledConnection: " + resc );
-                        //". Currently open Connections: " + connectionCounter.getValue() +
-                        //"; Failed close count: " + failedCloseCounter.getValue() +
-                        //"; Total processed by this pool: " + totalOpenedCounter.getValue());
-
-                        throw e;
-                    }
-		    finally
+		    synchronized (inUseLockFetcher.getInUseLock(resc))
 		    {
-			unmarkPooledConnectionInUse((PooledConnection) resc);
+			try
+			    {
+				waitMarkPooledConnectionInUse((PooledConnection) resc);
+                                
+				if ( connectionCustomizer != null )
+				    {
+					Connection physicalConnection = null;
+					try
+					    { 
+						physicalConnection =  ((AbstractC3P0PooledConnection) resc).getPhysicalConnection();
+						
+						connectionCustomizer.onDestroy( physicalConnection, parentDataSourceIdentityToken );
+					    }
+					catch (ClassCastException e)
+					    {
+						throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 PooledConnection." +
+									      " PooledConnection: " + resc + 
+									      "; ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+					    }
+					catch (Exception e)
+					    {
+						if (logger.isLoggable( MLevel.WARNING ))
+						    logger.log( MLevel.WARNING,
+								"An exception occurred while executing the onDestroy() method of " + connectionCustomizer +
+								". c3p0 will attempt to destroy the target Connection regardless, but this issue " +
+								" should be investigated and fixed.",
+								e );
+					    }
+				    }
+				
+				if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+				    logger.log( MLevel.FINER, "Preparing to destroy PooledConnection: " + resc);
+				
+				if (c3p0PooledConnections)
+				    ((AbstractC3P0PooledConnection) resc).closeMaybeCheckedOut( checked_out );
+				else
+				    ((PooledConnection) resc).close();
+				
+				// inaccurate, as Connections can be removed more than once
+				//connectionCounter.decrement();
+				
+				if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+				    logger.log( MLevel.FINER, 
+						"Successfully destroyed PooledConnection: " + resc );
+				//". Currently open Connections: " + connectionCounter.getValue() +
+				//"; Failed close count: " + failedCloseCounter.getValue() +
+				//"; Total processed by this pool: " + totalOpenedCounter.getValue());
+			    }
+			catch (Exception e)
+			    {
+				//failedCloseCounter.increment();
+				
+				if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+				    logger.log( MLevel.FINER, "Failed to destroy PooledConnection: " + resc );
+				//". Currently open Connections: " + connectionCounter.getValue() +
+				//"; Failed close count: " + failedCloseCounter.getValue() +
+				//"; Total processed by this pool: " + totalOpenedCounter.getValue());
+				
+				throw e;
+			    }
+			finally
+			    { unmarkPooledConnectionInUse((PooledConnection) resc); }
 		    }
-                }
+		}
             }
 
             ResourcePool.Manager manager = new PooledConnectionResourcePoolManager();
