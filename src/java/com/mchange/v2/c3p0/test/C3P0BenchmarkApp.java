@@ -56,11 +56,7 @@ public final class C3P0BenchmarkApp
     final static String N_ENTRY_TABLE_SELECT = "SELECT * FROM n_entryyukyuk";
     final static String N_ENTRY_TABLE_DROP   = "DROP TABLE n_entryyukyuk";
 
-    //final static int NUM_ITERATIONS = 20;
     final static int NUM_ITERATIONS = 2000;
-    //final static int NUM_ITERATIONS = 10000;
-    //final static int NUM_ITERATIONS = 20000;
-    //final static int NUM_ITERATIONS = 100000;
 
     public static void main(String[] argv)
     {
@@ -71,57 +67,10 @@ public final class C3P0BenchmarkApp
             return;                    
         }
         
-//      com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).info("this is some info.");
-// 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.WARNING, "this is a warning.", new Exception("test"));
-// 	com.mchange.v2.log.MLog.getLogger( C3P0BenchmarkApp.class ).log(com.mchange.v2.log.MLevel.FINE, "this is fine.");
-
-// 	System.getProperties().put("sprong", java.awt.Color.blue);
-// 	System.getProperties().put(java.awt.Color.blue, "sprong");
-
-
 	DataSource ds_unpooled = null;
 	DataSource ds_pooled   = null;
 	try
 	    {
-/*		
-		String jdbc_url = null;
-		String username = null;
-		String password = null;
-		if (argv.length == 3)
-		    {
-			jdbc_url = argv[0];
-			username = argv[1];
-			password = argv[2];
-		    }
-		else if (argv.length == 1)
-		    {
-			jdbc_url = argv[0];
-			username = null;
-			password = null;
-		    }
-		else
-		    usage();
-
-		if (! jdbc_url.startsWith("jdbc:") )
-		    usage();
-*/
-        
-//  		ds_unpooled = DriverManagerDataSourceFactory.create(jdbc_url, username, password);
-
-//  		ds_pooled
-//  //  		    = PoolBackedDataSourceFactory.create(jdbc_url, username, password);
-//      		    = PoolBackedDataSourceFactory.create(jdbc_url, 
-//      							 username, 
-//      							 password,
-//      							 5,
-//      							 20,
-//      							 5,
-//      							 0,
-//      							 100 );
-
-		//ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
-		//ds_pooled = DataSources.pooledDataSource( ds_unpooled );
-
 		ds_unpooled = new DriverManagerDataSource();
 		//ds_unpooled = new FreezableDriverManagerDataSource();
 
@@ -142,19 +91,8 @@ public final class C3P0BenchmarkApp
  		//CloseLoggingComboPooledDataSource cpds = new CloseLoggingComboPooledDataSource();
  		//AfterCloseLoggingComboPooledDataSource cpds = new AfterCloseLoggingComboPooledDataSource();
 
- 		//cpds.setJdbcUrl( jdbc_url );
- 		//cpds.setUser( username );
- 		//cpds.setPassword( password );
  		ds_pooled = cpds;
         
-//        ComboPooledDataSource cpds2 = new ComboPooledDataSource();
-//        System.err.println("Made second ComboPooledDataSource.");
-//        cpds.getNumIdleConnectionsDefaultUser();
-//        cpds2.getNumIdleConnectionsDefaultUser();
-        
-//        Properties badProps = new Properties();
-//        badProps.put("badprop", null);
-//        DataSource appendix = DataSources.pooledDataSource(ds_unpooled, badProps);
 
  		create(ds_pooled);
 

@@ -50,7 +50,7 @@ public class AfterCloseLoggingConnectionWrapper extends FilterConnection
     {
 	try
 	{
-	    Constructor ctor = ReflectUtils.findProxyConstructor( DoubleCloseLoggingConnectionWrapper.class.getClassLoader(), Connection.class );
+	    Constructor ctor = ReflectUtils.findProxyConstructor( AfterCloseLoggingConnectionWrapper.class.getClassLoader(), Connection.class );
 	    return (Connection) ctor.newInstance( new AfterCloseLoggingInvocationHandler( inner ) );
 	}
 	catch ( Exception e )
@@ -81,7 +81,7 @@ public class AfterCloseLoggingConnectionWrapper extends FilterConnection
 			logger.log( MLevel.INFO, String.format("Method '%s' called after call to Connection close().", method) );
 		    if ( logger.isLoggable( MLevel.FINE ) )
 		    {
-			logger.log( MLevel.FINE, "After-close() method call stack trace:", new SQLWarning("DEBUG STACK TRACE -- call to method of close()ed Connection." ) );
+			logger.log( MLevel.FINE, "After-close() method call stack trace:", new SQLWarning("DEBUG STACK TRACE -- ILLEGAL use of " + inner + " after call to close()." ) );
 			logger.log( MLevel.FINE, "Original close() call stack trace:", closeStackTrace );
 		    }
 		}
