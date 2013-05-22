@@ -7,6 +7,8 @@ c3p0-0.9.5-pre3
 	   which can be extended to derive debugging filters. Created two such filters,
 	   com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource and 
 	   com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource
+	-- C3P0PooledConnectionPool destroyResource() calls are now protected by in-use resource 
+	   locks to prevent rare deadlocks during simultaneous test / destroy.   
 	-- HOCON resources are now loaded as a single group, so that resolution of substitutions
 	   works across multiple files.
 	-- Fixed bug in HOCON support where files that include substitutions like ${myScope.varName}
