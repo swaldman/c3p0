@@ -1,6 +1,7 @@
 *~
 *.class
 \#*\#
+\.\#*
 build/*
 dist/*
 dbms/oracle-thin/build/*

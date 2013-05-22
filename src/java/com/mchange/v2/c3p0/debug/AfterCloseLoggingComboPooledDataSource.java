@@ -33,30 +33,38 @@
  * 
  */
 
-package com.mchange.v2.c3p0;
+package com.mchange.v2.c3p0.debug;
 
 import java.io.*;
+import java.sql.*;
 import javax.naming.*;
+import com.mchange.v2.log.*;
+import com.mchange.v2.c3p0.*;
 
 /**
  * <p>For the meaning of most of these properties, please see c3p0's top-level documentation!</p>
  */
-public final class ComboPooledDataSource extends AbstractComboPooledDataSource implements Serializable, Referenceable
+public final class AfterCloseLoggingComboPooledDataSource extends AbstractComboPooledDataSource implements Serializable, Referenceable
 {
-    public ComboPooledDataSource()
+    public AfterCloseLoggingComboPooledDataSource()
     { super(); }
-
-    public ComboPooledDataSource( boolean autoregister )
+  
+    public AfterCloseLoggingComboPooledDataSource( boolean autoregister )
     { super( autoregister ); }
-
-    public ComboPooledDataSource(String configName)
+    
+    public AfterCloseLoggingComboPooledDataSource(String configName)
     { super( configName );  }
-
-
+    
+    public Connection getConnection() throws SQLException
+    { return AfterCloseLoggingConnectionWrapper.wrap( super.getConnection() );  }
+    
+    public Connection getConnection(String user, String password) throws SQLException
+    { return AfterCloseLoggingConnectionWrapper.wrap( super.getConnection(user, password) );  }
+    
     // serialization stuff -- set up bound/constrained property event handlers on deserialization
     private static final long serialVersionUID = 1;
-    private static final short VERSION = 0x0002;
-
+    private static final short VERSION = 0x0001;
+    
     private void writeObject( ObjectOutputStream oos ) throws IOException
     {
         oos.writeShort( VERSION );
@@ -75,4 +83,3 @@ public final class ComboPooledDataSource extends AbstractComboPooledDataSource i
         }
     }
 }
-

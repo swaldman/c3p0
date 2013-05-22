@@ -1,3 +1,7 @@
+	-- Divided ComboPooledDataSource into final implementation class and an abstract class
+	   which can be extended to derive debugging filters. Created two such filters,
+	   com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource and 
+	   com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource
 	-- HOCON resources are now loaded as a single group, so that resolution of substitutions
 	   works across multiple files.
 	-- Fixed bug in HOCON support where files that include substitutions like ${myScope.varName}

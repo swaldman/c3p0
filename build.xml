@@ -412,8 +412,10 @@
 
       <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
 
+      <!--
 	  <sysproperty key="com.sun.management.jmxremote.port" value="38383" />
 	  <sysproperty key="com.sun.management.jmxremote.authenticate" value="false" />
+       -->
 
       <syspropertyset>
 	<propertyref builtin="commandline" />

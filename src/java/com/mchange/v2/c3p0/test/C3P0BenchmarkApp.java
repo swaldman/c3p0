@@ -39,6 +39,7 @@ import java.util.*;
 import java.sql.*;
 import javax.sql.*;
 import com.mchange.v2.c3p0.*;
+import com.mchange.v2.c3p0.debug.*;
 import com.mchange.v1.db.sql.*;
 import com.mchange.v2.c3p0.DriverManagerDataSource;
 
@@ -136,7 +137,11 @@ public final class C3P0BenchmarkApp
 		//ds_pooled = DataSources.pooledDataSource(ds_unpooled);
         
                 //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
+
  		ComboPooledDataSource cpds = new ComboPooledDataSource();
+ 		//CloseLoggingComboPooledDataSource cpds = new CloseLoggingComboPooledDataSource();
+ 		//AfterCloseLoggingComboPooledDataSource cpds = new AfterCloseLoggingComboPooledDataSource();
+
  		//cpds.setJdbcUrl( jdbc_url );
  		//cpds.setUser( username );
  		//cpds.setPassword( password );
