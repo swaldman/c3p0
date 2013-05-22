@@ -1,3 +1,4 @@
+c3p0-0.9.5-pre3
 	-- For reasons that remain obscure, the published build of c3p0-0.9.5-pre2 is missing
 	   JDBC4 methods (many thanks to edysli on github for pointing this out). Apparently
 	   it was accidentally built against JDBC3 libraries. Added a compile-time check 
