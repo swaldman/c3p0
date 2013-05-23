@@ -73,6 +73,7 @@ public final class C3P0ImplUtils
 
     public final static Object[] NOARGS = new Object[0]; 
 
+    // we use a wrapped/synchronized version for Thread safety
     private final static EncounterCounter ID_TOKEN_COUNTER;
 
     static
@@ -110,7 +111,7 @@ public final class C3P0ImplUtils
     // very unlikely event it should ever prove an issue, we can add some randomness to the within-VM/ClassLoader
     // portion of the tokens.
     private static EncounterCounter createEncounterCounter()
-    { return EncounterUtils.createWeak( IdentityHashCodeIdenticator.INSTANCE ); }
+    { return EncounterUtils.syncWrap( EncounterUtils.createWeak( IdentityHashCodeIdenticator.INSTANCE ) ); }
     
     public final static String VMID_PROPKEY = "com.mchange.v2.c3p0.VMID";
     private final static String VMID_PFX;
