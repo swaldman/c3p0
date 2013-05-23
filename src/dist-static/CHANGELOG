@@ -54,6 +54,8 @@ c3p0-0.9.5-pre1
 	-- Handle JDBC4 Connection.isValid properly
 	-- Lots of updates to get c3p0 to proxy and compile JDBC4
 	-- Removed some jdk14 support stuff from build.properties
+c3p0-0.9.2.1
+	-- Dual licensed c3p0, LGPL v.2.1 and EPL 1.0. Modified license files, source headers, etc.	
 c3p0-0.9.2
 	-- Updated documentation re hibernate configuration. (Documentation was several years stale.)
 	-- Merged John Sumsion's remarkable integration of c3p0's full SourceForge history into the
