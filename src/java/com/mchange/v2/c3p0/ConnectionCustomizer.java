@@ -64,9 +64,9 @@ public interface ConnectionCustomizer
      *
      *  <p>This method is only called once
      *  per Connection. If standard JDBC
-     *  Connection properties are modified
-     *  [holdability, transactionIsolation,
-     *  readOnly], those modifications
+     *  Connection properties are modified &mdash;
+     *  specifically catalog, holdability, transactionIsolation,
+     *  readOnly, and typeMap &mdash; those modifications
      *  will override defaults throughout
      *  the Connection's tenure in the
      *  pool.</p>
