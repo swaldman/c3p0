@@ -76,6 +76,7 @@ public final class C3P0Defaults
 
     private final static String AUTOMATIC_TEST_TABLE             = null;
     private final static String CONNECTION_CUSTOMIZER_CLASS_NAME = null;
+    private final static String CONTEXT_CLASS_LOADER_SOURCE      = "caller"; // caller | library | none
     private final static String DRIVER_CLASS                     = null;
     private final static String JDBC_URL                         = null;
     private final static String OVERRIDE_DEFAULT_USER            = null;
@@ -87,6 +88,8 @@ public final class C3P0Defaults
     private final static String USER                             = null;
 
     private final static String DATA_SOURCE_NAME                 = null;
+
+
 
     private static Set KNOWN_PROPERTIES;
 
@@ -153,6 +156,9 @@ public final class C3P0Defaults
 
     public static String connectionCustomizerClassName()
     { return CONNECTION_CUSTOMIZER_CLASS_NAME; }
+
+    public static String contextClassLoaderSource()
+    { return CONTEXT_CLASS_LOADER_SOURCE; }
 
     public static ConnectionTester connectionTester()
     { return CONNECTION_TESTER; }

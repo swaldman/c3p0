@@ -325,6 +325,15 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
         this.resetPoolManager( false );
     }
 
+    public String getContextClassLoaderSource()
+    { return wcpds.getContextClassLoaderSource(); }
+
+    public void setContextClassLoaderSource( String contextClassLoaderSource ) throws PropertyVetoException
+    { 
+        wcpds.setContextClassLoaderSource( contextClassLoaderSource ); 
+        this.resetPoolManager( false );
+    }
+
     public String getConnectionTesterClassName()
     { return wcpds.getConnectionTesterClassName(); }
 

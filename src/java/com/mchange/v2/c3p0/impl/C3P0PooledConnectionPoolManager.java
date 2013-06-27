@@ -163,7 +163,48 @@ public final class C3P0PooledConnectionPoolManager
 	return sb.toString();
     }
 
-    private synchronized void poolsInit()
+    private void poolsInit()
+    {
+	class ContextClassLoaderPoolsInitThread extends Thread
+	{
+	    ContextClassLoaderPoolsInitThread( ClassLoader ccl )
+	    { this.setContextClassLoader( ccl ); }
+	    
+	    public void run()
+	    { _poolsInit(); }
+	};
+	
+	try
+	{
+	    //Threads are shared by all users, can't support per-user overrides
+	    String contextClassLoaderSource = getContextClassLoaderSource( null );
+	    if ( "library".equalsIgnoreCase( contextClassLoaderSource ) )
+	    {
+		Thread t = new ContextClassLoaderPoolsInitThread( this.getClass().getClassLoader() );
+		t.start();
+		t.join();
+	    }
+	    else if ( "none".equalsIgnoreCase( contextClassLoaderSource ) )
+	    {
+		Thread t = new ContextClassLoaderPoolsInitThread( null );
+		t.start();
+		t.join();
+	    }
+	    else
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) && ! "caller".equalsIgnoreCase( contextClassLoaderSource ) )
+		    logger.log( MLevel.WARNING, "Unknown contextClassLoaderSource: " + contextClassLoaderSource + " -- should be 'caller', 'library', or 'none'. Using default value 'caller'." );
+		_poolsInit();
+	    }
+	}
+	catch ( InterruptedException e )
+	{
+	    if ( logger.isLoggable( MLevel.SEVERE ) )
+		logger.log( MLevel.SEVERE, "Unexpected interruption while trying to initialize DataSource Thread resources [ poolsInit() ].", e );
+	}
+    }
+
+    private synchronized void _poolsInit()
     {
 	String idStr = idString();
 
@@ -536,6 +577,9 @@ public final class C3P0PooledConnectionPoolManager
         else
             throw new Exception("Unexpected object found for putative boolean property '" + propName +"': " + o);
     }
+
+    public String getContextClassLoaderSource(String userName)
+    { return getString("contextClassLoaderSource", userName ); }
 
     public String getAutomaticTestTable(String userName)
     { return getString("automaticTestTable", userName ); }

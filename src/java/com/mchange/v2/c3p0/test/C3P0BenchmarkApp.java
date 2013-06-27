@@ -87,13 +87,13 @@ public final class C3P0BenchmarkApp
 		//ds_pooled = DataSources.pooledDataSource(ds_unpooled);
 		*/
         
-                //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
-
  		ComboPooledDataSource cpds = new ComboPooledDataSource();
+                //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
  		//CloseLoggingComboPooledDataSource cpds = new CloseLoggingComboPooledDataSource();
  		//AfterCloseLoggingComboPooledDataSource cpds = new AfterCloseLoggingComboPooledDataSource();
 
  		ds_pooled = cpds;
+
 
  		create(ds_pooled);
 
