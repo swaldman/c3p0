@@ -77,13 +77,15 @@ public final class C3P0BenchmarkApp
    		//DataSource ds_unpooled_screwy = C3P0TestUtils.unreliableCommitDataSource( ds_unpooled );
    		//ds_pooled = DataSources.pooledDataSource( ds_unpooled_screwy );
 
-// 		PoolConfig pc = new PoolConfig();
+		/*
+ 		PoolConfig pc = new PoolConfig();
 // 		pc.setMaxStatements(200);
 // 		pc.setCheckoutTimeout(500);
-//  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
+  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
 //  		ds_pooled = DataSources.pooledDataSource( ds_unpooled, "foo", "goo" );
 
 		//ds_pooled = DataSources.pooledDataSource(ds_unpooled);
+		*/
         
                 //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
 
@@ -92,7 +94,6 @@ public final class C3P0BenchmarkApp
  		//AfterCloseLoggingComboPooledDataSource cpds = new AfterCloseLoggingComboPooledDataSource();
 
  		ds_pooled = cpds;
-        
 
  		create(ds_pooled);
 

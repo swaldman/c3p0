@@ -1,3 +1,6 @@
+	-- clone() System.getProperties() when reading config, to avoid potential 
+	   ConcurrentModificationExceptions if other Threads are messing with System properties. 
+	   Thanks Keith Amling! [mchange-commons-java]
 	-- Access to EncounterCounter in C3P0ImplUtils ought to have been synchronized. It was
 	   not. Fixed, by placing the counter underneath an sync'ed wrapper. Many thanks to
 	   Keith Amling for calling attention to this issue.
