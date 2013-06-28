@@ -334,7 +334,8 @@
 	  <li><a href="#configuring_recovery">Configuring Recovery From Database Outages</a></li>
 	  <li><a href="#connection_customizers">Managing Connection Lifecycles with Connection Customizers</a></li>
 	  <li><a href="#configuring_unresolved">Configuring Unresolved Transaction Handling</a></li>
-	  <li><a href="#configuring_to_debug_and_workaround_broken_clients">Configuring to Debug and Workaround Broken Client Applications</a></li>
+	  <li><a href="#configuring_to_debug_and_workaround_broken_clients">Configuring To Debug and Workaround Broken Client Applications</a></li>
+	  <li><a href="#configuring_to_avoid_memory_leaks_on_redeploy">Configuring To Avoid Memory Leaks On Redeploy</a></li>
 	  <li><a href="#other_ds_configuration">Other DataSource Configuration</a></li>
 	  <li><a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a></li>
 	  <li><a href="#configuring_logging">Configuring Logging</a></li>
@@ -1356,6 +1357,36 @@ public class VerboseConnectionCustomizer
     is intended to be used only for debugging, as capturing a stack trace can slow down Connection check-out.
       </p>
       <h3>
+	<a name="configuring_to_avoid_memory_leaks_on_redeploy">Configuring To Avoid Memory Leaks On Hot Redeploy Of Clients</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 spawns a variety of Threads (<a href="#numHelperThreads">helper threads</a>, <tt>java.util.Timer</tt> threads),
+	and does so lazily in response to the first client request experienced by a PooledDataSource. By default, the Threads spawned
+	by c3p0 inherit a <tt>java.security.AccessControlContext</tt> and a <tt>contextClassLoader</tt> property from this first-calling
+	Thread. If that Thread came from a client that may need to be hot-undeployed, references to these objects may prevent the
+	undeployed application, often partitioned into a <tt>ClassLoader</tt>, from being garbage collected. (See for example
+	<a href="https://wiki.apache.org/tomcat/MemoryLeakProtection">this description of Tomcat memory leaks on redeployment</a>.)
+      </p>
+      <p>
+	c3p0 provides two configuration parameters that can help with this:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#contextClassLoaderSource">contextClassLoaderSource</a></li>
+	<li><a class="cfg_param" href="#privilegeSpawnedThreads">privilegeSpawnedThreads</a></li>
+      </ul>
+      <p>
+	<tt>contextClassLoaderSource</tt> should be set to one of <tt>caller</tt>, <tt>library</tt>, or <tt>none</tt>.
+	The default (which yields the default behavior described above) is <tt>caller</tt>. Set this to <tt>library</tt>
+	to use c3p0's ClassLoader, so that no reference is maintained to a client that may need to be redeployed.
+      </p>
+      <p>
+	<tt>privilegeSpawnedThreads</tt> is a boolean, <tt>false</tt> by default.
+	Set this to <tt>true</tt>
+	so that c3p0's Threads use the the c3p0 library's <tt>AccessControlContext</tt>, rather than an <tt>AccessControlContext</tt> 
+	that may be associated with the client application and prevent its garbage collection.
+      </p>
+      <h3>
 	<a name="other_ds_configuration">Other DataSource Configuration</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
       </h3>
@@ -1623,6 +1654,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <a href="#checkoutTimeout">checkoutTimeout</a><br/>
 	    <a href="#connectionCustomizerClassName">connectionCustomizerClassName</a><br/>
 	    <a href="#connectionTesterClassName">connectionTesterClassName</a><br/>
+	    <a href="#contextClassLoaderSource">contextClassLoaderSource</a><br/>
 	    <a href="#dataSourceName">dataSourceName</a><br/>
 	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
 	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
@@ -1639,13 +1671,14 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <a href="#maxStatements">maxStatements</a><br/>
 	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
 	    <a href="#minPoolSize">minPoolSize</a><br/>
+	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	  </td>
 	  <td>
-	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
 	    <a href="#overrideDefaultPassword">overrideDefaultPassword</a><br/>
 	    <a href="#password">password</a><br/>
 	    <a href="#preferredTestQuery">preferredTestQuery</a><br/>
+	    <a href="#privilegeSpawnedThreads">privilegeSpawnedThreads</a><br/>
 	    <a href="#propertyCycle">propertyCycle</a><br/>
 	    <a href="#statementCacheNumDeferredCloseThreads">statementCacheNumDeferredCloseThreads</a><br/>
 	    <a href="#testConnectionOnCheckin">testConnectionOnCheckin</a><br/>
@@ -1751,6 +1784,23 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    [See <a href="#configuring_connection_testing">"Configuring Connection Testing"]</a>
 	  </div>
 	</dd>
+	<dt><a name="contextClassLoaderSource" />contextClassLoaderSource</dt>
+	<dd>
+	  <div class="default">Default: caller</div>
+	  <div class="propdesc">
+	    Must be one of <tt>caller</tt>,  <tt>library</tt>, or <tt>none</tt>. Determines how the <tt>contextClassLoader</tt> (see <tt>java.lang.Thread</tt>)
+	    of c3p0-spawned Threads is determined. If <tt>caller</tt>, c3p0-spawned Threads (<a href="#numHelperThreads">helper threads</a>, <tt>java.util.Timer</tt> threads) 
+	    inherit their <tt>contextClassLoader</tt> from the client Thread that provokes initialization of the pool.
+	    If <tt>library</tt>, the <tt>contextClassLoader</tt> will be the class that loaded c3p0 classes. If <tt>none</tt>, no <tt>contextClassLoader</tt> will be set
+	    (the property will be <tt>null</tt>), which in practice means the system ClassLoader will be used. The default setting of <tt>caller</tt> is sometimes
+	    a problem when client applications will be hot redeployed by an app-server.
+	    When c3p0's Threads hold a reference
+	    to a <tt>contextClassLoader</tt> from the first client that hits them, it may be impossible to garbage collect a <tt>ClassLoader</tt>
+	    associated with that client when it is undeployed in a running VM. Setting this to <tt>library</tt> can resolve these issues. 
+            [See "<a href="#configuring_to_avoid_memory_leaks_on_redeploy">Configuring To Avoid Memory Leaks On Hot Redeploy Of Client</a>"]
+	    <div class="per-user">Does Not Support Per-User Overrides.</div>
+	  </div>
+	</dd>
 	<dt><a name="dataSourceName" />dataSourceName</dt>
 	<dd>
 	  <div class="default">Default: if configured with a <a href="#c3p0-config.xml">named config</a>, the config name, otherwise the pool's "identity token"</div>
@@ -1842,7 +1892,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    original threads. But letting the pool go into APPARENT DEADLOCK and then recover means that for some periods,
 	    c3p0's performance will be impaired. So if you're seeing these messages, increasing <a href="#numHelperThreads">numHelperThreads</a>
 	    and setting <tt>maxAdministrativeTaskTime</tt> might help. <tt>maxAdministrativeTaskTime</tt> should be large enough
-	    that any resonable attempt to acquire a Connection from the database, to test a Connection, or two destroy a Connection, 
+	    that any resonable attempt to acquire a Connection from the database, to test a Connection, or to destroy a Connection, 
 	    would be expected to succeed or fail within the time set. Zero (the default) means tasks are never interrupted,
 	    which is the best and safest policy under most circumstances. If tasks are just slow, allocate more threads. If tasks
 	    are hanging forever, try to figure out why, and maybe setting <tt>maxAdministrativeTaskTime</tt> can help in the meantime.
@@ -1999,6 +2049,21 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
 	  </div>
 	</dd>
+	<dt><a name="privilegeSpawnedThreads" />privilegeSpawnedThreads</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    If <tt>true</tt>, c3p0-spawned Threads will have the <tt>java.security.AccessControlContext</tt> associated with c3p0 library classes.
+	    By default, c3p0-spawned Threads (<a href="#numHelperThreads">helper threads</a>, <tt>java.util.Timer</tt> threads) inherit their
+	    <tt>AccessControlContext</tt> from the client Thread that provokes initialization of the pool. This can sometimes be
+	    a problem, especially in application servers that support hot redeployment of client apps. If c3p0's Threads hold a reference
+	    to an <tt>AccessControlContext</tt> from the first client that hits them, it may be impossible to garbage collect a <tt>ClassLoader</tt>
+	    associated with that client when it is undeployed in a running VM. Also, it is possible client Threads might lack sufficient permission 
+	    to perform operations that c3p0 requires. Setting this to <tt>true</tt> can resolve these issues. 
+            [See "<a href="#configuring_to_avoid_memory_leaks_on_redeploy">Configuring To Avoid Memory Leaks On Hot Redeploy Of Client</a>"]
+	    <div class="per-user">Does Not Support Per-User Overrides.</div>
+	  </div>
+	</dd>
 	<dt><a name="propertyCycle" />propertyCycle</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
@@ -2012,7 +2077,6 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 		automatically chosen.]
 	  </div>
 	</dd>
-
 	<dt><a name="statementCacheNumDeferredCloseThreads" />statementCacheNumDeferredCloseThreads</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
@@ -2517,6 +2581,12 @@ hibernate.c3p0.debugUnreturnedConnectionStackTraces=true
     <hr/>
     <h2><a name="tomcat-specific">Appendix D: Configuring c3p0 DataSources in Tomcat</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
+      <div class="boxed">
+	<b>Note:</b><br/>
+	Please see "<a href="#configuring_to_avoid_memory_leaks_on_redeploy">Configuring To Avoid Memory Leaks On Hot Redeploy Of Client</a>" 
+	if you experience memory leaks on Tomcat.<br/><br/><b>TL; DR:</b> Set <tt><a href="#privilegeSpawnedThreads">privilegeSpawnedThreads</a></tt> to <tt>true</tt> and
+	set <tt><a href="#contextClassLoaderSource">contextClassLoaderSource</a></tt> to <tt>library</tt>.
+      </div>
       <p>
 	You can easily configure Apache's Tomcat web application server to use c3p0 pooled DataSources. 
 	Below is a Tomcat 5.0  sample config to get you started. It's a fragment of Tomcat's <tt>conf/server.xml</tt> file,

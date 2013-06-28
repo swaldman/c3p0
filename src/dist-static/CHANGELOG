@@ -1,3 +1,15 @@
+	-- Added privilegeSpawnedThreads config parameter, mostly to detach caller's 
+	   AccessControlContext from Threads that provoke the init, to prevent references from 
+	   c3p0 Threads to app server (esp tomcat) ClassLoaders that ought to be garbage-
+	   collectable on hot undeploy. Might also be useful for helping c3p0 run from less 
+	   trusted code, although that has not come up yet. Thanks to Claudio D'angelo for 
+	   calling attention to the issue.
+	-- Added new config parameter 'contextClassLoaderSource', which can be set to one of 
+	   'caller', 'library', or 'none'. By default, the Thread that provokes pool initialization
+	   passes its ContextClassLoader to c3p0-spawned Threads, which makes it impossible to garbage
+	   collect those classloaders in e.g. application server undeploys. Setting this parameter to
+	   'library' (rather than the default 'caller') forces c3p0-spawned Threads to use the 
+	   ClassLoader that loaded c3p0 as the contextClassLoader.  
 	-- clone() System.getProperties() when reading config, to avoid potential 
 	   ConcurrentModificationExceptions if other Threads are messing with System properties. 
 	   Thanks Keith Amling! [mchange-commons-java]
