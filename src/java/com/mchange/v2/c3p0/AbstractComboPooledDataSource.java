@@ -361,6 +361,15 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
         this.resetPoolManager( false );
     }
 
+    public boolean isPrivilegeSpawnedThreads()
+    { return wcpds.isPrivilegeSpawnedThreads(); }
+
+    public void setPrivilegeSpawnedThreads( boolean privilegeSpawnedThreads )
+    { 
+        wcpds.setPrivilegeSpawnedThreads( privilegeSpawnedThreads ); 
+        this.resetPoolManager( false );
+    }
+
     public int getIdleConnectionTestPeriod()
     { return wcpds.getIdleConnectionTestPeriod(); }
 

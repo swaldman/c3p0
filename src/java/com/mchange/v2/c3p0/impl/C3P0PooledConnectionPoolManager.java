@@ -40,6 +40,10 @@ import java.util.*;
 import java.lang.reflect.*;
 import java.sql.*;
 import javax.sql.*;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.cfg.*;
 import com.mchange.v2.async.*;
@@ -163,21 +167,42 @@ public final class C3P0PooledConnectionPoolManager
 	return sb.toString();
     }
 
+    private void maybePrivilegedPoolsInit( final boolean privilege_spawned_threads )
+    {
+	if ( privilege_spawned_threads )
+	{
+	    PrivilegedAction<Void> privilegedPoolsInit = new PrivilegedAction<Void>()
+	    {
+		public Void run()
+		{
+		    _poolsInit();
+		    return null;
+		}
+	    };
+	    AccessController.doPrivileged( privilegedPoolsInit );
+	}
+	else
+	    _poolsInit(); 
+    }
+
     private void poolsInit()
     {
+	//Threads are shared by all users, can't support per-user overrides
+	final boolean privilege_spawned_threads = getPrivilegeSpawnedThreads();
+	final String  contextClassLoaderSource = getContextClassLoaderSource();
+
+
 	class ContextClassLoaderPoolsInitThread extends Thread
 	{
 	    ContextClassLoaderPoolsInitThread( ClassLoader ccl )
 	    { this.setContextClassLoader( ccl ); }
 	    
 	    public void run()
-	    { _poolsInit(); }
+	    { maybePrivilegedPoolsInit( privilege_spawned_threads ); }
 	};
 	
 	try
 	{
-	    //Threads are shared by all users, can't support per-user overrides
-	    String contextClassLoaderSource = getContextClassLoaderSource( null );
 	    if ( "library".equalsIgnoreCase( contextClassLoaderSource ) )
 	    {
 		Thread t = new ContextClassLoaderPoolsInitThread( this.getClass().getClassLoader() );
@@ -194,7 +219,7 @@ public final class C3P0PooledConnectionPoolManager
 	    {
 		if ( logger.isLoggable( MLevel.WARNING ) && ! "caller".equalsIgnoreCase( contextClassLoaderSource ) )
 		    logger.log( MLevel.WARNING, "Unknown contextClassLoaderSource: " + contextClassLoaderSource + " -- should be 'caller', 'library', or 'none'. Using default value 'caller'." );
-		_poolsInit();
+		maybePrivilegedPoolsInit( privilege_spawned_threads );
 	    }
 	}
 	catch ( InterruptedException e )
@@ -578,9 +603,6 @@ public final class C3P0PooledConnectionPoolManager
             throw new Exception("Unexpected object found for putative boolean property '" + propName +"': " + o);
     }
 
-    public String getContextClassLoaderSource(String userName)
-    { return getString("contextClassLoaderSource", userName ); }
-
     public String getAutomaticTestTable(String userName)
     { return getString("automaticTestTable", userName ); }
 
@@ -829,6 +851,29 @@ public final class C3P0PooledConnectionPoolManager
     }
 
     // properties that don't support per-user overrides
+
+    private String getContextClassLoaderSource()
+    { 
+	try { return getString("contextClassLoaderSource", null ); }
+        catch (Exception e)
+        {
+            if ( logger.isLoggable( MLevel.FINE ) )
+                logger.log( MLevel.FINE, "Could not fetch String property", e);
+            return C3P0Defaults.contextClassLoaderSource();
+        }
+    }
+	
+    private boolean getPrivilegeSpawnedThreads()
+    { 
+	try { return getBoolean("privilegeSpawnedThreads", null ); }
+        catch (Exception e)
+        {
+            if ( logger.isLoggable( MLevel.FINE ) )
+                logger.log( MLevel.FINE, "Could not fetch boolean property", e);
+            return C3P0Defaults.privilegeSpawnedThreads();
+        }
+    }
+	
     private int getMaxAdministrativeTaskTime()
     {
         try
