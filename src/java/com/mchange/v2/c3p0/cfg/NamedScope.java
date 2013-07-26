@@ -58,6 +58,14 @@ class NamedScope
 
     NamedScope mergedOver( NamedScope underScope )
     {
+	HashMap mergedProps = (HashMap) underScope.props.clone();
+	mergedProps.putAll( this.props );
+
+	HashMap mergedUserNamesToOverrides = mergeUserNamesToOverrides( this.userNamesToOverrides, underScope.userNamesToOverrides );
+
+	return new NamedScope( mergedProps, mergedUserNamesToOverrides );
+
+	/*
 	NamedScope out = new NamedScope( (HashMap) underScope.props.clone(), (HashMap) underScope.userNamesToOverrides.clone() );
 	out.props.putAll( this.props );
 
@@ -80,6 +88,35 @@ class NamedScope
 	{
 	    String name = (String) ii.next();
 	    ((HashMap) out.userNamesToOverrides.get(name)).putAll( (HashMap) this.userNamesToOverrides.get( name ) );
+	}
+
+	return out;
+	*/
+    }
+
+    static HashMap mergeUserNamesToOverrides( HashMap over, HashMap under )
+    {
+	HashMap out = (HashMap) under.clone();
+
+	HashSet underUserNames = new HashSet( under.keySet() );
+	HashSet overUserNames = new HashSet( over.keySet() );
+
+	HashSet newUserNames = (HashSet) overUserNames.clone();
+	newUserNames.removeAll( underUserNames );
+
+	for ( Iterator ii = newUserNames.iterator(); ii.hasNext(); )
+	{
+	    String name = (String) ii.next();
+	    out.put( name, ((HashMap) over.get( name )).clone() );
+	}
+
+	HashSet mergeUserNames = (HashSet) overUserNames.clone();
+	mergeUserNames.retainAll( underUserNames );
+
+	for ( Iterator ii = mergeUserNames.iterator(); ii.hasNext(); )
+	{
+	    String name = (String) ii.next();
+	    ((HashMap) out.get(name)).putAll( (HashMap) over.get( name ) );
 	}
 
 	return out;

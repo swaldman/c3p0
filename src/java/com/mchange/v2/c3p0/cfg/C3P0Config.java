@@ -50,9 +50,11 @@ import com.mchange.v1.lang.BooleanUtils;
 
 public final class C3P0Config
 {
-    final static String PROP_STYLE_NAMED_CFG_PFX       = "c3p0.named-configs";
-    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN   = PROP_STYLE_NAMED_CFG_PFX.length();
-    final static String PROP_STYLE_USER_OVERRIDES_PART = "user-overrides";
+    final static String PROP_STYLE_NAMED_CFG_PFX           = "c3p0.named-configs";
+    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN      = PROP_STYLE_NAMED_CFG_PFX.length();
+    final static String PROP_STYLE_USER_OVERRIDES_PART    = "user-overrides";
+    final static String PROP_STYLE_USER_OVERRIDES_PFX     = "c3p0." + PROP_STYLE_USER_OVERRIDES_PART;
+    final static int    PROP_STYLE_USER_OVERRIDES_PFX_LEN = PROP_STYLE_USER_OVERRIDES_PFX.length();
 
     public final static String CFG_FINDER_CLASSNAME_KEY = "com.mchange.v2.c3p0.cfg.finder";
 
@@ -139,7 +141,10 @@ public final class C3P0Config
 		throw new AssertionError("Huh? allConfigNames is the union, every name should be in one of the two maps.");
 	}
 
-	MAIN = new C3P0Config( protoMain.defaultConfig, mergedConfigNamesToNamedScopes );
+	HashMap propStyleUserOverridesDefaultConfig = findPropStyleUserOverridesDefaultConfig();
+	NamedScope mergedDefaultConfig = new NamedScope( protoMain.defaultConfig.props, NamedScope.mergeUserNamesToOverrides( protoMain.defaultConfig.userNamesToOverrides, propStyleUserOverridesDefaultConfig ) );
+
+	MAIN = new C3P0Config( mergedDefaultConfig, mergedConfigNamesToNamedScopes );
 
 	warnOnUnknownProperties( MAIN );
     }
@@ -182,7 +187,40 @@ public final class C3P0Config
 	return out;
     }
 
+    static HashMap findPropStyleUserOverridesDefaultConfig()
+    {
+	HashMap userNamesToOverrides = new HashMap();
 
+	Properties props =  MPCONFIG.getPropertiesByPrefix(PROP_STYLE_USER_OVERRIDES_PFX);
+	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.user-overrides.xxx subproperties
+	{
+	    String fullKey  = (String) ii.next();
+	    String userProp = fullKey.substring( PROP_STYLE_USER_OVERRIDES_PFX_LEN + 1 ); //expect <username>.<property>, e.g. swaldman.maxPoolSize
+	    int dot_index = userProp.indexOf('.');
+	    if ( dot_index < 0 ) // if there is no dot
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log(MLevel.WARNING, 
+			       "Bad specification of user-override property '" + fullKey + 
+			       "', propfile key should look like '" + PROP_STYLE_USER_OVERRIDES_PFX + 
+			       ".<user>.<property>'. Ignoring.");
+		continue; 
+	    }
+
+	    String user = userProp.substring( 0, dot_index );
+	    String propName = userProp.substring( dot_index + 1 );
+
+	    HashMap userOverridesMap = (HashMap) userNamesToOverrides.get( user );
+	    if (userOverridesMap == null)
+	    {
+		userOverridesMap = new HashMap();
+		userNamesToOverrides.put( user, userOverridesMap );
+	    }
+	    userOverridesMap.put( propName, props.get( fullKey ) );
+	}
+
+	return userNamesToOverrides;
+    }
 
     static HashMap findPropStyleNamedScopes()
     { 
