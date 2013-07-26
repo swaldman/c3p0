@@ -88,6 +88,7 @@ public final class C3P0BenchmarkApp
 		*/
         
  		ComboPooledDataSource cpds = new ComboPooledDataSource();
+ 		//ComboPooledDataSource cpds = new ComboPooledDataSource("kittycat");
                 //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
  		//CloseLoggingComboPooledDataSource cpds = new CloseLoggingComboPooledDataSource();
  		//AfterCloseLoggingComboPooledDataSource cpds = new AfterCloseLoggingComboPooledDataSource();

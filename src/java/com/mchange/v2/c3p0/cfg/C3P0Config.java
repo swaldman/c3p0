@@ -50,6 +50,10 @@ import com.mchange.v1.lang.BooleanUtils;
 
 public final class C3P0Config
 {
+    final static String PROP_STYLE_NAMED_CFG_PFX       = "c3p0.named-configs";
+    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN   = PROP_STYLE_NAMED_CFG_PFX.length();
+    final static String PROP_STYLE_USER_OVERRIDES_PART = "user-overrides";
+
     public final static String CFG_FINDER_CLASSNAME_KEY = "com.mchange.v2.c3p0.cfg.finder";
 
     public final static String DEFAULT_CONFIG_NAME = "default";
@@ -111,7 +115,31 @@ public final class C3P0Config
 		flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
 		protoMain = C3P0ConfigUtils.configFromFlatDefaults( flatDefaults );
 	    }
-	MAIN = protoMain;
+
+
+	HashMap propStyleConfigNamesToNamedScopes = findPropStyleNamedScopes();
+	HashMap cfgFoundConfigNamesToNamedScopes = protoMain.configNamesToNamedScopes;
+	HashMap mergedConfigNamesToNamedScopes = new HashMap();
+
+	HashSet allConfigNames = new HashSet( cfgFoundConfigNamesToNamedScopes.keySet() );
+	allConfigNames.addAll( propStyleConfigNamesToNamedScopes.keySet() );
+
+	for ( Iterator ii = allConfigNames.iterator(); ii.hasNext(); )
+	{
+	    String cfgName = (String) ii.next();
+	    NamedScope cfgFound  = (NamedScope) cfgFoundConfigNamesToNamedScopes.get( cfgName );
+	    NamedScope propStyle = (NamedScope) propStyleConfigNamesToNamedScopes.get( cfgName );
+	    if ( cfgFound != null && propStyle != null )
+		mergedConfigNamesToNamedScopes.put( cfgName, cfgFound.mergedOver( propStyle ) );
+	    else if ( cfgFound != null && propStyle == null )
+		mergedConfigNamesToNamedScopes.put( cfgName, cfgFound );
+	    else if ( cfgFound == null && propStyle != null )
+		mergedConfigNamesToNamedScopes.put( cfgName, propStyle );
+	    else 
+		throw new AssertionError("Huh? allConfigNames is the union, every name should be in one of the two maps.");
+	}
+
+	MAIN = new C3P0Config( protoMain.defaultConfig, mergedConfigNamesToNamedScopes );
 
 	warnOnUnknownProperties( MAIN );
     }
@@ -154,12 +182,9 @@ public final class C3P0Config
 	return out;
     }
 
-    final static String PROP_STYLE_NAMED_CFG_PFX       = "c3p0.named-configs";
-    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN   = PROP_STYLE_NAMED_CFG_PFX.length();
-    final static String PROP_STYLE_USER_OVERRIDES_PART = "user-overrides";
 
 
-    static HashMap findPropStyleNamedConfigs()
+    static HashMap findPropStyleNamedScopes()
     { 
 	HashMap namesToNamedScopes = new HashMap();
 
@@ -169,7 +194,7 @@ public final class C3P0Config
 	    String fullKey  = (String) ii.next();
 	    String nameProp = fullKey.substring( PROP_STYLE_NAMED_CFG_PFX_LEN + 1 ); //expect <cfgname>.<property>, e.g. myconfig.maxPoolSize
 	    int dot_index = nameProp.indexOf('.');
-	    if ( dot_index < 0 ) // if there is no
+	    if ( dot_index < 0 ) // if there is no dot
 	    {
 		if ( logger.isLoggable( MLevel.WARNING ) )
 		    logger.log(MLevel.WARNING, 
@@ -181,6 +206,8 @@ public final class C3P0Config
 
 	    String configName = nameProp.substring( 0, dot_index );
 	    String propName   = nameProp.substring( dot_index + 1 );
+
+	    // System.err.println( "********** " + PROP_STYLE_NAMED_CFG_PFX_LEN + "|" + nameProp + "|" + configName + "|" + propName );
 
 	    NamedScope scope = (NamedScope) namesToNamedScopes.get( configName );
 	    if ( scope == null )
