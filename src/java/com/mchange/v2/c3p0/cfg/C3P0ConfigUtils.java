@@ -114,7 +114,7 @@ public final class C3P0ConfigUtils
 // 	Properties props = findResourceProperties();
 // 	props.putAll( findAllC3P0Properties() );
 
- 	Properties props = findAllC3P0Properties();
+ 	Properties props = findAllOneLevelC3P0Properties();
 	for (Iterator ii = props.keySet().iterator(); ii.hasNext(); )
 	    {
 		String key = (String) ii.next();
@@ -142,8 +142,8 @@ public final class C3P0ConfigUtils
     public static Properties findResourceProperties()
     { return C3P0Config.findResourceProperties(); }
 
-    private static Properties findAllC3P0Properties()
-    { return C3P0Config.findAllC3P0Properties(); }
+    private static Properties findAllOneLevelC3P0Properties()
+    { return C3P0Config.findAllOneLevelC3P0Properties(); }
 
     static Properties findAllC3P0SystemProperties()
     {

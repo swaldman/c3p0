@@ -146,9 +146,85 @@ public final class C3P0Config
     static Properties findResourceProperties()
     { return MPCONFIG.getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }
 
-    static Properties findAllC3P0Properties()
-    { return MPCONFIG.getPropertiesByPrefix("c3p0"); }
+    static Properties findAllOneLevelC3P0Properties()
+    { 
+	Properties out =  MPCONFIG.getPropertiesByPrefix("c3p0"); 
+	for (Iterator ii = out.keySet().iterator(); ii.hasNext(); )
+	    if (((String) ii.next()).lastIndexOf('.') > 4) ii.remove();
+	return out;
+    }
 
+    final static String PROP_STYLE_NAMED_CFG_PFX       = "c3p0.named-configs";
+    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN   = PROP_STYLE_NAMED_CFG_PFX.length();
+    final static String PROP_STYLE_USER_OVERRIDES_PART = "user-overrides";
+
+
+    static HashMap findPropStyleNamedConfigs()
+    { 
+	HashMap namesToNamedScopes = new HashMap();
+
+	Properties props =  MPCONFIG.getPropertiesByPrefix(PROP_STYLE_NAMED_CFG_PFX);
+	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.named-configs.xxx subproperties
+	{
+	    String fullKey  = (String) ii.next();
+	    String nameProp = fullKey.substring( PROP_STYLE_NAMED_CFG_PFX_LEN + 1 ); //expect <cfgname>.<property>, e.g. myconfig.maxPoolSize
+	    int dot_index = nameProp.indexOf('.');
+	    if ( dot_index < 0 ) // if there is no
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log(MLevel.WARNING, 
+			       "Bad specification of named config property '" + fullKey + 
+			       "', propfile key should look like '" + PROP_STYLE_NAMED_CFG_PFX + 
+			       ".<cfgname>.<property>' or '" + PROP_STYLE_NAMED_CFG_PFX + ".<cfgname>.user-overrides.<user>.<property>'. Ignoring.");
+		continue; 
+	    }
+
+	    String configName = nameProp.substring( 0, dot_index );
+	    String propName   = nameProp.substring( dot_index + 1 );
+
+	    NamedScope scope = (NamedScope) namesToNamedScopes.get( configName );
+	    if ( scope == null )
+	    {
+		scope = new NamedScope();
+		namesToNamedScopes.put( configName, scope );
+	    }
+
+	    int second_dot_index = propName.indexOf('.');
+
+	    if ( second_dot_index >= 0 ) //compound property
+	    {
+		if ( propName.startsWith( PROP_STYLE_USER_OVERRIDES_PART ) )
+		{
+		    int third_dot_index = propName.substring( second_dot_index + 1 ).indexOf('.');
+		    if ( third_dot_index < 0 )
+		    {
+			if ( logger.isLoggable( MLevel.WARNING ) )
+			    logger.log( MLevel.WARNING, "Misformatted user-override property; missing user or property name: " + propName );
+		    }
+
+		    String user = propName.substring( second_dot_index + 1, third_dot_index );
+		    String userPropName = propName.substring( third_dot_index + 1 );
+
+		    HashMap userOverridesMap = (HashMap) scope.userNamesToOverrides.get( user );
+		    if (userOverridesMap == null)
+		    {
+			userOverridesMap = new HashMap();
+			scope.userNamesToOverrides.put( user, userOverridesMap );
+		    }
+		    userOverridesMap.put( userPropName, props.get( fullKey ) );
+		}
+		else
+		{
+		    if ( logger.isLoggable( MLevel.WARNING ) )
+			logger.log( MLevel.WARNING, "Unexpected compound property, ignored: " + propName );
+		}
+	    }
+	    else 
+		scope.props.put( propName, props.get( fullKey ) );
+	}    
+	
+	return namesToNamedScopes;
+    }
 
     public static String getUnspecifiedUserProperty( String propKey, String configName )
     {

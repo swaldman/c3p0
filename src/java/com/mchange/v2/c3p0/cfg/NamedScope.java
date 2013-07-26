@@ -55,4 +55,33 @@ class NamedScope
 	this.props                = props;
 	this.userNamesToOverrides = userNamesToOverrides;
     }
+
+    NamedScope mergedOver( NamedScope underScope )
+    {
+	NamedScope out = new NamedScope( (HashMap) underScope.props.clone(), (HashMap) underScope.userNamesToOverrides.clone() );
+	out.props.putAll( this.props );
+
+	HashSet underUserNames = new HashSet( underScope.userNamesToOverrides.keySet() );
+	HashSet overUserNames = new HashSet( this.userNamesToOverrides.keySet() );
+
+	HashSet newUserNames = (HashSet) overUserNames.clone();
+	newUserNames.removeAll( underUserNames );
+
+	for ( Iterator ii = newUserNames.iterator(); ii.hasNext(); )
+	{
+	    String name = (String) ii.next();
+	    out.userNamesToOverrides.put( name, ((HashMap) this.userNamesToOverrides.get( name )).clone() );
+	}
+
+	HashSet mergeUserNames = (HashSet) overUserNames.clone();
+	mergeUserNames.retainAll( underUserNames );
+
+	for ( Iterator ii = mergeUserNames.iterator(); ii.hasNext(); )
+	{
+	    String name = (String) ii.next();
+	    ((HashMap) out.userNamesToOverrides.get(name)).putAll( (HashMap) this.userNamesToOverrides.get( name ) );
+	}
+
+	return out;
+    }
 }
