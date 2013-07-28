@@ -50,11 +50,14 @@ import com.mchange.v1.lang.BooleanUtils;
 
 public final class C3P0Config
 {
-    final static String PROP_STYLE_NAMED_CFG_PFX           = "c3p0.named-configs";
+    final static String PROP_STYLE_NAMED_CFG_PFX          = "c3p0.named-config";
     final static int    PROP_STYLE_NAMED_CFG_PFX_LEN      = PROP_STYLE_NAMED_CFG_PFX.length();
     final static String PROP_STYLE_USER_OVERRIDES_PART    = "user-overrides";
     final static String PROP_STYLE_USER_OVERRIDES_PFX     = "c3p0." + PROP_STYLE_USER_OVERRIDES_PART;
     final static int    PROP_STYLE_USER_OVERRIDES_PFX_LEN = PROP_STYLE_USER_OVERRIDES_PFX.length();
+    final static String PROP_STYLE_EXTENSIONS_PART        = "extensions";
+    final static String PROP_STYLE_EXTENSIONS_PFX         = "c3p0." + PROP_STYLE_EXTENSIONS_PART;
+    final static int    PROP_STYLE_EXTENSIONS_PFX_LEN     = PROP_STYLE_EXTENSIONS_PFX.length();
 
     public final static String CFG_FINDER_CLASSNAME_KEY = "com.mchange.v2.c3p0.cfg.finder";
 
@@ -142,7 +145,10 @@ public final class C3P0Config
 	}
 
 	HashMap propStyleUserOverridesDefaultConfig = findPropStyleUserOverridesDefaultConfig();
-	NamedScope mergedDefaultConfig = new NamedScope( protoMain.defaultConfig.props, NamedScope.mergeUserNamesToOverrides( protoMain.defaultConfig.userNamesToOverrides, propStyleUserOverridesDefaultConfig ) );
+	HashMap propStyleExtensionsDefaultConfig = findPropStyleExtensionsDefaultConfig();
+	NamedScope mergedDefaultConfig = new NamedScope( protoMain.defaultConfig.props, 
+							 NamedScope.mergeUserNamesToOverrides( protoMain.defaultConfig.userNamesToOverrides, propStyleUserOverridesDefaultConfig ), 
+							 NamedScope.mergeExtensions( protoMain.defaultConfig.extensions, propStyleExtensionsDefaultConfig ) );
 
 	MAIN = new C3P0Config( mergedDefaultConfig, mergedConfigNamesToNamedScopes );
 
@@ -222,12 +228,28 @@ public final class C3P0Config
 	return userNamesToOverrides;
     }
 
+    static HashMap findPropStyleExtensionsDefaultConfig()
+    {
+	HashMap extensions = new HashMap();
+
+	Properties props =  MPCONFIG.getPropertiesByPrefix(PROP_STYLE_EXTENSIONS_PFX);
+	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.extensions.xxx subproperties
+	{
+	    String fullKey  = (String) ii.next();
+	    String extensionsKey = fullKey.substring( PROP_STYLE_EXTENSIONS_PFX_LEN + 1 ); 
+	    extensions.put( extensionsKey, props.get( fullKey ) );
+	}
+
+	return extensions;
+    }
+
+
     static HashMap findPropStyleNamedScopes()
     { 
 	HashMap namesToNamedScopes = new HashMap();
 
 	Properties props =  MPCONFIG.getPropertiesByPrefix(PROP_STYLE_NAMED_CFG_PFX);
-	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.named-configs.xxx subproperties
+	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.named-config.xxx subproperties
 	{
 	    String fullKey  = (String) ii.next();
 	    String nameProp = fullKey.substring( PROP_STYLE_NAMED_CFG_PFX_LEN + 1 ); //expect <cfgname>.<property>, e.g. myconfig.maxPoolSize
@@ -278,6 +300,11 @@ public final class C3P0Config
 		    }
 		    userOverridesMap.put( userPropName, props.get( fullKey ) );
 		}
+		else if ( propName.startsWith( PROP_STYLE_EXTENSIONS_PART ) )
+		{
+		    String extensionsKey = propName.substring( second_dot_index + 1 );
+		    scope.extensions.put( extensionsKey, props.get( fullKey ) );
+		}
 		else
 		{
 		    if ( logger.isLoggable( MLevel.WARNING ) )
@@ -310,6 +337,20 @@ public final class C3P0Config
 	      }
 	  
 	  return out;
+    }
+
+    public static Map getExtensions(String configName)
+    {
+	HashMap raw = MAIN.defaultConfig.extensions;
+	if (configName != null)
+	    {
+		  NamedScope named = (NamedScope) MAIN.configNamesToNamedScopes.get( configName );
+		  if (named != null)
+		      raw = named.extensions;
+		  else
+		      logger.warning("named-config with name '" + configName + "' does not exist. Using default-config extensions.");
+	    }
+	return Collections.unmodifiableMap( raw );
     }
 
     public static Map getUnspecifiedUserProperties(String configName)
@@ -372,7 +413,11 @@ public final class C3P0Config
     public static void bindNamedConfigToBean(Object bean, String configName, boolean shouldBindUserOverridesAsString) throws IntrospectionException
     {
 	Map defaultUserProps = C3P0Config.getUnspecifiedUserProperties( configName );
-	BeansUtils.overwriteAccessiblePropertiesFromMap( defaultUserProps, 
+	Map extensions = C3P0Config.getExtensions( configName );
+	Map union = new HashMap();
+	union.putAll( defaultUserProps );
+	union.put( "extensions", extensions );
+	BeansUtils.overwriteAccessiblePropertiesFromMap( union, 
 							 bean, 
 							 false, 
 							 SKIP_BIND_PROPS,
@@ -418,6 +463,9 @@ public final class C3P0Config
 		return null;
 	    }
     }
+
+    public static Map initializeExtensions()
+    { return getExtensions( null ); }
 
     public static String initializeStringPropertyVar(String propKey, String dflt)
     {

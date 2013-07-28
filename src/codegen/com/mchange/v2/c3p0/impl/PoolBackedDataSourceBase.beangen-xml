@@ -3,6 +3,8 @@
 <beangen>
   <package>com.mchange.v2.c3p0.impl</package>
   <imports>
+     <specific>java.util.Map</specific>
+     <specific>java.util.Collections</specific>
      <specific>javax.sql.DataSource</specific>
      <specific>javax.sql.ConnectionPoolDataSource</specific>
      <specific>com.mchange.v2.c3p0.cfg.C3P0Config</specific>
@@ -54,6 +56,14 @@
        <name>dataSourceName</name>
        <bound/>
        <default-value>C3P0Config.initializeStringPropertyVar("dataSourceName", C3P0Defaults.dataSourceName())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>Map</type>
+       <name>extensions</name>
+       <default-value>C3P0Config.initializeExtensions()</default-value>
+       <defensive-copy>Collections.unmodifiableMap( extensions )</defensive-copy>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>

@@ -38,6 +38,7 @@ package com.mchange.v2.c3p0;
 import java.sql.SQLException;
 import javax.sql.DataSource;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  *  <p><b>Most clients need never use or know about this interface -- c3p0 pooled DataSources
@@ -126,6 +127,9 @@ public interface PooledDataSource extends DataSource
     public String getIdentityToken();
     public String getDataSourceName();
     public void setDataSourceName(String dataSourceName);
+
+    public Map getExtensions();
+    public void setExtensions(Map extensions);
 
     /** @deprecated use getNumConnectionsDefaultUser() */
     public int getNumConnections() throws SQLException;

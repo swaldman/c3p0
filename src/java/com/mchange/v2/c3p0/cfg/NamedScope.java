@@ -43,17 +43,20 @@ class NamedScope
 {
     HashMap props;
     HashMap userNamesToOverrides;
+    HashMap extensions;
 
     NamedScope()
     {
 	this.props                = new HashMap();
 	this.userNamesToOverrides = new HashMap();
+	this.extensions           = new HashMap();
     }
 
-    NamedScope( HashMap props, HashMap userNamesToOverrides)
+    NamedScope( HashMap props, HashMap userNamesToOverrides, HashMap extensions)
     {
 	this.props                = props;
 	this.userNamesToOverrides = userNamesToOverrides;
+	this.extensions           = extensions;
     }
 
     NamedScope mergedOver( NamedScope underScope )
@@ -63,35 +66,16 @@ class NamedScope
 
 	HashMap mergedUserNamesToOverrides = mergeUserNamesToOverrides( this.userNamesToOverrides, underScope.userNamesToOverrides );
 
-	return new NamedScope( mergedProps, mergedUserNamesToOverrides );
+	HashMap mergedExtensions = mergeExtensions( this.extensions, underScope.extensions );
 
-	/*
-	NamedScope out = new NamedScope( (HashMap) underScope.props.clone(), (HashMap) underScope.userNamesToOverrides.clone() );
-	out.props.putAll( this.props );
+	return new NamedScope( mergedProps, mergedUserNamesToOverrides, mergedExtensions );
+    }
 
-	HashSet underUserNames = new HashSet( underScope.userNamesToOverrides.keySet() );
-	HashSet overUserNames = new HashSet( this.userNamesToOverrides.keySet() );
-
-	HashSet newUserNames = (HashSet) overUserNames.clone();
-	newUserNames.removeAll( underUserNames );
-
-	for ( Iterator ii = newUserNames.iterator(); ii.hasNext(); )
-	{
-	    String name = (String) ii.next();
-	    out.userNamesToOverrides.put( name, ((HashMap) this.userNamesToOverrides.get( name )).clone() );
-	}
-
-	HashSet mergeUserNames = (HashSet) overUserNames.clone();
-	mergeUserNames.retainAll( underUserNames );
-
-	for ( Iterator ii = mergeUserNames.iterator(); ii.hasNext(); )
-	{
-	    String name = (String) ii.next();
-	    ((HashMap) out.userNamesToOverrides.get(name)).putAll( (HashMap) this.userNamesToOverrides.get( name ) );
-	}
-
+    static HashMap mergeExtensions( HashMap over, HashMap under )
+    {
+	HashMap out = (HashMap) under.clone();
+	out.putAll( over );
 	return out;
-	*/
     }
 
     static HashMap mergeUserNamesToOverrides( HashMap over, HashMap under )

@@ -90,7 +90,7 @@ public final class C3P0Defaults
 
     private final static String DATA_SOURCE_NAME                 = null;
 
-
+    private final static Map EXTENSIONS                          = Collections.emptyMap();
 
     private static Set KNOWN_PROPERTIES;
 
@@ -235,5 +235,8 @@ public final class C3P0Defaults
 
     public static String dataSourceName()
     { return DATA_SOURCE_NAME; }
+
+    public static Map extensions()
+    { return EXTENSIONS; }
 }
 

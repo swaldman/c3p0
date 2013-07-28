@@ -201,7 +201,21 @@ public final class C3P0ConfigXmlUtils
                 logger.warning("Configuration XML contained user-overrides element without user attribute: " + LINESEP + perUserConfigElem);
         }
 
-        return new NamedScope(props, userNamesToOverrides);
+	HashMap extensions = extractExtensionsFromLevel( elem );
+
+        return new NamedScope(props, userNamesToOverrides, extensions);
+    }
+
+    private static HashMap extractExtensionsFromLevel(Element elem)
+    {
+        HashMap out = new HashMap();
+        NodeList nl = DomParseUtils.immediateChildElementsByTagName(elem, "extensions");
+        for (int i = 0, len = nl.getLength(); i < len; ++i)
+        {
+            Element extensionsElem = (Element) nl.item(i);
+	    out.putAll( extractPropertiesFromLevel( extensionsElem ) );
+        }
+	return out;
     }
 
     private static HashMap extractPropertiesFromLevel(Element elem)

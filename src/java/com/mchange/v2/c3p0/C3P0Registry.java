@@ -360,4 +360,22 @@ public final class C3P0Registry
 	    } 
 	return count; 
     }
+
+    public synchronized static Map getConfigExtensionsForPooledDataSource( String identityToken ) throws SQLException
+    {
+	try
+	    {
+		PooledDataSource pds = (PooledDataSource) tokensToTokenized.get( identityToken );
+		if ( pds == null )
+		    throw new SQLException("No DataSource or registered IdentityTokenized has identityToken '" + identityToken + "'.");
+		return pds.getExtensions();
+	    }
+	catch ( ClassCastException e )
+	    {
+		if (logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Tried to get config extensions for an entity that is not a PooledDataSource. (Extensions are available only on PooledDataSources.) Thowing SQLException.", e);
+
+		throw SqlUtils.toSQLException("Tried to get config extensions for an entity that is not a PooledDataSource. (Extensions are available only on PooledDataSources.)", e);
+	    }
+    }
 }

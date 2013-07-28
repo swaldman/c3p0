@@ -22,6 +22,11 @@
     <!-- <property name="driverClass">org.postgresql.Driver</property> -->
     <!-- <property name="jdbcUrl">jdbc:postgresql://localhost/c3p0-test</property> -->
 
+    <extensions>
+      <!-- <property name="myXmlKey">myXmlVal</property> -->
+      <!-- <property name="myKey">myOverriddenVal</property> -->
+    </extensions>
+
 
     <user-overrides user="swaldman">
       <!--
