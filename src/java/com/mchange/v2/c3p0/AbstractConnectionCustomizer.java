@@ -35,6 +35,7 @@
 
 package com.mchange.v2.c3p0;
 
+import java.util.Map;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -49,6 +50,9 @@ import java.sql.SQLException;
  */
 public abstract class AbstractConnectionCustomizer implements ConnectionCustomizer
 {
+    protected Map extensionsForToken( String parentDataSourceIdentityToken )
+    { return C3P0Registry.extensionsForToken( parentDataSourceIdentityToken ); }
+
     public void onAcquire( Connection c, String parentDataSourceIdentityToken ) throws Exception
     {}
 

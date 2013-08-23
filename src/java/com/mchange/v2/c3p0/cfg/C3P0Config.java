@@ -50,7 +50,7 @@ import com.mchange.v1.lang.BooleanUtils;
 
 public final class C3P0Config
 {
-    final static String PROP_STYLE_NAMED_CFG_PFX          = "c3p0.named-config";
+    final static String PROP_STYLE_NAMED_CFG_PFX          = "c3p0.named-configs";
     final static int    PROP_STYLE_NAMED_CFG_PFX_LEN      = PROP_STYLE_NAMED_CFG_PFX.length();
     final static String PROP_STYLE_USER_OVERRIDES_PART    = "user-overrides";
     final static String PROP_STYLE_USER_OVERRIDES_PFX     = "c3p0." + PROP_STYLE_USER_OVERRIDES_PART;

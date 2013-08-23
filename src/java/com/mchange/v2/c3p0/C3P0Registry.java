@@ -246,6 +246,20 @@ public final class C3P0Registry
         }
     }
 
+    public static synchronized Map extensionsForToken( String pooledDataSourceIdentityToken )
+	throws NoSuchElementException, IllegalArgumentException
+    {
+	Object o = tokensToTokenized.get( pooledDataSourceIdentityToken );
+	if ( o == null ) throw new NoSuchElementException( "No object is known to be identified by token '" + 
+							   pooledDataSourceIdentityToken + 
+							   "'. Either it is a bad token, or the object was no longer in use and has been garbage collected." );
+	if (! (o instanceof PooledDataSource ) )
+	    throw new IllegalArgumentException( "The object '" + o + "', identified by token '" + pooledDataSourceIdentityToken + 
+						"', is not a PooledDataSource and therefore cannot have extensions." );
+
+	return ((PooledDataSource) o).getExtensions();
+    }
+
     public static synchronized IdentityTokenized reregister(IdentityTokenized idt)
     {
         if (idt instanceof PooledDataSource)
