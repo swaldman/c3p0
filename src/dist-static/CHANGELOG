@@ -1,3 +1,9 @@
+	-- Updated documentation with user-defined configuration extensions and
+	   information on how to define named configuration, per-user overrides,
+	   and user-defined extensions in all three supported config file formats.
+	-- Implemented user-defined configuration extensions.
+	-- Implemented properties file and HOCON definition of named configurations
+	   and per-user overrides.
 	-- Added privilegeSpawnedThreads config parameter, mostly to detach caller's 
 	   AccessControlContext from Threads that provoke the init, to prevent references from 
 	   c3p0 Threads to app server (esp tomcat) ClassLoaders that ought to be garbage-

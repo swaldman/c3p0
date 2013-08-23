@@ -339,6 +339,10 @@
 	  <li><a href="#other_ds_configuration">Other DataSource Configuration</a></li>
 	  <li><a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a></li>
 	  <li><a href="#configuring_logging">Configuring Logging</a></li>
+	  <li><a href="#named_configurations">Named configurations</a></li>
+	  <li><a href="#per-user_configurations">Per-user configurations</a></li>
+	  <li><a href="#user_extensions_to_configurations">User extensions to configuration</a></li>
+	  <li><a href="#mixing_named_per-user_extensions">Mixing named, per-user, and user-defined configuration extensions</a></li>
 	</ol>
       </li>
       <li><a href="#performance">Performance</a></li>
@@ -396,7 +400,7 @@ cpds.setMaxStatements( 180 );
 	like this:
       </p>
       <div class="example">
-DataSources.destroy( cpds );
+cpds.close();
       </div>
       <p>
 	That's it! The rest is detail.
@@ -413,7 +417,7 @@ DataSources.destroy( cpds );
       <ul>
 	<li>
 	  Classes which adapt traditional DriverManager-based JDBC
-	  drivers to the new <tt>javax.sql.DataSource</tt> scheme for acquiring
+	  drivers to the newer <tt>javax.sql.DataSource</tt> scheme for acquiring
 	  database Connections.
 	</li>
 	<li>
@@ -448,6 +452,7 @@ DataSources.destroy( cpds );
 	  You can mix c3p0 classes with compliant third-party implementations
 	  (although not all c3p0 features will work with external implementations). 
 	</li>
+	<li>c3p0 now fully supports the JDBC4 specification.</li>
       </ul>
       <p>
 	c3p0 hopes to provide DataSource implementations more than suitable for 
@@ -457,15 +462,15 @@ DataSources.destroy( cpds );
     <h2><a name="prerequisites">Prerequisites</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
-	c3p0 requires a level 1.3.x or above Java Runtime Environment, and
-	the JDBC 2.x or above javax.sql libraries. c3p0 works fine under
-	Java 1.4.x and 1.5.x as well.
+	c3p0-@c3p0.version@ requires a level 1.5.x or above Java Runtime Environment.
+	c3p0 works fine under Java 1.5.x and 1.6.x as well.
       </p>
     </div>
     <h2><a name="installation">Installation</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
-	Put the file <tt>lib/c3p0-@c3p0.version@.jar</tt>
+	Place the files <tt>lib/c3p0-@c3p0.version@.jar</tt> and 
+	<tt>lib/mchange-commons-java-@mchange-commons-java.version@.jar</tt>
 	somewhere in your CLASSPATH (or any other place where your application's
 	classloader will find it). That's it!
       </p>
@@ -473,9 +478,10 @@ DataSources.destroy( cpds );
     <h2><a name="using_c3p0">Using c3p0</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
-	From a users' perspective, c3p0 simply provides standard jdbc2 DataSource
+	From a users' perspective, c3p0 simply provides standard jdbc DataSource
 	objects. When creating these DataSources, users can control pooling-related, 
-	naming-related, and other properties (See <a href="#configuration_properties">Appendix A</a>). All pooling is entirely
+	naming-related, and other properties. (See <a href="#configuration_properties">Appendix A</a> for a comprehensive
+	list of configuration properties.) All pooling is entirely
 	transparent to users once a DataSource has been created.
       </p>
       <p>
@@ -490,9 +496,13 @@ DataSources.destroy( cpds );
       <p>
 	Regardless of how you create your DataSource, c3p0 will use defaults for any configuration parameters that
 	you do not specify programmatically. c3p0 has built-in, hard-coded defaults, but you can override these by creating
-	a file called <tt>c3p0.properties</tt> and storing it as a top-level resource in the same <tt>CLASSPATH</tt> (or ClassLoader)
-	that loads c3p0's jar file. As of c3p0-0.9.1, you can also supply a file called <tt>c3p0-config.xml</tt> for more advanced
-	configuration. See <a href="#configuration">Configuration</a> below.
+	placing configuration files as a top-level resource in the same <tt>CLASSPATH</tt> (or ClassLoader)
+	that loads c3p0's jar file. c3p0 DataSources may be configured via simple <tt>java.util.Properties</tt>
+	files called <tt>c3p0.properties</tt>, via more advanced 
+	<a href="https://github.com/typesafehub/config/blob/master/HOCON.md">HOCON configuration files</a> 
+	(e.g. <tt>application.conf</tt>, <tt>application.json</tt>), or in an XML format,
+	<tt>c3p0-config.xml</tt>.
+	See <a href="#configuration">Configuration</a> below.
       </p>
       <h3>
 	<a name="using_combopooleddatasource">Instantiating and Configuring a ComboPooledDataSource</a>
@@ -503,8 +513,8 @@ DataSources.destroy( cpds );
 	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>com.mchange.v2.c3p0.ComboPooledDataSource</tt></a>. 
 	This is a JavaBean-style class with a public, no-arg constructor,
 	but before you use the DataSource, you'll have to be sure to set at least the property <tt>jdbcUrl</tt>. You may also
-	want to set <tt>user</tt> and <tt>password</tt>, and if you have not externally preloaded the old-style JDBC driver you'll
-	use you should set the <tt>driverClass</tt>.
+	want to set <tt>user</tt> and <tt>password</tt>, and, if you use an old-style JDBC driver that you will not
+	externally preload, you should set the <tt>driverClass</tt>.
       </p>
 <div class="example">
 ComboPooledDataSource cpds = new ComboPooledDataSource();
@@ -525,7 +535,8 @@ cpds.setMaxPoolSize(20);
       <p>
 	The defaults of any c3p0 DataSource are determined by configuration you supply, or
 	else revert to hard-coded defaults [see <a href="#configuration_properties">configuration properties</a>].
-	c3p0-0.9.1 and above supports <a href="#c3p0-config.xml">multiple, named configurations</a>.
+	c3p0 supports <a href="#named_configurations">named configurations</a> so that you can
+	configure multiple DataSources.
 	If you wish to use a named configuration, construct your 
 	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>com.mchange.v2.c3p0.ComboPooledDataSource</tt></a>
 	with the configuration name as a constructor agument:
@@ -582,7 +593,7 @@ ds_pooled = DataSources.pooledDataSource( ds_unpooled, overrides );
 ...
       </div>
       <p>
-	If you are using <a href="#c3p0-config.xml">named configurations</a>, you can specify the configuration
+	If you are using <a href="#named_configurations">named configurations</a>, you can specify the configuration
 	that defines the default configuration for your DataSource:
       </p>
       <div class="example">
@@ -737,12 +748,12 @@ else
 	  <tt>dataSourceName</tt>. You can set the <tt>dataSourceName</tt> property directly when you construct your 
 	  DataSource, or dataSourceName can be set like any other property in a named or the default config. 
 	  Otherwise, <tt>dataSourceName</tt> will default to either 1) the name of your DataSource's configuration, if
-	  you constructed it with a <a href="#c3p0-config.xml">named configuration</a>; or 2) a unique (but unpredicatble)
+	  you constructed it with a <a href="#named_configurations">named configuration</a>; or 2) a unique (but unpredicatble)
 	  name if you are using the default configuration.
 	</p>
 	<p>
 	  There is no guarantee that a <tt>dataSourceName</tt> will be unique. For example, if two c3p0 DataSources share
-	  the same <a href="#c3p0-config.xml">named configuration</a>, and you have not set the <tt>dataSourceName</tt> programmatically, the two
+	  the same <a href="#named_configurations">named configuration</a>, and you have not set the <tt>dataSourceName</tt> programmatically, the two
 	  data sources will both share the name of the configuration. To get all of the DataSources with a particular
 	  <tt>dataSourceName</tt>, use <tt>pooledDataSourcesByName( ... )</tt>. If you've ensured that your DataSource's
 	  name is unique (as you will generally want to do, if you intend to use 
@@ -801,6 +812,11 @@ static void cleanup(DataSource ds) throws SQLException
 }
   </div>
       <p>
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>
+	is an instance of <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>,
+	and can be closed directly via its <tt>close()</tt> method.
+      </p>
+      <p>
 	Unreferenced instances of <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>
 	that are not <tt>close()</tt>ed by clients
 	<tt>close()</tt> themselves prior to garbage collection in their <tt>finalize()</tt> methods. 
@@ -836,6 +852,17 @@ static void cleanup(DataSource ds) throws SQLException
 	<a name="raw_connection_ops">Advanced: Raw Connection and Statement Operations</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
       </h3>
+      <div class="boxed">
+	<b>
+	  Note: As of c3p0-0.9.5, c3p0 supports the standard JDBC4 <tt>unwrap()</tt> methods
+	  for looking through proxies. Note that if you use the <tt>unwrap()</tt> methods, c3p0
+	  can not clean up any <tt>Statement</tt> or <tt>ResultSet</tt> objects you may generate
+	  from raw Connections or Statements. Users must take care to clean up these objects directly.
+	  Further, users should take care not to modify underlying <tt>Connection</tt>s in some manner
+	  that would render them no longer interchangeable with other <tt>Connection</tt>s, as they must
+	  be to remain suitable for pooling.
+	</b>
+      </div>
       <p>
 	JDBC drivers sometimes define vendor-specific, non-standard API on Connection and Statement implementations. C3P0 wraps
 	these Objects behind a proxies, so you cannot cast C3P0-returned Connections or Statements to the vendor-specific implementation
@@ -873,7 +900,7 @@ Object[] args = new Object[] {C3P0ProxyConnection.RAW_CONNECTION, Boolean.valueO
 CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);			
       </div>
       <p>
-	<i>Note: C3P0 now includes special support for some Oracle-specific methods. 
+	<i>C3P0 includes special support for some Oracle-specific methods. 
 	  See <a href="#oracle-specific">Appendix F</a>.
 	</i>
       </p>
@@ -1257,7 +1284,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	ConnectionCustomizers are required to be immutable classes with public no argument constructors.
 	They shouldn't store any state. For (rare) applications that wish to track the behavior of individual
 	DataSources with ConnectionCustomizers, the lifecycle methods each accept a DataSource-specific 
-	"identityToken", which is unique to each PooledDataSource.
+	"identityToken", which is unique to each PooledDataSource. ConnectionCustomizers can be configured
+	via <a href="#user_extensions_to_configurations">user-defined configuration extensions</a>.
       </p>
       <p>
 	Below is a sample <tt>ConnectionCustomizer</tt>. Implementations that do not need to override all
@@ -1290,7 +1318,10 @@ public class VerboseConnectionCustomizer
     { System.err.println("Checking in " + c + " [" + pdsIdt + "]"); }
 }
       </div>
-
+      <p>
+	For an example <tt>ConnectionCustomizer</tt> that employs
+	user-defined configuration properties, see <a href="#user_extensions_to_configurations">below</a>. 
+      </p>
       <h3>
 	<a name="configuring_unresolved">Configuring Unresolved Transaction Handling</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -1542,6 +1573,338 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	  </div>
 	</dd>
       </dl>
+      <h3>
+	<a name="named_configurations">Named configurations</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	You can define <i>named configurations</i> which augment and override the default
+	configuration that you define. When you instantiate a c3p0 <tt>PooledDataSource</tt>, whether 
+	via the 
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html#ComboPooledDataSource(java.lang.String)"><tt>ComboPooledDataSource</tt></a> 
+	constructor or via the 
+	<a href="apidocs/com/mchange/v2/c3p0/DataSources.html#pooledDataSource(javax.sql.DataSource, java.lang.String)"><tt>DataSources</tt></a>
+	factory class, you can supply a configuration name.
+	For example, using
+	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>:
+      </p>
+      <div class="example">
+ComboPooledDataSource cpds = new ComboPooledDataSource("intergalactoApp");  
+      </div>
+      <p>
+	Or using the
+	<a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>DataSources</tt></a> factory class:
+      </p>
+      <div class="example">
+DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoApp" );
+      </div>
+      <p>
+	To <i>define</i> named configurations... 
+      </p>
+      <div style="margin-left: 2em">
+	<p>
+	  In a <a href="#c3p0_properties">properties-style config file</a>...
+	</p>
+	<div class="example">
+# define default-config param values
+c3p0.maxPoolSize=30
+c3p0.minPoolSize=10
+
+# define params for a named config called intergalactoApp
+c3p0.named-configs.intergalactoApp.maxPoolSize=1000
+c3p0.named-configs.intergalactoApp.minPoolSize=100
+c3p0.named-configs.intergalactoApp.numHelperThreads=50
+
+# define params for a named config called littleTeenyApp
+c3p0.named-configs.littleTeenyApp.maxPoolSize=5
+c3p0.named-configs.littleTeenyApp.minPoolSize=2
+	</div>
+	<p>
+	  In a <a href="#c3p0_conf">HOCON config file</a>...
+	</p>
+	<div class="example">
+c3p0 {
+  maxPoolSize=30
+  minPoolSize=10
+
+  named-configs {
+    intergalactoApp {
+      maxPoolSize=1000
+      minPoolSize=100
+      numHelperThreads=50
+    }
+    littleTeenyApp {
+      maxPoolSize=5
+      minPoolSize=2
+    }
+  }
+}
+	</div>
+	<p>
+	  In an <a href="#c3p0-config.xml">XML config file</a>...
+	</p>
+	<div class="example">
+&lt;c3p0-config&gt;
+
+  &lt;default-config&gt;
+    &lt;property name="maxPoolSize"&gt;30&lt;/property&gt;
+    &lt;property name="minPoolSize"&gt;10&lt;/property&gt;
+  &lt;/default-config&gt;
+
+  &lt;named-config name="intergalactoApp"&gt;
+    &lt;property name="maxPoolSize"&gt;1000&lt;/property&gt;
+    &lt;property name="minPoolSize"&gt;100&lt;/property&gt;
+    &lt;property name="numHelperThreads"&gt;50&lt;/property&gt;
+  &lt;/named-config&gt;
+
+  &lt;named-config name="littleTeenyApp"&gt;
+    &lt;property name="maxPoolSize"&gt;5&lt;/property&gt;
+    &lt;property name="minPoolSize"&gt;2&lt;/property&gt;
+  &lt;/named-config&gt;
+
+&lt;/c3p0-config&gt;
+	</div>
+      </div>
+      <h3>
+	<a name="per-user_configurations">Per-user configurations</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	You can define overrides of default or named configurations that apply only
+	to pools of Connections authenticated for a particular user. Not all configuration parameters
+	support per-user overrides. See <a href="appendix_a">Appendix A</a> for details.
+      <p>
+	To define per-user configurations... 
+      </p>
+      <div style="margin-left: 2em">
+	<p>
+	  In a <a href="#c3p0_properties">properties-style config file</a>...
+	</p>
+	<div class="example">
+# define default-config param values
+c3p0.maxPoolSize=30
+c3p0.minPoolSize=10
+
+# define params for a user called 'steve'
+c3p0.user-overrides.steve.maxPoolSize=15
+c3p0.user-overrides.steve.minPoolSize=5
+
+# define params for a user called 'ramona'
+c3p0.user-overrides.steve.maxPoolSize=50
+c3p0.user-overrides.steve.minPoolSize=20
+	</div>
+	<p>
+	  In a <a href="#c3p0_conf">HOCON config file</a>...
+	</p>
+	<div class="example">
+c3p0 {
+  maxPoolSize=30
+  minPoolSize=10
+
+  user-overrides {
+    steve {
+      maxPoolSize=15
+      minPoolSize=5
+    }
+    ramona {
+      maxPoolSize=50
+      minPoolSize=20
+    }
+  }
+}
+	</div>
+	<p>
+	  In an <a href="#c3p0-config.xml">XML config file</a>...
+	</p>
+	<div class="example">
+&lt;c3p0-config&gt;
+
+  &lt;default-config&gt;
+
+    &lt;property name="maxPoolSize"&gt;30&lt;/property&gt;
+    &lt;property name="minPoolSize"&gt;10&lt;/property&gt;
+
+    &lt;user-overrides user="steve"&gt;
+      &lt;property name="maxPoolSize"&gt;15&lt;/property&gt;
+      &lt;property name="minPoolSize"&gt;5&lt;/property&gt;
+    &lt;/user-overrides&gt;
+
+    &lt;user-overrides user="ramona"&gt;
+      &lt;property name="maxPoolSize"&gt;50&lt;/property&gt;
+      &lt;property name="minPoolSize"&gt;20&lt;/property&gt;
+    &lt;/user-overrides&gt;
+
+  &lt;/default-config&gt;
+
+&lt;/c3p0-config&gt;
+	</div>
+      <h3>
+	<a name="user_extensions_to_configurations">User extensions to configuration</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Users can add their own configuration information, usually to customize the behavior of 
+	<a href="#connection_customizers"><tt>ConnectionCustomizers</tt></a>. User configuration is 
+	stored as a <tt>Map</tt> containing <tt>String</tt> keys and values, stored under the following
+	configuration parameter:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#extensions">extensions</a></li>
+      </ul>
+      <p>
+	The extensions <tt>Map</tt> can be set programatically like any other configuration parameter.
+	However, there is special support for defining keys and values for the extensions <tt>Map</tt>
+	in configuration files. In a <a href="#c3p0_properties">properties-style config file</a>...
+      </p>
+      <div class="example">
+c3p0.extensions.initSql=SET SCHEMA 'foo'
+c3p0.extensions.timezone=PDT
+...
+      </div>
+      <p>
+	In a <a href="#c3p0_conf">HOCON config file</a>...
+      </p>
+      <div class="example">
+c3p0 {
+  extensions {
+     initSql=SET SCHEMA 'foo'
+     timezone=PDT
+  }
+}
+      </div>
+      <p>
+	In an <a href="#c3p0-config.xml">XML config file</a>...
+      </p>
+      <div class="example">
+&lt;c3p0-config&gt;
+  &lt;default-config&gt;
+    &lt;extensions&gt;
+      &lt;property name="initSql"&gt;SET SCHEMA 'foo'&lt;/property&gt;
+      &lt;property name="timezone"&gt;PDT&lt;/property&gt;
+    &lt;/extensions&gt;
+  &lt;/default-config&gt;
+&lt;/c3p0-config&gt;
+      </div>
+      <p>
+	To find the extensions defined for a <tt>PooledDataSource</tt>, you must have access to its
+	<tt>identityToken</tt>, which is supplied as an argument to all 
+	<a href="#connection_customizer"><tt>ConnectionCustomizer</tt></a> methods. Given an <tt>identityToken</tt>,
+	you can use the method 
+	<a href="apidocs/com/mchange/v2/c3p0/C3P0Registry.html#extensionsForToken(java.lang.String)"><tt>C3P0Registry.extensionsForToken(...)</tt></a> to access the extensions <tt>Map</tt>.
+      </p>
+      <p>
+	Because extensions are primary designed to be used within <tt>ConnectionCustomizer</tt> implementations, 
+	the <a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionCustomizer.html"><tt>AbstractConnectionCustomizer</tt></a>
+	class also defines a protected 
+	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionCustomizer.html#extensionsForToken(java.lang.String)">extensionsForToken(...)</a> method as a convenience. 
+      </p>
+      <p>
+	Here is an example <tt>ConnectionCustomizer</tt> implementation that makes use of user-defined configuration 
+	extensions. It defines an <tt>initSql</tt> extension, whose value should be a <tt>String</tt> containing
+	SQL that should be executed when a <tt>Connection</tt> is checked out from the pool:
+      </p>
+      <div class="example">
+package mypkg;
+
+import java.sql.*;
+import com.mchange.v2.c3p0.AbstractConnectionCustomizer;
+
+public class InitSqlConnectionCustomizer extends AbstractConnectionCustomizer
+{
+    private String getInitSql( String parentDataSourceIdentityToken )
+    { return (String) extensionsForToken( parentDataSourceIdentityToken ).get ( "initSql" ); }
+
+    public void onCheckOut( Connection c, String parentDataSourceIdentityToken  ) throws Exception
+    {
+	String initSql = getInitSql( parentDataSourceIdentityToken );
+	if ( initSql != null )
+	{
+	    Statement stmt = null;
+	    try
+	    {
+		stmt = c.createStatement();
+		stmt.executeUpdate( initSql );
+	    }
+	    finally
+	    { if ( stmt != null ) stmt.close(); }
+	}
+    }
+}
+      </div>
+      <div class="boxed">
+	Note: There's no need to implement your own <tt>ConnectionCustomizer</tt> if you
+	just want <tt>initSql</tt>. This example, plus a bit of extra TRACE-level logging,
+	is implemented within the library as <a href="file://localhost/Users/swaldman/development/gitproj/c3p0/dist/c3p0-0.9.5-pre4.bin/doc/apidocs/com/mchange/v2/c3p0/example/InitSqlConnectionCustomizer.html"><tt>com.mchange.v2.c3p0.example.InitSqlConnectionCustomizer</tt></a>.
+      </div>
+      <h3>
+	<a name="mixing_named_per-user_extensions">Mixing named, per-user, and user-defined configuration extensions</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	Named configurations, per-user overrides, and user-defined configuration extensions can easily
+	be mixed.
+      </p>
+	<p>
+	  In a <a href="#c3p0_properties">properties-style config file</a>...
+	</p>
+	<div class="example">
+c3p0.maxPoolSize=30
+c3p0.extensions.initSql=SET SCHEMA 'default'
+
+c3p0.named-configs.intergalactoApp.maxPoolSize=1000
+c3p0.named-configs.intergalactoApp.extensions.initSql=SET SCHEMA 'intergalacto'
+c3p0.named-configs.user-overrides.steve.maxPoolSize=20
+	</div>
+	<p>
+	  In a <a href="#c3p0_conf">HOCON config file</a>...
+	</p>
+	<div class="example">
+c3p0 {
+  maxPoolSize=30
+  extensions {
+    initSql=SET SCHEMA 'default'
+  }
+  named-configs {
+    intergalactoApp {
+      maxPoolSize=1000
+      user-overrides {
+        steve {
+          maxPoolSize=20
+        }
+      }
+      extensions {
+        initSql=SET SCHEMA 'intergalacto'
+      }
+    }
+  }
+}
+	</div>
+	<p>
+	  In an <a href="#c3p0-config.xml">XML config file</a>...
+	</p>
+	<div class="example">
+&lt;c3p0-config&gt;
+
+  &lt;default-config&gt;
+    &lt;property name="maxPoolSize"&gt;30&lt;/property&gt;
+    &lt;extensions&gt;
+      &lt;property name="initSql"&gt;SET SCHEMA 'default'&lt;/property&gt;
+    &lt;/extensions&gt;
+  &lt;/default-config&gt;
+
+  &lt;named-config name="intergalactoApp"&gt;
+    &lt;property name="maxPoolSize"&gt;1000&lt;/property&gt;
+    &lt;user-overrides name="steve"&gt;
+      &lt;property name="maxPoolSize"&gt;20&lt;/property&gt;
+    &lt;/user-overrides&gt;
+    &lt;extensions&gt;
+      &lt;property name="initSql"&gt;SET SCHEMA 'intergalacto'&lt;/property&gt;
+    &lt;/extensions&gt;
+  &lt;/named-config&gt;
+
+&lt;/c3p0-config&gt;
+	</div>
+
     </div>
     <h2><a name="performance">Performance</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
@@ -1657,9 +2020,10 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <a href="#contextClassLoaderSource">contextClassLoaderSource</a><br/>
 	    <a href="#dataSourceName">dataSourceName</a><br/>
 	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
-	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
+	    <a href="#extensions">extensions</a><br/>
 	  </td>
 	  <td>
+	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	    <a href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a><br/>
 	    <a href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a><br/>
 	    <a href="#initialPoolSize">initialPoolSize</a><br/>
@@ -1803,12 +2167,12 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	</dd>
 	<dt><a name="dataSourceName" />dataSourceName</dt>
 	<dd>
-	  <div class="default">Default: if configured with a <a href="#c3p0-config.xml">named config</a>, the config name, otherwise the pool's "identity token"</div>
+	  <div class="default">Default: if configured with a <a href="#named_configurations">named config</a>, the config name, otherwise the pool's "identity token"</div>
 	  <div class="propdesc">
 	       Every c3p0 pooled data source is given a <tt>dataSourceName</tt>, which serves two purposes. It helps users find DataSources via
 	       <a href="#using_c3p0_registry_box">C3P0Registry</a>, and it is included in the name of JMX mBeans in order to help 
 	       track and distinguish between multiple c3p0 DataSources even across application or JVM restarts. <tt>dataSourceName</tt>
-	       defaults to the pool's configuration name, if a <a href="#c3p0-config.xml">named config</a> was used, or else to an "identity token" (an
+	       defaults to the pool's configuration name, if a <a href="#named_configurations">named config</a> was used, or else to an "identity token" (an
 	       opaque, guaranteed unique String associated with every c3p0 DataSource). You may update this property to any name you find convenient.
 	       <tt>dataSourceName</tt> is <i>not</i> guaranteed to be unique &mdash; for example, multiple DataSource created from the same named
 	       configuration will share the same <tt>dataSourceName</tt>. But if you are going to make use of <tt>dataSourceName</tt>,
@@ -1827,6 +2191,16 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 		as capturing the stack trace will slow down every Connection check-out. 
 		[See <a href="#configuring_to_debug_and_workaround_broken_clients">"Configuring to Debug and Workaround Broken Client Applications"</a>]
 	  </div>
+	</dd>
+	<dt><a name="extensions" />extensions</dt>
+	<dd>
+	  <div class="default">Default: an empty <tt>java.util.Map</tt></div>
+	  <div class="propdesc">
+	    A <tt>java.util.Map</tt> (raw type) containing the values of any
+	    <a href="#user_extensions_to_configurations">user-defined configuration extensions</a> 
+	    defined for this DataSource.
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
 	<dt><a name="factoryClassLocation" />factoryClassLocation</dt>
 	<dd>
@@ -2230,7 +2604,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	</p>
 	<h4>Experimental properties</h4>
 	<p>
-	  c3p0-0.9.1 includes a new implementation of asynchronous Connection acquisition that
+	  c3p0-0.9.1 included a new implementation of asynchronous Connection acquisition that
 	  should improve c3p0's performance and resource utilization in cases where database
 	  acquisition attempts, for whatever reason, occasionally fail. The new implementation
 	  should be significantly better than the "traditional" Connection acquisition strategy,
@@ -2374,11 +2748,20 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	  System properties override settings in c3p0.properties. Please see 
 	  <a href="#configuration_precedence">Precedence of Configuration Settings</a> for more information.
 	</p>
+	<p>
+	  Any key that would be legal in a <a href="#c3p0_properties">c3p0.properties file</a> is legal as
+	  a System property, including keys that might have defined 
+	  <a href="#named_configurations">named</a>, 
+	  <a href="#per-user_configurations">per-user</a>, or 
+	  <a href="#user_extensions_to_configurations">user-defined-extension</a>
+	  parameters.
+	</p>
 	<h3>
-	  <a name="c3p0-config.xml">Named and Per-User configuration: Overriding c3p0 defaults via <tt>c3p0-config.xml</tt></a>
+	  <a name="c3p0-config.xml">Overriding c3p0 defaults via <tt>c3p0-config.xml</tt></a>
 	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
 	</h3>
 	<p>
+<!--
 	  As of c3p0-0.9.1, you can define multiple configurations in an XML configuration file, and specify in your code which
 	  configuration to use. For any configurations (including the unnamed default configuration), you can define overrides
 	  for a particular database user. For example, if several applications access your database under different authentication
@@ -2386,9 +2769,10 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	  <tt>lowLoadApp</tt>. (Recall that Connections associated with different authentication credentials
 	  are of necessity separated into separate pools, so it makes sense that these could be configured separately.)
 	</p>
+-->
 	<p>
-	  You can use the XML config file for all c3p0 configuration, including configuration of defaults. However, for users who
-	  don't want or need the extra complexity, the c3p0.properties file will continue to be supported.
+	  You can use the XML config file for all c3p0 configuration, including configuration of defaults,
+	  named configurations, per-user overrides, and configuration extensions. 
 	</p>
 	<p>
 	  By default, c3p0 will look for an XML configuration file in its classloader's resource path under the name "/c3p0-config.xml".
@@ -2444,20 +2828,6 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
     &lt;/user-overrides&gt;
   &lt;/named-config&gt;
 &lt;/c3p0-config&gt;
-	</div>
-	<p>
-	  To use a named configuration, you specify the config name when creating your DataSource. For example, using
-	  <a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>:
-	</p>
-	<div class="example">
-ComboPooledDataSource cpds = new ComboPooledDataSource("intergalactoApp");  
-	</div>
-	<p>
-	  Or using the
-	  <a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>DataSources</tt></a> factory class:
-	</p>
-	<div class="example">
-DataSource ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoApp" );
 	</div>
 <!--	
 	<h3>
