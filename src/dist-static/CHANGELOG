@@ -1,3 +1,4 @@
+c3p0-0.9.5-pre4
 	-- Updated documentation with user-defined configuration extensions and
 	   information on how to define named configuration, per-user overrides,
 	   and user-defined extensions in all three supported config file formats.
