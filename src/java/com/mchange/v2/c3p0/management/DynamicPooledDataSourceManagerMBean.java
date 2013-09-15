@@ -61,7 +61,7 @@ import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 
 import com.mchange.v1.lang.ClassUtils;
-import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.mchange.v2.c3p0.AbstractComboPooledDataSource;
 import com.mchange.v2.c3p0.DriverManagerDataSource;
 import com.mchange.v2.c3p0.PooledDataSource;
 import com.mchange.v2.c3p0.PoolBackedDataSource;
@@ -133,7 +133,6 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
 
     PooledDataSource pds;
     String mbeanName;
-    String oldPdsName;
     MBeanServer mbs;
     
     ConnectionPoolDataSource cpds;
@@ -151,14 +150,8 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             String propName = evt.getPropertyName();
             Object val = evt.getNewValue();
 
-            if ("nestedDataSource".equals(propName) || "connectionPoolDataSource".equals(propName)) {
+            if ("nestedDataSource".equals(propName) || "connectionPoolDataSource".equals(propName) || "dataSourceName".equals(propName))
                 reinitialize();
-            } else if ("dataSourceName".equals(propName)) {
-                if (evt.getOldValue() != null) {
-                    oldPdsName = evt.getOldValue().toString();
-                }
-                reinitialize();
-           }
         }
     };
 
@@ -167,11 +160,10 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
     { 
         this.pds = pds; 
         this.mbeanName = mbeanName;
-	this.oldPdsName = pds.getDataSourceName();
         this.mbs = mbs;
         
-        if (pds instanceof ComboPooledDataSource)
-            ((ComboPooledDataSource) pds).addPropertyChangeListener(pcl);
+        if (pds instanceof AbstractComboPooledDataSource)
+            ((AbstractComboPooledDataSource) pds).addPropertyChangeListener(pcl);
         else if (pds instanceof AbstractPoolBackedDataSource)
             ((AbstractPoolBackedDataSource) pds).addPropertyChangeListener(pcl);
         else
@@ -186,9 +178,9 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
     {
         try
         {
-            // for ComboPooledDataSource, everything we care about is exposed via the PooledDataSource
+            // for AbstractComboPooledDataSource, everything we care about is exposed via the PooledDataSource
             // for other implementations, we have to pay attention to nested DataSources
-            if (!(pds instanceof ComboPooledDataSource) && pds instanceof AbstractPoolBackedDataSource)
+            if (!(pds instanceof AbstractComboPooledDataSource) && pds instanceof AbstractPoolBackedDataSource)
             {
                 if (this.cpds instanceof WrapperConnectionPoolDataSource) //implies non-null, this is a reinit
                     ((WrapperConnectionPoolDataSource) this.cpds).removePropertyChangeListener(pcl);
@@ -245,14 +237,17 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             // that the MBeanInfo is reread.
             try
             {
-                ObjectName oname = ObjectName.getInstance( mbeanName + ",name=" + oldPdsName );
+                ObjectName oname = ObjectName.getInstance( mbeanName );
                 if (mbs.isRegistered( oname ))
                 {
                     mbs.unregisterMBean( oname );
                     if (logger.isLoggable(MLevel.FINER))
                         logger.log(MLevel.FINER, "MBean: " + oname.toString() + " unregistered, in order to be reregistered after update.");
                 }
-		oname = ObjectName.getInstance(mbeanName + ",name=" + pds.getDataSourceName());
+
+		// the name may have changed because dataSourceName may have changed.
+		this.mbeanName = ActiveManagementCoordinator.getPdsObjectNameStr(pds);
+		oname = ObjectName.getInstance(mbeanName);
                 mbs.registerMBean( this, oname );
                 if (logger.isLoggable(MLevel.FINER))
                     logger.log(MLevel.FINER, "MBean: " + oname.toString() + " registered.");
@@ -466,9 +461,9 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             
             if (attr == "factoryClassLocation") // special case
             {
-                if (pds instanceof ComboPooledDataSource)
+                if (pds instanceof AbstractComboPooledDataSource)
                 {
-                    ((ComboPooledDataSource) pds).setFactoryClassLocation((String) attrObj.getValue());
+                    ((AbstractComboPooledDataSource) pds).setFactoryClassLocation((String) attrObj.getValue());
                     return;
                 }
                 else if (pds instanceof AbstractPoolBackedDataSource)

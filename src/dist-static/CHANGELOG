@@ -1,3 +1,7 @@
+	-- Fixed an error introduced in the 0.9.2 series, which caused MBeans
+	   for PooledDataSources to be unregistered on close() under names different 
+	   from that under which they were registered, creating a memory leak.
+	   Many thanks to Vlad Skarzhevskyy for reporting this issue.
 c3p0-0.9.5-pre4
 	-- Updated documentation with user-defined configuration extensions and
 	   information on how to define named configuration, per-user overrides,
