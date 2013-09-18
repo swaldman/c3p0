@@ -187,7 +187,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	{
 	    // if we did not succeed at emitting the PooledConnection, we should close
 	    // the underlying database Connection
-	    if (conn != null) ConnectionUtils.attemptClose( conn );
+	    ConnectionUtils.attemptClose( conn );
 
 	    throw e;
 	}
@@ -195,7 +195,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	{
 	    // if we did not succeed at emitting the PooledConnection, we should close
 	    // the underlying database Connection
-	    if (conn != null) ConnectionUtils.attemptClose( conn );
+	    ConnectionUtils.attemptClose( conn );
 
 	    throw re;
 	}
@@ -214,11 +214,14 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	DataSource nds = getNestedDataSource();
 	if (nds == null)
 	    throw new SQLException( "No standard DataSource has been set beneath this wrapper! [ nestedDataSource == null ]");
-	Connection conn = nds.getConnection(user, password);
-	if (conn == null)
-	    throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
-				   "DataSource: " + getNestedDataSource());
-	if ( this.isUsesTraditionalReflectiveProxies( user ) )
+	Connection conn = null;
+	try
+	{
+	    conn = nds.getConnection(user, password);
+	    if (conn == null)
+		throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
+				       "DataSource: " + getNestedDataSource());
+	    if ( this.isUsesTraditionalReflectiveProxies( user ) )
 	    {
 		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
 		return new C3P0PooledConnection( conn,
@@ -228,7 +231,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 						 cc,
 						 pdsIdt);
 	    }
-	else
+	    else
 	    {
 		return new NewPooledConnection( conn, 
 						connectionTester,
@@ -238,6 +241,23 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 						cc,
 						pdsIdt); 
 	    }
+	}
+	catch (SQLException e)
+	{
+	    // if we did not succeed at emitting the PooledConnection, we should close
+	    // the underlying database Connection
+	    ConnectionUtils.attemptClose( conn );
+
+	    throw e;
+	}
+	catch (RuntimeException re)
+	{
+	    // if we did not succeed at emitting the PooledConnection, we should close
+	    // the underlying database Connection
+	    ConnectionUtils.attemptClose( conn );
+
+	    throw re;
+	}
     }
 
     private boolean isAutoCommitOnClose( String userName )
