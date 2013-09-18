@@ -191,6 +191,14 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 
 	    throw e;
 	}
+	catch (RuntimeException re)
+	{
+	    // if we did not succeed at emitting the PooledConnection, we should close
+	    // the underlying database Connection
+	    if (conn != null) ConnectionUtils.attemptClose( conn );
+
+	    throw re;
+	}
     } 
  
     public PooledConnection getPooledConnection(String user, String password)
