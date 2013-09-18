@@ -1,3 +1,7 @@
+	-- Fixed a rare Connection leak in WrapperConnectionPoolDataSource that occurs 
+	   when Connection acquisition succeeds but construction of a PooledConnection
+	   to wrap it fails with an Exception. Many thanks to Edward Chan for reporting
+	   the issue.
 	-- Fixed an error introduced in the 0.9.2 series, which caused MBeans
 	   for PooledDataSources to be unregistered on close() under names different 
 	   from that under which they were registered, creating a memory leak.

@@ -48,6 +48,8 @@ import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
 import com.mchange.v2.c3p0.impl.*;
 import com.mchange.v2.log.*;
+import com.mchange.v1.db.sql.ConnectionUtils;
+
 
 // MT: Most methods are left unsynchronized, because getNestedDataSource() is synchronized, and for most methods, that's
 //     the only critical part. Previous oversynchronization led to hangs, when getting the Connection for one Thread happened
@@ -153,11 +155,14 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	DataSource nds = getNestedDataSource();
 	if (nds == null)
 	    throw new SQLException( "No standard DataSource has been set beneath this wrapper! [ nestedDataSource == null ]");
-	Connection conn = nds.getConnection();
-	if (conn == null)
-	    throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
-				   "DataSource: " + getNestedDataSource());
-	if ( this.isUsesTraditionalReflectiveProxies( this.getUser() ) )
+	Connection conn = null;
+	try
+	{
+	    conn = nds.getConnection();
+	    if (conn == null)
+		throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
+				       "DataSource: " + getNestedDataSource());
+	    if ( this.isUsesTraditionalReflectiveProxies( this.getUser() ) )
 	    {
 		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
 		return new C3P0PooledConnection( conn, 
@@ -167,7 +172,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 						 cc,
 						 pdsIdt); 
 	    }
-	else
+	    else
 	    {
 		return new NewPooledConnection( conn, 
 						connectionTester,
@@ -177,6 +182,15 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 						cc,
 						pdsIdt); 
 	    }
+	}
+	catch (SQLException e)
+	{
+	    // if we did not succeed at emitting the PooledConnection, we should close
+	    // the underlying database Connection
+	    if (conn != null) ConnectionUtils.attemptClose( conn );
+
+	    throw e;
+	}
     } 
  
     public PooledConnection getPooledConnection(String user, String password)
