@@ -1,3 +1,7 @@
+	-- Made JMX names of C3P0Registry customizable via the config property 
+	   'com.mchange.v2.c3p0.management.RegistryName', so that multiple installations/ClassLoaders 
+	   can be managed by a single MBean server. Many thanks to Vlad Skarzhevskyy for
+	   calling attention to this issue.
 	-- Fixed a rare Connection leak in WrapperConnectionPoolDataSource that occurs 
 	   when Connection acquisition succeeds but construction of a PooledConnection
 	   to wrap it fails with an Exception. Many thanks to Edward Chan for reporting

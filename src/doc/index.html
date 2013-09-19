@@ -1470,8 +1470,17 @@ public class VerboseConnectionCustomizer
 	are identifiable across application restarts.
       </p>
       <p>
+	You can also customize the name under which the C3P0Registry will appear under JMX, which is
+	useful if you wish to monitor multiple installations of c3p0 from a single MBean server. 
+	As a System property, in <tt>c3p0.properties</tt>, or in <a href="#c3p0_conf">HOCON config</a>, just set the following property (hopefully choosing a better
+	name than 'myRegistryName'):
+      </p>
+      <div class="example">
+com.mchange.v2.c3p0.management.RegistryName=myRegistryName
+      </div>
+      <p>
     If you do not want c3p0 to register MBeans with your JMX environment, you can suppress this
-    behavior with the following, set either as a System property or in <tt>c3p0.properties</tt>:
+    behavior with the following, set as a System property, in <tt>c3p0.properties</tt>, or in <a href="#c3p0_conf">HOCON config</a>:
       </p>
       <div class="example">
 com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.management.NullManagementCoordinator      
