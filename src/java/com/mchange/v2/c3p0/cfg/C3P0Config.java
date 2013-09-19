@@ -527,7 +527,8 @@ public final class C3P0Config
 	return out;
     }
 
-
+    public static MultiPropertiesConfig getMultiPropertiesConfig()
+    { return MPCONFIG; }
 
     NamedScope defaultConfig;
     HashMap configNamesToNamedScopes;

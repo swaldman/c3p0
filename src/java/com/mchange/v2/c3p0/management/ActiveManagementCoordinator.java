@@ -40,25 +40,34 @@ import javax.management.*;
 import com.mchange.v2.log.*;
 import com.mchange.v2.c3p0.*;
 
+import com.mchange.v2.c3p0.cfg.C3P0Config;
+
+
 public class ActiveManagementCoordinator implements ManagementCoordinator
 {
-    private final static String C3P0_REGISTRY_NAME = "com.mchange.v2.c3p0:type=C3P0Registry";
+    public final static String C3P0_REGISTRY_NAME_KEY = "com.mchange.v2.c3p0.management.RegistryName";
+
+    private final static String C3P0_REGISTRY_NAME_PFX = "com.mchange.v2.c3p0:type=C3P0Registry";
     
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( ActiveManagementCoordinator.class );
 
     MBeanServer mbs;
+    String regName;
+
 
     public ActiveManagementCoordinator() throws Exception
     {
         this.mbs = ManagementFactory.getPlatformMBeanServer();
+	this.regName = getRegistryName();
     }
+
 
     public void attemptManageC3P0Registry() 
     {
         try
         {
-            ObjectName name = new ObjectName(C3P0_REGISTRY_NAME );
+            ObjectName name = new ObjectName( regName );
             C3P0RegistryManager mbean = new C3P0RegistryManager();
 
             if (mbs.isRegistered(name)) 
@@ -89,7 +98,7 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
     {
         try
         {
-            ObjectName name = new ObjectName(C3P0_REGISTRY_NAME );
+            ObjectName name = new ObjectName( regName );
             if (mbs.isRegistered(name))
             {
                 mbs.unregisterMBean(name);
@@ -164,6 +173,16 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
 	if ( dataSourceName != null )
 	    out += ",name=" + dataSourceName;
 	return out;
+    }
+
+    private static String getRegistryName()
+    {
+	String name = C3P0Config.getMultiPropertiesConfig().getProperty( C3P0_REGISTRY_NAME_KEY );
+	if ( name == null )
+	    name = C3P0_REGISTRY_NAME_PFX; // a name property is optional
+	else
+	    name = C3P0_REGISTRY_NAME_PFX + ",name=" + name;
+	return name;
     }
 }
 
