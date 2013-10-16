@@ -1,3 +1,9 @@
+	-- In AbstractPoolBackedDataSource, eliminated implicit call to toString() 
+	   on close()ed DataSources in assertCpds, which provokes an endless loops as
+	   some of the getters in subclass toString() methods call assertCpds() to ensure
+	   that queried variables are available. Replaced with a very simple String representation
+	   of close()ed DataSources, showing only identityHashCode and identityToken properties.
+	   Thanks to Keith Amling for calling attention to this issue.
 	-- Made JMX names of C3P0Registry customizable via the config property 
 	   'com.mchange.v2.c3p0.management.RegistryName', so that multiple installations/ClassLoaders 
 	   can be managed by a single MBean server. Many thanks to Vlad Skarzhevskyy for
