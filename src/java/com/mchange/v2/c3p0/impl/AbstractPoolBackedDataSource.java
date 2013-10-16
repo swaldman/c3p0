@@ -503,14 +503,8 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
 
     private synchronized ConnectionPoolDataSource assertCpds() throws SQLException
     {
-	// we don't use let this.toString() get called here, as some subclass toString() methods
-	// query variables that require the ConnectionPoolDataSource and so call assertCpds(), creating
-	// an endless loop.
         if ( is_closed )
-            throw new SQLException(this.getClass().getName() + 
-				   "[identityHashCode->" + System.identityHashCode( this ) +", " +
-				   "identityToken->" + this.getIdentityToken() + 
-				   "] has been closed() -- you can no longer use it.");
+            throw new SQLException(this + " has been closed() -- you can no longer use it.");
 
         ConnectionPoolDataSource out = this.getConnectionPoolDataSource();
         if ( out == null )
