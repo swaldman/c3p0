@@ -1,3 +1,4 @@
+c3p0-0.9.5-pre5
 	-- Made JMX names of C3P0Registry customizable via the config property 
 	   'com.mchange.v2.c3p0.management.RegistryName', so that multiple installations/ClassLoaders 
 	   can be managed by a single MBean server. Many thanks to Vlad Skarzhevskyy for
