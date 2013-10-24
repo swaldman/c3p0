@@ -121,7 +121,6 @@ public final class C3P0Config
 		protoMain = C3P0ConfigUtils.configFromFlatDefaults( flatDefaults );
 	    }
 
-
 	HashMap propStyleConfigNamesToNamedScopes = findPropStyleNamedScopes();
 	HashMap cfgFoundConfigNamesToNamedScopes = protoMain.configNamesToNamedScopes;
 	HashMap mergedConfigNamesToNamedScopes = new HashMap();

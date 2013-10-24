@@ -107,7 +107,9 @@ public final class C3P0Defaults
 	KNOWN_PROPERTIES = Collections.unmodifiableSet( s );
     }
 
-    public static Set getKnownProperties()
+    // the arg should just be null, always... 
+    // the arg exists only to exclude getKnownProperties from being reflected as a config param whose default value is all the properties
+    public static Set getKnownProperties( Object useless )
     { return KNOWN_PROPERTIES; }
 
     public static boolean isKnownProperty( String s )

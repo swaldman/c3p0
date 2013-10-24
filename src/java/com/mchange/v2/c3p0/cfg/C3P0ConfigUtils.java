@@ -42,6 +42,8 @@ import com.mchange.v2.cfg.*;
 import com.mchange.v2.log.*;
 import com.mchange.v2.c3p0.impl.*;
 
+import com.mchange.v2.lang.Coerce;
+
 public final class C3P0ConfigUtils
 {
     public final static String PROPS_FILE_RSRC_PATH     = "/c3p0.properties";
@@ -72,7 +74,14 @@ public final class C3P0ConfigUtils
         }
     }
 
-    public static HashMap extractHardcodedC3P0Defaults(boolean stringify)
+    /**
+     *  @param stringify_coercibles these properties may eventually be used to initialize bean properties
+     *         reflectively. to avoid having to get types exactly right (e.g. is it a Double or a double or an int?),
+     *         it can be convenient to just represent these values as Strings and coerce those to the appropriate
+     *         type when needed using com.mchange.v2.lang.Coerce. If true, we convert all coercible values into Strings.
+     *         Non-coercible values are always left alone.
+     */
+    public static HashMap extractHardcodedC3P0Defaults(boolean stringify_coercibles)
     {
 	HashMap out = new HashMap();
 
@@ -85,14 +94,9 @@ public final class C3P0ConfigUtils
 			int mods = m.getModifiers();
 			if ((mods & Modifier.PUBLIC) != 0 && (mods & Modifier.STATIC) != 0 && m.getParameterTypes().length == 0)
 			    {
-				if (stringify)
-				    {
-					Object val = m.invoke( null, null );
-					if ( val != null )
-					    out.put( m.getName(), String.valueOf( val ) );
-				    }
-				else
-				    out.put( m.getName(), m.invoke( null, null ) );
+				Object val = m.invoke( null, null );
+				if ( val != null )
+				    out.put( m.getName(), stringify_coercibles && Coerce.canCoerce( val ) ? String.valueOf( val ) : val);
 			    }
 		    }
 	    }
@@ -151,7 +155,7 @@ public final class C3P0ConfigUtils
 
 	try
 	    {
-		for (Iterator ii = C3P0Defaults.getKnownProperties().iterator(); ii.hasNext(); )
+		for (Iterator ii = C3P0Defaults.getKnownProperties( null ).iterator(); ii.hasNext(); )
 		    {
 			String key = (String) ii.next();
 			String prefixedKey = "c3p0." + key;
