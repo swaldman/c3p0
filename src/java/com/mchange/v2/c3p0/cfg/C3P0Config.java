@@ -81,7 +81,7 @@ public final class C3P0Config
 	// but just in case that is overridden or omitted...
 
 	String[] defaults = {"/mchange-commons.properties", "/mchange-log.properties"};
-	String[] preempts = {"/c3p0.properties","hocon:/reference.conf,/application.conf,/application.json,/application.properties,/c3p0.conf,/c3p0.json,/c3p0.properties,/", "/"};
+	String[] preempts = {"hocon:/reference,/application,/c3p0,/","/c3p0.properties", "/"};
 
 	MPCONFIG = MConfig.readVmConfig( defaults, preempts );
 

@@ -7,6 +7,7 @@
 /mchange-commons.properties
 /mchange-log.properties
 /c3p0.properties
-hocon:/reference.conf,/application.conf,/application.json,/application.properties,/c3p0.conf,/c3p0.json,/c3p0.properties,/
+hocon:/reference,/application,/c3p0,/
 /
+
 
