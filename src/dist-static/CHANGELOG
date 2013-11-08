@@ -1,3 +1,11 @@
+	-- Improvements to loading of resources for hocon/typesafe-config. We now properly
+	   load and merge multiple resources (if found), and use typesafe conventions for
+	   merging xxx.conf, xxx.json, and xxx.properties files. [mchange-commons-java]
+	-- Cleaned up reflection of default properties, such that only coercible properties
+	   get Stringified (since Stringifying non-coercible properties render them useless
+	   for setting as bean params), and to eliminate treating C3P0Defaults.getKnownProperties
+	   as itself a default. Many thanks to wuSam on github for exercising the library in an
+	   unusual way and revealing these issues.
 c3p0-0.9.5-pre5
 	-- Made JMX names of C3P0Registry customizable via the config property 
 	   'com.mchange.v2.c3p0.management.RegistryName', so that multiple installations/ClassLoaders 
