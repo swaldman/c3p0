@@ -36,6 +36,8 @@
 package com.mchange.v2.c3p0.cfg;
 
 import java.io.*;
+import com.mchange.v2.log.*;
+
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -43,6 +45,16 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 {
     final static String XML_CFG_FILE_KEY            = "com.mchange.v2.c3p0.cfg.xml";
     final static String CLASSLOADER_RESOURCE_PREFIX = "classloader:";
+
+    final static MLogger logger = MLog.getLogger( DefaultC3P0ConfigFinder.class );
+
+    final boolean warn_of_xml_overrides;
+
+    public DefaultC3P0ConfigFinder( boolean warn_of_xml_overrides )
+    { this.warn_of_xml_overrides = warn_of_xml_overrides; }
+
+    public DefaultC3P0ConfigFinder() 
+    { this( false ); }   
 
     public C3P0Config findConfig() throws Exception
     {
@@ -63,6 +75,8 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 		    {
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
 			out = xmlConfig;
+			
+			mbOverrideWarning("resource", C3P0ConfigXmlUtils.XML_CONFIG_RSRC_PATH);
 		    }
 		else
 		    out = C3P0ConfigUtils.configFromFlatDefaults( flatDefaults );
@@ -88,9 +102,14 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 			    if ( is == null )
 				throw new FileNotFoundException("Specified ClassLoader resource '" + rsrcPath + "' could not be found. " +
 								"[ Found in configuration: " + XML_CFG_FILE_KEY + '=' + cfgFile + " ]");
+
+			    mbOverrideWarning( "resource", rsrcPath );
 			}
 			else
+			{
 			    is = new BufferedInputStream( new FileInputStream( cfgFile ) );
+			    mbOverrideWarning( "file", cfgFile );
+			}
 
 			C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromInputStream( is );
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
@@ -116,5 +135,11 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
     {
 	flatDefaults.putAll( config.defaultConfig.props );
 	config.defaultConfig.props = flatDefaults;
+    }
+
+    private void mbOverrideWarning( String srcType, String srcName )
+    {
+	if ( warn_of_xml_overrides && logger.isLoggable( MLevel.WARNING ) )
+	    logger.log( MLevel.WARNING, "Configuation defined in " + srcType + "'" + srcName + "' overrides all other c3p0 config." );
     }
 }
