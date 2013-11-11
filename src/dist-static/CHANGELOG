@@ -1,3 +1,7 @@
+	-- Refactored C3P0Config to permit refreshing of config information on-demand at 
+	   runtime, plus imposing overrides. (This is in preperation for integration with
+	   application servers, whose native config files might be used to configure c3p0,
+	   and might change more frequently than a VM or ClassLoader recycle).
 	-- Improvements to loading of resources for hocon/typesafe-config. We now properly
 	   load and merge multiple resources (if found), and use typesafe conventions for
 	   merging xxx.conf, xxx.json, and xxx.properties files. [mchange-commons-java]
