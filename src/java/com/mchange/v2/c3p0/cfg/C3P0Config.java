@@ -98,23 +98,33 @@ public final class C3P0Config
 	    MultiPropertiesConfig[] combineMe = new MultiPropertiesConfig[ olen + 1 ];
 	    combineMe[0] = libMpc;
 	    for ( int i = 0; i < olen; ++i )
-		combineMe[ i + i ] = overrides[i];
+		combineMe[ i + 1 ] = overrides[i];
+
 	    MultiPropertiesConfig  overriddenMpc = ConfigUtils.combine( combineMe );
 	    setLibraryMultiPropertiesConfig( overriddenMpc );
-	    setMainConfig( findLibraryConfig( true ) );
+	    setMainConfig( findLibraryC3P0Config( true ) );
 
 	    if ( logger.isLoggable( MLevel.INFO ) )
 		logger.log( MLevel.INFO, 
-			    "c3p0 main configuration was refreshed, with overrides specified" + overridesDescription == null ? "." : ": " + overridesDescription );
+			    "c3p0 main configuration was refreshed, with overrides specified" + (overridesDescription == null ? "." : " - " + overridesDescription ) );
 	}
 	else
 	{
 	    setLibraryMultiPropertiesConfig( libMpc );
-	    setMainConfig( findLibraryConfig( false ) );
+	    setMainConfig( findLibraryC3P0Config( false ) );
 
 	    if ( logger.isLoggable( MLevel.INFO ) )
 		logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides specified (and any previous overrides removed)." );
 	}
+
+	/*
+	System.err.println("All properties...");
+	Properties props = libMpc.getPropertiesByPrefix("");
+	Map<Object,Object> m = new TreeMap<Object,Object>();
+	m.putAll( (Map<Object,Object>) props );
+	for ( Map.Entry<Object,Object> entry : m.entrySet() )
+	    System.err.println( entry.getKey() + " --> " + entry.getValue() );
+	*/
     }
 
     static
@@ -125,7 +135,7 @@ public final class C3P0Config
 	//     logger.log( MLevel.INFO, "Updated main c3p0 cofiguration." );
 
 	setLibraryMultiPropertiesConfig( findLibraryMultiPropertiesConfig() );
-	setMainConfig( findLibraryConfig( false ) );
+	setMainConfig( findLibraryC3P0Config( false ) );
 
 	warnOnUnknownProperties( MAIN() );
     }
@@ -141,8 +151,8 @@ public final class C3P0Config
 	return MConfig.readVmConfig( defaults, preempts );
     }
 
-    // _MPCONFIG must be ser=t first!
-    private static C3P0Config findLibraryConfig( boolean warn_on_conflicting_overrides )
+    // _MPCONFIG must be set first!
+    private static C3P0Config findLibraryC3P0Config( boolean warn_on_conflicting_overrides )
     {
 	C3P0Config protoMain;
 
