@@ -82,6 +82,9 @@ public final class C3P0Config
     private static synchronized void setLibraryMultiPropertiesConfig( MultiPropertiesConfig mpc )
     { _MPCONFIG = mpc; }
 
+    public static Properties allCurrentProperties()
+    { return MPCONFIG().getPropertiesByPrefix(""); }
+
     public static synchronized void setMainConfig( C3P0Config protoMain )
     { _MAIN = protoMain; }
 
