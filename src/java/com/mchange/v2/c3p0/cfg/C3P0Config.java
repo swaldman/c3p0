@@ -103,7 +103,7 @@ public final class C3P0Config
 	    for ( int i = 0; i < olen; ++i )
 		combineMe[ i + 1 ] = overrides[i];
 
-	    MultiPropertiesConfig  overriddenMpc = ConfigUtils.combine( combineMe );
+	    MultiPropertiesConfig  overriddenMpc = MConfig.combine( combineMe );
 	    setLibraryMultiPropertiesConfig( overriddenMpc );
 	    setMainConfig( findLibraryC3P0Config( true ) );
 
