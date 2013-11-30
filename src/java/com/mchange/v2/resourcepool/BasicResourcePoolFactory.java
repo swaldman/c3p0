@@ -138,12 +138,7 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
     private void createThreadResources()
     {
 	if (! taskRunner_is_external )
-	    {
-		//taskRunner = new RoundRobinAsynchronousRunner( default_num_task_threads, true );
-		taskRunner = new ThreadPoolAsynchronousRunner( default_num_task_threads, true );
-		if (! asyncEventQueue_is_external)
-		    asyncEventQueue = ((Queuable) taskRunner).asRunnableQueue();
-	    }
+	    taskRunner = new ThreadPoolAsynchronousRunner( default_num_task_threads, true );
 	if (! asyncEventQueue_is_external)
 	    asyncEventQueue = new CarefulRunnableQueue( true, false );
 	if (! timer_is_external )
