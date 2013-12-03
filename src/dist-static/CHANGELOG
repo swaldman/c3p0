@@ -1,3 +1,6 @@
+	-- Fixed a rare problem caused when some JDBC drivers are simultaneously autoloaded
+	   on initialization of DriverManager.class and by DriverManagerDataSource. 
+	   DriverManagerDataSource's class init now preloads DriverManager.class
 	-- Fixed a ClassCastException in some codepaths of BasicResourceFactory construction. 
 	   Thanks to petrjanata on SourceForge for reporting and tracking down the issue.
 	-- Modified mlog logging library to permit dynamic refresh if config (again, for

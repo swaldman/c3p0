@@ -1,5 +1,5 @@
 /*
- * Distributed as part of c3p0 v.0.9.5-pre5
+ * Distributed as part of c3p0 v.0.9.5-pre6
  *
  * Copyright (C) 2013 Machinery For Change, Inc.
  *
@@ -56,7 +56,25 @@ import com.mchange.v2.c3p0.impl.DriverManagerDataSourceBase;
 
 public final class DriverManagerDataSource extends DriverManagerDataSourceBase implements DataSource
 {
-    final static MLogger logger = MLog.getLogger( DriverManagerDataSource.class );
+    final static MLogger logger;
+
+    static
+    {
+	logger = MLog.getLogger( DriverManagerDataSource.class );
+
+
+	// some drivers are not robust to simultanous attempts to
+	// load. if our driver will be preloaded by the DriverManager class,
+	// get it over with before we try anything
+	try { Class.forName( "java.sql.DriverManager" ); }
+	catch ( Exception e )
+	    { 
+		String msg = "Could not load the DriverManager class?!?";
+		if ( logger.isLoggable( MLevel.SEVERE ) )
+		    logger.log( MLevel.SEVERE, msg );
+		throw new InternalError( msg );
+	    }
+    }
 
     //MT: protected by this' lock
     Driver driver;
@@ -102,7 +120,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     private synchronized void setDriverClassLoaded(boolean dcl)
     { this.driver_class_loaded = dcl; }
     
-    private void ensureDriverLoaded() throws SQLException
+    private synchronized void ensureDriverLoaded() throws SQLException
     {
         try
         {
