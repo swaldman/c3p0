@@ -15,7 +15,7 @@ You can still find releases at [sourceforge](http://sourceforge.net/projects/c3p
 
 Documentation is available as part of every distribution, as well as [on-line](http://www.mchange.com/projects/c3p0/).
 
-From the current *development snapshot*, here are the latest [CHANGELOG](https://github.com/swaldman/c3p0/blob/master/src/dist-static/CHANGELOG) and [RELEASE_NOTES](https://github.com/swaldman/c3p0/blob/master/src/dist-static/RELEASE_NOTES-c3p0-0.9.2). For information on how to build from src, checkout [README-SRC](https://github.com/swaldman/c3p0/blob/master/README-SRC).
+From the current *development snapshot*, here are the latest [CHANGELOG](https://github.com/swaldman/c3p0/blob/master/src/dist-static/CHANGELOG) and [RELEASE_NOTES](https://github.com/swaldman/c3p0/blob/master/src/dist-static/RELEASE_NOTES-c3p0-0.9.5). For information on how to build from src, checkout [README-SRC](https://github.com/swaldman/c3p0/blob/master/README-SRC).
 
 Please address comments and questions to the [library author](mailto:swaldman@mchange.com), although keep in mind he is an abysmal correspondent and basically an asshole. Despite that, your feedback is very much appreciated. You may also open issues on github and/or sourceforge.
 
