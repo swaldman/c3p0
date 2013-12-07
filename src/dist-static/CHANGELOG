@@ -1,3 +1,4 @@
+c3p0-0.9.5-pre6
 	-- Fixed a rare problem caused when some JDBC drivers are simultaneously autoloaded
 	   on initialization of DriverManager.class and by DriverManagerDataSource. 
 	   DriverManagerDataSource's class init now preloads DriverManager.class
@@ -54,7 +55,7 @@ c3p0-0.9.5-pre4
 	   Thanks Keith Amling! [mchange-commons-java]
 	-- Access to EncounterCounter in C3P0ImplUtils ought to have been synchronized. It was
 	   not. Fixed, by placing the counter underneath an sync'ed wrapper. Many thanks to
-	   Keith Amling for calling attention to this issue.
+	   Keith Amling and Dan Berindei for calling attention to this issue.
 c3p0-0.9.5-pre3
 	-- For reasons that remain obscure, the published build of c3p0-0.9.5-pre2 is missing
 	   JDBC4 methods (many thanks to edysli on github for pointing this out). Apparently
