@@ -1085,7 +1085,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       <p>
 	The most reliable time to test Connections is on check-out. But this is also the most costly choice
 	from a client-performance perspective. Most applications should work quite reliably using a combination of 
-	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionOnCheckIn</tt>. Both the idle test and the check-in 
+	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionOnCheckin</tt>. Both the idle test and the check-in 
 	test are performed asynchronously, which can lead to better performance, both perceived and actual.
       </p>
       <p>
@@ -1111,7 +1111,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	  </li>
 	  <li>
 	    <p>
-	      Begin by setting <tt>testConnectionOnCheckOut</tt> to <tt>true</tt> and get your application to run correctly and stably.
+	      Begin by setting <tt>testConnectionOnCheckout</tt> to <tt>true</tt> and get your application to run correctly and stably.
 	      If you are happy with your application's performance, <i>you can stop here!</i> This is the simplest, most reliable form of
 	      Connection-testing, but it does have a client-visible performance cost.
 	    </p>
@@ -1119,8 +1119,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	  <li>
 	    <p>If you'd like to improve performance by eliminating Connection testing from clients' code path:</p>
 	    <ol type="a">
-	      <li><p>Set <tt>testConnectionOnCheckOut</tt> to <tt>false</tt></p></li>
-	      <li><p>Set <tt>testConnectionOnCheckIn</tt> to <tt>true</tt></p></li>
+	      <li><p>Set <tt>testConnectionOnCheckout</tt> to <tt>false</tt></p></li>
+	      <li><p>Set <tt>testConnectionOnCheckin</tt> to <tt>true</tt></p></li>
 	      <li>
 		<p>
 		  Set <tt>idleConnectionTestPeriod</tt> to <tt>30</tt>, fire up you application and observe.
@@ -1135,9 +1135,9 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 		  If database restarts will be rare so quick recovery is not an
 		  issue, consider reducing the frequency of tests by <tt>idleConnectionTestPeriod</tt> to, say, <tt>300</tt>,
 		  and see whether clients are troubled by stale or broken Connections. If not, stick with <tt>300</tt>, or try an
-		  even bigger number. Consider setting <tt>testConnectionOnCheckIn</tt> back to false to avoid unnecessary tests
+		  even bigger number. Consider setting <tt>testConnectionOnCheckin</tt> back to false to avoid unnecessary tests
 		  on checkin. Alternatively, if your application does encounter bad Connections, consider reducing <tt>idleConnectionTestPeriod</tt>
-		  and set <tt>testConnectionOnCheckIn</tt> back to <tt>true</tt>. There are no correct or incorrect values for these parameters:
+		  and set <tt>testConnectionOnCheckin</tt> back to <tt>true</tt>. There are no correct or incorrect values for these parameters:
 		  you are trading off overhead for reliability in deciding how frequently to test. The exact numbers are not so critical.
 		  It's usually easy to find configurations that perform well. It's rarely worth spending time in pursuit of "optimal" values here.
 		</p>
@@ -1156,7 +1156,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	  That's nice in theory, but often people don't really have a good sense of how much work clients perform on average.
 	  The best thing to do is usually to try Step 3, see if it helps (however you measure performance), see if it hurts (is your application
 	  troubled by broken Connections? does it recover from database restarts well enough?), and then decide. You can always go back to
-	  simple, slow, and robust. Just set <tt>testConnectionOnCheckOut</tt> to <tt>true</tt>, <tt>testConnectionOnCheckIn</tt> to <tt>false</tt>,
+	  simple, slow, and robust. Just set <tt>testConnectionOnCheckout</tt> to <tt>true</tt>, <tt>testConnectionOnCheckin</tt> to <tt>false</tt>,
 	  and set <tt>idleConnectionTestPeriod</tt> to <tt>0</tt>. 	  <i>But do be sure to set an efficient</i> <tt>preferredTestQuery</tt> <i>!!!</i>
 	</p>
       </div>
