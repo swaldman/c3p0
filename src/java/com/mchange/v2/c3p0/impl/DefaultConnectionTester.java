@@ -47,9 +47,170 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 {
     final static MLogger logger = MLog.getLogger( DefaultConnectionTester.class );
 
+    final static int    IS_VALID_TIMEOUT       = 0;
+    final static String CONNECTION_TESTING_URL = "http://www.mchange.com/projects/c3p0/#configuring_connection_testing";
+
     final static int HASH_CODE = DefaultConnectionTester.class.getName().hashCode();
 
     final static Set INVALID_DB_STATES;
+
+    /*
+     * Initially the intention was to have the variable querylessTestRunner adapt, permanently become
+     * either TRADITIONAL_QUERYLESS_TEST_RUNNER or IS_VALID_QUERYLESS_TEST_RUNNER depending on whether
+     * Connection.isValid() was observed to be supported. Unfortunately, this approach, while it could be
+     * implemented in a manner that avoids any synchronization after the initial latch, would not be robust
+     * to the use of multiple DataSources, some of whose Connections support Connection.isValid(...) while
+     * while some do not. So, we always use SWITCH_QUERYLESS_TEST_RUNNER, which tries IS_VALID_QUERYLESS_TEST_RUNNER
+     * and then (alas slowly) backs off to TRADITIONAL_QUERYLESS_TEST_RUNNER in response to the AbstractMethodError
+     * if Connection.isValid(...) is not supported.
+     *
+     * The current implementation is correct, but it will slow down the already slow testing for users who 1) use an older JDBC driver
+     * that does not support Connection.isValid(...); and 2) fail to set a preferredTestQuery. So, we now emit
+     * an ugly warning intended to encourage clients to set a preferredTestQuery for DataSources whose underlying
+     * Connections do not support Connection.isValid(...)
+     *
+     * However, the current implementation also involves now uselessly much indirection through the QuerylessTestRunner
+     * interface... will fix.
+     */
+    private interface QuerylessTestRunner 
+    {
+	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder);
+    }
+
+    private final static QuerylessTestRunner TRADITIONAL_QUERYLESS_TEST_RUNNER = new QuerylessTestRunner()
+    {
+	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
+	{
+	    //      if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
+	    //      logger.finer("Entering DefaultConnectionTester.activeCheckConnection(Connection c). [using default system-table query]");
+	    
+	    ResultSet rs = null;
+	    try
+	    { 
+		rs = c.getMetaData().getTables( null, 
+						null, 
+						"PROBABLYNOT", 
+						new String[] {"TABLE"} );
+		return CONNECTION_IS_OKAY;
+	    }
+	    catch (SQLException e)
+	    { 
+		if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
+		    logger.log( MLevel.FINE, "Connection " + c + " failed default system-table Connection test with an Exception!", e );
+		
+		if (rootCauseOutParamHolder != null)
+		    rootCauseOutParamHolder[0] = e;
+		
+		String state = e.getSQLState();
+		if ( INVALID_DB_STATES.contains( state ) )
+		    {
+			if (logger.isLoggable(MLevel.WARNING))
+			    logger.log(MLevel.WARNING,
+				       "SQL State '" + state + 
+				       "' of Exception which occurred during a Connection test (fallback DatabaseMetaData test) implies that the database is invalid, " + 
+				       "and the pool should refill itself with fresh Connections.", e);
+			return DATABASE_IS_INVALID;
+		    }
+		else
+		    return CONNECTION_IS_INVALID; 
+	    }
+	    catch (Exception e)
+	    {
+		if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
+		    logger.log( MLevel.FINE, "Connection " + c + " failed default system-table Connection test with an Exception!", e );
+
+		if (rootCauseOutParamHolder != null)
+		    rootCauseOutParamHolder[0] = e;
+
+		return CONNECTION_IS_INVALID;
+	    }
+	    finally
+	    { 
+		ResultSetUtils.attemptClose( rs ); 
+		//          if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
+		//          logger.finer("Exiting DefaultConnectionTester.activeCheckConnection(Connection c). [using default system-table query]");
+	    }
+	}
+    };
+
+    private final static QuerylessTestRunner IS_VALID_QUERYLESS_TEST_RUNNER = new QuerylessTestRunner()
+    {
+	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
+	{
+	    try
+	    { 
+		boolean okay = c.isValid( IS_VALID_TIMEOUT );
+		if (okay)
+		    return CONNECTION_IS_OKAY;
+		else
+		{
+		    if (rootCauseOutParamHolder != null)
+			rootCauseOutParamHolder[0] = new SQLException("Connection.isValid(" + IS_VALID_TIMEOUT + ") returned false.");
+		    return CONNECTION_IS_INVALID;
+		}
+	    }
+	    catch (SQLException e)
+	    { 
+		if (rootCauseOutParamHolder != null)
+		    rootCauseOutParamHolder[0] = e;
+		
+		String state = e.getSQLState();
+		if ( INVALID_DB_STATES.contains( state ) )
+		    {
+			if (logger.isLoggable(MLevel.WARNING))
+			    logger.log(MLevel.WARNING,
+				       "SQL State '" + state + 
+				       "' of Exception which occurred during a Connection test (fallback DatabaseMetaData test) implies that the database is invalid, " + 
+				       "and the pool should refill itself with fresh Connections.", e);
+			return DATABASE_IS_INVALID;
+		    }
+		else
+		    return CONNECTION_IS_INVALID; 
+	    }
+	    catch (Exception e)
+	    {
+		if (rootCauseOutParamHolder != null)
+		    rootCauseOutParamHolder[0] = e;
+
+		return CONNECTION_IS_INVALID;
+	    }
+	}
+    };
+
+    private final static QuerylessTestRunner SWITCH_QUERYLESS_TEST_RUNNER = new QuerylessTestRunner()
+    {
+	//MT: protected by this' lock
+	boolean warned = false;
+
+	private synchronized void warn()
+	{
+	    if (! warned)
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, 
+				"FIX THIS!!! Your JDBC driver does not support Connection.isValid(...) and you have not set an efficient preferredTestQuery. " +
+				"Connection tests will be very slow. Please configure c3p0's preferredTestQuery parameter for all DataSources that do not support Connection.isValid(...). " +
+				"See " + CONNECTION_TESTING_URL );
+		warned = true;
+	    }
+	}
+
+	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
+	{
+	    int out;
+	    try
+	    { out = IS_VALID_QUERYLESS_TEST_RUNNER.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); }
+	    catch ( AbstractMethodError e )
+	    { 
+		warn();
+		out = TRADITIONAL_QUERYLESS_TEST_RUNNER.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); 
+	    }
+	    return out;
+	}
+    };
+
+    //MT: final reference, internally threadsafe
+    private final static QuerylessTestRunner querylessTestRunner = SWITCH_QUERYLESS_TEST_RUNNER;
 
     static
     {
@@ -71,7 +232,7 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 //      logger.finer("Entering DefaultConnectionTester.activeCheckConnection(Connection c, String query). [query=" + query + "]");
 
         if (query == null)
-            return activeCheckConnectionNoQuery( c, rootCauseOutParamHolder);
+            return querylessTestRunner.activeCheckConnectionNoQuery( c, rootCauseOutParamHolder);
         else
         {
             Statement stmt = null;
@@ -184,60 +345,8 @@ public class DefaultConnectionTester extends AbstractConnectionTester
     }
 
     private static String queryInfo(String query)
-    { return (query == null ? "[using default system-table query]" : "[query=" + query + "]"); }
+    { return (query == null ? "[using Connection.isValid(...) if supported, or else traditional default query]" : "[query=" + query + "]"); }
 
-    private int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
-    {
-//      if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
-//      logger.finer("Entering DefaultConnectionTester.activeCheckConnection(Connection c). [using default system-table query]");
-
-        ResultSet rs = null;
-        try
-        { 
-            rs = c.getMetaData().getTables( null, 
-                            null, 
-                            "PROBABLYNOT", 
-                            new String[] {"TABLE"} );
-            return CONNECTION_IS_OKAY;
-        }
-        catch (SQLException e)
-        { 
-            if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
-                logger.log( MLevel.FINE, "Connection " + c + " failed default system-table Connection test with an Exception!", e );
-
-            if (rootCauseOutParamHolder != null)
-                rootCauseOutParamHolder[0] = e;
-
-            String state = e.getSQLState();
-            if ( INVALID_DB_STATES.contains( state ) )
-            {
-                if (logger.isLoggable(MLevel.WARNING))
-                    logger.log(MLevel.WARNING,
-                                    "SQL State '" + state + 
-                                    "' of Exception which occurred during a Connection test (fallback DatabaseMetaData test) implies that the database is invalid, " + 
-                                    "and the pool should refill itself with fresh Connections.", e);
-                return DATABASE_IS_INVALID;
-            }
-            else
-                return CONNECTION_IS_INVALID; 
-        }
-        catch (Exception e)
-        {
-            if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
-                logger.log( MLevel.FINE, "Connection " + c + " failed default system-table Connection test with an Exception!", e );
-
-            if (rootCauseOutParamHolder != null)
-                rootCauseOutParamHolder[0] = e;
-
-            return CONNECTION_IS_INVALID;
-        }
-        finally
-        { 
-            ResultSetUtils.attemptClose( rs ); 
-//          if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
-//          logger.finer("Exiting DefaultConnectionTester.activeCheckConnection(Connection c). [using default system-table query]");
-        }
-    }
 
 
     public boolean equals( Object o )
