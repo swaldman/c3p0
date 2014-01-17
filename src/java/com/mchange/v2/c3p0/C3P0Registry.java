@@ -181,7 +181,7 @@ public final class C3P0Registry
 
     public static ConnectionCustomizer getConnectionCustomizer( String className ) throws SQLException
     {
-        if ( className == null )
+        if ( className == null || className.trim().equals("") )
             return null;
         else
         {
