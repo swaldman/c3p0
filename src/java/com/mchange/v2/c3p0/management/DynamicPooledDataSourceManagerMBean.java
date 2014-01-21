@@ -61,6 +61,7 @@ import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 
 import com.mchange.v1.lang.ClassUtils;
+import com.mchange.v2.lang.ObjectUtils;
 import com.mchange.v2.c3p0.AbstractComboPooledDataSource;
 import com.mchange.v2.c3p0.DriverManagerDataSource;
 import com.mchange.v2.c3p0.PooledDataSource;
@@ -276,7 +277,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
 
     // this method is fragile, makes assumptions that may have to change with
     // the PooledDataSource interface. It presumes that methods that look like
-    // JavaBean properties should be skipped as attributes, that methods with
+    // JavaBean properties should be skipped as they are attributes, that methods with
     // two string arguments are always username and password, that methods with
     // a return value are simple getters, while void methods are modifiers. At the
     // time of this writing, these assumptions all hold for PooledDataSource.
@@ -458,70 +459,75 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         try
         {
             String attr = attrObj.getName();
-            
-            if (attr == "factoryClassLocation") // special case
-            {
-                if (pds instanceof AbstractComboPooledDataSource)
-                {
-                    ((AbstractComboPooledDataSource) pds).setFactoryClassLocation((String) attrObj.getValue());
-                    return;
-                }
-                else if (pds instanceof AbstractPoolBackedDataSource)
-                {
-                    String val = (String) attrObj.getValue();
-                    AbstractPoolBackedDataSource apbds = ((AbstractPoolBackedDataSource) pds);
-                    apbds.setFactoryClassLocation( val );
-                    ConnectionPoolDataSource checkDs1 = apbds.getConnectionPoolDataSource();
-                    if (checkDs1 instanceof WrapperConnectionPoolDataSource)
+
+	    Object curVal = getAttribute( attr );
+	    Object newVal = attrObj.getValue();
+
+	    if ( !ObjectUtils.eqOrBothNull( curVal, newVal ) )
+	    {
+		if (attr == "factoryClassLocation") // special case
+		{
+		    if (pds instanceof AbstractComboPooledDataSource)
                     {
-                        WrapperConnectionPoolDataSource wcheckDs1 = (WrapperConnectionPoolDataSource) checkDs1;
-                        wcheckDs1.setFactoryClassLocation( val );
-                        DataSource checkDs2 = wcheckDs1.getNestedDataSource();
-                        if (checkDs2 instanceof DriverManagerDataSource)
-                            ((DriverManagerDataSource) checkDs2).setFactoryClassLocation( val );
-                    }
-                    return;
-                }
-                // else try treating factoryClassLocation like any other attribute
-                // on the presumption that some future, unexpected DataSource that
-                // exposes this property will not require the property to be set at
-                // multiple levels, as PoolBackedDataSource does...
-            }
+			((AbstractComboPooledDataSource) pds).setFactoryClassLocation((String) newVal);
+			return;
+		    }
+		    else if (pds instanceof AbstractPoolBackedDataSource)
+                    {
+			String strval = (String) newVal;
+			AbstractPoolBackedDataSource apbds = ((AbstractPoolBackedDataSource) pds);
+			apbds.setFactoryClassLocation( strval );
+			ConnectionPoolDataSource checkDs1 = apbds.getConnectionPoolDataSource();
+			if (checkDs1 instanceof WrapperConnectionPoolDataSource)
+                        {
+			    WrapperConnectionPoolDataSource wcheckDs1 = (WrapperConnectionPoolDataSource) checkDs1;
+			    wcheckDs1.setFactoryClassLocation( strval );
+			    DataSource checkDs2 = wcheckDs1.getNestedDataSource();
+			    if (checkDs2 instanceof DriverManagerDataSource)
+				((DriverManagerDataSource) checkDs2).setFactoryClassLocation( strval );
+			}
+			return;
+		    }
+		    // else try treating factoryClassLocation like any other attribute
+		    // on the presumption that some future, unexpected DataSource that
+		    // exposes this property will not require the property to be set at
+		    // multiple levels, as PoolBackedDataSource does...
+		}
             
-            AttrRec rec = attrRecForAttribute(attr);
-            if (rec == null)
-                throw new AttributeNotFoundException(attr);
-            else
-            {
-                MBeanAttributeInfo ai = rec.attrInfo;
-                if (! ai.isWritable() )
-                    throw new IllegalArgumentException(attr + " not writable.");
-                else
-                {
-                    Class attrType = ClassUtils.forName( rec.attrInfo.getType() );
-                    String name = ai.getName();
-                    String pfx = "set";
-                    String mname = pfx + Character.toUpperCase(name.charAt(0)) + name.substring(1);
-                    Object target = rec.target; 
-                    Method m = target.getClass().getMethod(mname, new Class[] {attrType});
-                    m.invoke(target, new Object[] { attrObj.getValue() });
+		AttrRec rec = attrRecForAttribute(attr);
+		if (rec == null)
+		    throw new AttributeNotFoundException(attr);
+		else
+		{
+		    MBeanAttributeInfo ai = rec.attrInfo;
+		    if (! ai.isWritable() )
+			throw new IllegalArgumentException(attr + " not writable.");
+		    else
+		    {
+			Class attrType = ClassUtils.forName( rec.attrInfo.getType() );
+			String name = ai.getName();
+			String pfx = "set";
+			String mname = pfx + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+			Object target = rec.target; 
+			Method m = target.getClass().getMethod(mname, new Class[] {attrType});
+			m.invoke(target, new Object[] { newVal });
                     
-                    // if we were unable to set this attribute directly in the PooledDataSource,
-                    // we are updating a property of a nested DataSource, and we should reset
-                    // the pool manager of the PooledDataSource implementation so that these
-                    // properties are reread and the changes take effect.
-                    if (target != pds)
-                    {
-                         if (pds instanceof AbstractPoolBackedDataSource)
-                            ((AbstractPoolBackedDataSource) pds).resetPoolManager(false);
-                         else if (logger.isLoggable(MLevel.WARNING))
-                             logger.warning("MBean set a nested ConnectionPoolDataSource or DataSource parameter on an unknown PooledDataSource type. " + 
-                                             "Could not reset the pool manager, so the changes may not take effect. " + "" +
-                                              "c3p0 may need to be updated for PooledDataSource type " + pds.getClass() + ".");
-                             
-                    }
-                }
-            }
+			// if we were unable to set this attribute directly in the PooledDataSource,
+			// we are updating a property of a nested DataSource, and we should reset
+			// the pool manager of the PooledDataSource implementation so that these
+			// properties are reread and the changes take effect.
+			if (target != pds)
+			{
+			    if (pds instanceof AbstractPoolBackedDataSource)
+				((AbstractPoolBackedDataSource) pds).resetPoolManager(false);
+			    else if (logger.isLoggable(MLevel.WARNING))
+				logger.warning("MBean set a nested ConnectionPoolDataSource or DataSource parameter on an unknown PooledDataSource type. " + 
+					       "Could not reset the pool manager, so the changes may not take effect. " + "" +
+					       "c3p0 may need to be updated for PooledDataSource type " + pds.getClass() + ".");
+			}
+		    }
+		}
+	    }
         }
         catch (Exception e)
         {

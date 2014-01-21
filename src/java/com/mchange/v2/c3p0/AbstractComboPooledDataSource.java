@@ -47,6 +47,7 @@ import com.mchange.v2.c3p0.impl.*;
 import javax.sql.DataSource;
 import com.mchange.v2.beans.BeansUtils;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.lang.ObjectUtils;
 
 /**
  * <p>For the meaning of most of these properties, please see c3p0's top-level documentation!</p>
@@ -118,6 +119,12 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 		    "propertyChangeListeners",
 		    "vetoableChangeListeners"
     } ) );
+
+    // just so we have a unified syntax when we guard against degenerate parameter changes, which
+    // otherwise might needlessly reset pools.
+    private static boolean diff( int a, int b ) { return a != b; }
+    private static boolean diff( boolean a, boolean b ) { return a != b; }
+    private static boolean diff( Object a, Object b ) {	return !ObjectUtils.eqOrBothNull(a, b ); }
 
     // not reassigned post-ctor; mutable elements protected by their own locks
     // when (very rarely) necessery, we sync this -> wcpds -> dmds
@@ -240,11 +247,14 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setJdbcUrl( String jdbcUrl )
     { 
-        dmds.setJdbcUrl( jdbcUrl ); 
-        this.resetPoolManager( false );
-//      System.err.println("setting jdbcUrl: " + jdbcUrl + " [dmds@" + C3P0ImplUtils.identityToken( dmds ) + "]"); 
-//      if (jdbcUrl == null)
-//      new Exception("*** NULL SETTER ***").printStackTrace();
+	if ( diff( dmds.getJdbcUrl(), jdbcUrl ) )
+	{
+	    dmds.setJdbcUrl( jdbcUrl ); 
+	    this.resetPoolManager( false );
+//          System.err.println("setting jdbcUrl: " + jdbcUrl + " [dmds@" + C3P0ImplUtils.identityToken( dmds ) + "]"); 
+//          if (jdbcUrl == null)
+//          new Exception("*** NULL SETTER ***").printStackTrace();
+	}
     }
 
     public Properties getProperties()
@@ -255,9 +265,12 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setProperties( Properties properties )
     { 
-        //System.err.println("setting properties: " + properties); 
-        dmds.setProperties( properties ); 
-        this.resetPoolManager(false);
+	if ( diff( dmds.getProperties(), properties ) )
+	{
+	    //System.err.println("setting properties: " + properties); 
+	    dmds.setProperties( properties ); 
+	    this.resetPoolManager(false);
+	}
     }
 
     // DriverManagerDataSource "virtual properties" based on properties
@@ -265,9 +278,12 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
     { return dmds.getUser(); }
 
     public void setUser( String user )
-    { 
-        dmds.setUser( user ); 
-        this.resetPoolManager( false );
+    {
+	if ( diff( dmds.getUser(), user ) )
+	{
+	    dmds.setUser( user ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getPassword()
@@ -275,8 +291,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setPassword( String password )
     { 
-        dmds.setPassword( password ); 
-        this.resetPoolManager( false );
+	if ( diff( dmds.getPassword(), password ) )
+	{
+	    dmds.setPassword( password ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     // WrapperConnectionPoolDataSource properties
@@ -285,17 +304,23 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setCheckoutTimeout( int checkoutTimeout )
     { 
-        wcpds.setCheckoutTimeout( checkoutTimeout ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getCheckoutTimeout(), checkoutTimeout ) )
+	{
+	    wcpds.setCheckoutTimeout( checkoutTimeout ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getAcquireIncrement()
     { return wcpds.getAcquireIncrement(); }
 
     public void setAcquireIncrement( int acquireIncrement )
-    { 
-        wcpds.setAcquireIncrement( acquireIncrement ); 
-        this.resetPoolManager( false );
+    {
+	if ( diff( wcpds.getAcquireIncrement(), acquireIncrement ) )
+	{
+	    wcpds.setAcquireIncrement( acquireIncrement ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getAcquireRetryAttempts()
@@ -303,17 +328,23 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setAcquireRetryAttempts( int acquireRetryAttempts )
     { 
-        wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getAcquireRetryAttempts(), acquireRetryAttempts ) )
+	{
+	    wcpds.setAcquireRetryAttempts( acquireRetryAttempts ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getAcquireRetryDelay()
     { return wcpds.getAcquireRetryDelay(); }
 
     public void setAcquireRetryDelay( int acquireRetryDelay )
-    { 
-        wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
-        this.resetPoolManager( false );
+    {
+	if ( diff( wcpds.getAcquireRetryDelay(), acquireRetryDelay ) )
+	{
+	    wcpds.setAcquireRetryDelay( acquireRetryDelay ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public boolean isAutoCommitOnClose()
@@ -321,17 +352,23 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setAutoCommitOnClose( boolean autoCommitOnClose )
     { 
-        wcpds.setAutoCommitOnClose( autoCommitOnClose ); 
-        this.resetPoolManager( false );
+	if ( diff(wcpds.isAutoCommitOnClose(), autoCommitOnClose) )
+	{
+	    wcpds.setAutoCommitOnClose( autoCommitOnClose ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getContextClassLoaderSource()
     { return wcpds.getContextClassLoaderSource(); }
 
     public void setContextClassLoaderSource( String contextClassLoaderSource ) throws PropertyVetoException
-    { 
-        wcpds.setContextClassLoaderSource( contextClassLoaderSource ); 
-        this.resetPoolManager( false );
+    {
+	if ( diff( wcpds.getContextClassLoaderSource(), contextClassLoaderSource ) )
+	{
+	    wcpds.setContextClassLoaderSource( contextClassLoaderSource ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getConnectionTesterClassName()
@@ -339,8 +376,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setConnectionTesterClassName( String connectionTesterClassName ) throws PropertyVetoException
     { 
-        wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getConnectionTesterClassName(), connectionTesterClassName ) )
+	{
+	    wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getAutomaticTestTable()
@@ -348,8 +388,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setAutomaticTestTable( String automaticTestTable )
     { 
-        wcpds.setAutomaticTestTable( automaticTestTable ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getAutomaticTestTable(), automaticTestTable ) )
+	{
+	    wcpds.setAutomaticTestTable( automaticTestTable ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public boolean isForceIgnoreUnresolvedTransactions()
@@ -357,8 +400,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setForceIgnoreUnresolvedTransactions( boolean forceIgnoreUnresolvedTransactions )
     { 
-        wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.isForceIgnoreUnresolvedTransactions(), forceIgnoreUnresolvedTransactions ) )
+	{
+	    wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public boolean isPrivilegeSpawnedThreads()
@@ -366,8 +412,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setPrivilegeSpawnedThreads( boolean privilegeSpawnedThreads )
     { 
-        wcpds.setPrivilegeSpawnedThreads( privilegeSpawnedThreads ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.isPrivilegeSpawnedThreads(), privilegeSpawnedThreads ) )
+	{
+	    wcpds.setPrivilegeSpawnedThreads( privilegeSpawnedThreads ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getIdleConnectionTestPeriod()
@@ -375,8 +424,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setIdleConnectionTestPeriod( int idleConnectionTestPeriod )
     { 
-        wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getIdleConnectionTestPeriod(), idleConnectionTestPeriod ) )
+	{
+	    wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getInitialPoolSize()
@@ -384,8 +436,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setInitialPoolSize( int initialPoolSize )
     { 
-        wcpds.setInitialPoolSize( initialPoolSize ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getInitialPoolSize(), initialPoolSize ) )
+	{
+	    wcpds.setInitialPoolSize( initialPoolSize ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMaxIdleTime()
@@ -393,8 +448,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMaxIdleTime( int maxIdleTime )
     { 
-        wcpds.setMaxIdleTime( maxIdleTime ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMaxIdleTime(), maxIdleTime ) )
+	{
+	    wcpds.setMaxIdleTime( maxIdleTime ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMaxPoolSize()
@@ -402,8 +460,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMaxPoolSize( int maxPoolSize )
     { 
-        wcpds.setMaxPoolSize( maxPoolSize ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMaxPoolSize(), maxPoolSize ) )
+	{
+	    wcpds.setMaxPoolSize( maxPoolSize ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMaxStatements()
@@ -411,8 +472,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMaxStatements( int maxStatements )
     { 
-        wcpds.setMaxStatements( maxStatements ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMaxStatements(), maxStatements ) )
+	{
+	    wcpds.setMaxStatements( maxStatements ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMaxStatementsPerConnection()
@@ -420,8 +484,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMaxStatementsPerConnection( int maxStatementsPerConnection )
     { 
-        wcpds.setMaxStatementsPerConnection( maxStatementsPerConnection ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMaxStatementsPerConnection(), maxStatementsPerConnection ) )
+	{
+	    wcpds.setMaxStatementsPerConnection( maxStatementsPerConnection ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMinPoolSize()
@@ -429,8 +496,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMinPoolSize( int minPoolSize )
     { 
-        wcpds.setMinPoolSize( minPoolSize ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMinPoolSize(), minPoolSize ) )
+	{
+	    wcpds.setMinPoolSize( minPoolSize ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getOverrideDefaultUser()
@@ -438,8 +508,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setOverrideDefaultUser(String overrideDefaultUser)
     { 
-        wcpds.setOverrideDefaultUser( overrideDefaultUser ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getOverrideDefaultUser(), overrideDefaultUser ) )
+	{
+	    wcpds.setOverrideDefaultUser( overrideDefaultUser ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getOverrideDefaultPassword()
@@ -447,8 +520,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setOverrideDefaultPassword(String overrideDefaultPassword)
     { 
-        wcpds.setOverrideDefaultPassword( overrideDefaultPassword ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getOverrideDefaultPassword(), overrideDefaultPassword ) )
+	{
+	    wcpds.setOverrideDefaultPassword( overrideDefaultPassword ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getPropertyCycle()
@@ -456,17 +532,23 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setPropertyCycle( int propertyCycle )
     { 
-        wcpds.setPropertyCycle( propertyCycle ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getPropertyCycle(), propertyCycle ) )
+	{
+	    wcpds.setPropertyCycle( propertyCycle ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public boolean isBreakAfterAcquireFailure()
     { return wcpds.isBreakAfterAcquireFailure(); }
 
     public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
-    { 
-        wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
-        this.resetPoolManager( false );
+    {
+	if ( diff( wcpds.isBreakAfterAcquireFailure(), breakAfterAcquireFailure ) )
+	{
+	    wcpds.setBreakAfterAcquireFailure( breakAfterAcquireFailure ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public boolean isTestConnectionOnCheckout()
@@ -474,8 +556,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { 
-        wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.isTestConnectionOnCheckout(), testConnectionOnCheckout ) )
+	{
+	    wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public boolean isTestConnectionOnCheckin()
@@ -483,17 +568,23 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin )
     { 
-        wcpds.setTestConnectionOnCheckin( testConnectionOnCheckin ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.isTestConnectionOnCheckin(), testConnectionOnCheckin ) )
+	{
+	    wcpds.setTestConnectionOnCheckin( testConnectionOnCheckin ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public boolean isUsesTraditionalReflectiveProxies()
     { return wcpds.isUsesTraditionalReflectiveProxies(); }
 
     public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies )
-    { 
-        wcpds.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies ); 
-        this.resetPoolManager( false );
+    {
+	if ( diff( wcpds.isUsesTraditionalReflectiveProxies(), usesTraditionalReflectiveProxies ) )
+	{
+	    wcpds.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getPreferredTestQuery()
@@ -501,8 +592,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setPreferredTestQuery( String preferredTestQuery )
     { 
-        wcpds.setPreferredTestQuery( preferredTestQuery ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getPreferredTestQuery(), preferredTestQuery ) )
+	{
+	    wcpds.setPreferredTestQuery( preferredTestQuery ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMaxAdministrativeTaskTime()
@@ -510,8 +604,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMaxAdministrativeTaskTime( int maxAdministrativeTaskTime )
     { 
-        wcpds.setMaxAdministrativeTaskTime( maxAdministrativeTaskTime ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMaxAdministrativeTaskTime(), maxAdministrativeTaskTime ) )
+	{
+	    wcpds.setMaxAdministrativeTaskTime( maxAdministrativeTaskTime ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMaxIdleTimeExcessConnections()
@@ -519,8 +616,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMaxIdleTimeExcessConnections( int maxIdleTimeExcessConnections )
     { 
-        wcpds.setMaxIdleTimeExcessConnections( maxIdleTimeExcessConnections ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMaxIdleTimeExcessConnections(), maxIdleTimeExcessConnections ) )
+	{
+	    wcpds.setMaxIdleTimeExcessConnections( maxIdleTimeExcessConnections ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getMaxConnectionAge()
@@ -528,8 +628,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setMaxConnectionAge( int maxConnectionAge )
     { 
-        wcpds.setMaxConnectionAge( maxConnectionAge ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getMaxConnectionAge(), maxConnectionAge ) )
+	{
+	    wcpds.setMaxConnectionAge( maxConnectionAge ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getConnectionCustomizerClassName()
@@ -537,8 +640,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setConnectionCustomizerClassName( String connectionCustomizerClassName )
     { 
-        wcpds.setConnectionCustomizerClassName( connectionCustomizerClassName ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getConnectionCustomizerClassName(), connectionCustomizerClassName ) )
+	{
+	    wcpds.setConnectionCustomizerClassName( connectionCustomizerClassName ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getUnreturnedConnectionTimeout()
@@ -546,8 +652,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setUnreturnedConnectionTimeout(int unreturnedConnectionTimeout)
     {
-        wcpds.setUnreturnedConnectionTimeout( unreturnedConnectionTimeout ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getUnreturnedConnectionTimeout(), unreturnedConnectionTimeout ) )
+	{
+	    wcpds.setUnreturnedConnectionTimeout( unreturnedConnectionTimeout ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public String getUserOverridesAsString()
@@ -555,8 +664,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setUserOverridesAsString(String uoas) throws PropertyVetoException
     {
-        wcpds.setUserOverridesAsString( uoas ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getUserOverridesAsString(), uoas ) )
+	{
+	    wcpds.setUserOverridesAsString( uoas ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public Map getUserOverrides()
@@ -567,8 +679,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setDebugUnreturnedConnectionStackTraces(boolean debugUnreturnedConnectionStackTraces)
     {
-        wcpds.setDebugUnreturnedConnectionStackTraces( debugUnreturnedConnectionStackTraces ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.isDebugUnreturnedConnectionStackTraces(), debugUnreturnedConnectionStackTraces ) )
+	{
+	    wcpds.setDebugUnreturnedConnectionStackTraces( debugUnreturnedConnectionStackTraces ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     public int getStatementCacheNumDeferredCloseThreads()
@@ -576,8 +691,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setStatementCacheNumDeferredCloseThreads(int statementCacheNumDeferredCloseThreads)
     {
-        wcpds.setStatementCacheNumDeferredCloseThreads( statementCacheNumDeferredCloseThreads ); 
-        this.resetPoolManager( false );
+	if ( diff( wcpds.getStatementCacheNumDeferredCloseThreads(), statementCacheNumDeferredCloseThreads ) )
+	{
+	    wcpds.setStatementCacheNumDeferredCloseThreads( statementCacheNumDeferredCloseThreads ); 
+	    this.resetPoolManager( false );
+	}
     }
 
     // shared properties (count: 1)
@@ -586,9 +704,16 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
     public void setFactoryClassLocation( String factoryClassLocation )
     {
-        dmds.setFactoryClassLocation( factoryClassLocation );
-        wcpds.setFactoryClassLocation( factoryClassLocation );
-        super.setFactoryClassLocation( factoryClassLocation );
+	if ( 
+	        diff( dmds.getFactoryClassLocation(), factoryClassLocation )  ||
+	        diff( wcpds.getFactoryClassLocation(), factoryClassLocation ) ||
+	        diff( super.getFactoryClassLocation(), factoryClassLocation )
+	   )
+	{
+	    dmds.setFactoryClassLocation( factoryClassLocation );
+	    wcpds.setFactoryClassLocation( factoryClassLocation );
+	    super.setFactoryClassLocation( factoryClassLocation );
+	}
     }
 
     public String toString()
