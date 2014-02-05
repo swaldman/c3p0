@@ -456,7 +456,7 @@ public abstract class GooGooStatementCache
         {
             //System.err.println("-------> Multiply prepared statement! " + key.stmtText );
             if (logger.isLoggable(MLevel.INFO))
-                logger.info("Multiply prepared statement! " + key.stmtText );
+                logger.info("Multiply-cached PreparedStatement: " + key.stmtText );
             if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
                 logger.fine("(The same statement has already been prepared by this Connection, " +
                                 "and that other instance has not yet been closed, so the statement pool " +
