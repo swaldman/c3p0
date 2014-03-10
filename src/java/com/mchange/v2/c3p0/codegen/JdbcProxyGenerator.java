@@ -458,7 +458,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("}");
             iw.println();
             iw.println("void maybeDirtyTransaction()");
-            iw.println("{ creatorProxy.maybeDirtyTransaction(); }");
+            iw.println("{ if (creatorProxy != null) creatorProxy.maybeDirtyTransaction(); }");
         }
 
         protected void generateExtraImports( IndentedWriter iw ) throws IOException
