@@ -1,3 +1,31 @@
+	-- [in mchange commons java] MLog levels WARNING and SEVERE were misordered due to bad copy/paste of 
+	   the integer value of levels. Many thanks to Martin Coene for discovering and tracking down the problem.
+	-- [in mchange commons java] An error in MLog logging to log4j caused an IllegalArgumentException
+	   at log level OFF. This problem was identified and fixed by Sebastian Baumhekel
+	-- [in mchange commons java] Defines a jdk14logging ForwardingLogger that adapts MLog Loggers into
+	   JDK14 (java.util.logging) Loggers
+	-- Unused resources cleaned up on BasicResourcePool close() are properly added to the formerResources
+	   WeakHashMap, to prevent multiple checkins of those resources from triggering foreign resource warnings.
+	   Thanks again to Brett Wooldridge for calling attention to this issue.
+	-- Guarded marking of transactions as maybe dirty in Statement proxies, so that they don't trigger NPEs 
+	   then Exceptions for illegal operation on a closed Connection for methods like Connection.isClosed.
+	   Many thanks to Brett Wooldridge for calling attention to this issue.
+	-- Prevent JMX clients from updating properties on underlying pools (and therefore potentially
+	   triggering a wind-down / reconstruction of internal pools) if the new value of the property
+	   is the same as the original value. Thanks to ask-dev on Stack Overflow for calling attention 
+	   to this issue.
+	-- Guard against case where connectionCustomizerClassName is an empty or blank String.
+	   Thanks to ask-dev on Stack Overflow for calling attention to this issue.
+	-- Fixed typos is docs where testConnectionOnCheckout and testConnectionOnCheckin 
+	   erroneously included excess capital letters, testConnectionOnCheckOut and testConnectionOnCheckIn. 
+	   Thanks to Usman Mutawakil for finding and reporting this issue.
+        -- For drivers that support JDBC4 Connection.isValid(), this becomes the default
+	   Connection test if no preferredTestQuery / automaticTestTable is specified.
+	   HOWEVER, for older drivers that do not support Connection.isValid(), the already
+	   slow default test becomes EVEN SLOWER than its already legendary slowness. If
+	   you are using a driver that you know supports Connection.isValid(), you can skip
+	   setting preferredTestQuery or automaticTestTable. But if you are not sure, better
+	   set one of these or endure painfully slow tests.
 c3p0-0.9.5-pre6
 	-- Fixed a rare problem caused when some JDBC drivers are simultaneously autoloaded
 	   on initialization of DriverManager.class and by DriverManagerDataSource. 
