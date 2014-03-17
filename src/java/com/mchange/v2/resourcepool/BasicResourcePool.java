@@ -1237,6 +1237,12 @@ class BasicResourcePool implements ResourcePool
             if (idleRefurbishTask != null)
                 idleRefurbishTask.cancel();
 
+	    for ( Iterator ii = cleanupResources.iterator(); ii.hasNext(); )
+		addToFormerResources( ii.next() );
+
+            managed.keySet().removeAll( cleanupResources );
+            unused.removeAll( cleanupResources );
+
             // we destroy resources asynchronously, but with a dedicated one-off Thread, rather than
             // our asynchronous runner, because our asynchrous runner may be shutting down. The
             // destruction is asynchrounous because destroying a resource might require the resource's
@@ -1244,8 +1250,6 @@ class BasicResourcePool implements ResourcePool
             // lock while they try to check-in to the pool. The async destruction of resources avoids
             // the possibility of deadlock.
 
-            managed.keySet().removeAll( cleanupResources );
-            unused.removeAll( cleanupResources );
             Thread resourceDestroyer = new Thread("Resource Destroyer in BasicResourcePool.close()")
             {
                 public void run()
