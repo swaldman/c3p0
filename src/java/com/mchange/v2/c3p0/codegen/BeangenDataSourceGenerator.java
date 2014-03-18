@@ -91,7 +91,7 @@ public class BeangenDataSourceGenerator
 		    };
 		gen.addExtension( idse );
 
-		gen.addExtension( new UnsupportedParentLoggerGeneratorExtension() );
+		gen.addExtension( new C3P0ImplUtilsParentLoggerGeneratorExtension() );
 
 		PropsToStringGeneratorExtension tsge = new PropsToStringGeneratorExtension();
 		tsge.setExcludePropertyNames( Arrays.asList( new String[] {"userOverridesAsString","overrideDefaultUser","overrideDefaultPassword"} ) );

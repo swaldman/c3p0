@@ -95,6 +95,7 @@ public final class C3P0BenchmarkApp
 
  		ds_pooled = cpds;
 
+		ds_pooled.getParentLogger().info("Pooled DataSource created.");
 
  		create(ds_pooled);
 
@@ -115,6 +116,12 @@ public final class C3P0BenchmarkApp
 	    {
 		System.err.print("Aborting tests on Throwable -- ");
 		t.printStackTrace(); 
+
+		// Throwable printMe = t;
+		// do
+		//    { printMe.printStackTrace(); }
+		// while ((printMe = printMe.getCause()) != null);
+
 		if (t instanceof Error)
 		    throw (Error) t;
 	    }

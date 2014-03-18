@@ -54,6 +54,7 @@ import com.mchange.v2.lang.VersionUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.log.jdk14logging.ForwardingLogger;
 import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.uid.UidUtils;
@@ -72,6 +73,8 @@ public final class C3P0ImplUtils
     public final static DbAuth NULL_AUTH = new DbAuth(null,null);
 
     public final static Object[] NOARGS = new Object[0]; 
+
+    public final static java.util.logging.Logger PARENT_LOGGER = new ForwardingLogger( MLog.getLogger("com.mchange.v2.c3p0"), null );
 
     // we use a wrapped/synchronized version for Thread safety
     private final static EncounterCounter ID_TOKEN_COUNTER;
