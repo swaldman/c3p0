@@ -108,7 +108,14 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
             public void propertyChange( PropertyChangeEvent evt )
             {
                 if ( "driverClass".equals( evt.getPropertyName() ) )
+		{
                     setDriverClassLoaded( false );
+
+		    // guard against setting to empty String or whitespace values. 
+		    // JMX clients sometimes (unfortunately) represent null properties as blank fields, then update them to empty or whitespace Strings.
+		    if ( driverClass != null && driverClass.trim().length() == 0 ) //an empty String or all whitespace name
+			driverClass = null;
+		}
             }
         };
         this.addPropertyChangeListener( driverClassListener );
@@ -118,7 +125,10 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     { return driver_class_loaded; }
     
     private synchronized void setDriverClassLoaded(boolean dcl)
-    { this.driver_class_loaded = dcl; }
+    { 
+	this.driver_class_loaded = dcl; 
+	if (! driver_class_loaded) clearDriver(); // if we are changing to a yet-unloaded Driver class, the existing driver must be stale
+    }
     
     private synchronized void ensureDriverLoaded() throws SQLException
     {
@@ -141,7 +151,6 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
     // sync'ing the method creates the danger that one freeze on connect
     // blocks access to the entire DataSource
-
     public Connection getConnection() throws SQLException
     { 
         ensureDriverLoaded();
@@ -156,7 +165,6 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
     // sync'ing the method creates the danger that one freeze on connect
     // blocks access to the entire DataSource
-
     public Connection getConnection(String username, String password) throws SQLException
     { 
         ensureDriverLoaded();
@@ -255,7 +263,20 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
         //System.err.println( "driver() <-- " + this );
         if (driver == null)
-            driver = DriverManager.getDriver( jdbcUrl );
+	{
+	    if (driverClass != null && forceUseNamedDriverClass)
+	    {
+		if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
+		    logger.finer( "Circumventing DriverManager and instantiating driver class '" + driverClass + 
+				  "' directly. (forceUseNamedDriverClass = " + forceUseNamedDriverClass + ")" );
+
+		try { driver = (Driver) Class.forName( driverClass ).newInstance(); }
+		catch (Exception e)
+		    { SqlUtils.toSQLException("Cannot instantiate specified JDBC driver. Exception while initializing named, forced-to-use driver class'" + driverClass +"'", e); }
+	    }
+	    else
+		driver = DriverManager.getDriver( jdbcUrl );
+        }
         return driver;
     }
 

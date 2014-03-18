@@ -239,6 +239,14 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 //      System.err.println("setting driverClass: " + driverClass); 
     }
 
+    public boolean isForceUseNamedDriverClass()
+    { return dmds.isForceUseNamedDriverClass(); }
+
+    public void setForceUseNamedDriverClass( boolean forceUseNamedDriverClass )
+    { 
+        dmds.setForceUseNamedDriverClass( forceUseNamedDriverClass ); 
+    }
+
     public String getJdbcUrl()
     {  
 //      System.err.println("getting jdbcUrl: " + dmds.getJdbcUrl()); 

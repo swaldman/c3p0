@@ -70,6 +70,7 @@ public final class C3P0Defaults
     private final static boolean USES_TRADITIONAL_REFLECTIVE_PROXIES         = false;
     private final static boolean DEBUG_UNRETURNED_CONNECTION_STACK_TRACES    = false;
     private final static boolean PRIVILEGE_SPAWNED_THREADS                   = false;
+    private final static boolean FORCE_USE_NAMED_DRIVER_CLASS                = false;
 
     private final static ConnectionTester CONNECTION_TESTER = new DefaultConnectionTester();
 
@@ -174,6 +175,9 @@ public final class C3P0Defaults
 
     public static String driverClass()
     { return DRIVER_CLASS; }
+
+    public static boolean forceUseNamedDriverClass()
+    { return FORCE_USE_NAMED_DRIVER_CLASS; }
 
     public static String jdbcUrl()
     { return JDBC_URL; }
