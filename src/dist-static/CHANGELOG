@@ -1,3 +1,6 @@
+	-- We now support the parentLogger property of DataSources (rather than just throwing an SQLFeatureNotSupportedException).
+	   This should resolve the issue identified by Maarten Coene (thanks!), where JMX clients repeatedly see
+	   Exceptions as they try to read the parentLogger property.
 	-- [in mchange commons java] MLog levels WARNING and SEVERE were misordered due to bad copy/paste of 
 	   the integer value of levels. Many thanks to Martin Coene for discovering and tracking down the problem.
 	-- [in mchange commons java] An error in MLog logging to log4j caused an IllegalArgumentException
