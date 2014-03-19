@@ -1,3 +1,7 @@
+	-- Added config parameter 'forceUseNamedDriverClass', which ensures that an instance of the class named in
+	   'driverClass' is used as the JDBC driver, rather than simply preloading the named class and then 
+	   relying upon DriverManager to determine which driver to use. Thanks to Martin Coene and meinc on SourceForge
+	   for calling attention to this issue.
 	-- We now support the parentLogger property of DataSources (rather than just throwing an SQLFeatureNotSupportedException).
 	   This should resolve the issue identified by Maarten Coene (thanks!), where JMX clients repeatedly see
 	   Exceptions as they try to read the parentLogger property.

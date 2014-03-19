@@ -2030,13 +2030,16 @@ c3p0 {
 	    <a href="#contextClassLoaderSource">contextClassLoaderSource</a><br/>
 	    <a href="#dataSourceName">dataSourceName</a><br/>
 	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
+	    <a href="#driverClass">driverClass</a><br/>
 	    <a href="#extensions">extensions</a><br/>
 	  </td>
 	  <td>
 	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	    <a href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a><br/>
+	    <a href="#forceUseNamedDriverClass">forceUseNamedDriverClass</a><br/>
 	    <a href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a><br/>
 	    <a href="#initialPoolSize">initialPoolSize</a><br/>
+	    <a href="#jdbcUrl">jdbcUrl</a><br/>
 	    <a href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a><br/>
 	    <a href="#maxConnectionAge">maxConnectionAge</a><br/>
 	    <a href="#maxIdleTime">maxIdleTime</a><br/>
@@ -2045,9 +2048,9 @@ c3p0 {
 	    <a href="#maxStatements">maxStatements</a><br/>
 	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
 	    <a href="#minPoolSize">minPoolSize</a><br/>
-	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	  </td>
 	  <td>
+	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
 	    <a href="#overrideDefaultPassword">overrideDefaultPassword</a><br/>
 	    <a href="#password">password</a><br/>
@@ -2202,6 +2205,18 @@ c3p0 {
 		[See <a href="#configuring_to_debug_and_workaround_broken_clients">"Configuring to Debug and Workaround Broken Client Applications"</a>]
 	  </div>
 	</dd>
+	<dt><a name="driverClass" />driverClass</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    The fully-qualified class name of the JDBC driverClass that is expected to provide Connections. c3p0 will preload any class specified
+	    here to ensure that appropriate URLs may be resolved to an instance of the driver by <tt>java.sql.DriverManager</tt>. If you wish to skip
+	    <tt>DriverManager</tt> resolution entirely and ensure that an instance of the specified class is used to provide Connections, use
+	    <tt><a href="#driverClass">driverClass</a></tt> in combination with 
+	    <tt><a href="#forceUseNamedDriverClass">forceUseNamedDriverClass</a></tt>. [See also <tt><a href="#jdbcUrl">jdbcUrl</a></tt>.]
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
 	<dt><a name="extensions" />extensions</dt>
 	<dd>
 	  <div class="default">Default: an empty <tt>java.util.Map</tt></div>
@@ -2242,6 +2257,19 @@ c3p0 {
 	    [See <a href="#configuring_unresolved">"Configuring Unresolved Transaction Handling"</a>]
 	  </div>
 	</dd>
+	<dt><a name="forceUseNamedDriverClass" />forceUseNamedDriverClass</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    Setting the parameter <a href="#driverClass">driverClass</a> causes that class to preload
+	    and register with <tt>java.sql.DriverManager</tt>. However, it does not on its own ensure that 
+	    the driver used will be an instance of <a href="#driverClass">driverClass</a>, as <tt>DriverManager</tt>
+	    may (in unusual cases) know of other driver classes which can handle the specified <a href="#jdbcUrl">jdbcUrl</a>.
+	    Setting this parameter to true causes c3p0 to ignore <tt>DriverManager</tt> and simply instantiate <a href="#driverClass">driverClass</a>
+	    directly.
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
+	</dd>
 	<dt><a name="idleConnectionTestPeriod"/>idleConnectionTestPeriod</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
@@ -2258,6 +2286,19 @@ c3p0 {
 	    <tt>maxPoolSize</tt>.
 	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
 	  </div>
+	</dd>
+	<dt><a name="jdbcUrl"/>jdbcUrl</dt>
+	<dd>
+	  <div class="default">Default: null</div>
+	  <div class="propdesc">
+	    The JDBC URL of the database from which Connections can and should be acquired. Should resolve via <tt>java.sql.DriverManager</tt>
+	    to an appropriate JDBC Driver (which you can ensure will be loaded and available by setting 
+	    <tt><a href="#driverClass">driverClass</a></tt>), or if you wish to specify which driver to use directly (and avoid <tt>DriverManager</tt> 
+	    resolution), you may specify <a href="#driverClass">driverClass</a> in combination with 
+	    <a href="#forceUseNamedDriverClass">forceUseNamedDriverClass</a>. Unless you are supplying your own unpooled DataSource, 
+	    a <a href="#jdbcUrl"jdbcUrl</a> must always be provided and appropriate for the JDBC driver, however it is resolved.
+	  </div>
+	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
 	<dt><a name="maxAdministrativeTaskTime" />maxAdministrativeTaskTime</dt>
 	<dd>
