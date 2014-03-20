@@ -38,6 +38,7 @@ package com.mchange.v2.c3p0.impl;
 import java.sql.*;
 import java.util.*;
 import com.mchange.v2.log.*;
+import java.lang.reflect.Field;
 import com.mchange.v2.c3p0.AbstractConnectionTester;
 import com.mchange.v2.c3p0.FullQueryConnectionTester;
 import com.mchange.v1.db.sql.ResultSetUtils;
@@ -54,30 +55,12 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 
     final static Set INVALID_DB_STATES;
 
-    /*
-     * Initially the intention was to have the variable querylessTestRunner adapt, permanently become
-     * either TRADITIONAL_QUERYLESS_TEST_RUNNER or IS_VALID_QUERYLESS_TEST_RUNNER depending on whether
-     * Connection.isValid() was observed to be supported. Unfortunately, this approach, while it could be
-     * implemented in a manner that avoids any synchronization after the initial latch, would not be robust
-     * to the use of multiple DataSources, some of whose Connections support Connection.isValid(...) while
-     * while some do not. So, we always use SWITCH_QUERYLESS_TEST_RUNNER, which tries IS_VALID_QUERYLESS_TEST_RUNNER
-     * and then (alas slowly) backs off to TRADITIONAL_QUERYLESS_TEST_RUNNER in response to the AbstractMethodError
-     * if Connection.isValid(...) is not supported.
-     *
-     * The current implementation is correct, but it will slow down the already slow testing for users who 1) use an older JDBC driver
-     * that does not support Connection.isValid(...); and 2) fail to set a preferredTestQuery. So, we now emit
-     * an ugly warning intended to encourage clients to set a preferredTestQuery for DataSources whose underlying
-     * Connections do not support Connection.isValid(...)
-     *
-     * However, the current implementation also involves now uselessly much indirection through the QuerylessTestRunner
-     * interface... will fix.
-     */
-    private interface QuerylessTestRunner 
+    interface QuerylessTestRunner 
     {
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder);
     }
 
-    private final static QuerylessTestRunner TRADITIONAL_QUERYLESS_TEST_RUNNER = new QuerylessTestRunner()
+    final static QuerylessTestRunner TRADITIONAL = new QuerylessTestRunner()
     {
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
@@ -133,7 +116,7 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 	}
     };
 
-    private final static QuerylessTestRunner IS_VALID_QUERYLESS_TEST_RUNNER = new QuerylessTestRunner()
+    final static QuerylessTestRunner IS_VALID = new QuerylessTestRunner()
     {
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
@@ -177,40 +160,87 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 	}
     };
 
-    private final static QuerylessTestRunner SWITCH_QUERYLESS_TEST_RUNNER = new QuerylessTestRunner()
+    final static QuerylessTestRunner SWITCH = new QuerylessTestRunner()
     {
-	//MT: protected by this' lock
-	boolean warned = false;
-
-	private synchronized void warn()
-	{
-	    if (! warned)
-	    {
-		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log( MLevel.WARNING, 
-				"FIX THIS!!! Your JDBC driver does not support Connection.isValid(...) and you have not set an efficient preferredTestQuery. " +
-				"Connection tests will be very slow. Please configure c3p0's preferredTestQuery parameter for all DataSources that do not support Connection.isValid(...). " +
-				"See " + CONNECTION_TESTING_URL );
-		warned = true;
-	    }
-	}
-
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
 	    int out;
 	    try
-	    { out = IS_VALID_QUERYLESS_TEST_RUNNER.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); }
+	    { out = IS_VALID.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); }
 	    catch ( AbstractMethodError e )
-	    { 
-		warn();
-		out = TRADITIONAL_QUERYLESS_TEST_RUNNER.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); 
-	    }
+	    { out = TRADITIONAL.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); }
 	    return out;
 	}
     };
 
+    // the stuff below is for THREAD_LOCAL QuerylessTestRunner
+    private final static ThreadLocal classToTestRunnerThreadLocal = new ThreadLocal()
+    {
+	protected Object initialValue() { return new WeakHashMap(); }
+    };
+    
+    private final static Class[] ARG_ARRAY = new Class[] { Integer.TYPE };
+
+    private static Map classToTestRunner()
+    { return (Map) classToTestRunnerThreadLocal.get(); }
+
+
+    private static QuerylessTestRunner findTestRunner( Class cClass )
+    {
+	try 
+	{ 
+	    cClass.getDeclaredMethod( "isValid", ARG_ARRAY ); 
+	    return IS_VALID;
+	}
+	catch( NoSuchMethodException e )
+	{ return TRADITIONAL; }
+	catch ( SecurityException e )
+        {
+	    if ( logger.isLoggable( MLevel.WARNING ) )
+		logger.log( MLevel.WARNING, "Huh? SecurityException while reflectively checking for " + cClass.getName() + ".isValid(). Defaulting to traditional (slow) queryless test.");
+	    return TRADITIONAL;
+	}
+    }
+
+    final static QuerylessTestRunner THREAD_LOCAL = new QuerylessTestRunner()
+    {
+	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
+	{
+	    Map map = classToTestRunner();
+	    Class cClass = c.getClass();
+	    QuerylessTestRunner qtl = (QuerylessTestRunner) map.get( cClass );
+	    if (qtl == null)
+	    {
+		qtl = findTestRunner(cClass);
+		map.put( cClass, qtl );
+	    }
+	   return qtl.activeCheckConnectionNoQuery( c, rootCauseOutParamHolder );
+	}
+    };
+    // end THREAD_LOCAL stuff
+
+    /*
+    // Not making this user-configurable for now. Too much complexity when both SWITCH and THREAD_LOCAL seem reliably to work fine.
+    private final static String SYSPROP_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
+
+    private static QuerylessTestRunner reflectTestRunner( String sysprop )
+    {
+	try
+	{
+	    Field staticField = DefaultConnectionTester.class.getDeclaredField( sysprop ); //already trim()ed
+	    return (QuerylessTestRunner) staticField.get( null );
+        }
+	catch ( Exception e )
+	{
+	    if ( logger.isLoggable( MLevel.WARNING ) )
+		logger.log( MLevel.WARNING, "Specified QuerylessTestRunner '" + sysprop + "' could not be found.", e );
+	    return null;
+	}
+    }
+    */
+
     //MT: final reference, internally threadsafe
-    private final static QuerylessTestRunner querylessTestRunner = SWITCH_QUERYLESS_TEST_RUNNER;
+    private final static QuerylessTestRunner querylessTestRunner;
 
     static
     {
@@ -224,6 +254,26 @@ public class DefaultConnectionTester extends AbstractConnectionTester
         //temp.add("08S01"); //SQL State "Communication link failure"
 
         INVALID_DB_STATES = Collections.unmodifiableSet( temp );
+
+	QuerylessTestRunner defaultQuerylessTestRunner = SWITCH;
+
+	/*
+	// Adding a new config parameter for this is useless overkill, I think.
+	// Both THREAD_LOCAL and SWITCH work very well, extra overhead from resolving
+	// to TRADITIONAL or IS_VALID does not seem to be significant.
+
+	//String sysprop = C3P0Config.getMultiPropertiesConfig().getProperty( SYSPROP_KEY );
+	String sysprop = System.getProperty( SYSPROP_KEY );
+	if ( sysprop == null )
+	    querylessTestRunner = defaultQuerylessTestRunner;
+	else
+	{
+	    QuerylessTestRunner reflected = reflectTestRunner( sysprop.trim() );
+	    querylessTestRunner = ( reflected != null ? reflected : defaultQuerylessTestRunner );
+	}
+	*/
+
+	querylessTestRunner = defaultQuerylessTestRunner;
     }
     
     public int activeCheckConnection(Connection c, String query, Throwable[] rootCauseOutParamHolder)
