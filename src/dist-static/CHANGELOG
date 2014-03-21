@@ -1,3 +1,8 @@
+	-- Cleaned up (and exposed a configuration property to tweak) selection of Connection tests when
+	   no query is provided. Do we use Connection.isValid(...), the traditional DatabaseMetaData-based test,
+	   something else? Now, by default we try isValid(...) but we back-off to the traditional test on error.
+	   But this behavior is configurable via the property 'com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner'
+	   (which is documented with 'Other Properties').
 	-- Added config parameter 'forceUseNamedDriverClass', which ensures that an instance of the class named in
 	   'driverClass' is used as the JDBC driver, rather than simply preloading the named class and then 
 	   relying upon DriverManager to determine which driver to use. Thanks to Martin Coene and meinc on SourceForge

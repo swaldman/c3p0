@@ -1059,20 +1059,30 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<tt>automaticTestTable</tt>, <tt>connectionTesterClassName</tt>, and <tt>preferredTestQuery</tt> control <u>how</u> they will be tested.
       </p>
       <p>
-	When configuring
-	Connection testing, first try to minimize the cost of each test. By default, Connections are tested
+	When configuring Connection testing, first try to minimize the cost of each test. If you are using a JDBC driver
+	that you are certain supports the new(ish) JDBC 4 API, do nothing. JDBC 4 Connections include a method called
+	<tt>isValid()</tt> that should be implemented as a fast, reliable Connection test. By default, c3p0 will use that
+	method if it is present.
+      </p>
+
+      <p>
+	However, if your driver does not support this new-ish API, c3p0's default behavior is to test Connections
 	by calling the <tt>getTables()</tt> method on a Connection's associated <tt>DatabaseMetaData</tt>
-	object. This has the advantage of working with any database, and regardless of the database schema. However, 
-	a call to <tt>DatabaseMetaData.getTables()</tt> is often much slower than a simple database query.
+	object. This has the advantage of being very robust and working with any database, and regardless of the database schema. 
+	However, a call to <tt>DatabaseMetaData.getTables()</tt> is often much slower than a simple database query,
+	and this test may significantly impair your pool's performance.
       </p>
       <p>
-	The most convenient way to speed up Connection testing is to define the parameter <tt>automaticTestTable</tt>. Using the name
-	you provide, c3p0 will create an empty table, and make a simple query against it to test the database. Alternatively, if your 
-	database schema
-	is fixed prior to your application's use of the database, you can simply define a test query with the <tt>preferredTestQuery</tt>
+	The simplest way to speed up Connection testing under a JDBC 3 driver is to define a test query with the <tt>preferredTestQuery</tt>
 	parameter. Be careful, however. Setting <tt>preferredTestQuery</tt> will lead to errors as Connection tests fail
-	if the query target table does not exist in your database table <i>prior to initialization of your DataSource</i>.
+	if the query target table does not exist in your database <i>prior to initialization of your DataSource</i>.
+	Depending on your database and JDBC driver, a table-independent query like <tt>SELECT 1</tt> may (or may not) be 
+	sufficient to verify the Connection.
+	If a table-independent query is not sufficient, instead of <tt>preferredTestQuery</tt>, you can set 
+	the parameter <tt>automaticTestTable</tt>. Using the name
+	you provide, c3p0 will create an empty table, and make a simple query against it to test the database.
       </p>
+
       <p>
 	Advanced users may define any kind of Connection testing they wish, by implementing a 
 	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> and supplying the
@@ -1080,7 +1090,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	to honor and support the <tt>preferredTestQuery</tt> and <tt>automaticTestTable</tt> parameters, implement
 	<a href="apidocs/com/mchange/v2/c3p0/UnifiedConnectionTester.html">UnifiedConnectionTester</a>, most conveniently by extending
 	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionTester.html">AbstractConnectionTester</a>. See the <a href="apidocs/index.html">api docs</a>
-	for more information.
+	for more information. It is also possible to customize how c3p0's <tt>DefaultConnectionTester</tt> tests when no <tt>preferredTestQuery</tt>
+	or <tt>automaticTestTable</tt> are available. Please see <a href="#configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a>.
       </p>
       <p>
 	The most reliable time to test Connections is on check-out. But this is also the most costly choice
@@ -1103,7 +1114,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<ol type="1">
 	  <li>
 	    <p>
-	      Use <tt><b>SELECT 1</b></tt> for your <tt>preferredTestQuery</tt>, if you are running MySQL or Postgres.
+	      If you know your driver supports the JDBC 4 <tt>Connection.isValid(...)</tt> method, don't set a <tt>preferredTestQuery</tt>. 
+	      If your driver does not support this method (or if you are not sure), try <tt><b>SELECT 1</b></tt> for your <tt>preferredTestQuery</tt>, if you are running MySQL or Postgres.
 	      For other databases, look for 
 	      <a href="http://stackoverflow.com/questions/3668506/efficient-sql-test-query-or-validation-query-that-will-work-across-all-or-most">suggestions here</a>.
 	      Leave <tt>automatedTestTable</tt> undefined.
@@ -1157,7 +1169,11 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	  The best thing to do is usually to try Step 3, see if it helps (however you measure performance), see if it hurts (is your application
 	  troubled by broken Connections? does it recover from database restarts well enough?), and then decide. You can always go back to
 	  simple, slow, and robust. Just set <tt>testConnectionOnCheckout</tt> to <tt>true</tt>, <tt>testConnectionOnCheckin</tt> to <tt>false</tt>,
-	  and set <tt>idleConnectionTestPeriod</tt> to <tt>0</tt>. 	  <i>But do be sure to set an efficient</i> <tt>preferredTestQuery</tt> <i>!!!</i>
+	  and set <tt>idleConnectionTestPeriod</tt> to <tt>0</tt>. 
+	</p>
+	<p>
+	  <i>But do, always, be sure that your tests themselves are performant, either because your JDBC driver supports </i><tt>Connection.isValid(...)</tt><i> or because
+	  you have set an efficient</i> <tt>preferredTestQuery</tt> <i>!!!</i>
 	</p>
       </div>
       <h3>
@@ -2631,7 +2647,7 @@ c3p0 {
 	  <li>com.mchange.v2.c3p0.management.ManagementCoordinator</li>
 	</ul>
 	<h4>Configuring the VMID</h4>
-	<p>
+        <p>
 	  Is it better to be beautiful or correct? Beginning with c3p0-0.9.1, c3p0 opts somewhat reluctantly for correctness.
 	</p>
 	<p>
@@ -2653,6 +2669,57 @@ c3p0 {
 	<p>
 	  Set it to <tt>NONE</tt> to turn off the VMID, set it to <tt>AUTO</tt> to let c3p0 generate a VMID,
 	  or provide any other String to set the VMID that will be used directly. The default is <tt>AUTO</tt>.
+	</p>
+	<h4><a name="configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a></h4>
+        <p>
+	  c3p0's built-in DefaultConnectionTester does the right and obvious thing when you've provided a <a href="#preferredTestQuery">preferredTestQuery</a>
+	  or <a href="#automaticTestTable">automaticTestTable</a> parameter. But when it has no user-determined query to run to test a Connection,
+	  it's less clear what c3p0 should do. In the JDBC 3 API, there was no straightforward, reliable way to test a JDBC Connection. c3p0's 
+	  DefaultConnectionTester adopted the very conservative technique, using the Connection to query DatabaseMetaData, since this
+	  represents a live query to the database that can be executed without any knowledge of a database's schema. Unfortunately, this technique
+	  is often very, very slow.
+	</p>
+	<p>
+	  Fortunately, as of version 0.9.5, c3p0 supports the JDBC 4 API's testing using the new <tt>Connection.isValid()</tt> method. This is a fast,
+	  reliable test specified and implemented by the JDBC Driver provider.
+	</p>
+	<p>
+	  Although <b>it will very rarely be necessary</b>, users can now specify exactly how DefaultConnectionTester will behave if no <a href="#preferredTestQuery">preferredTestQuery</a>
+	  or <a href="#automaticTestTable">automaticTestTable</a> has been set via the following property:
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner</li>
+	</ul>
+        <p>Possible values of this property include</p>
+	<dl>
+	  <dt><tt>METADATA_TABLESEARCH</tt></dt>
+	  <dd>This is c3p0's very slow, but very reliable, traditional default Connection test. It will work even with very old JDBC drivers.</dd>
+	  <dt><tt>IS_VALID</tt></dt>
+	  <dd>This uses the new JDBC 4 API to perform a driver-defined Connection test. An <tt>AbstractMethodError</tt> will be provoked, however, if it is used with an old JDBC 3 driver.</dd>
+	  <dt><tt>SWITCH</tt></dt>
+	  <dd>This first attempts the new JDBC 4 Connection test (like <tt>IS_VALID</tt>), but catches any <tt>AbstractMethodError</tt> and falls back onto <tt>METADATA_TABLESEARCH</tt> if necessary.</dd>
+	  <dt><tt>THREAD_LOCAL</tt></dt>
+	  <dd>
+	    This checks whether the new <tt>Connection.isValid()</tt> method is available for any implementation of <tt>Connection</tt> that it tests, and stores a <tt>ThreadLocal</tt>
+	    <tt>WeakHashMap</tt> to track which Connection implementations support the method. It then consults the map and runs the fast <tt>IS_VALID</tt> test or the universal <tt>METADATA_TABLESEARCH</tt>
+	    test as appropriate.
+	  </dd>
+	</dl>
+	<p>
+	  You can also provide the fully-qualified classname of an implementation of the 
+	  <tt><a href="apidocs/com/mchange/v2/c3p0/impl/DefaultConnectionTester.QuerylessTestRunner.html">DefaultConnectionTester.QuerylessTestRunner</a></tt> interface
+	  and define your own behavior, whatever you'd like to do. Your class should be public, have a public no argument constructor, and be Thread-safe and sharable. (A c3p0
+	  pool typically uses just one ConnectionTester to test all of its Connections, often concurrently.) 
+	  For examples, see the <a href="https://github.com/swaldman/c3p0/blob/master/src/java/com/mchange/v2/c3p0/impl/DefaultConnectionTester.java">built-in implementations</a> in c3p0's source code.
+        <p>
+	  <i>The default value is <tt>SWITCH</tt>, which should be fine almost always.</i>
+	</p>
+        <p>
+	  Really, you should almost never bother to set this property. If you are using an old JDBC driver
+	  and want to eliminate the small overhead of trying the <tt>isValid()</tt> method and then catching an <tt>AbstractMethodError</tt>, you can do so by setting its value
+	  to <tt>METADATA_TABLESEARCH</tt>. But why bother, when a <i>much, much faster</i> approach is to set a <a href="#preferredTestQuery">preferredTestQuery</a>, and avoid the
+	  queryless test entirely? If you want to do something totally different, you can implement your own <tt>DefaultConnectionTester.QuerylessTestRunner</tt>.
+	  Or you can just implement <tt>ConnectionTester</tt> directly, and set the parameter <tt>connectionTesterClassName</tt>.
 	</p>
 	<h4>Experimental properties</h4>
 	<p>
