@@ -41,6 +41,7 @@ import com.mchange.v2.log.*;
 import java.lang.reflect.Field;
 import com.mchange.v2.c3p0.AbstractConnectionTester;
 import com.mchange.v2.c3p0.FullQueryConnectionTester;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
@@ -60,7 +61,7 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder);
     }
 
-    final static QuerylessTestRunner TRADITIONAL = new QuerylessTestRunner()
+    final static QuerylessTestRunner METADATA_TABLESEARCH = new QuerylessTestRunner()
     {
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
@@ -168,76 +169,34 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 	    try
 	    { out = IS_VALID.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); }
 	    catch ( AbstractMethodError e )
-	    { out = TRADITIONAL.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); }
+	    { out = METADATA_TABLESEARCH.activeCheckConnectionNoQuery(c, rootCauseOutParamHolder); }
 	    return out;
 	}
     };
 
-    // the stuff below is for THREAD_LOCAL QuerylessTestRunner
-    private final static ThreadLocal classToTestRunnerThreadLocal = new ThreadLocal()
-    {
-	protected Object initialValue() { return new WeakHashMap(); }
-    };
-    
-    private final static Class[] ARG_ARRAY = new Class[] { Integer.TYPE };
+    final static QuerylessTestRunner THREAD_LOCAL = new ThreadLocalQuerylessTestRunner();
 
-    private static Map classToTestRunner()
-    { return (Map) classToTestRunnerThreadLocal.get(); }
-
-
-    private static QuerylessTestRunner findTestRunner( Class cClass )
-    {
-	try 
-	{ 
-	    cClass.getDeclaredMethod( "isValid", ARG_ARRAY ); 
-	    return IS_VALID;
-	}
-	catch( NoSuchMethodException e )
-	{ return TRADITIONAL; }
-	catch ( SecurityException e )
-        {
-	    if ( logger.isLoggable( MLevel.WARNING ) )
-		logger.log( MLevel.WARNING, "Huh? SecurityException while reflectively checking for " + cClass.getName() + ".isValid(). Defaulting to traditional (slow) queryless test.");
-	    return TRADITIONAL;
-	}
-    }
-
-    final static QuerylessTestRunner THREAD_LOCAL = new QuerylessTestRunner()
-    {
-	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
-	{
-	    Map map = classToTestRunner();
-	    Class cClass = c.getClass();
-	    QuerylessTestRunner qtl = (QuerylessTestRunner) map.get( cClass );
-	    if (qtl == null)
-	    {
-		qtl = findTestRunner(cClass);
-		map.put( cClass, qtl );
-	    }
-	   return qtl.activeCheckConnectionNoQuery( c, rootCauseOutParamHolder );
-	}
-    };
-    // end THREAD_LOCAL stuff
-
-    /*
-    // Not making this user-configurable for now. Too much complexity when both SWITCH and THREAD_LOCAL seem reliably to work fine.
     private final static String SYSPROP_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
 
-    private static QuerylessTestRunner reflectTestRunner( String sysprop )
+    private static QuerylessTestRunner reflectTestRunner( String propval )
     {
 	try
 	{
-	    Field staticField = DefaultConnectionTester.class.getDeclaredField( sysprop ); //already trim()ed
-	    return (QuerylessTestRunner) staticField.get( null );
+	    if ( propval.indexOf('.') >= 0 )
+		return (QuerylessTestRunner) Class.forName( propval ).newInstance();
+	    else
+	    {
+		Field staticField = DefaultConnectionTester.class.getDeclaredField( propval ); //already trim()ed
+		return (QuerylessTestRunner) staticField.get( null );
+	    }
         }
 	catch ( Exception e )
 	{
 	    if ( logger.isLoggable( MLevel.WARNING ) )
-		logger.log( MLevel.WARNING, "Specified QuerylessTestRunner '" + sysprop + "' could not be found.", e );
+		logger.log( MLevel.WARNING, "Specified QuerylessTestRunner '" + propval + "' could not be found or instantiated. Reverting to default 'SWITCH'", e );
 	    return null;
 	}
     }
-    */
 
     //MT: final reference, internally threadsafe
     private final static QuerylessTestRunner querylessTestRunner;
@@ -255,15 +214,17 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 
         INVALID_DB_STATES = Collections.unmodifiableSet( temp );
 
-	QuerylessTestRunner defaultQuerylessTestRunner = SWITCH;
+	// we prefer SWITCH to THREAD_LOCAL for now only because it has less overhead in the expected code path.
+	//
+	// when modifying this default, don't forget to also modify the log message in reflectTestRunner(...)
+	//
+	QuerylessTestRunner defaultQuerylessTestRunner = SWITCH; 
 
-	/*
 	// Adding a new config parameter for this is useless overkill, I think.
 	// Both THREAD_LOCAL and SWITCH work very well, extra overhead from resolving
-	// to TRADITIONAL or IS_VALID does not seem to be significant.
+	// to METADATA_TABLESEARCH or IS_VALID does not seem to be significant.
 
-	//String sysprop = C3P0Config.getMultiPropertiesConfig().getProperty( SYSPROP_KEY );
-	String sysprop = System.getProperty( SYSPROP_KEY );
+	String sysprop = C3P0Config.getMultiPropertiesConfig().getProperty( SYSPROP_KEY );
 	if ( sysprop == null )
 	    querylessTestRunner = defaultQuerylessTestRunner;
 	else
@@ -271,9 +232,6 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 	    QuerylessTestRunner reflected = reflectTestRunner( sysprop.trim() );
 	    querylessTestRunner = ( reflected != null ? reflected : defaultQuerylessTestRunner );
 	}
-	*/
-
-	querylessTestRunner = defaultQuerylessTestRunner;
     }
     
     public int activeCheckConnection(Connection c, String query, Throwable[] rootCauseOutParamHolder)
@@ -406,3 +364,51 @@ public class DefaultConnectionTester extends AbstractConnectionTester
     { return HASH_CODE; }
 }
 
+// normally i'd write this as a static nested class, but the proliferation of static fields
+// and methods that the compiler disallows within made that seem to sprawling, so it's somewhat
+// awkardly a very "friendly" top-level class.
+class ThreadLocalQuerylessTestRunner implements DefaultConnectionTester.QuerylessTestRunner
+{
+    final static MLogger logger = DefaultConnectionTester.logger;
+
+    private final static ThreadLocal classToTestRunnerThreadLocal = new ThreadLocal()
+    {
+	protected Object initialValue() { return new WeakHashMap(); }
+    };
+    
+    private final static Class[] ARG_ARRAY = new Class[] { Integer.TYPE };
+
+    private static Map classToTestRunner()
+    { return (Map) classToTestRunnerThreadLocal.get(); }
+
+
+    private static DefaultConnectionTester.QuerylessTestRunner findTestRunner( Class cClass )
+    {
+	try 
+	{ 
+	    cClass.getDeclaredMethod( "isValid", ARG_ARRAY ); 
+	    return DefaultConnectionTester.IS_VALID;
+	}
+	catch( NoSuchMethodException e )
+	{ return DefaultConnectionTester.METADATA_TABLESEARCH; }
+	catch ( SecurityException e )
+        {
+	    if ( logger.isLoggable( MLevel.WARNING ) )
+		logger.log( MLevel.WARNING, "Huh? SecurityException while reflectively checking for " + cClass.getName() + ".isValid(). Defaulting to traditional (slow) queryless test.");
+	    return DefaultConnectionTester.METADATA_TABLESEARCH;
+	}
+    }
+
+    public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
+    {
+	Map map = classToTestRunner();
+	Class cClass = c.getClass();
+	DefaultConnectionTester.QuerylessTestRunner qtl = (DefaultConnectionTester.QuerylessTestRunner) map.get( cClass );
+	if (qtl == null)
+	    {
+		qtl = findTestRunner(cClass);
+		map.put( cClass, qtl );
+	    }
+	return qtl.activeCheckConnectionNoQuery( c, rootCauseOutParamHolder );
+    }
+}

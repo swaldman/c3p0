@@ -72,8 +72,6 @@ public final class C3P0Defaults
     private final static boolean PRIVILEGE_SPAWNED_THREADS                   = false;
     private final static boolean FORCE_USE_NAMED_DRIVER_CLASS                = false;
 
-    private final static ConnectionTester CONNECTION_TESTER = new DefaultConnectionTester();
-
     private final static int NUM_HELPER_THREADS = 3;
 
     private final static String AUTOMATIC_TEST_TABLE             = null;
@@ -93,7 +91,13 @@ public final class C3P0Defaults
 
     private final static Map EXTENSIONS                          = Collections.emptyMap();
 
-    private static Set KNOWN_PROPERTIES;
+    private final static Set KNOWN_PROPERTIES;
+
+    // we need to initialize this lazily, as DefaultConnectionTester needs to access C3P0Config,
+    // which expects this class to be loaded already.
+    //
+    // MT: protected by class' lock
+    private static ConnectionTester CONNECTION_TESTER = null;
 
     static
     {
@@ -164,11 +168,15 @@ public final class C3P0Defaults
     public static String contextClassLoaderSource()
     { return CONTEXT_CLASS_LOADER_SOURCE; }
 
-    public static ConnectionTester connectionTester()
-    { return CONNECTION_TESTER; }
+    public synchronized static ConnectionTester connectionTester()
+    { 
+	if ( CONNECTION_TESTER == null )
+	    CONNECTION_TESTER = new DefaultConnectionTester();
+	return CONNECTION_TESTER;
+    }
 
     public static String connectionTesterClassName()
-    { return CONNECTION_TESTER.getClass().getName(); }
+    { return connectionTester().getClass().getName(); }
 
     public static String automaticTestTable()
     { return AUTOMATIC_TEST_TABLE; }
