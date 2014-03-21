@@ -56,7 +56,7 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 
     final static Set INVALID_DB_STATES;
 
-    interface QuerylessTestRunner 
+    public interface QuerylessTestRunner 
     {
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder);
     }
@@ -176,7 +176,7 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 
     final static QuerylessTestRunner THREAD_LOCAL = new ThreadLocalQuerylessTestRunner();
 
-    private final static String SYSPROP_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
+    private final static String PROP_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
 
     private static QuerylessTestRunner reflectTestRunner( String propval )
     {
@@ -198,8 +198,6 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 	}
     }
 
-    //MT: final reference, internally threadsafe
-    private final static QuerylessTestRunner querylessTestRunner;
 
     static
     {
@@ -213,7 +211,12 @@ public class DefaultConnectionTester extends AbstractConnectionTester
         //temp.add("08S01"); //SQL State "Communication link failure"
 
         INVALID_DB_STATES = Collections.unmodifiableSet( temp );
+    }
 
+
+
+    public DefaultConnectionTester()
+    {
 	// we prefer SWITCH to THREAD_LOCAL for now only because it has less overhead in the expected code path.
 	//
 	// when modifying this default, don't forget to also modify the log message in reflectTestRunner(...)
@@ -224,16 +227,19 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 	// Both THREAD_LOCAL and SWITCH work very well, extra overhead from resolving
 	// to METADATA_TABLESEARCH or IS_VALID does not seem to be significant.
 
-	String sysprop = C3P0Config.getMultiPropertiesConfig().getProperty( SYSPROP_KEY );
-	if ( sysprop == null )
+	String prop = C3P0Config.getMultiPropertiesConfig().getProperty( PROP_KEY );
+	if ( prop == null )
 	    querylessTestRunner = defaultQuerylessTestRunner;
 	else
 	{
-	    QuerylessTestRunner reflected = reflectTestRunner( sysprop.trim() );
+	    QuerylessTestRunner reflected = reflectTestRunner( prop.trim() );
 	    querylessTestRunner = ( reflected != null ? reflected : defaultQuerylessTestRunner );
 	}
     }
     
+    //MT: final reference, internally threadsafe
+    private final QuerylessTestRunner querylessTestRunner;
+
     public int activeCheckConnection(Connection c, String query, Throwable[] rootCauseOutParamHolder)
     {
 //      if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )

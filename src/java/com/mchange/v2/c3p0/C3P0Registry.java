@@ -108,17 +108,17 @@ public final class C3P0Registry
     //MT: protected by class' lock
     private static HashSet unclosedPooledDataSources = new HashSet();
 
-    //MT: protected by its own lock
-    private static Map classNamesToConnectionTesters = Collections.synchronizedMap( new HashMap() );
+    //MT: protected by ITS OWN LOCK
+    private final static Map classNamesToConnectionTesters = new HashMap();
 
-    //MT: protected by its own lock
-    private static Map classNamesToConnectionCustomizers = Collections.synchronizedMap( new HashMap() );
+    //MT: protected by ITS OWN LOCK
+    private final static Map classNamesToConnectionCustomizers = new HashMap();
 
     private static ManagementCoordinator mc;
 
     static
     {
-        classNamesToConnectionTesters.put(C3P0Defaults.connectionTesterClassName(), C3P0Defaults.connectionTester());
+	resetConnectionTesterCache();
 
         String userManagementCoordinator = C3P0ConfigUtils.getPropsFileConfigProperty(MC_PARAM);
         if (userManagementCoordinator != null)
@@ -156,17 +156,25 @@ public final class C3P0Registry
         }
     }
 
+    public static void markConfigRefreshed()
+    { 
+	resetConnectionTesterCache(); 
+    }
+
     public static ConnectionTester getConnectionTester( String className )
     {
         try
         {
-            ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
-            if (out == null)
-            { 
-                out = (ConnectionTester) Class.forName( className ).newInstance();
-                classNamesToConnectionTesters.put( className, out );
-            }
-            return out;
+	    synchronized ( classNamesToConnectionTesters )
+	    {
+		ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
+		if (out == null)
+		{ 
+		    out = (ConnectionTester) Class.forName( className ).newInstance();
+		    classNamesToConnectionTesters.put( className, out );
+		}
+		return out;
+	    }
         }
         catch (Exception e)
         {
@@ -175,8 +183,26 @@ public final class C3P0Registry
                                 "Could not create for find ConnectionTester with class name '" +
                                 className + "'. Using default.",
                                 e );
-            return C3P0Defaults.connectionTester();
+            return recreateDefaultConnectionTester();
         }
+    }
+
+    // DefaultConnectionTester instantiation is now sensitive to config of QuerylessConnectionTester,
+    // so when config is updated, we should recreate it. So we can't just hardcode an instance.
+    private static ConnectionTester recreateDefaultConnectionTester()
+    { 
+	try { return (ConnectionTester) Class.forName( C3P0Defaults.connectionTesterClassName() ).newInstance(); }
+	catch ( Exception e )
+	    { throw new Error("Huh? We cannot instantiate the hard-coded, default ConnectionTester? We are very broken.", e); }
+    } 
+
+    private static void resetConnectionTesterCache()
+    {
+	synchronized ( classNamesToConnectionTesters )
+	{
+	    classNamesToConnectionTesters.clear();
+	    classNamesToConnectionTesters.put(C3P0Defaults.connectionTesterClassName(), recreateDefaultConnectionTester());
+	}
     }
 
     public static ConnectionCustomizer getConnectionCustomizer( String className ) throws SQLException
@@ -187,13 +213,16 @@ public final class C3P0Registry
         {
             try
             {
-                ConnectionCustomizer out = (ConnectionCustomizer) classNamesToConnectionCustomizers.get( className );
-                if (out == null)
-                { 
-                    out = (ConnectionCustomizer) Class.forName( className ).newInstance();
-                    classNamesToConnectionCustomizers.put( className, out );
-                }
-                return out;
+		synchronized ( classNamesToConnectionCustomizers )
+		{
+		    ConnectionCustomizer out = (ConnectionCustomizer) classNamesToConnectionCustomizers.get( className );
+		    if (out == null)
+		    { 
+			out = (ConnectionCustomizer) Class.forName( className ).newInstance();
+			classNamesToConnectionCustomizers.put( className, out );
+		    }
+		    return out;
+		}
             }
             catch (Exception e)
             {

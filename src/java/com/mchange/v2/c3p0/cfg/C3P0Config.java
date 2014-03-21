@@ -45,6 +45,7 @@ import com.mchange.v2.log.*;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import com.mchange.v1.lang.BooleanUtils;
+import com.mchange.v2.c3p0.C3P0Registry;
 
 //all internal maps should be HashMaps (the implementation presumes HashMaps)
 
@@ -128,6 +129,8 @@ public final class C3P0Config
 	for ( Map.Entry<Object,Object> entry : m.entrySet() )
 	    System.err.println( entry.getKey() + " --> " + entry.getValue() );
 	*/
+
+	C3P0Registry.markConfigRefreshed();
     }
 
     static
