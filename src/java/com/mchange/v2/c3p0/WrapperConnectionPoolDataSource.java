@@ -59,7 +59,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
 
     //MT: protected by this' lock
-    ConnectionTester connectionTester = C3P0ImplUtils.defaultConnectionTester();
+    ConnectionTester connectionTester = C3P0Registry.getDefaultConnectionTester();
     Map              userOverrides;
 
     public WrapperConnectionPoolDataSource(boolean autoregister)
@@ -372,6 +372,6 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		this.connectionTester = ct;
 	    }
 	else
-	    this.connectionTester = C3P0ImplUtils.defaultConnectionTester();
+	    this.connectionTester = C3P0Registry.getDefaultConnectionTester();
     }
 }

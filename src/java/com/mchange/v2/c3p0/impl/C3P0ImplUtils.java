@@ -132,7 +132,8 @@ public final class C3P0ImplUtils
 
     //MT: protected by class' lock
     static String connectionTesterClassName = null;
-    static ConnectionTester cachedTester = null;
+
+    //static ConnectionTester cachedTester = null;
     
 
     // identityHashCode() is not a sufficient unique token, because they are
@@ -252,6 +253,7 @@ public final class C3P0ImplUtils
 	    }
     }
 
+    /*
     public synchronized static ConnectionTester defaultConnectionTester()
     {
 	String dfltCxnTesterClassName = PoolConfig.defaultConnectionTesterClassName();
@@ -277,6 +279,7 @@ public final class C3P0ImplUtils
 		return cachedTester;
 	    }
     }
+    */
 
     public static boolean supportsMethod(Object target, String mname, Class[] argTypes)
     {

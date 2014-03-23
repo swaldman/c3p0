@@ -1,3 +1,4 @@
+c3p0-0.9.5-pre7
 	-- Cleaned up (and exposed a configuration property to tweak) selection of Connection tests when
 	   no query is provided. Do we use Connection.isValid(...), the traditional DatabaseMetaData-based test,
 	   something else? Now, by default we try isValid(...) but we back-off to the traditional test on error.

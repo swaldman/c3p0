@@ -161,6 +161,9 @@ public final class C3P0Registry
 	resetConnectionTesterCache(); 
     }
 
+    public static ConnectionTester getDefaultConnectionTester()
+    { return getConnectionTester( C3P0Defaults.connectionTesterClassName() ); }
+
     public static ConnectionTester getConnectionTester( String className )
     {
         try
