@@ -1,7 +1,7 @@
 /*
- * Distributed as part of c3p0 v.0.9.5-pre6
+ * Distributed as part of c3p0 0.9.5-pre7
  *
- * Copyright (C) 2013 Machinery For Change, Inc.
+ * Copyright (C) 2014 Machinery For Change, Inc.
  *
  * Author: Steve Waldman <swaldman@mchange.com>
  *
