@@ -88,6 +88,12 @@ public class BeangenDataSourceGenerator
 			    if (BeangenUtils.hasConstrainedProperties( props ))
 				iw.println("this.vcs = new VetoableChangeSupport( this );");
 			}
+
+			protected void writeIndirectStoreObject( Property prop, Class propType, IndentedWriter iw ) throws IOException
+			{
+			    iw.println("com.mchange.v2.log.MLog.getLogger( this.getClass() ).log(com.mchange.v2.log.MLevel.FINE, \042Direct serialization provoked a NotSerializableException! Trying indirect.\042, nse);");
+			    super.writeIndirectStoreObject( prop, propType, iw );
+			}
 		    };
 		gen.addExtension( idse );
 

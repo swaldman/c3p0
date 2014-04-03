@@ -554,6 +554,19 @@
     </java>
   </target>
 
+  <target name="javabeanref-test" depends="test-init">
+    <java 
+       classname="com.mchange.v2.c3p0.test.JavaBeanRefTest" 
+       classpathref="test-classpath" 
+       fork="true">
+      <sysproperty key="java.util.logging.config.file" value="${test.logging.props.file}" />
+      <syspropertyset>
+	<propertyref builtin="commandline" />
+      </syspropertyset>
+      <jvmarg value="-ea" />
+    </java>
+  </target>
+
   <target name="junit-tests" depends="test-init,compile-junit" if="junit.jar.file">
     <mkdir dir="${build.testresults.dir}" />
     <junit printsummary="true" showoutput="true" haltonfailure="true"> 

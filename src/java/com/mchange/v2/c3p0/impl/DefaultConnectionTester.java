@@ -38,6 +38,8 @@ package com.mchange.v2.c3p0.impl;
 import java.sql.*;
 import java.util.*;
 import com.mchange.v2.log.*;
+
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import com.mchange.v2.c3p0.AbstractConnectionTester;
 import com.mchange.v2.c3p0.FullQueryConnectionTester;
@@ -56,7 +58,7 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 
     final static Set INVALID_DB_STATES;
 
-    public interface QuerylessTestRunner 
+    public interface QuerylessTestRunner extends Serializable
     {
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder);
     }
