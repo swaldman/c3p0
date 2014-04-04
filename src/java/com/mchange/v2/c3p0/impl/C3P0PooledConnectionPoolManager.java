@@ -347,7 +347,7 @@ public final class C3P0PooledConnectionPoolManager
                 Method uom = (Method) propNamesToReadMethods.get( "userOverridesAsString" );
                 if (uom != null)
                 {
-                    String uoas = (String) uom.invoke( cpds, null );
+                    String uoas = (String) uom.invoke( cpds, (Object[]) null ); // cast to suppress inexact type warning
                     //System.err.println("uoas: " + uoas);
                     Map uo = C3P0ImplUtils.parseUserOverridesAsString( uoas );
                     this.userOverrides = uo;
@@ -550,7 +550,7 @@ public final class C3P0PooledConnectionPoolManager
                 Method m = (Method) propNamesToReadMethods.get( propName );
                 if (m != null)
                 {
-                    Object readProp = m.invoke( cpds, null );
+                    Object readProp = m.invoke( cpds, (Object[]) null ); // cast to suppress inexact type warning
                     if (readProp != null)
                         out = readProp.toString();
                 }

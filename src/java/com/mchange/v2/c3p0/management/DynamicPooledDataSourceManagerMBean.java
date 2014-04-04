@@ -358,8 +358,8 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
                     String pfx = ai.isIs() ? "is" : "get";
                     String mname = pfx + Character.toUpperCase(name.charAt(0)) + name.substring(1);
                     Object target = rec.target; 
-                    Method m = target.getClass().getMethod(mname, null);
-                    return m.invoke(target, null);
+                    Method m = target.getClass().getMethod(mname, (Class[]) null); // cast to suppress inexact type warning
+                    return m.invoke(target, (Object[]) null); // cast to suppress inexact type warning
                 }
             }
         }

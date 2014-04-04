@@ -94,7 +94,7 @@ public final class C3P0ConfigUtils
 			int mods = m.getModifiers();
 			if ((mods & Modifier.PUBLIC) != 0 && (mods & Modifier.STATIC) != 0 && m.getParameterTypes().length == 0)
 			    {
-				Object val = m.invoke( null, null );
+				Object val = m.invoke( null, (Object[]) null ); // cast to suppress inexact type warning
 				if ( val != null )
 				    out.put( m.getName(), stringify_coercibles && Coerce.canCoerce( val ) ? String.valueOf( val ) : val);
 			    }
