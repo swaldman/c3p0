@@ -274,6 +274,27 @@ class BasicResourcePool implements ResourcePool
     {
         try
         {
+	    /* ensure min, max, and start are ordered properly, correct and log if they are not. */
+
+	    if ( min > max )
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Bad pool size config, min " + min + " > max " + max + ". Using " + max + " as min." ); 
+		min = max;
+	    }
+	    if ( start < min )
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Bad pool size config, start " + start + " < min " + min + ". Using " + min + " as start." ); 
+		start = min;
+	    }
+	    if ( start > max )
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Bad pool size config, start " + start + " > max " + max + ". Using " + max + " as start." ); 
+		start = max;
+	    }
+
             this.mgr                              = mgr;
             this.start                            = start;
             this.min                              = min;
@@ -297,7 +318,7 @@ class BasicResourcePool implements ResourcePool
             this.pending_acquires = 0;
             this.pending_removes  = 0;
 
-            this.target_pool_size = Math.max(start, min);
+            this.target_pool_size = this.start;
 
             if (asyncEventQueue != null)
                 this.rpes = new ResourcePoolEventSupport(this);

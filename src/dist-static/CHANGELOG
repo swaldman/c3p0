@@ -1,3 +1,5 @@
+	-- Added some warnings in BasicResourcePool's constructor if min, max, and start are misordered.
+	   Misordered values are reordered. Thanks to bronzenose on github for the suggestion.
 	-- Overloaded AbstractPoolBackedDataSource / AbstractComboPoolBackedDataSource toString,
 	   so we've a toString( boolean show_config ). The full reflective config is now shown only when logging
 	   pool manager initialization. Otherwise we revert to a fast, nonreflective toString(). We'll see whether anyone
