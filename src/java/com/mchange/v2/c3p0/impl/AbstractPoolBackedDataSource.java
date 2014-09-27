@@ -519,7 +519,7 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
             ConnectionPoolDataSource cpds = assertCpds();
             poolManager = new C3P0PooledConnectionPoolManager(cpds, null, null, this.getNumHelperThreads(), this.getIdentityToken(), this.getDataSourceName());
             if (logger.isLoggable(MLevel.INFO))
-                logger.info("Initializing c3p0 pool... " + this.toString()  /* + "; using pool manager: " + poolManager */);
+                logger.info("Initializing c3p0 pool... " + this.toString( true )  /* + "; using pool manager: " + poolManager */);
         }
         return poolManager;	    
     }
@@ -534,6 +534,8 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
 	else
 	    return authPool;
     }
+
+    public abstract String toString( boolean show_config );
 
     // serialization stuff -- set up bound/constrained property event handlers on deserialization
     private static final long serialVersionUID = 1;

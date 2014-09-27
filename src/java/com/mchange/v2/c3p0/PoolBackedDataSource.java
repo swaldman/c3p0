@@ -50,5 +50,9 @@ public final class PoolBackedDataSource extends AbstractPoolBackedDataSource imp
 	this(); 
         initializeNamedConfig( configName, false );
     }
+
+    // no support for a longer form with config
+    public String toString( boolean show_config ) { return this.toString(); }
+
 }
 

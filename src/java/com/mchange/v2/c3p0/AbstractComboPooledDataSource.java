@@ -724,26 +724,35 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
-    public String toString()
+    public String toString() { return toString( false ); }
+
+    public String toString(boolean show_config)
     {
-        //System.err.println("ComboPooledDataSource.toString()");
+	if ( show_config )
+	{
+	    //System.err.println("ComboPooledDataSource.toString()");
+	    
+	    StringBuffer sb = new StringBuffer(512);
+	    sb.append( this.getClass().getName() );
+	    sb.append(" [ ");
+	    try { BeansUtils.appendPropNamesAndValues(sb, this, TO_STRING_IGNORE_PROPS); }
+	    catch (Exception e)
+	    { 
+		sb.append( e.toString() ); 
+		//e.printStackTrace();
+	    }
+	    sb.append(" ]");
 
-        StringBuffer sb = new StringBuffer(512);
-        sb.append( this.getClass().getName() );
-        sb.append(" [ ");
-        try { BeansUtils.appendPropNamesAndValues(sb, this, TO_STRING_IGNORE_PROPS); }
-        catch (Exception e)
-        { 
-            sb.append( e.toString() ); 
-            //e.printStackTrace();
-        }
-        sb.append(" ]");
+	    //      Map userOverrides = wcpds.getUserOverrides();
+	    //      if (userOverrides != null)
+	    //      sb.append("; userOverrides: " + userOverrides.toString());
 
-//      Map userOverrides = wcpds.getUserOverrides();
-//      if (userOverrides != null)
-//      sb.append("; userOverrides: " + userOverrides.toString());
-
-        return sb.toString();
+	    return sb.toString();
+	}
+	else
+	{
+	    return this.getClass().getName() + "[ identityToken -> " + this.getIdentityToken() + ", dataSourceName -> " + this.getDataSourceName() + " ]";
+	}
     }
 
     // serialization stuff -- set up bound/constrained property event handlers on deserialization

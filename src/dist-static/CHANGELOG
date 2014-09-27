@@ -1,3 +1,7 @@
+	-- Overloaded AbstractPoolBackedDataSource / AbstractComboPoolBackedDataSource toString,
+	   so we've a toString( boolean show_config ). The full reflective config is now shown only when logging
+	   pool manager initialization. Otherwise we revert to a fast, nonreflective toString(). We'll see whether anyone
+	   minds the abbreviation. Thanks to kibertoad and Xerosigma on github for the suggestion.
 	-- Fixed implementations of wrap( ... ) / isWrapperFor( ... ) to properly conform to spec when given an interface implemented
 	   directly by the receiver of the wrap( ... ) call. Many thanks to baracil on github for calling attention to this issue.
 c3p0-0.9.5-pre8
