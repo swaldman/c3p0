@@ -558,14 +558,20 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     }
 
     // JDBC4 Wrapper stuff
+    protected final boolean isWrapperForThis(Class<?> iface)
+    { return iface.isAssignableFrom( this.getClass() ); }
+
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
-	return false;
+	return isWrapperForThis( iface );
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
-	throw new SQLException(this + " is not a Wrapper for " + iface.getName());
+	if ( this.isWrapperForThis( iface ) )
+	    return (T) this;
+	else
+	    throw new SQLException(this + " is not a wrapper for or implementation of " + iface.getName());
     }
 }
 

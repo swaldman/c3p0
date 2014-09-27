@@ -1099,6 +1099,9 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	iw.println("}");
 
 	*/
+
+	iw.println();
+	generateIsWrapperHelperMethods( intfcl, iw );
     }
 
     protected void writeDetachBody(IndentedWriter iw) throws IOException
@@ -1131,20 +1134,28 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
     {}
 
     // Support JDBC4 Wrapper interface
+    private static void generateIsWrapperHelperMethods( Class intfcl, IndentedWriter iw ) throws IOException
+    {
+	iw.println("// helper methods for unwrap( ... ), isWrapperFor( ... )"); 
+	iw.println("private boolean isWrapperForInner( Class intfcl )");
+	iw.println("{ return ( " + intfcl.getName() + ".class == intfcl || intfcl.isAssignableFrom( inner.getClass() ) ); }");
+	iw.println();
+	iw.println("private boolean isWrapperForThis( Class intfcl )");
+	iw.println("{ return intfcl.isAssignableFrom( this.getClass() ); }");
+    }
+
     private static void generateWrapperDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
     {
 	String mname = method.getName();
 	if ("isWrapperFor".equals( mname ))
 	{
-	    //String wrappedLiteral = intfcl.getName() + ".class";
-	    String wrappedIntfc = intfcl.getName() + ".class";
-	    String wrappedClass = "inner.getClass()";
-	    iw.println("return ( " + wrappedIntfc + "== a || a.isAssignableFrom( " + wrappedClass + " ) );" );
+	    iw.println( "return ( isWrapperForInner( a ) || isWrapperForThis( a ) );" );
 	}
 	else if ("unwrap".equals( mname ))
 	{
-	    iw.println("if (this.isWrapperFor( a )) return inner;");
-	    iw.println("else throw new SQLException( this + \042 is not a wrapper for \042 + a.getName());");
+	    iw.println("if (this.isWrapperForInner( a )) return inner.unwrap( a );");
+	    iw.println("if (this.isWrapperForThis( a )) return this;");
+	    iw.println("else throw new SQLException( this + \042 is not a wrapper for or implementation of \042 + a.getName());");
 	}
     }
 

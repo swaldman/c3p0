@@ -1,3 +1,5 @@
+	-- Fixed implementations of wrap( ... ) / isWrapperFor( ... ) to properly conform to spec when given an interface implemented
+	   directly by the receiver of the wrap( ... ) call. Many thanks to baracil on github for calling attention to this issue.
 c3p0-0.9.5-pre8
 	-- Resolved a Serialization problem introduced in c3p0-0.9.5-pre7 (Broke serializability of DefaultConnectionTester
 	   and therefore typical instances of WrapperConnectionPoolDataSource.) Many thanks to Petar Tachiev for calling attention to this issue.
