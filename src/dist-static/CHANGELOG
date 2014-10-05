@@ -1,3 +1,9 @@
+	-- Gave proxies a toString() method that embeds the toString() method of the objects they are wrapping, including
+	   Statement text if the underlying driver supports that. Thanks to Ketan Padegaonkar for the suggestion.
+	-- Added API [in mchange-commons-java] to make it easier for users to create a MultiPropertiesConfig object from a
+	   Properties object, which will enable use of the new C3P0Config.refreshMainConfig( overrides, overridesDescription )
+	   method, which may enable some useful dynamic configuarion possibilities, see e.g. https://sourceforge.net/p/c3p0/bugs/121/
+	   Thanks to Vlad Skarzhevskyy on SourceForge for the proposed use case.
 	-- Modified mchange-commons-java (and c3p0 docs) to prioritize slf4j over log4j if both are available in the application
 	   classpath and com.mchange.v2.log.MLog has not been explicitly set. Thanks to Steve Ramage for the suggestion.
 	-- If a problem occurs while acquiring a cached Statement from the Statement pool, the Exception we throw includes

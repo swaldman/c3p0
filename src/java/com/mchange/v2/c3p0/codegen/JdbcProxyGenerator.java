@@ -1077,6 +1077,8 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         iw.println();
         iw.println("boolean isDetached()");
         iw.println("{ return (this.parentPooledConnection == null); }");
+	iw.println();
+	iw.println("public String toString() { return super.toString() + \042 [wrapping: \042 + inner + \042]\042; }");
 
 	/*
 
