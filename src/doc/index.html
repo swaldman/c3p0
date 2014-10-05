@@ -1521,7 +1521,8 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
       </h3>
       <p>
 	c3p0 uses a custom logging library similar to jakarta commons-logging. Log messages can be directed to
-	the popular log4j logging library, to <a href="http://www.slf4j.org/">slf4j</a> (with its <a href="http://logback.qos.ch/">logback backend</a>), 
+	the to the popular <a href="http://www.slf4j.org/">slf4j</a> (with its <a href="http://logback.qos.ch/">logback backend</a>), 
+	to the venerable log4j library,
 	to the standard logging facility introduced with jdk1.4, or to
 	<tt>System.err</tt>. Nearly all configuration should be done at the level of your preferred logging
 	library. There are a very few configuration options specific to c3p0's logging, and usually the defaults
@@ -1547,20 +1548,20 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<dt><a name="com.mchange.v2.log.MLog" />com.mchange.v2.log.MLog</dt>
 	<dd>
 	  <div class="propdesc">
-	    Determines which library c3p0 will output log messages to. By default, if log4j is available,
-	    it will use that library, otherwise if jdk1.4 logging apis are available it will use those,
-	    and if neither are available, it will use a simple fallback that logs to <tt>System.err</tt>.
+	    Determines which library c3p0 will output log messages to. By default, if slf4j is available,
+	    it will use that library, otherwise log4j if available, otherwise jdk1.4 logging apis,
+	    and if all are unavailable, it will fallback to logging via <tt>System.err</tt>.
 	    If you want to directly control which library is used, you may set this property to one of:
 	    <ul>
-	      <li><tt>com.mchange.v2.log.log4j.Log4jMLog</tt></li>
 	      <li><tt>com.mchange.v2.log.slf4j.Slf4jMLog</tt></li>
+	      <li><tt>com.mchange.v2.log.log4j.Log4jMLog</tt></li>
 	      <li><tt>com.mchange.v2.log.jdk14logging.Jdk14MLog</tt></li>
 	      <li><tt>com.mchange.v2.log.FallbackMLog</tt></li>
 	    </ul>
 	    Alternatively, the following abbreviations are supported:
 	    <ul>
-	      <li><tt>log4j</tt></li>
 	      <li><tt>slf4j</tt></li>
+	      <li><tt>log4j</tt></li>
 	      <li><tt>jul, jdk14, java.util.logging</tt></li>
 	      <li><tt>fallback</tt></li>
 	    </ul>

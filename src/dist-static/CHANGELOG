@@ -1,4 +1,5 @@
-
+	-- Modified mchange-commons-java (and c3p0 docs) to prioritize slf4j over log4j if both are available in the application
+	   classpath and com.mchange.v2.log.MLog has not been explicitly set. Thanks to Steve Ramage for the suggestion.
 	-- If a problem occurs while acquiring a cached Statement from the Statement pool, the Exception we throw includes
 	   both the actual problem (which occurs in a helper thread) and the stack trace of the client which provoked the
 	   failed acquisition. The problem that occurred within the helper thread is captured as the root cause Throwable.
