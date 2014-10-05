@@ -1,3 +1,5 @@
+	-- Some documentation updates and fixes.
+	-- Made PooledDataSource AutoCloseable, so that try with resources can be used to clean up after them.
 	-- Added some warnings in BasicResourcePool's constructor if min, max, and start are misordered.
 	   Misordered values are reordered. Thanks to bronzenose on github for the suggestion.
 	-- Overloaded AbstractPoolBackedDataSource / AbstractComboPoolBackedDataSource toString,

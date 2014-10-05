@@ -1,7 +1,7 @@
 <html>
   <head>
     <title>c3p0-v@c3p0.version@ - JDBC3 Connection and Statement Pooling - Documentation</title>
-    <script language="text/javascript">
+    <script type="text/javascript">
       function toggleDisplay( id1, id2 )
       {
         if (document.getElementById( id1 ).style.display == 'block')
@@ -294,7 +294,7 @@
 	<li>Follow <a href="https://twitter.com/c3p0_jdbc">@c3p0_jdbc</a> on Twitter.</li>
 	<li>This may not be the most recent version of c3p0. See the current <a href="https://github.com/swaldman/c3p0/blob/master/src/dist-static/CHANGELOG">CHANGELOG</a>.</li>
       </ul>
-      <p><b>Note:</b> Coordinates of this version on the Maven central repository:  <tt>[groupId: com.mchange, artifactId: c3p0, version: @c3p0.version@]</tt></p>
+      <p><b>Note:</b> Coordinates of this version on the Maven central repository:  <tt>[groupId: <b>com.mchange</b>, artifactId: <b>c3p0</b>, version: <b>@c3p0.version@]</b></tt></p>
     </div>
     <hr/>
     <h2><a name="contents">Contents</a></h2>
@@ -412,12 +412,16 @@ cpds.close();
       <p>
 	c3p0 is an easy-to-use library for making traditional JDBC drivers 
 	"enterprise-ready" by augmenting them with functionality defined by 
-	the jdbc3 spec and the optional extensions to jdbc2. In particular, 
+	the jdbc3 spec and the optional extensions to jdbc2. As of version 0.9.5,
+	c3p0 fully supports the jdbc4 spec.
+      </p>
+      <p>
+	In particular, 
 	c3p0 provides several useful services:
       </p>
       <ul>
 	<li>
-	  Classes which adapt traditional DriverManager-based JDBC
+	  A class whichs adapt traditional DriverManager-based JDBC
 	  drivers to the newer <tt>javax.sql.DataSource</tt> scheme for acquiring
 	  database Connections.
 	</li>
@@ -439,7 +443,7 @@ cpds.close();
 	  Statement and ResultSets are carefully cleaned up when pooled
 	  Connections and Statements are checked in, to prevent resource-
 	  exhaustion when clients use the lazy but common resource-management
-	  strategy of only cleaning up their Connections....
+	  strategy of only cleaning up their Connections. (Don't be naughty.)
 	</li>
 	<li>
 	  The library adopts the approach 
@@ -451,13 +455,12 @@ cpds.close();
 	  implemented (ConnectionPoolDataSource, PooledConnection,
 	  ConnectionEvent-generating Connections, etc.)
 	  You can mix c3p0 classes with compliant third-party implementations
-	  (although not all c3p0 features will work with external implementations). 
+	  (although not all c3p0 features will work with external implementations of <tt>ConnectionPoolDataSource</tt>). 
 	</li>
-	<li>c3p0 now fully supports the JDBC4 specification.</li>
       </ul>
       <p>
 	c3p0 hopes to provide DataSource implementations more than suitable for 
-	use by high-volume "J2EE enterprise applications". Please provide feedback, bug-fixes, etc.!
+	use by high-volume "J2EE enterprise applications". Please provide feedback, bug-fixes, etc!
       </p>
     </div>
     <h2><a name="prerequisites">Prerequisites</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
@@ -487,7 +490,7 @@ cpds.close();
       <p>
 	There are three ways of acquiring c3p0 pool-backed DataSources: 1) directly instantiate and configure a 
 	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a> bean; 
-	2) use the DataSources factory class; or 3) "build your own" pool-backed
+	2) use the <a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>DataSources</tt> factory class</a>; or 3) "build your own" pool-backed
 	DataSource by directly instantiating <tt>PoolBackedDataSource</tt> and setting its <tt>ConectionPoolDataSource</tt>. Most
 	users will probably find instantiating <a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>
 	to be the most convenient approach. Once instantiated,
@@ -495,9 +498,12 @@ cpds.close();
       </p>
       <p>
 	Regardless of how you create your DataSource, c3p0 will use defaults for any configuration parameters that
-	you do not specify programmatically. c3p0 has built-in, hard-coded defaults, but you can override these by creating
-	placing configuration files as a top-level resource in the same <tt>CLASSPATH</tt> (or ClassLoader)
-	that loads c3p0's jar file. c3p0 DataSources may be configured via simple <tt>java.util.Properties</tt>
+	you do not specify programmatically. c3p0 has built-in, hard-coded defaults, but you can override these with
+	configuration files, placed as top-level resources in the same <tt>CLASSPATH</tt> (or ClassLoader)
+	that loads c3p0's jar file.
+      </p>
+      <p>
+	c3p0 DataSources may be configured via simple <tt>java.util.Properties</tt>
 	files called <tt>c3p0.properties</tt>, via more advanced 
 	<a href="https://github.com/typesafehub/config/blob/master/HOCON.md">HOCON configuration files</a> 
 	(e.g. <tt>application.conf</tt>, <tt>application.json</tt>), or in an XML format,
@@ -514,7 +520,7 @@ cpds.close();
 	This is a JavaBean-style class with a public, no-arg constructor,
 	but before you use the DataSource, you'll have to be sure to set at least the property <tt>jdbcUrl</tt>. You may also
 	want to set <tt>user</tt> and <tt>password</tt>, and, if you use an old-style JDBC driver that you will not
-	externally preload, you should set the <tt>driverClass</tt>.
+	externally preload, you should set the <tt>driverClass</tt>. 
       </p>
 <div class="example">
 ComboPooledDataSource cpds = new ComboPooledDataSource();
@@ -533,7 +539,7 @@ cpds.setMaxPoolSize(20);
 ...
 </div>
       <p>
-	The defaults of any c3p0 DataSource are determined by configuration you supply, or
+	The default values of any c3p0 DataSource property are determined by configuration you supply, or
 	else revert to hard-coded defaults [see <a href="#configuration_properties">configuration properties</a>].
 	c3p0 supports <a href="#named_configurations">named configurations</a> so that you can
 	configure multiple DataSources.
@@ -598,7 +604,8 @@ ds_pooled = DataSources.pooledDataSource( ds_unpooled, overrides );
       </p>
       <div class="example">
 // create the PooledDataSource using the a named configuration and specified overrides
-ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoAppConfig", overrides ); 
+// "intergalactoApp" is a named configuration
+ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoApp", overrides ); 
       </div>
 
       <p><a id="showDataSourcesWithPoolConfig" 
@@ -814,7 +821,9 @@ static void cleanup(DataSource ds) throws SQLException
       <p>
 	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>
 	is an instance of <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>,
-	and can be closed directly via its <tt>close()</tt> method.
+	and can be closed directly via its <tt>close()</tt> method. <tt>PooledDataSource</tt> implements <tt>java.lang.AutoCloseable</tt>,
+	so they may be managed by 
+	<a href="http://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html">Java 7+ try-with-resources</a> blocks.
       </p>
       <p>
 	Unreferenced instances of <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>
@@ -950,8 +959,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       </p>
       <p>
 	All tweakable properties are documented for reference
-	in <a href="#configuration_properties">Appendix A</a>. The most basic and important c3p0 configuration
-	topics are discussed below.
+	in <a href="#configuration_properties">Appendix A</a>. Most c3p0 configuration
+	topics are discussed in detail below.
       </p>
       <h3>
 	<a name="basic_pool_configuration">Basic Pool Configuration</a>
@@ -977,7 +986,10 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	Within the range between <tt>minPoolSize</tt> and <tt>maxPoolSize</tt>, the number of Connections in
 	a pool varies according to usage patterns. The number of Connections increases whenever a Connection
 	is requested by a user, no Connections are available, and the pool has not yet reached <tt>maxPoolSize</tt>
-	in the number of Connections managed. Since Connection acquisition is very slow, it is almost always useful to
+	in the number of Connections managed. 
+      </p>
+      <p>
+	Since Connection acquisition is very slow, it is almost always useful to
 	increase the number of Connections eagerly, in batches, rather than forcing each client to wait for a new
 	Connection to provoke a single acquisition when the load is increasing. <tt>acquireIncrement</tt> determines
 	how many Connections a c3p0 pool will attempt to acquire when the pool has run out of Connections. (Regardless
@@ -1060,20 +1072,22 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       </p>
       <p>
 	When configuring Connection testing, first try to minimize the cost of each test. If you are using a JDBC driver
-	that you are certain supports the new(ish) JDBC 4 API, do nothing. JDBC 4 Connections include a method called
+	that you are certain supports the new(ish) jdbc4 API &mdash; and if you are using c3p0-0.9.5 or highr! &mdash; let your driver handle this for you. 
+	jdbc4 Connections include a method called
 	<tt>isValid()</tt> that should be implemented as a fast, reliable Connection test. By default, c3p0 will use that
-	method if it is present.
+	method if it is present. 
       </p>
 
       <p>
 	However, if your driver does not support this new-ish API, c3p0's default behavior is to test Connections
 	by calling the <tt>getTables()</tt> method on a Connection's associated <tt>DatabaseMetaData</tt>
-	object. This has the advantage of being very robust and working with any database, and regardless of the database schema. 
+	object. This has the advantage of being very robust and working with any database, regardless of the database schema. 
 	However, a call to <tt>DatabaseMetaData.getTables()</tt> is often much slower than a simple database query,
-	and this test may significantly impair your pool's performance.
+	and using this test may significantly impair your pool's performance.
       </p>
       <p>
-	The simplest way to speed up Connection testing under a JDBC 3 driver is to define a test query with the <tt>preferredTestQuery</tt>
+	The simplest way to speed up Connection testing under a JDBC 3 driver (or a pre-0.9.5 version of c3p0)
+	is to define a test query with the <tt>preferredTestQuery</tt>
 	parameter. Be careful, however. Setting <tt>preferredTestQuery</tt> will lead to errors as Connection tests fail
 	if the query target table does not exist in your database <i>prior to initialization of your DataSource</i>.
 	Depending on your database and JDBC driver, a table-independent query like <tt>SELECT 1</tt> may (or may not) be 
@@ -1114,7 +1128,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<ol type="1">
 	  <li>
 	    <p>
-	      If you know your driver supports the JDBC 4 <tt>Connection.isValid(...)</tt> method, don't set a <tt>preferredTestQuery</tt>. 
+	      If you know your driver supports the JDBC 4 <tt>Connection.isValid(...)</tt> method and you are using c3p0-0.9.5 or above, don't set a <tt>preferredTestQuery</tt>. 
 	      If your driver does not support this method (or if you are not sure), try <tt><b>SELECT 1</b></tt> for your <tt>preferredTestQuery</tt>, if you are running MySQL or Postgres.
 	      For other databases, look for 
 	      <a href="http://stackoverflow.com/questions/3668506/efficient-sql-test-query-or-validation-query-that-will-work-across-all-or-most">suggestions here</a>.
