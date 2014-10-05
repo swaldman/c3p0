@@ -122,7 +122,7 @@ import java.util.Map;
  *    silently excluded from the pool, and which remain unclosed by the client application.</li>
  *  </ol>
  */
-public interface PooledDataSource extends DataSource
+public interface PooledDataSource extends DataSource, AutoCloseable
 {
     public String getIdentityToken();
     public String getDataSourceName();
