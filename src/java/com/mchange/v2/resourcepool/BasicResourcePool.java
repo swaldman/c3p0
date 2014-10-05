@@ -544,46 +544,58 @@ class BasicResourcePool implements ResourcePool
     public Object checkoutResource( long timeout )
 	throws TimeoutException, ResourcePoolException, InterruptedException
     {
-        Object resc = prelimCheckoutResource( timeout );
+	try
+	{
+	    Object resc = prelimCheckoutResource( timeout );
+	    
+	    // best to do the recheckout while we don't hold this'
+	    // lock, so we don't refurbish-on-checkout while holding.
+	    boolean refurb = attemptRefurbishResourceOnCheckout( resc );
+	    
+	    synchronized( this )
+	    {
+		if (!refurb)
+		{
+		    if (Debug.DEBUG && logger.isLoggable( MLevel.FINER))
+			logger.log( MLevel.FINER, "Resource [" + resc + "] could not be refurbished in preparation for checkout. Will try to find a better resource." );
 
-        boolean refurb = attemptRefurbishResourceOnCheckout( resc );
+		    removeResource( resc );
+		    ensureMinResources();
+		    resc = null;
+		}
+		else
+		{
+		    asyncFireResourceCheckedOut( resc, managed.size(), unused.size(), excluded.size() );
+		    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
+		    
+		    PunchCard card = (PunchCard) managed.get( resc );
+		    if (card == null) //the resource has been removed!
+		    {
+			if (Debug.DEBUG && logger.isLoggable( MLevel.FINER ))
+			    logger.finer("Resource " + resc + " was removed from the pool while it was being checked out " +
+					" or refurbished for checkout. Will try to find a replacement resource.");
+			resc = null;
+		    }
+		    else
+		    {
+			card.checkout_time = System.currentTimeMillis();
+			if (debug_store_checkout_exceptions)
+			    card.checkoutStackTraceException = new Exception("DEBUG STACK TRACE: Overdue resource check-out stack trace.");
+		    }
+		}
+	    }
 
-        synchronized( this )
-        {
-            if (!refurb)
-            {
-                removeResource( resc );
-                ensureMinResources();
-                resc = null;
-            }
-            else
-            {
-                asyncFireResourceCheckedOut( resc, managed.size(), unused.size(), excluded.size() );
-                if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
-
-                PunchCard card = (PunchCard) managed.get( resc );
-                if (card == null) //the resource has been removed!
-                {
-                    if (logger.isLoggable( MLevel.FINE ))
-                        logger.fine("Resource " + resc + " was removed from the pool while it was being checked out " +
-                        " or refurbished for checkout.");
-                    resc = null;
-                }
-                else
-                {
-                    card.checkout_time = System.currentTimeMillis();
-                    if (debug_store_checkout_exceptions)
-                        card.checkoutStackTraceException = new Exception("DEBUG STACK TRACE: Overdue resource check-out stack trace.");
-                }
-            }
-        }
-
-        // best to do the recheckout while we don't hold this'
-        // lock, so we don't refurbish-on-checkout while holding.
-        if (resc == null)
-            return checkoutResource( timeout );
-        else
-            return resc;
+	    if (resc == null)
+		return checkoutResource( timeout );
+	    else
+		return resc;
+	}
+	catch ( StackOverflowError e )
+	{
+	    throw new NoGoodResourcesException( "After checking so many resources we blew the stack, no resources tested acceptable for checkout. " +
+						"See logger com.mchange.v2.resourcepool.BasicResourcePool output at FINER/DEBUG for information on individual failures.", 
+						e );
+	}
     }
 
     private synchronized Object prelimCheckoutResource( long timeout )
@@ -634,8 +646,7 @@ class BasicResourcePool implements ResourcePool
             if ( idleCheckResources.contains( resc ) )
             {
                 if (Debug.DEBUG && logger.isLoggable( MLevel.FINER))
-                    logger.log( MLevel.FINER, 
-                                    "Resource we want to check out is in idleCheck! (waiting until idle-check completes.) [" + this + "]");
+                    logger.log( MLevel.FINER, "Resource we want to check out is in idleCheck! (waiting until idle-check completes.) [" + this + "]");
 
                 // we'll move remove() to after the if, so we don't have to add back
                 // unused.add(0, resc );
@@ -655,6 +666,9 @@ class BasicResourcePool implements ResourcePool
             }
             else if ( shouldExpire( resc ) )
             {
+                if (Debug.DEBUG && logger.isLoggable( MLevel.FINER))
+                    logger.log( MLevel.FINER, "Resource we want to check out has expired already. Trying again.");
+
                 removeResource( resc );
                 ensureMinResources();
                 return prelimCheckoutResource( timeout );
@@ -704,6 +718,12 @@ class BasicResourcePool implements ResourcePool
             }
             throw e;
         }
+	catch ( StackOverflowError e ) 
+	{
+	    throw new NoGoodResourcesException( "After checking so many resources we blew the stack, no resources tested acceptable for checkout. " +
+						"See logger com.mchange.v2.resourcepool.BasicResourcePool output at FINER/DEBUG for information on individual failures.", 
+						e );
+	}
     }
 
     public synchronized void checkinResource( Object resc ) 

@@ -535,7 +535,7 @@ public abstract class GooGooStatementCache
         try
         {
             final Object[] outHolder = new Object[1];
-            final SQLException[] exceptionHolder = new SQLException[1];
+            final Throwable[] exceptionHolder = new Throwable[1];
 
             class StmtAcquireTask implements Runnable
             {
@@ -550,14 +550,10 @@ public abstract class GooGooStatementCache
                     catch ( InvocationTargetException e )
                     { 
                         Throwable targetException = e.getTargetException();
-                        if ( targetException instanceof SQLException )
-                            exceptionHolder[0] = (SQLException) targetException;
-                        else
-                            exceptionHolder[0] 
-                                            = SqlUtils.toSQLException(targetException);
+			exceptionHolder[0] = targetException;
                     }
                     catch ( Exception e )
-                    { exceptionHolder[0] = SqlUtils.toSQLException(e); }
+                    { exceptionHolder[0] = e; }
                     finally
                     { 
                         synchronized ( GooGooStatementCache.this )
@@ -572,7 +568,7 @@ public abstract class GooGooStatementCache
             while ( outHolder[0] == null && exceptionHolder[0] == null )
                 this.wait(); //give up our lock while the Statement gets prepared
             if (exceptionHolder[0] != null)
-                throw exceptionHolder[0];
+                throw new SQLException("A problem occurred while trying to acquire a cached PreparedStatement in a background thread.", exceptionHolder[0] );
             else
             {
                 Object out = outHolder[0];

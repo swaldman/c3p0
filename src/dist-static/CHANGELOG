@@ -1,3 +1,14 @@
+
+	-- If a problem occurs while acquiring a cached Statement from the Statement pool, the Exception we throw includes
+	   both the actual problem (which occurs in a helper thread) and the stack trace of the client which provoked the
+	   failed acquisition. The problem that occurred within the helper thread is captured as the root cause Throwable.
+	   Many thanks to Michele Rossi for the suggestion.
+	-- Finally wrapped StackOverflowError that comes in the rare, pathological case when every attempt to checkout
+	   a resource fails some test or check until eventually recursive retries blow the stack. A NoGoodResourcesException
+	   is now thrown in this case. Thanks to Ibenda on github for calling attention to the issue (and others annoyed by
+	   it long ago). [Note: The StackOverflowError remains accessible, wrapped as the root cause Exception. So I expect
+	   continuing bug reports / complaints about a StackOverflowException from users who don't notice it is caught and 
+	   handled.]
 	-- Some documentation updates and fixes.
 	-- Made PooledDataSource AutoCloseable, so that try with resources can be used to clean up after them.
 	-- Added some warnings in BasicResourcePool's constructor if min, max, and start are misordered.
