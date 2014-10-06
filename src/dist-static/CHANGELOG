@@ -1,3 +1,5 @@
+	-- In mchange-commons-java, modified log library to consider slf4j library unfound if it gets bound to its 
+	   no-op ('NOP') back-end.
 	-- Gave proxies a toString() method that embeds the toString() method of the objects they are wrapping, including
 	   Statement text if the underlying driver supports that. Thanks to Ketan Padegaonkar for the suggestion.
 	-- Added API [in mchange-commons-java] to make it easier for users to create a MultiPropertiesConfig object from a
