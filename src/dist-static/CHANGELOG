@@ -1,3 +1,4 @@
+c3p0-0.9.5-pre9
 	-- In mchange-commons-java, modified log library to consider slf4j library unfound if it gets bound to its 
 	   no-op ('NOP') back-end.
 	-- Gave proxies a toString() method that embeds the toString() method of the objects they are wrapping, including
