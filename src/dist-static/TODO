@@ -3,14 +3,7 @@
    enforce exclusive use by maintenance tasks, there is no need to re-enforce exclusive access at all
    [???]
 
--- it would be insanely easy to get rid of the recursiveness in BasicResourcePool.checkoutResource( ... ).
-   worth doing? it's tail-recursive, best to just wait 'til that's optimized in Java?
-
--- Deserialization of all IdentityTokenized should readResolve() to ensure
-   that either already C3P0Registry-registered IdenityTokenizeds are used,
-   or if unavailable, the nascent Object registers. ConnectionTesters should also
-   be coalesced if possible. (Delayed to 0.9.6... although more correct, it's possible
-   (but unlikely) this might break something, and I want 0.9.5 out the door already.)
+-- ConnectionTesters should be coalesced on deserialization if possible. [0.96]
    
 
 
