@@ -4,6 +4,11 @@
    [???]
 
 -- ConnectionTesters should be coalesced on deserialization if possible. [0.96]
+
+-- MultipliedPoolBackedDataSources [0.9.6]
+
+-- Modify AbstractPoolBackedDataSource so that mere JMX inspection doesn't force initialization [0.9.6]
+      implement withPoolManager( doitIfThere, defaultValue )
    
 
 

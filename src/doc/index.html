@@ -147,6 +147,9 @@
       div.hibernate_props {
          text-align: center;
       }
+      div.indented {
+         margin-left: 4em;
+      }
       div.other_properties_desc {
          padding-top: 2px;
          padding-left: 2em;
@@ -1486,31 +1489,87 @@ public class VerboseConnectionCustomizer
       <p>
 	If JMX libraries and a JMX MBeanServer are available in your environment (they are include in JDK 1.5 and above), 
 	you can inspect and configure your c3p0 datasources via a JMX administration tool (such as jconsole, bundled with
-	jdk 1.5). You will find that c3p0 registers MBeans under <tt>com.mchange.v2.c3p0</tt>, one with statistics about the
+	jdk 1.5). You will find that c3p0 registers MBeans under the domain <tt>com.mchange.v2.c3p0</tt>, one with statistics about the
 	library as a whole (called <tt>C3P0Registry</tt>), and an MBean for each <tt>PooledDataSource</tt> you deploy. You can view and
 	modify your DataSource's configuration properties, track the activity of Connection, Statement, and Thread pools, and reset
 	pools and DataSources via the <tt>PooledDataSource</tt> MBean. (You may wish to view the API docs of 
 	<a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a> for documentation of 
 	the available operations.)
       </p>
+      <h4><a name="configuring_jmx_names">Configuring JMX Names</a></h4>
       <p>
-	The name under which mbeans for c3p0 PooledDataSources will be registered includes the property
-	<a class="cfg_param" href="#dataSourceName">dataSourceName</a>. 
-	So, if you set this property, you can ensure that semanically equivalent data sources
-	are identifiable across application restarts.
+	Each <tt>PooledDataSource</tt> within your application may have the following attributes embedded within its <tt>ObjectName</tt>:
+	<ul>
+	  <li><tt>type</tt></li>
+	  <li><tt>identityToken</tt></li>
+	  <li><tt>name</tt></li>
+	</ul>
       </p>
       <p>
-	You can also customize the name under which the C3P0Registry will appear under JMX, which is
-	useful if you wish to monitor multiple installations of c3p0 from a single MBean server. 
-	As a System property, in <tt>c3p0.properties</tt>, or in <a href="#c3p0_conf">HOCON config</a>, just set the following property (hopefully choosing a better
-	name than 'myRegistryName'):
+	The type will always be <tt>PooledDataSource</tt>. The <tt>identityToken</tt> is a unique String associated with each c3p0 DataSource.
+	The <tt>name</tt> will be the value of the property <a class="cfg_param" href="#dataSourceName">dataSourceName</a>,
+	which you can set yourself to ensure that semanically equivalent data sources are identifiable across application restarts. If you do not set
+	a <a class="cfg_param" href="#dataSourceName">dataSourceName</a>, the name attribute may not be defined at all, or it may take some default value.
       </p>
-      <div class="example">
-com.mchange.v2.c3p0.management.RegistryName=myRegistryName
+      <p>
+	For example, the following might be the full JMX ObjectName, in String format, of a c3p0 DataSource whose <tt>dataSourceName</tt> is <tt>intergalactoApp</tt>:
+      </p>
+      <div class="indented">
+<tt>com.mchange.v2.c3p0:type=PooledDataSource,identityToken=2rvy139515ecj0rkwntk|16adc251,name=intergalactoApp</tt>
       </div>
       <p>
-    If you do not want c3p0 to register MBeans with your JMX environment, you can suppress this
-    behavior with the following, set as a System property, in <tt>c3p0.properties</tt>, or in <a href="#c3p0_conf">HOCON config</a>:
+	c3p0 prefers to include identity tokens in JMX ObjectNames to ensure that every ObjectName is unique. If you can, stick with c3p0's default behavior.
+	But if you really need to, you can configure c3p0 to exclude the <tt>identityToken</tt> attribute from ObjectNames, so that your
+	PooledDataSources have predictable, reproducible names. Set the following, as a System property, in <tt>c3p0.properties</tt>, or in <a href="#c3p0_conf">HOCON config</a>:
+      </p>
+      <div class="example">
+com.mchange.v2.c3p0.management.ExcludeIdentityToken=true
+      </div>
+      <p>
+	This will lead to names missing the long identity token, names like
+      </p>
+      <div class="indented">
+<tt>com.mchange.v2.c3p0:type=PooledDataSource,name=intergalactoApp</tt>
+      </div>
+      <p>
+	If you exclude identity tokens from JMX names <b>you must ensure that each PooledDataSource always has a unique <tt>dataSourceName</tt> value!</b>
+	Otherwise, only one of the PooledDataSources with identical names will be accessible by JMX, and which one will be undefined. Excluding identity tokens
+	from JMX names is particularly hazardous if you will initialize multiple DataSource from the same <a href="#named_configurations">named configuration</a>.
+	By default, <tt>dataSourceName</tt> takes the value of the configuration name. 
+	<b>
+	  After constructing a PooledDataSouce with a named configuration, be sure to update <tt>dataSourceName</tt> to some new, unique value befoe
+	  constructing a second DataSource with the same named configuration.
+	</b>
+      </p>
+      <p>
+	The singleton <tt>C3P0Registry</tt> is also repesented by an MBean. It may have the following attributes embedded within its JMX <tt>ObjectName</tt>:
+	<ul>
+	  <li><tt>type</tt></li>
+	  <li><tt>name</tt></li>
+	</ul>
+      </p>
+      <p>
+	The value of the name attribute is determined by the following property, which may be set as a System property, in <tt>c3p0.properties</tt>, or in <a href="#c3p0_conf">HOCON config</a>.
+      </p>
+      <div class="example">
+com.mchange.v2.c3p0.management.RegistryName=CoolC3P0Registry
+      </div>
+      <p>
+	With the RegistryName shown above, the full JMX ObjectName, in String format, would be
+      </p>
+      <div class="indented">
+<tt>com.mchange.v2.c3p0:type=C3P0Registry,name=CoolC3P0Registry</tt>
+      </div>
+      <p>
+	If you do not explicitly set a RegistryName, no default value is used, no name attribute is embedded. The full JMX ObjectName in String format would be
+      </p>
+      <div class="indented">
+<tt>com.mchange.v2.c3p0:type=C3P0Registry</tt>
+      </div>
+      <h4><a name="disabling_jmx_support">Disabling JMX Support</a></h4>
+      <p>
+    If you do not want c3p0 to register MBeans with your JMX environment, you can suppress JMX support
+    entirely. Set the following, as a System property, in <tt>c3p0.properties</tt>, or in <a href="#c3p0_conf">HOCON config</a>:
       </p>
       <div class="example">
 com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.management.NullManagementCoordinator      
@@ -2654,11 +2713,13 @@ c3p0 {
 	</ul>
 	<h4>Configuring JMX</h4>
 	<p>
-	  The following property controls c3p0's JMX management interface. Plese see 
+	  The following properties affect c3p0's JMX management interface. Plese see 
 	  <a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a> above
 	  for more information.
 	</p>
 	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.management.ExcludeIdentityToken</li>
+	  <li>com.mchange.v2.c3p0.management.RegistryName</li>
 	  <li>com.mchange.v2.c3p0.management.ManagementCoordinator</li>
 	</ul>
 	<h4>Configuring the VMID</h4>

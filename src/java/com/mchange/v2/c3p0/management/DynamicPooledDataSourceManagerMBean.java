@@ -242,16 +242,16 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
                 if (mbs.isRegistered( oname ))
                 {
                     mbs.unregisterMBean( oname );
-                    if (logger.isLoggable(MLevel.FINER))
-                        logger.log(MLevel.FINER, "MBean: " + oname.toString() + " unregistered, in order to be reregistered after update.");
+                    if (logger.isLoggable(MLevel.FINE))
+                        logger.log(MLevel.FINE, "MBean: " + oname.toString() + " unregistered, in order to be reregistered after update.");
                 }
 
 		// the name may have changed because dataSourceName may have changed.
 		this.mbeanName = ActiveManagementCoordinator.getPdsObjectNameStr(pds);
 		oname = ObjectName.getInstance(mbeanName);
                 mbs.registerMBean( this, oname );
-                if (logger.isLoggable(MLevel.FINER))
-                    logger.log(MLevel.FINER, "MBean: " + oname.toString() + " registered.");
+                if (logger.isLoggable(MLevel.FINE))
+                    logger.log(MLevel.FINE, "MBean: " + oname.toString() + " registered.");
 		
                 return null;
             }

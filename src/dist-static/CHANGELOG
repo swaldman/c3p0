@@ -1,3 +1,7 @@
+	-- Added config parameter com.mchange.v2.c3p0.management.ExcludeIdentityToken that allows users to
+	   have c3p0 generate predictable, reproducible full JMX ObjectNames (at the cost of extra user
+	   responsibility in ensuring the uniqueness of those names). Updated and expanded documentation
+	   with respect to JMX support.
 c3p0-0.9.5-pre9
 	-- In mchange-commons-java, modified log library to consider slf4j library unfound if it gets bound to its 
 	   no-op ('NOP') back-end.
