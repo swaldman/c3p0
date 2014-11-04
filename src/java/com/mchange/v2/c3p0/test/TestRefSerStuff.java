@@ -44,11 +44,19 @@ import javax.naming.Referenceable;
 import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.c3p0.DriverManagerDataSource;
+import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;
 import com.mchange.v2.c3p0.PoolBackedDataSource;
-
 
 public final class TestRefSerStuff
 {
+    static String toString( DataSource ds )
+    {
+	if ( ds instanceof AbstractPoolBackedDataSource )
+	    return ((AbstractPoolBackedDataSource ) ds).toString( true );
+	else
+	    return ds.toString();
+    }
+
     static void create(DataSource ds) throws SQLException
     {
 	Connection con = null;
@@ -117,10 +125,10 @@ public final class TestRefSerStuff
     static void doTest(DataSource checkMe) throws Exception
     {
 	doSomething( checkMe );
-	System.err.println("\tcreated:   " + checkMe);
+	System.err.println("\tcreated:   " + toString(checkMe));
 	DataSource afterSer = (DataSource) SerializableUtils.testSerializeDeserialize( checkMe );
 	doSomething( afterSer );
-	System.err.println("\tafter ser: " + afterSer );
+	System.err.println("\tafter ser: " + toString(afterSer));
 	Reference ref = ((Referenceable) checkMe).getReference();
 //  		    System.err.println("ref: " + ref);
 //  		    System.err.println("Factory Class: " + ref.getFactoryClassName());
@@ -130,7 +138,7 @@ public final class TestRefSerStuff
 										 null );
 //  		    System.err.println("afterRef data source: " + afterRef);
 	doSomething( afterRef );
-	System.err.println("\tafter ref: " + afterRef );
+	System.err.println("\tafter ref: " + toString(afterRef));
     }
 
     public static void main( String[] argv )
@@ -187,8 +195,8 @@ public final class TestRefSerStuff
 		System.err.println("PoolBackedDataSource:");
 		doTest( pbds );
         
-        ComboPooledDataSource cpds = new ComboPooledDataSource();
-        doTest( cpds );
+		ComboPooledDataSource cpds = new ComboPooledDataSource();
+		doTest( cpds );
 	    }
 	catch ( Exception e )
 	    { e.printStackTrace(); }
