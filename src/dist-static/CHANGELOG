@@ -1,3 +1,7 @@
+c3p0-0.9.5-pre10
+	-- Removed support for try-with-resources (implementation of marker interface java.lang.AutoCloseable)
+	   as it breaks Java6 support. I'll save it for 0.9.6 (unless I get a lot of complaints).
+	   Thanks again to dwscott on github.
 	-- Added config parameter com.mchange.v2.c3p0.management.ExcludeIdentityToken that allows users to
 	   have c3p0 generate predictable, reproducible full JMX ObjectNames (at the cost of extra user
 	   responsibility in ensuring the uniqueness of those names). Updated and expanded documentation
