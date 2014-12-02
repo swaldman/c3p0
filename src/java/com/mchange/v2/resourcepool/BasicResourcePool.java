@@ -712,7 +712,7 @@ class BasicResourcePool implements ResourcePool
                 {
                     logger.log(MLevel.WARNING, 
                                     this + " -- an attempt to checkout a resource was interrupted, and the pool is still live: some other thread " +
-                                    "must have either interrupted the Thread attempting checkout!",
+                                    "must have interrupted the Thread attempting checkout!",
                                     e );
                 }
             }
