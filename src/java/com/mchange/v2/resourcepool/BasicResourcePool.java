@@ -355,7 +355,7 @@ class BasicResourcePool implements ResourcePool
             if ( logger.isLoggable( MLevel.FINER ) )
                 logger.finer( this + " config: [start -> " + this.start + "; min -> " + this.min + "; max -> " + this.max + "; inc -> " + this.inc +
                                 "; num_acq_attempts -> " + this.num_acq_attempts + "; acq_attempt_delay -> " + this.acq_attempt_delay +
-                                "; check_idle_resources_delay -> " + this.check_idle_resources_delay + "; mox_resource_age -> " + this.max_resource_age +
+                                "; check_idle_resources_delay -> " + this.check_idle_resources_delay + "; max_resource_age -> " + this.max_resource_age +
                                 "; max_idle_time -> " + this.max_idle_time + "; excess_max_idle_time -> " + this.excess_max_idle_time +
                                 "; destroy_unreturned_resc_time -> " + this.destroy_unreturned_resc_time +
                                 "; expiration_enforcement_delay -> " + this.expiration_enforcement_delay + 
