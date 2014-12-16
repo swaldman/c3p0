@@ -7,5 +7,4 @@ dist/*
 dbms/oracle-thin/build/*
 dbms/oracle-thin/build/apidocs/*
 dbms/oracle-thin/dist/*
-
-
+.idea
