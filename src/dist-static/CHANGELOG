@@ -1,3 +1,6 @@
+	-- DriverManagerDataSource: Added synchronization missing for the very rare case of an on-the-fly 
+	   reset of 'driverClass'; minor optimization, properly marked driver class loaded if an instantiation
+	   of the driver has succeeded.
 c3p0-0.9.5-pre10
 	-- Removed support for try-with-resources (implementation of marker interface java.lang.AutoCloseable)
 	   as it breaks Java6 support. I'll save it for 0.9.6 (unless I get a lot of complaints).

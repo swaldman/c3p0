@@ -109,12 +109,15 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
             {
                 if ( "driverClass".equals( evt.getPropertyName() ) )
 		{
-                    setDriverClassLoaded( false );
+		    synchronized (DriverManagerDataSource.this) 
+		    {
+			setDriverClassLoaded( false );
 
-		    // guard against setting to empty String or whitespace values. 
-		    // JMX clients sometimes (unfortunately) represent null properties as blank fields, then update them to empty or whitespace Strings.
-		    if ( driverClass != null && driverClass.trim().length() == 0 ) //an empty String or all whitespace name
-			driverClass = null;
+			// guard against setting to empty String or whitespace values. 
+			// JMX clients sometimes (unfortunately) represent null properties as blank fields, then update them to empty or whitespace Strings.
+			if ( driverClass != null && driverClass.trim().length() == 0 ) //an empty String or all whitespace name
+			    driverClass = null;
+		    }
 		}
             }
         };
@@ -270,7 +273,11 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		    logger.finer( "Circumventing DriverManager and instantiating driver class '" + driverClass + 
 				  "' directly. (forceUseNamedDriverClass = " + forceUseNamedDriverClass + ")" );
 
-		try { driver = (Driver) Class.forName( driverClass ).newInstance(); }
+		try 
+		{ 
+		    driver = (Driver) Class.forName( driverClass ).newInstance();
+		    this.setDriverClassLoaded( true );
+		}
 		catch (Exception e)
 		    { SqlUtils.toSQLException("Cannot instantiate specified JDBC driver. Exception while initializing named, forced-to-use driver class'" + driverClass +"'", e); }
 	    }
