@@ -1,3 +1,5 @@
+c3p0-0.9.5
+	-- Fixed small typo in log message, thanks Jaran Nilsen
 	-- DriverManagerDataSource: Added synchronization missing for the very rare case of an on-the-fly 
 	   reset of 'driverClass'; minor optimization, properly marked driver class loaded if an instantiation
 	   of the driver has succeeded.
