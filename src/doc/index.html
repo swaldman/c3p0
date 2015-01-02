@@ -935,10 +935,11 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       <p>
 	There are several ways to modify c3p0 properties: 
 	You can directly alter the property values associated with a particular DataSource in your code, 
-	or you can configure c3p0 externally, 
-	via a <a href="#c3p0_properties">simple Java properties file</a>,
-	via an <a href="#c3p0-config.xml">XML configuration file</a>, or  
-	via <a href="#system_properties">System properties</a>. Configuration files
+	or you can configure c3p0 externally...<ul> 
+	<li>via a <a href="#c3p0_properties">simple Java properties file</a></li>
+	<li>via <a href="#c3p0_conf">HOCON (typesafe-config) files</a> (if and only if you bundle the typesafe-config library with your application)</li>
+	<li>via an <a href="#c3p0-config.xml">XML configuration file</a></li>
+	<li>via <a href="#system_properties">System properties</a></li></ul> Configuration files
 	are normally looked up under standard names (<tt>c3p0.properties</tt> or <tt>c3p0-config.xml</tt>)
 	at the top level of an application's classpath, but the XML configuration can be placed
 	anywhere in an application's file system or classpath, if the system property <a href="#locating_configuration_information"><tt>com.mchange.v2.c3p0.cfg.xml</tt></a> is set.
@@ -2101,7 +2102,7 @@ c3p0 {
 	The following properties can be set directly in code as JavaBeans properties, 
 	via a <a href="#system_properties">System properties</a> or a <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>  file
 	(with <tt>c3p0.</tt> prepended to
-	the property name), or in a <a href="#c3p0-config.xml"><tt>c3p0-config.xml</tt></a> file. See the section on 
+	the property name), in <a href="#c3p0_conf">HOCON (typesafe-config) files</a>, or in a <a href="#c3p0-config.xml"><tt>c3p0-config.xml</tt></a> file. See the section on 
 	<a href="#configuration">Configuration</a> above.
 	Click on the property name for a full description. 
       </p>
@@ -2881,11 +2882,11 @@ c3p0.maxIdleTime=1800
 	  and <a href="https://github.com/typesafehub/config/#uses-of-substitutions">substitutions</a> from <tt>/c3p0.properties</tt> will be resolved.
 	  The Typesafe config library can be <a href="http://search.maven.org/#artifactdetails%7Ccom.typesafe%7Cconfig%7C1.0.0%7Cbundle">downloaded from the Maven Central Repository</a>.
 	</p>
-	<p><i>
+	<p><i><b>
 	    Remember, HOCON configuration in only supported if you explicitly bundle the Typesafe config library
 	    with your application. The library is not included with c3p0's binary distribution, nor is it downloaded
 	    with c3p0 as a transitive dependency!
-	</i></p>
+	</b></i></p>
 	<p>
 	  Here are some examples of setting c3p0 configuration in HOCON:
 	</p>
