@@ -3,7 +3,7 @@
    enforce exclusive use by maintenance tasks, there is no need to re-enforce exclusive access at all
    [???]
 
--- ConnectionTesters should be coalesced on deserialization if possible. [0.96]
+-- ConnectionTesters should be coalesced on deserialization if possible. [0.9.6]
 
 -- MultipliedPoolBackedDataSources [0.9.6]
 
