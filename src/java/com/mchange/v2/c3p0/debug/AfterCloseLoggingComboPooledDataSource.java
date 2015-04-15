@@ -61,7 +61,7 @@ public final class AfterCloseLoggingComboPooledDataSource extends AbstractComboP
     public Connection getConnection(String user, String password) throws SQLException
     { return AfterCloseLoggingConnectionWrapper.wrap( super.getConnection(user, password) );  }
     
-    // serialization stuff -- set up bound/constrained property event handlers on deserialization
+    // serialization stuff
     private static final long serialVersionUID = 1;
     private static final short VERSION = 0x0001;
     
