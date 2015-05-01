@@ -62,7 +62,7 @@ class BasicResourcePool implements ResourcePool
         {
             USE_SCATTERED_ACQUIRE_TASK = false;
 	    if ( logger.isLoggable( MLevel.INFO ) )
-		logger.info(BasicResourcePool.class.getName() + " using traditional, Thread-blocking AcquireTask. Yuk. Why?");
+		logger.info(BasicResourcePool.class.getName() + " using traditional, Thread-blocking AcquireTask. Yuk. Why? It's no longer supported.");
         }
         else
             USE_SCATTERED_ACQUIRE_TASK = true;
@@ -1846,8 +1846,14 @@ class BasicResourcePool implements ResourcePool
 	    boolean recheck = false;
             try
             {
-                boolean fkap = isForceKillAcquiresPending();
-                if (! fkap)
+                boolean fkap;
+		boolean bkn;
+		synchronized( BasicResourcePool.this ) 
+		{
+		    fkap = BasicResourcePool.this.force_kill_acquires;
+		    bkn  = BasicResourcePool.this.broken;
+		}
+                if (!bkn && !fkap)
                 {
                     //we don't want this call to be sync'd
                     //on the pool, so that resource acquisition
@@ -1868,7 +1874,7 @@ class BasicResourcePool implements ResourcePool
 		    {
 			if (logger.isLoggable(MLevel.FINEST))
 			    logger.finest("Acquisition series terminated " +
-					  (fkap ? "because force-kill-acquires is pending" : "successfully") +
+					  (bkn ? "because this resource pool has been close()ed" : (fkap ? "because force-kill-acquires is pending" : "successfully") ) +
 					  ". Decremented pending_acquires [" + pending_acquires + "], " +
 					  " attempts_remaining: " + attempts_remaining);
 		    }
