@@ -1,3 +1,8 @@
+	-- Removed embarrassingly frivolous nested locking in C3P0Registry which provoked rare deadlocks
+	   when users lookup extensions. Many thanks to Vlad Skarzhevskyy for calling attention to this
+	   issue.
+        -- ScatteredAcquireTask now tests to see if a BasicResourcePool has already been closed before
+	   attempting an acquisition. Thanks to kenicky on github for calling attention to this issue.
 c3p0-0.9.5
 	-- Fixed small typo in log message, thanks Jaran Nilsen
 	-- DriverManagerDataSource: Added synchronization missing for the very rare case of an on-the-fly 

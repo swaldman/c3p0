@@ -278,10 +278,13 @@ public final class C3P0Registry
         }
     }
 
-    public static synchronized Map extensionsForToken( String pooledDataSourceIdentityToken )
+    private static synchronized Object findTokenized( String identityToken ) 
+    { return tokensToTokenized.get( identityToken ); }
+
+    public static Map extensionsForToken( String pooledDataSourceIdentityToken )
 	throws NoSuchElementException, IllegalArgumentException
     {
-	Object o = tokensToTokenized.get( pooledDataSourceIdentityToken );
+	Object o = findTokenized( pooledDataSourceIdentityToken );
 	if ( o == null ) throw new NoSuchElementException( "No object is known to be identified by token '" + 
 							   pooledDataSourceIdentityToken + 
 							   "'. Either it is a bad token, or the object was no longer in use and has been garbage collected." );
