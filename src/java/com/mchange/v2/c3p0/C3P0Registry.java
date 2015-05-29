@@ -281,6 +281,8 @@ public final class C3P0Registry
     private static synchronized Object findTokenized( String identityToken ) 
     { return tokensToTokenized.get( identityToken ); }
 
+    // don't call this with C3P0Registry.class' lock, as PooledDataSource.getExtensions() is 
+    // generally synchronized and the nested locking can provoke deadlocks.
     public static Map extensionsForToken( String pooledDataSourceIdentityToken )
 	throws NoSuchElementException, IllegalArgumentException
     {
