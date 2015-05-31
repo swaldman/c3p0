@@ -147,6 +147,7 @@ public final class C3P0PooledConnectionPool
                     int propertyCycle, //seconds
                     int unreturnedConnectionTimeout, //seconds
                     boolean debugUnreturnedConnectionStackTraces,
+                    boolean forceSynchronousCheckins,
                     final boolean testConnectionOnCheckout,
                     final boolean testConnectionOnCheckin,
                     int maxStatements,
@@ -665,6 +666,7 @@ public final class C3P0PooledConnectionPool
                 fact.setExpirationEnforcementDelay( propertyCycle * 1000 );
                 fact.setDestroyOverdueResourceTime( unreturnedConnectionTimeout * 1000 );
                 fact.setDebugStoreCheckoutStackTrace( debugUnreturnedConnectionStackTraces );
+                fact.setForceSynchronousCheckins( forceSynchronousCheckins );
                 fact.setAcquisitionRetryAttempts( acq_retry_attempts );
                 fact.setAcquisitionRetryDelay( acq_retry_delay );
                 fact.setBreakOnAcquisitionFailure( break_after_acq_failure );
@@ -673,7 +675,7 @@ public final class C3P0PooledConnectionPool
         }
         catch (ResourcePoolException e)
         { throw SqlUtils.toSQLException(e); }
-                    }
+    }
 
     public PooledConnection checkoutPooledConnection() throws SQLException
     { 
@@ -1022,10 +1024,7 @@ public final class C3P0PooledConnectionPool
     public int getNumBusyConnections() throws SQLException
     { 
         try 
-        {
-            synchronized ( rp )
-            { return (rp.getAwaitingCheckinCount() - rp.getExcludedCount()); }
-        }
+        { return rp.getAwaitingCheckinNotExcludedCount(); }
         catch ( Exception e )
         { 
             //e.printStackTrace();

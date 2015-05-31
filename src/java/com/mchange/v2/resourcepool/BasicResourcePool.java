@@ -731,54 +731,57 @@ class BasicResourcePool implements ResourcePool
 	}
     }
 
-    public synchronized void checkinResource( Object resc ) 
-    throws ResourcePoolException
+    public void checkinResource( Object resc ) throws ResourcePoolException
     {
-        try
-        {
-            //we permit straggling resources to be checked in 
-            //without exception even if we are broken
-            if (managed.keySet().contains(resc))
-                doCheckinManaged( resc );
-            else if (excluded.contains(resc))
-                doCheckinExcluded( resc );
-            else if ( isFormerResource(resc) )
-            {
-                if ( logger.isLoggable( MLevel.FINER ) )
-                    logger.finer("Resource " + resc + " checked-in after having been checked-in already, or checked-in after " +
-                    " having being destroyed for being checked-out too long.");
-            }
-            else
-                throw new ResourcePoolException("ResourcePool" + (broken ? " [BROKEN!]" : "") + ": Tried to check-in a foreign resource!");
-            if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
-        }
-        catch ( ResourceClosedException e ) // one of our async threads died
-        {
-//          System.err.println(this + 
-//          " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.");
-//          e.printStackTrace();
+	try
+	{
+	    boolean unlocked_do_checkin_managed = false;
+	    synchronized ( this )
+	    {    
+		//we permit straggling resources to be checked in 
+		//without exception even if we are broken
+		if (managed.keySet().contains(resc))
+		    unlocked_do_checkin_managed = true;
+		else if (excluded.contains(resc))
+		    doCheckinExcluded( resc );
+		else if ( isFormerResource(resc) )
+		    {
+			if ( logger.isLoggable( MLevel.FINER ) )
+			    logger.finer("Resource " + resc + " checked-in after having been checked-in already, or checked-in after " +
+					 " having being destroyed for being checked-out too long.");
+		    }
+		else
+		    throw new ResourcePoolException("ResourcePool" + (broken ? " [BROKEN!]" : "") + ": Tried to check-in a foreign resource!");
+	    }
+	    if ( unlocked_do_checkin_managed ) doCheckinManaged( resc );
+	    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) syncTrace();
+	}
+	catch ( ResourceClosedException e ) // one of our async threads died
+	{
+	    if ( logger.isLoggable( MLevel.SEVERE ) )
+		logger.log( MLevel.SEVERE, 
+			    this + " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.", 
+			    e);
 
-            if ( logger.isLoggable( MLevel.SEVERE ) )
-                logger.log( MLevel.SEVERE, 
-                                this + " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.", 
-                                e);
-
-            this.unexpectedBreak();
-            throw e;
-        }
+	    this.unexpectedBreak();
+	    throw e;
+	}
     }
 
-    public synchronized void checkinAll()
-    throws ResourcePoolException
+    public void checkinAll() throws ResourcePoolException
     {
         try
         {
-            Set checkedOutNotExcluded = new HashSet( managed.keySet() );
-            checkedOutNotExcluded.removeAll( unused );
-            for (Iterator ii = checkedOutNotExcluded.iterator(); ii.hasNext(); )
-                doCheckinManaged( ii.next() );
-            for (Iterator ii = excluded.iterator(); ii.hasNext(); )
-                doCheckinExcluded( ii.next() );
+            Set checkedOutNotExcluded = null;
+	    synchronized ( this ) 
+	    {
+		checkedOutNotExcluded = new HashSet( managed.keySet() );
+		checkedOutNotExcluded.removeAll( unused );
+		for (Iterator ii = excluded.iterator(); ii.hasNext(); )
+		    doCheckinExcluded( ii.next() );
+	    }
+	    for (Iterator ii = checkedOutNotExcluded.iterator(); ii.hasNext(); )
+		doCheckinManaged( ii.next() );
         }
         catch ( ResourceClosedException e ) // one of our async threads died
         {
@@ -871,6 +874,9 @@ class BasicResourcePool implements ResourcePool
 
     public synchronized int getAwaitingCheckinCount()
     { return managed.size() - unused.size() + excluded.size(); }
+
+    public synchronized int getAwaitingCheckinNotExcludedCount()
+    { return managed.size() - unused.size(); }
 
     public synchronized void resetPool()
     {
@@ -1347,67 +1353,61 @@ class BasicResourcePool implements ResourcePool
     //debug only
     //Map lastCheckIns = Collections.synchronizedMap( new HashMap() );
 
+    // we insist the pool's lock not be held to avoid refurbishment on checkin with
+    // the lock if synchronous checkins have been forced
     private void doCheckinManaged( final Object resc ) throws ResourcePoolException
     {
-        assert Thread.holdsLock( this );
+        assert !Thread.holdsLock( this );
 
+        if ( Debug.DEBUG && this.statusInPool( resc ) == KNOWN_AND_AVAILABLE )
+	    throw new ResourcePoolException("Tried to check-in an already checked-in resource: " + resc);
 
-
-        if (unused.contains(resc))
-        {
-            if ( Debug.DEBUG )
-		{
-		    //Exception e = (Exception) lastCheckIns.get( resc );
-		    //e.printStackTrace();
-		    //throw new ResourcePoolException("Tried to check-in an already checked-in resource: " + resc, (Exception) lastCheckIns.get( resc ));
-
-		    throw new ResourcePoolException("Tried to check-in an already checked-in resource: " + resc);
-		}
+	synchronized ( this )
+	{
+          if (broken)
+	  {
+	      removeResource( resc, true ); //synchronous... if we're broken, async tasks might not work
+	      return;
+	  }
         }
-        else if (broken)
-            removeResource( resc, true ); //synchronous... if we're broken, async tasks might not work
-        else
-        {
-            class RefurbishCheckinResourceTask implements Runnable
-            {
-                public void run()
+
+	class RefurbishCheckinResourceTask implements Runnable
+	{
+	    public void run()
+	    {
+		boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
+		synchronized( BasicResourcePool.this )
                 {
-                    boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
-                    synchronized( BasicResourcePool.this )
+		    PunchCard card = (PunchCard) managed.get( resc );
+		    
+		    if ( resc_okay && card != null) //we have to check that the resource is still in the pool
                     {
-                        PunchCard card = (PunchCard) managed.get( resc );
+			unused.add(0,  resc );
 
-                        if ( resc_okay && card != null) //we have to check that the resource is still in the pool
-                        {
-                            unused.add(0,  resc );
-
-                            card.last_checkin_time = System.currentTimeMillis();
-                            card.checkout_time = -1;
-                        }
-                        else
-                        {
-                            if (card != null)
-                                card.checkout_time = -1; //so we don't see this as still checked out and log an overdue cxn in removeResource()
-
-                            removeResource( resc );
-                            ensureMinResources();
-
-                            if (card == null && logger.isLoggable( MLevel.FINE ))
-                                logger.fine("Resource " + resc + " was removed from the pool during its refurbishment for checkin.");
-                        }
-
-                        asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
-                        BasicResourcePool.this.notifyAll();
+			card.last_checkin_time = System.currentTimeMillis();
+			card.checkout_time = -1;
                     }
-                }
-            }
+		    else
+                    {
+			if (card != null)
+			    card.checkout_time = -1; //so we don't see this as still checked out and log an overdue cxn in removeResource()
 
-            Runnable doMe = new RefurbishCheckinResourceTask();
-	    if ( force_synchronous_checkins ) doMe.run();
-            else taskRunner.postRunnable( doMe );
-        }
+			removeResource( resc );
+			ensureMinResources();
 
-	//lastCheckIns.put( resc, new Exception("LAST CHECK IN") );
+			if (card == null && logger.isLoggable( MLevel.FINE ))
+			    logger.fine("Resource " + resc + " was removed from the pool during its refurbishment for checkin.");
+                    }
+		    
+		    asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
+		    BasicResourcePool.this.notifyAll();
+		}
+	    }
+	}
+
+	Runnable doMe = new RefurbishCheckinResourceTask();
+	if ( force_synchronous_checkins ) doMe.run();
+	else taskRunner.postRunnable( doMe );
     }
 
     private void doCheckinExcluded( Object resc )
@@ -1785,6 +1785,9 @@ class BasicResourcePool implements ResourcePool
         if (broken) 
             throw new ResourcePoolException("Attempted to use a closed or broken resource pool");
     }
+
+    private synchronized void syncTrace()
+    { trace(); }
 
     private void trace()
     {

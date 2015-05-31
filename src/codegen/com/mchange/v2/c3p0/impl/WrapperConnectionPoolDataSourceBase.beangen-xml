@@ -168,6 +168,13 @@
     </property>
     <property>
        <type>boolean</type>
+       <name>forceSynchronousCheckins</name>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("forceSynchronousCheckins", C3P0Defaults.forceSynchronousCheckins())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
+       <type>boolean</type>
        <name>testConnectionOnCheckout</name>
        <default-value>C3P0Config.initializeBooleanPropertyVar("testConnectionOnCheckout", C3P0Defaults.testConnectionOnCheckout())</default-value>
        <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>

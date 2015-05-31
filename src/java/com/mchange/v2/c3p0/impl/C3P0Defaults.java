@@ -71,6 +71,7 @@ public final class C3P0Defaults
     private final static boolean DEBUG_UNRETURNED_CONNECTION_STACK_TRACES    = false;
     private final static boolean PRIVILEGE_SPAWNED_THREADS                   = false;
     private final static boolean FORCE_USE_NAMED_DRIVER_CLASS                = false;
+    private final static boolean FORCE_SYNCHRONOUS_CHECKINS                  = false;
 
     private final static int NUM_HELPER_THREADS = 3;
 
@@ -253,6 +254,9 @@ public final class C3P0Defaults
 
     public static String dataSourceName()
     { return DATA_SOURCE_NAME; }
+
+    public static boolean forceSynchronousCheckins()
+    { return FORCE_SYNCHRONOUS_CHECKINS; }
 
     public static Map extensions()
     { return EXTENSIONS; }

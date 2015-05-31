@@ -76,6 +76,9 @@ public interface C3P0PooledDataSourceMBean
     
     public boolean isDebugUnreturnedConnectionStackTraces();
     public void setDebugUnreturnedConnectionStackTraces(boolean debugUnreturnedConnectionStackTraces) throws NamingException;
+
+    public boolean isForceSynchronousCheckins();
+    public void setForceSynchronousCheckins(boolean forceSynchronousCheckins) throws NamingException;
     
     public String getConnectionCustomizerClassName();
     public void setConnectionCustomizerClassName( String connectionCustomizerClassName ) throws NamingException;

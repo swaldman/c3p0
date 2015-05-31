@@ -694,6 +694,18 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
+    public boolean isForceSynchronousCheckins()
+    { return wcpds.isForceSynchronousCheckins(); }
+
+    public void setForceSynchronousCheckins(boolean forceSynchronousCheckins)
+    {
+	if ( diff( wcpds.isForceSynchronousCheckins(), forceSynchronousCheckins ) )
+	{
+	    wcpds.setForceSynchronousCheckins( forceSynchronousCheckins ); 
+	    this.resetPoolManager( false );
+	}
+    }
+
     public int getStatementCacheNumDeferredCloseThreads()
     { return wcpds.getStatementCacheNumDeferredCloseThreads(); }
 

@@ -88,6 +88,9 @@ public interface ResourcePool extends ClosableResource
     public int getAwaitingCheckinCount()
 	throws ResourcePoolException;
 
+    public int getAwaitingCheckinNotExcludedCount()
+	throws ResourcePoolException;
+
     public long getEffectiveExpirationEnforcementDelay()
     throws ResourcePoolException;
     

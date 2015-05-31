@@ -801,6 +801,17 @@ public final class C3P0PooledConnectionPoolManager
         }
     }
 
+    private boolean getForceSynchronousCheckins(String userName)
+    {
+        try
+        { return getBoolean("forceSynchronousCheckins", userName ); }
+        catch (Exception e)
+        {
+            if ( logger.isLoggable( MLevel.FINE ) )
+                logger.log( MLevel.FINE, "Could not fetch boolean property", e);
+            return C3P0Defaults.forceSynchronousCheckins();
+        }
+    }
 
     private String getConnectionTesterClassName(String userName)
     { return getString("connectionTesterClassName", userName ); }
@@ -966,6 +977,7 @@ public final class C3P0PooledConnectionPoolManager
 								      this.getPropertyCycle( userName ),
 								      this.getUnreturnedConnectionTimeout( userName ),
 								      this.getDebugUnreturnedConnectionStackTraces( userName ),
+								      this.getForceSynchronousCheckins( userName ),
 								      this.getTestConnectionOnCheckout( userName ),
 								      this.getTestConnectionOnCheckin( userName ),
 								      this.getMaxStatements( userName ),

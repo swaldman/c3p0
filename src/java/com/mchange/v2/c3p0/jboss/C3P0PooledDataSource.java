@@ -473,6 +473,9 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     public boolean isDebugUnreturnedConnectionStackTraces()
     { return combods.isDebugUnreturnedConnectionStackTraces(); }
 
+    public boolean isForceSynchronousCheckins()
+    { return combods.isForceSynchronousCheckins(); }
+
     public void setConnectionCustomizerClassName(String connectionCustomizerClassName) throws NamingException
     {
         combods.setConnectionCustomizerClassName(connectionCustomizerClassName);
@@ -482,6 +485,12 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     public void setDebugUnreturnedConnectionStackTraces(boolean debugUnreturnedConnectionStackTraces) throws NamingException
     {
         combods.setDebugUnreturnedConnectionStackTraces(debugUnreturnedConnectionStackTraces);
+        rebind();
+    }
+
+    public void setForceSynchronousCheckins(boolean forceSynchronousCheckins) throws NamingException
+    {
+        combods.setForceSynchronousCheckins(forceSynchronousCheckins);
         rebind();
     }
 
