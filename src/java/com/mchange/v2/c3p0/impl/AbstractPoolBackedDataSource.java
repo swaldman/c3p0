@@ -465,11 +465,16 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
         resetPoolManager(); 
     }
 
-    public synchronized void close()
+    public void close()
     { 
-        resetPoolManager(); 
-        is_closed = true;
+	// we use tight locking to...
+	synchronized( this )
+	{
+	    resetPoolManager(); 
+	    is_closed = true;
+	}
         
+	// avoid nested lock acqusition, this method is synchronized on C3P0Registry.class
         C3P0Registry.markClosed(this);
 
         if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable(MLevel.FINEST))
