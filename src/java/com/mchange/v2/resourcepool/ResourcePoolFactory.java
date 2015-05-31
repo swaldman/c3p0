@@ -183,17 +183,11 @@ public abstract class ResourcePoolFactory
     public abstract boolean getDebugStoreCheckoutStackTrace()
 	throws ResourcePoolException;
 
-//     /**
-//      *  Sets whether or not maxAge should be interpreted
-//      *  as the maximum age since the resource was first acquired 
-//      *  (age_is_absolute == true) or since the resource was last
-//      *  checked in (age_is_absolute == false).
-//      */
-//     public abstract void setAgeIsAbsolute( boolean age_is_absolute )
-// 	throws ResourcePoolException;
+    public abstract void setForceSynchronousCheckins( boolean force_synchronous_checkins )
+	throws ResourcePoolException;
 
-//     public abstract boolean getAgeIsAbsolute()
-// 	throws ResourcePoolException;
+    public abstract boolean getForceSynchronousCheckins()
+	throws ResourcePoolException;
 
     public abstract ResourcePool createPool(ResourcePool.Manager mgr)
 	throws ResourcePoolException;

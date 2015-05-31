@@ -73,6 +73,7 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
 
     boolean break_on_acquisition_failure    = true;
     boolean debug_store_checkout_stacktrace = false;
+    boolean force_synchronous_checkins      = false;
 
     AsynchronousRunner taskRunner;
     boolean            taskRunner_is_external;
@@ -331,6 +332,14 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
 	throws ResourcePoolException
     { return debug_store_checkout_stacktrace; }
 
+    public synchronized void setForceSynchronousCheckins( boolean force_synchronous_checkins )
+	throws ResourcePoolException
+    { this.force_synchronous_checkins = force_synchronous_checkins; }
+
+    public synchronized boolean getForceSynchronousCheckins()
+	throws ResourcePoolException
+    { return force_synchronous_checkins; }
+
     public synchronized ResourcePool createPool(ResourcePool.Manager mgr)
 	throws ResourcePoolException
     {
@@ -352,6 +361,7 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
 						    expiration_enforcement_delay,
 						    break_on_acquisition_failure,
 						    debug_store_checkout_stacktrace,
+						    force_synchronous_checkins,
 						    taskRunner,
 						    asyncEventQueue,
 						    timer,

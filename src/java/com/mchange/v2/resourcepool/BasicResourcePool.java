@@ -89,6 +89,7 @@ class BasicResourcePool implements ResourcePool
 
     final boolean break_on_acquisition_failure;
     final boolean debug_store_checkout_exceptions;
+    final boolean force_synchronous_checkins;
 
     final long pool_start_time = System.currentTimeMillis();
 
@@ -251,7 +252,8 @@ class BasicResourcePool implements ResourcePool
     /**
      * @param factory may be null
      */
-    public BasicResourcePool(Manager                  mgr, 
+    public BasicResourcePool(
+		    Manager                  mgr, 
                     int                      start,
                     int                      min, 
                     int                      max, 
@@ -266,6 +268,7 @@ class BasicResourcePool implements ResourcePool
                     long                     expiration_enforcement_delay,
                     boolean                  break_on_acquisition_failure,
                     boolean                  debug_store_checkout_exceptions,
+		    boolean                  force_synchronous_checkins,
                     AsynchronousRunner       taskRunner,
                     RunnableQueue            asyncEventQueue,
                     Timer                    cullAndIdleRefurbishTimer,
@@ -310,6 +313,7 @@ class BasicResourcePool implements ResourcePool
             //this.expiration_enforcement_delay     = expiration_enforcement_delay; -- set up below
             this.break_on_acquisition_failure     = break_on_acquisition_failure;
             this.debug_store_checkout_exceptions  = (debug_store_checkout_exceptions && destroy_unreturned_resc_time > 0);
+	    this.force_synchronous_checkins       = force_synchronous_checkins;
             this.taskRunner                       = taskRunner;
             this.asyncEventQueue                  = asyncEventQueue;
             this.cullAndIdleRefurbishTimer        = cullAndIdleRefurbishTimer;
@@ -361,6 +365,7 @@ class BasicResourcePool implements ResourcePool
                                 "; expiration_enforcement_delay -> " + this.expiration_enforcement_delay + 
                                 "; break_on_acquisition_failure -> " + this.break_on_acquisition_failure + 
                                 "; debug_store_checkout_exceptions -> " + this.debug_store_checkout_exceptions + 
+                                "; force_synchronous_checkins -> " + this.force_synchronous_checkins + 
                 "]");
 
         }
@@ -1398,7 +1403,8 @@ class BasicResourcePool implements ResourcePool
             }
 
             Runnable doMe = new RefurbishCheckinResourceTask();
-            taskRunner.postRunnable( doMe );
+	    if ( force_synchronous_checkins ) doMe.run();
+            else taskRunner.postRunnable( doMe );
         }
 
 	//lastCheckIns.put( resc, new Exception("LAST CHECK IN") );
