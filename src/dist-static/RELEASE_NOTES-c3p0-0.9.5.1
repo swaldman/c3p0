@@ -1,5 +1,5 @@
-RELEASE NOTES, c3p0-0.9.5
-=========================
+RELEASE NOTES, c3p0-0.9.5.1
+===========================
 
 + Full JDBC4 support.
 
@@ -24,6 +24,10 @@ RELEASE NOTES, c3p0-0.9.5
   two of those:
      com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource and
      com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource
+
++ Added support for a new configurataion parameter, forceSynchronousCheckins, which can offer significantly
+  improved performance when no Connection tests are performed on check-in and no difficult work is performed
+  in ConnectionCustomizer.onCheckIn(...)
 
 + Lots and lots of bug fixes, tweaks, etc.
 

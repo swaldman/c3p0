@@ -1461,6 +1461,7 @@ public class VerboseConnectionCustomizer
       <ul>
 	<li><a class="cfg_param" href="#checkoutTimeout">checkoutTimeout</a></li>
 	<li><a class="cfg_param" href="#factoryClassLocation">factoryClassLocation</a></li>
+	<li><a class="cfg_param" href="#forceSynchronousCheckins">forceSynchronousCheckins</a></li>
 	<li><a class="cfg_param" href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a></li>
 	<li><a class="cfg_param" href="#numHelperThreads">numHelperThreads</a></li>
 	<li><a class="cfg_param" href="#usesTraditionalReflectiveProxies"><s>usesTraditionalReflectiveProxies</s></a></li>
@@ -1472,6 +1473,19 @@ public class VerboseConnectionCustomizer
       	a <tt>PooledDataSource</tt>, that the number of "pending tasks" is usually greater than zero, try
       	increasing <tt>numHelperThreads</tt>. <tt>maxAdministrativeTaskTime</tt> may be useful for users
       	experiencing tasks that hang indefinitely and "APPARENT DEADLOCK" messages. (See Appendix A for more.)
+      </p>
+      <p>
+	Ordinarily check-ins are performed asynchronously so that clients do not experience the overhead of
+	on-check-in Connection tests and/or operations specified in <tt>ConnectionCustomizer.onCheckIn(...)</tt>.
+	However, asynchronous checkins add to Thread pool congestion. Under loads so large that it is
+	impractical to expand <tt>numHelperThreads</tt> to reduce congestion, <tt>forceSynchronousCheckins</tt>
+	will cause client Threads to perform the checkin operations, adding to the load of the Thread pool
+	and precluding any delays in termination of checkin due to Thread pool congestion. As long as you
+	neither perform Connection tests on check-in (see <a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a>)
+	nor perform database operations or other slow work in <tt>ConnectionCustomizer.onCheckIn(...)</tt>,
+	this setting is likely to improve performance. However, if Connections <i>are</i> tested on check-in, 
+	or custom work is performed, setting <tt>forceSynchronousCheckins</tt> will cause clients to experience 
+	delays associated with that work when they call <tt>Connection.close()</tt>.
       </p>
       <p>
       	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
@@ -2127,6 +2141,7 @@ c3p0 {
 	  <td>
 	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	    <a href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a><br/>
+	    <a href="#forceSynchronousCheckins">forceSynchronousCheckins</a><br/>
 	    <a href="#forceUseNamedDriverClass">forceUseNamedDriverClass</a><br/>
 	    <a href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a><br/>
 	    <a href="#initialPoolSize">initialPoolSize</a><br/>
@@ -2138,9 +2153,9 @@ c3p0 {
 	    <a href="#maxPoolSize">maxPoolSize</a><br/>
 	    <a href="#maxStatements">maxStatements</a><br/>
 	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
-	    <a href="#minPoolSize">minPoolSize</a><br/>
 	  </td>
 	  <td>
+	    <a href="#minPoolSize">minPoolSize</a><br/>
 	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
 	    <a href="#overrideDefaultPassword">overrideDefaultPassword</a><br/>
@@ -2346,6 +2361,23 @@ c3p0 {
               allows Connections' autoCommit flag to go to false, but offers no other meaningful support of transactions. Otherwise
               setting this to true is just a bad idea.</b>	
 	    [See <a href="#configuring_unresolved">"Configuring Unresolved Transaction Handling"</a>]
+	  </div>
+	</dd>
+	<dt><a name="forceSynchronousCheckins" />forceSynchronousCheckins</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    Setting this to <tt>true</tt> forces Connections to be checked-in synchronously, which under some circumstances may
+	    improve performance. Ordinarily Connections are checked-in asynchronously so that clients avoid any overhead of testing or custom check-in
+	    logic. However, asynchronous check-in contributes to thread pool congestion, and very busy pools might find clients delayed
+	    waiting for check-ins to complete. Expanding <tt>numHelperThreads</tt> can help manage Thread pool congestion, but memory
+	    footprint and switching costs put limits on practical thread pool size. To reduce thread pool load, you can set
+	    <tt>forceSynchronousCheckins</tt> to <tt>true</tt>. Synchronous check-ins are likely to improve overall performance when
+	    <tt>testConnectionOnCheckin</tt> is set to false and no slow work is performed in a <tt>ConnectionCustomizer</tt>'s
+	    <tt>onCheckIn(...)</tt> method. If Connections are tested or other slow work is performed on check-in, then this setting
+	    will cause clients to experience the overhead of that work on <tt>Connection.close()</tt>, which you must trade-off against
+	    any improvements in pool performance.
+	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
 	  </div>
 	</dd>
 	<dt><a name="forceUseNamedDriverClass" />forceUseNamedDriverClass</dt>

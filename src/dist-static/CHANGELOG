@@ -1,3 +1,9 @@
+c3p0-0.9.5.1
+	-- Added a forceSynchronousCheckins config param, which can be a significant performance boost
+	   if no tests are performed on checkin and no long work is performed in ConnectionCustomizer.onCheckIn(...).
+	   The parameter is particularly useful for installations in which the Thread pool is under stress,
+	   as it permits prompt checkins without use of the Thread pool, and helps reduce Thread pool congestion.
+	   Many thanks to Vamsi Krishna for calling attention to this issue.
 	-- Removed embarrassingly frivolous nested locking in C3P0Registry which provoked rare deadlocks
 	   when users lookup extensions. Many thanks to Vlad Skarzhevskyy for calling attention to this
 	   issue.
