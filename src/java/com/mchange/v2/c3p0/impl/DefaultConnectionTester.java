@@ -47,12 +47,17 @@ import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
-public class DefaultConnectionTester extends AbstractConnectionTester
+public final class DefaultConnectionTester extends AbstractConnectionTester
 {
+    private final static String PROP_KEY             = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
+    private final static String IS_VALID_TIMEOUT_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
+
+
     final static MLogger logger = MLog.getLogger( DefaultConnectionTester.class );
 
-    final static int    IS_VALID_TIMEOUT       = 0;
-    final static String CONNECTION_TESTING_URL = "http://www.mchange.com/projects/c3p0/#configuring_connection_testing";
+    final static int    IS_VALID_TIMEOUT; // see static initializer
+
+    final static String CONNECTION_TESTING_URL   = "http://www.mchange.com/projects/c3p0/#configuring_connection_testing";
 
     final static int HASH_CODE = DefaultConnectionTester.class.getName().hashCode();
 
@@ -178,8 +183,6 @@ public class DefaultConnectionTester extends AbstractConnectionTester
 
     final static QuerylessTestRunner THREAD_LOCAL = new ThreadLocalQuerylessTestRunner();
 
-    private final static String PROP_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
-
     private static QuerylessTestRunner reflectTestRunner( String propval )
     {
 	try
@@ -213,9 +216,27 @@ public class DefaultConnectionTester extends AbstractConnectionTester
         //temp.add("08S01"); //SQL State "Communication link failure"
 
         INVALID_DB_STATES = Collections.unmodifiableSet( temp );
+
+	int isValidTimeout = -1;
+
+	String timeoutStr = C3P0Config.getMultiPropertiesConfig().getProperty( IS_VALID_TIMEOUT_KEY );
+	try { if (timeoutStr != null ) isValidTimeout = Integer.parseInt( timeoutStr );	}
+	catch( NumberFormatException e ) 
+	{
+	    if ( logger.isLoggable( MLevel.WARNING ) )
+		logger.log( MLevel.WARNING, "Could not parse value set for " + IS_VALID_TIMEOUT_KEY + " ['" + timeoutStr + "'] into int.", e );
+	}
+
+	if (isValidTimeout <= 0) 
+	    isValidTimeout = 0;
+	else 
+	{
+	    if ( logger.isLoggable( MLevel.INFO ) )
+		logger.log( MLevel.INFO, "Connection.isValid(...) based Connection tests will timeout and fail after " + isValidTimeout + " seconds." );
+	}
+
+	IS_VALID_TIMEOUT = isValidTimeout;
     }
-
-
 
     public DefaultConnectionTester()
     {

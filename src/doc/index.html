@@ -1109,7 +1109,8 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<a href="apidocs/com/mchange/v2/c3p0/UnifiedConnectionTester.html">UnifiedConnectionTester</a>, most conveniently by extending
 	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionTester.html">AbstractConnectionTester</a>. See the <a href="apidocs/index.html">api docs</a>
 	for more information. It is also possible to customize how c3p0's <tt>DefaultConnectionTester</tt> tests when no <tt>preferredTestQuery</tt>
-	or <tt>automaticTestTable</tt> are available. Please see <a href="#configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a>.
+	or <tt>automaticTestTable</tt> are available. Please see <a href="#configuring_dctivt">Configuring DefaultConnectionTester.isValidTimeout</a> and
+	<a href="#configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a>.
       </p>
       <p>
 	The most reliable time to test Connections is on check-out. But this is also the most costly choice
@@ -2779,6 +2780,23 @@ c3p0 {
 	  Set it to <tt>NONE</tt> to turn off the VMID, set it to <tt>AUTO</tt> to let c3p0 generate a VMID,
 	  or provide any other String to set the VMID that will be used directly. The default is <tt>AUTO</tt>.
 	</p>
+
+	<h4><a name="configuring_dctivt">Configuring DefaultConnectionTester.isValidTimeout</a></h4>
+
+	<p>
+	  Under circumstances when the JDBC 4+ <tt>isValid(...)</tt> test will be used by c3p0's built in
+	  DefaultConnectionTester (see <a href="#configuring_dctqtr">below</a>), by default the test
+	  will never time out. If you would the test to timeout and fail, set the following key
+	</p>
+
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout</li>
+	</ul>
+
+	<p>
+	  to the desired timeout, in seconds.
+	</p>
+
 	<h4><a name="configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a></h4>
         <p>
 	  c3p0's built-in DefaultConnectionTester does the right and obvious thing when you've provided a <a href="#preferredTestQuery">preferredTestQuery</a>

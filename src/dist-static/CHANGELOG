@@ -1,4 +1,7 @@
 c3p0-0.9.5.1
+	-- Implemented configuration property com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout
+	   to define timeouts on tests based on Connection.isValid(...). Many thanks to james-hu on github
+	   for suggesting this.
 	-- Added a forceSynchronousCheckins config param, which can be a significant performance boost
 	   if no tests are performed on checkin and no long work is performed in ConnectionCustomizer.onCheckIn(...).
 	   The parameter is particularly useful for installations in which the Thread pool is under stress,

@@ -40,6 +40,8 @@ c3p0.jdbcUrl=@c3p0.jdbcUrl@
 c3p0.driverClass=@c3p0.driverClass@
 c3p0.user=@c3p0.user@
 c3p0.password=@c3p0.password@
+
+com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout=1
  
 #com.mchange.v2.log.MLog=com.mchange.v2.log.log4j.Log4jMLog
 com.mchange.v2.log.MLog=com.mchange.v2.log.jdk14logging.Jdk14MLog
