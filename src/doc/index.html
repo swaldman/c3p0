@@ -1076,7 +1076,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       </p>
       <p>
 	When configuring Connection testing, first try to minimize the cost of each test. If you are using a JDBC driver
-	that you are certain supports the new(ish) jdbc4 API &mdash; and if you are using c3p0-0.9.5 or highr! &mdash; let your driver handle this for you. 
+	that you are certain supports the new(ish) jdbc4 API &mdash; and if you are using c3p0-0.9.5 or higher! &mdash; let your driver handle this for you. 
 	jdbc4 Connections include a method called
 	<tt>isValid()</tt> that should be implemented as a fast, reliable Connection test. By default, c3p0 will use that
 	method if it is present. 
@@ -1100,18 +1100,6 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	the parameter <tt>automaticTestTable</tt>. Using the name
 	you provide, c3p0 will create an empty table, and make a simple query against it to test the database.
       </p>
-
-      <p>
-	Advanced users may define any kind of Connection testing they wish, by implementing a 
-	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> and supplying the
-	fully qualified name of the class as <tt>connectionTesterClassName</tt>. If you'd like your custom ConnectionTesters
-	to honor and support the <tt>preferredTestQuery</tt> and <tt>automaticTestTable</tt> parameters, implement
-	<a href="apidocs/com/mchange/v2/c3p0/UnifiedConnectionTester.html">UnifiedConnectionTester</a>, most conveniently by extending
-	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionTester.html">AbstractConnectionTester</a>. See the <a href="apidocs/index.html">api docs</a>
-	for more information. It is also possible to customize how c3p0's <tt>DefaultConnectionTester</tt> tests when no <tt>preferredTestQuery</tt>
-	or <tt>automaticTestTable</tt> are available. Please see <a href="#configuring_dctivt">Configuring DefaultConnectionTester.isValidTimeout</a> and
-	<a href="#configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a>.
-      </p>
       <p>
 	The most reliable time to test Connections is on check-out. But this is also the most costly choice
 	from a client-performance perspective. Most applications should work quite reliably using a combination of 
@@ -1123,6 +1111,37 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	In its default configuration, c3p0 does no Connection testing at all. Setting a fairly long 
 	<tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is an excellent, high-performance
 	approach.
+      </p>
+      <p>
+	It is possible to customize how c3p0's <tt>DefaultConnectionTester</tt> tests when no <tt>preferredTestQuery</tt>
+	or <tt>automaticTestTable</tt> are available. Please see <a href="#configuring_dctivt">Configuring DefaultConnectionTester.isValidTimeout</a> and
+	<a href="#configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a>.
+      </p>
+      <p>
+	Advanced users may define any kind of Connection testing they wish, by implementing a 
+	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> and supplying the
+	fully qualified name of the class as <tt>connectionTesterClassName</tt>. If you'd like your custom ConnectionTesters
+	to honor and support the <tt>preferredTestQuery</tt> and <tt>automaticTestTable</tt> parameters, implement
+	<a href="apidocs/com/mchange/v2/c3p0/UnifiedConnectionTester.html">UnifiedConnectionTester</a>, most conveniently by extending
+	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionTester.html">AbstractConnectionTester</a>. See the <a href="apidocs/index.html">api docs</a>
+	for more information.
+      </p>
+      <p>
+	If you know you want to use the jdbc4 <tt>Connection.isValid()</tt> method, but you want to set a timeout,
+	consider writing a trivial extension of <a href="apidocs/com/mchange/v2/c3p0/util/IsValidOnlyConnectionTester.html">IsValidConnectionTester</a>.
+      </p>
+      <div class="example">
+package com.mchange.v2.c3p0.example;
+
+import com.mchange.v2.c3p0.util.IsValidOnlyConnectionTester;
+
+public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTester
+{
+    protected int getIsValidTimeout() { return 30; }
+}
+      </div>
+      <p>
+	See? These really are trivial to write.
       </p>
       <div class="boxed">
 	<a name="simple_advice_on_connection_testing" />

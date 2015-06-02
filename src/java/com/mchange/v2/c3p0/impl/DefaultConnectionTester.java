@@ -63,6 +63,9 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 
     final static Set INVALID_DB_STATES;
 
+    public static boolean probableInvalidDb( SQLException sqle )
+    { return INVALID_DB_STATES.contains( sqle.getSQLState() ); }
+
     public interface QuerylessTestRunner extends Serializable
     {
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder);
