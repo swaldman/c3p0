@@ -1,3 +1,5 @@
+        -- Embed last acquistion failure as nested Exception in CannotAcquireResourceException. Thanks to 
+	   nigam on github for this addition.
 c3p0-0.9.5.1
 	-- Implemented configuration property com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout
 	   to define timeouts on tests based on Connection.isValid(...). Many thanks to james-hu on github
