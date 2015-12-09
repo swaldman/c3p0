@@ -1,3 +1,8 @@
+c3p0-0.9.5.2
+	-- Fix a bug in MLog bridge to slf4j logging, in which loggability of levels of wrapped loggers
+	   was misreported, leading to useless allocation of log Strings below the logging threshold. Grr.
+	   [change is in mchange-commons-java 0.2.11]. Many thanks to Lewis Wong on Stack Exchange for calling
+	   attention to this issue.
         -- Embed last acquistion failure as nested Exception in CannotAcquireResourceException. Thanks to 
 	   nigam on github for this addition.
 c3p0-0.9.5.1
