@@ -952,18 +952,20 @@ class BasicResourcePool implements ResourcePool
         Thread t = Thread.currentThread();
 
         try
+        force_kill_acquires = true;
         {
-            force_kill_acquires = true;
             this.notifyAll(); //wake up any threads waiting on an acquire, and force them all to die.
             while (acquireWaiters.size() > 0) //we want to let all the waiting acquires die before we unset force_kill_acquires
             {
                 otherWaiters.add( t );
                 this.wait();
             }
-            force_kill_acquires = false;
         }
         finally
-        { otherWaiters.remove( t ); }
+        {
+        	force_kill_acquires = false;
+        	otherWaiters.remove( t );
+        }
     }
 
     //same as close(), but we do not destroy checked out
