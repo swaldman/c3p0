@@ -8,7 +8,7 @@
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of EITHER:
  *
- *     1) The GNU Lesser General Public License (LGPL), version 2.1, as 
+ *     1) The GNU Lesser General Public License (LGPL), version 2.1, as
  *        published by the Free Software Foundation
  *
  * OR
@@ -29,8 +29,8 @@
  * If not, the text of these licenses are currently available at
  *
  * LGPL v2.1: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
- *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php 
- * 
+ *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php
+ *
  */
 
 package com.mchange.v2.resourcepool;
@@ -111,7 +111,7 @@ class BasicResourcePool implements ResourcePool
 
     int target_pool_size;
 
-    /*  keys are all valid, managed resources, value is a PunchCard */ 
+    /*  keys are all valid, managed resources, value is a PunchCard */
     HashMap  managed = new HashMap();
 
     /* all valid, managed resources currently available for checkout */
@@ -253,10 +253,10 @@ class BasicResourcePool implements ResourcePool
      * @param factory may be null
      */
     public BasicResourcePool(
-		    Manager                  mgr, 
+		    Manager                  mgr,
                     int                      start,
-                    int                      min, 
-                    int                      max, 
+                    int                      min,
+                    int                      max,
                     int                      inc,
                     int                      num_acq_attempts,
                     int                      acq_attempt_delay,
@@ -282,19 +282,19 @@ class BasicResourcePool implements ResourcePool
 	    if ( min > max )
 	    {
 		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log( MLevel.WARNING, "Bad pool size config, min " + min + " > max " + max + ". Using " + max + " as min." ); 
+		    logger.log( MLevel.WARNING, "Bad pool size config, min " + min + " > max " + max + ". Using " + max + " as min." );
 		min = max;
 	    }
 	    if ( start < min )
 	    {
 		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log( MLevel.WARNING, "Bad pool size config, start " + start + " < min " + min + ". Using " + min + " as start." ); 
+		    logger.log( MLevel.WARNING, "Bad pool size config, start " + start + " < min " + min + ". Using " + min + " as start." );
 		start = min;
 	    }
 	    if ( start > max )
 	    {
 		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log( MLevel.WARNING, "Bad pool size config, start " + start + " > max " + max + ". Using " + max + " as start." ); 
+		    logger.log( MLevel.WARNING, "Bad pool size config, start " + start + " > max " + max + ". Using " + max + " as start." );
 		start = max;
 	    }
 
@@ -351,8 +351,8 @@ class BasicResourcePool implements ResourcePool
             if (check_idle_resources_delay > 0)
             {
                 this.idleRefurbishTask = new CheckIdleResourcesTask();
-                cullAndIdleRefurbishTimer.schedule( idleRefurbishTask, 
-                                check_idle_resources_delay, 
+                cullAndIdleRefurbishTimer.schedule( idleRefurbishTask,
+                                check_idle_resources_delay,
                                 check_idle_resources_delay );
             }
 
@@ -362,10 +362,10 @@ class BasicResourcePool implements ResourcePool
                                 "; check_idle_resources_delay -> " + this.check_idle_resources_delay + "; max_resource_age -> " + this.max_resource_age +
                                 "; max_idle_time -> " + this.max_idle_time + "; excess_max_idle_time -> " + this.excess_max_idle_time +
                                 "; destroy_unreturned_resc_time -> " + this.destroy_unreturned_resc_time +
-                                "; expiration_enforcement_delay -> " + this.expiration_enforcement_delay + 
-                                "; break_on_acquisition_failure -> " + this.break_on_acquisition_failure + 
-                                "; debug_store_checkout_exceptions -> " + this.debug_store_checkout_exceptions + 
-                                "; force_synchronous_checkins -> " + this.force_synchronous_checkins + 
+                                "; expiration_enforcement_delay -> " + this.expiration_enforcement_delay +
+                                "; break_on_acquisition_failure -> " + this.break_on_acquisition_failure +
+                                "; debug_store_checkout_exceptions -> " + this.debug_store_checkout_exceptions +
+                                "; force_synchronous_checkins -> " + this.force_synchronous_checkins +
                 "]");
 
         }
@@ -374,7 +374,7 @@ class BasicResourcePool implements ResourcePool
 //          if ( logger.isLoggable( MLevel.WARNING) )
 //          logger.log( MLevel.WARNING, "Could not create resource pool due to Exception!", e );
 
-            throw ResourcePoolUtils.convertThrowable( e ); 
+            throw ResourcePoolUtils.convertThrowable( e );
         }
     }
 
@@ -388,7 +388,7 @@ class BasicResourcePool implements ResourcePool
     // no need to sync
     private boolean mustEnforceExpiration()
     {
-        return 
+        return
         max_resource_age > 0 ||
         max_idle_time > 0 ||
         excess_max_idle_time > 0 ||
@@ -429,7 +429,7 @@ class BasicResourcePool implements ResourcePool
     private boolean supportsEvents()
     { return asyncEventQueue != null; }
 
-    public Object checkoutResource() 
+    public Object checkoutResource()
     throws ResourcePoolException, InterruptedException
     {
         try { return checkoutResource( 0 ); }
@@ -469,8 +469,8 @@ class BasicResourcePool implements ResourcePool
     }
 
     private synchronized void incrementPendingAcquires()
-    { 
-        ++pending_acquires; 
+    {
+        ++pending_acquires;
 
         if (logger.isLoggable(MLevel.FINEST))
             logger.finest("incremented pending_acquires: " + pending_acquires);
@@ -478,8 +478,8 @@ class BasicResourcePool implements ResourcePool
     }
 
     private synchronized void incrementPendingRemoves()
-    { 
-        ++pending_removes; 
+    {
+        ++pending_removes;
 
         if (logger.isLoggable(MLevel.FINEST))
             logger.finest("incremented pending_removes: " + pending_removes);
@@ -490,8 +490,8 @@ class BasicResourcePool implements ResourcePool
     { _decrementPendingAcquires(); }
 
     private void _decrementPendingAcquires()
-    { 
-        --pending_acquires; 
+    {
+        --pending_acquires;
 
         if (logger.isLoggable(MLevel.FINEST))
             logger.finest("decremented pending_acquires: " + pending_acquires);
@@ -499,8 +499,8 @@ class BasicResourcePool implements ResourcePool
     }
 
     private synchronized void decrementPendingRemoves()
-    { 
-        --pending_removes; 
+    {
+        --pending_removes;
 
         if (logger.isLoggable(MLevel.FINEST))
             logger.finest("decremented pending_removes: " + pending_removes);
@@ -536,7 +536,7 @@ class BasicResourcePool implements ResourcePool
         assert Thread.holdsLock(this);
 
         for (int i = 0; i < count; ++i)
-            taskRunner.postRunnable( new RemoveTask() ); 
+            taskRunner.postRunnable( new RemoveTask() );
     }
 
     /*
@@ -552,11 +552,11 @@ class BasicResourcePool implements ResourcePool
 	try
 	{
 	    Object resc = prelimCheckoutResource( timeout );
-	    
+
 	    // best to do the recheckout while we don't hold this'
 	    // lock, so we don't refurbish-on-checkout while holding.
 	    boolean refurb = attemptRefurbishResourceOnCheckout( resc );
-	    
+
 	    synchronized( this )
 	    {
 		if (!refurb)
@@ -572,7 +572,7 @@ class BasicResourcePool implements ResourcePool
 		{
 		    asyncFireResourceCheckedOut( resc, managed.size(), unused.size(), excluded.size() );
 		    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
-		    
+
 		    PunchCard card = (PunchCard) managed.get( resc );
 		    if (card == null) //the resource has been removed!
 		    {
@@ -598,7 +598,7 @@ class BasicResourcePool implements ResourcePool
 	catch ( StackOverflowError e )
 	{
 	    throw new NoGoodResourcesException( "After checking so many resources we blew the stack, no resources tested acceptable for checkout. " +
-						"See logger com.mchange.v2.resourcepool.BasicResourcePool output at FINER/DEBUG for information on individual failures.", 
+						"See logger com.mchange.v2.resourcepool.BasicResourcePool output at FINER/DEBUG for information on individual failures.",
 						e );
 	}
     }
@@ -617,8 +617,8 @@ class BasicResourcePool implements ResourcePool
 
                 if (msz < max)
                 {
-                    // to cover all the load, we need the current size, plus those waiting already for acquisition, 
-                    // plus the current client 
+                    // to cover all the load, we need the current size, plus those waiting already for acquisition,
+                    // plus the current client
                     int desired_target = msz + acquireWaiters.size() + 1;
 
                     if (logger.isLoggable(MLevel.FINER))
@@ -702,12 +702,12 @@ class BasicResourcePool implements ResourcePool
             if (broken)
             {
                 if (logger.isLoggable( MLevel.FINER ))
-                    logger.log(MLevel.FINER, 
+                    logger.log(MLevel.FINER,
                                     this + " -- an attempt to checkout a resource was interrupted, because the pool is now closed. " +
                                     "[Thread: " + Thread.currentThread().getName() + ']',
                                     e );
                 else if (logger.isLoggable( MLevel.INFO ))
-                    logger.log(MLevel.INFO, 
+                    logger.log(MLevel.INFO,
                                     this + " -- an attempt to checkout a resource was interrupted, because the pool is now closed. " +
                                     "[Thread: " + Thread.currentThread().getName() + ']');
             }
@@ -715,7 +715,7 @@ class BasicResourcePool implements ResourcePool
             {
                 if (logger.isLoggable( MLevel.WARNING ))
                 {
-                    logger.log(MLevel.WARNING, 
+                    logger.log(MLevel.WARNING,
                                     this + " -- an attempt to checkout a resource was interrupted, and the pool is still live: some other thread " +
                                     "must have interrupted the Thread attempting checkout!",
                                     e );
@@ -723,10 +723,10 @@ class BasicResourcePool implements ResourcePool
             }
             throw e;
         }
-	catch ( StackOverflowError e ) 
+	catch ( StackOverflowError e )
 	{
 	    throw new NoGoodResourcesException( "After checking so many resources we blew the stack, no resources tested acceptable for checkout. " +
-						"See logger com.mchange.v2.resourcepool.BasicResourcePool output at FINER/DEBUG for information on individual failures.", 
+						"See logger com.mchange.v2.resourcepool.BasicResourcePool output at FINER/DEBUG for information on individual failures.",
 						e );
 	}
     }
@@ -737,8 +737,8 @@ class BasicResourcePool implements ResourcePool
 	{
 	    boolean unlocked_do_checkin_managed = false;
 	    synchronized ( this )
-	    {    
-		//we permit straggling resources to be checked in 
+	    {
+		//we permit straggling resources to be checked in
 		//without exception even if we are broken
 		if (managed.keySet().contains(resc))
 		    unlocked_do_checkin_managed = true;
@@ -759,8 +759,8 @@ class BasicResourcePool implements ResourcePool
 	catch ( ResourceClosedException e ) // one of our async threads died
 	{
 	    if ( logger.isLoggable( MLevel.SEVERE ) )
-		logger.log( MLevel.SEVERE, 
-			    this + " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.", 
+		logger.log( MLevel.SEVERE,
+			    this + " - checkinResource( ... ) -- even broken pools should allow checkins without exception. probable resource pool bug.",
 			    e);
 
 	    this.unexpectedBreak();
@@ -773,7 +773,7 @@ class BasicResourcePool implements ResourcePool
         try
         {
             Set checkedOutNotExcluded = null;
-	    synchronized ( this ) 
+	    synchronized ( this )
 	    {
 		checkedOutNotExcluded = new HashSet( managed.keySet() );
 		checkedOutNotExcluded.removeAll( unused );
@@ -785,7 +785,7 @@ class BasicResourcePool implements ResourcePool
         }
         catch ( ResourceClosedException e ) // one of our async threads died
         {
-//          System.err.println(this + 
+//          System.err.println(this +
 //          " - checkinAll() -- even broken pools should allow checkins without exception. probable resource pool bug.");
 //          e.printStackTrace();
 
@@ -821,14 +821,14 @@ class BasicResourcePool implements ResourcePool
         }
     }
 
-    public synchronized void markBroken(Object resc) 
+    public synchronized void markBroken(Object resc)
     {
         try
-        { 
+        {
             if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
                 logger.log( MLevel.FINER, "Resource " + resc + " marked broken by pool (" + this + ").");
 
-            _markBroken( resc ); 
+            _markBroken( resc );
             ensureMinResources();
         }
         catch ( ResourceClosedException e ) // one of our async threads died
@@ -895,7 +895,7 @@ class BasicResourcePool implements ResourcePool
         }
     }
 
-    public synchronized void close() 
+    public synchronized void close()
     throws ResourcePoolException
     {
         //we permit closes when we are already broken, so
@@ -916,22 +916,22 @@ class BasicResourcePool implements ResourcePool
 
     //no need to sync
     public void addResourcePoolListener(ResourcePoolListener rpl)
-    { 
+    {
         if ( ! supportsEvents() )
             throw new RuntimeException(this + " does not support ResourcePoolEvents. " +
             "Probably it was constructed by a BasicResourceFactory configured not to support such events.");
         else
-            rpes.addResourcePoolListener(rpl); 
+            rpes.addResourcePoolListener(rpl);
     }
 
     //no need to sync
     public void removeResourcePoolListener(ResourcePoolListener rpl)
-    { 
+    {
         if ( ! supportsEvents() )
             throw new RuntimeException(this + " does not support ResourcePoolEvents. " +
             "Probably it was constructed by a BasicResourceFactory configured not to support such events.");
         else
-            rpes.removeResourcePoolListener(rpl); 
+            rpes.removeResourcePoolListener(rpl);
     }
 
     private synchronized boolean isForceKillAcquiresPending()
@@ -943,27 +943,29 @@ class BasicResourcePool implements ResourcePool
     private synchronized void forceKillAcquires() throws InterruptedException
     {
 	if (logger.isLoggable(MLevel.WARNING))
-	    logger.log(MLevel.WARNING, 
-		       "Having failed to acquire a resource, " + 
-		       this + 
+	    logger.log(MLevel.WARNING,
+		       "Having failed to acquire a resource, " +
+		       this +
 		       " is interrupting all Threads waiting on a resource to check out. " +
 		       "Will try again in response to new client requests.");
 
         Thread t = Thread.currentThread();
 
+        force_kill_acquires = true;
         try
         {
-            force_kill_acquires = true;
             this.notifyAll(); //wake up any threads waiting on an acquire, and force them all to die.
             while (acquireWaiters.size() > 0) //we want to let all the waiting acquires die before we unset force_kill_acquires
             {
-                otherWaiters.add( t ); 
+                otherWaiters.add( t );
                 this.wait();
             }
-            force_kill_acquires = false;
         }
         finally
-        { otherWaiters.remove( t ); }
+        {
+        	force_kill_acquires = false;
+        	otherWaiters.remove( t );
+        }
     }
 
     //same as close(), but we do not destroy checked out
@@ -1068,12 +1070,12 @@ class BasicResourcePool implements ResourcePool
         {
             public void run()
             {
-                try 
-                { 
+                try
+                {
                     if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
                         logger.log(MLevel.FINER, "Preparing to destroy resource: " + resc);
 
-                    mgr.destroyResource(resc, checked_out); 
+                    mgr.destroyResource(resc, checked_out);
 
                     if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
                         logger.log(MLevel.FINER, "Successfully destroyed resource: " + resc);
@@ -1093,9 +1095,9 @@ class BasicResourcePool implements ResourcePool
         if ( synchronous || broken ) //if we're broken, our taskRunner may be dead, so we destroy synchronously
         {
             if ( logger.isLoggable(MLevel.FINEST) && !broken && Boolean.TRUE.equals( ThreadUtils.reflectiveHoldsLock( this ) ) )
-                logger.log( MLevel.FINEST, 
+                logger.log( MLevel.FINEST,
                                 this + ": Destroyiong a resource on an active pool, synchronousy while holding pool's lock! " +
-                                "(not a bug, but a potential bottleneck... is there a good reason for this?)", 
+                                "(not a bug, but a potential bottleneck... is there a good reason for this?)",
                                 new Exception("DEBUG STACK TRACE: resource destruction while holding lock.") );
 
             r.run();
@@ -1106,7 +1108,7 @@ class BasicResourcePool implements ResourcePool
             catch (Exception e)
             {
                 if (logger.isLoggable(MLevel.FINER))
-                    logger.log( MLevel.FINER, 
+                    logger.log( MLevel.FINER,
 				"AsynchronousRunner refused to accept task to destroy resource. " +
 				"It is probably shared, and has probably been closed underneath us. " +
 				"Reverting to synchronous destruction. This is not usually a problem.",
@@ -1119,7 +1121,7 @@ class BasicResourcePool implements ResourcePool
 
     //doAcquire() methods SHOULD NOT be invoked from a synchronized block!!!!
     private void doAcquire() throws Exception
-    { doAcquire( NO_DECREMENT ); }				    
+    { doAcquire( NO_DECREMENT ); }
 
     private void doAcquireAndDecrementPendingAcquiresWithinLockOnSuccess() throws Exception
     { doAcquire( DECREMENT_ON_SUCCESS ); }
@@ -1146,10 +1148,10 @@ class BasicResourcePool implements ResourcePool
 		{
 		    msz = managed.size();
 		    if (!broken && msz < target_pool_size)
-			assimilateResource(resc); 
+			assimilateResource(resc);
 		    else
 			destroy = true;
-		    
+
 		    if (decrement_policy == DECREMENT_ON_SUCCESS)
 			_decrementPendingAcquires();
 		}
@@ -1198,13 +1200,13 @@ class BasicResourcePool implements ResourcePool
     {
         if (sz > max)
         {
-            throw new IllegalArgumentException("Requested size [" + sz + 
+            throw new IllegalArgumentException("Requested size [" + sz +
                             "] is greater than max [" + max +
             "].");
-        } 
+        }
         else if (sz < min)
         {
-            throw new IllegalArgumentException("Requested size [" + sz + 
+            throw new IllegalArgumentException("Requested size [" + sz +
                             "] is less than min [" + min +
             "].");
         }
@@ -1222,7 +1224,7 @@ class BasicResourcePool implements ResourcePool
 //  assimilateResource();
 //  }
 
-    //the following methods should only be invoked from 
+    //the following methods should only be invoked from
     //sync'ed methods / blocks...
 
 //  private Object useUnusedButNotInIdleCheck()
@@ -1243,13 +1245,13 @@ class BasicResourcePool implements ResourcePool
 //  { return unused.size() - idleCheckResources.size(); }
 
     // must own this' lock
-    private void markBrokenNoEnsureMinResources(Object resc) 
+    private void markBrokenNoEnsureMinResources(Object resc)
     {
         assert Thread.holdsLock( this );
 
         try
-        { 
-            _markBroken( resc ); 
+        {
+            _markBroken( resc );
         }
         catch ( ResourceClosedException e ) // one of our async threads died
         {
@@ -1266,7 +1268,7 @@ class BasicResourcePool implements ResourcePool
         assert Thread.holdsLock( this );
 
         if ( unused.contains( resc ) )
-            removeResource( resc ); 
+            removeResource( resc );
         else
             excludeResource( resc );
     }
@@ -1317,7 +1319,7 @@ class BasicResourcePool implements ResourcePool
                         }
                         catch (Exception e)
                         {
-                            if (Debug.DEBUG) 
+                            if (Debug.DEBUG)
                             {
                                 //e.printStackTrace();
                                 if ( logger.isLoggable( MLevel.FINE ) )
@@ -1379,7 +1381,7 @@ class BasicResourcePool implements ResourcePool
 		synchronized( BasicResourcePool.this )
                 {
 		    PunchCard card = (PunchCard) managed.get( resc );
-		    
+
 		    if ( resc_okay && card != null) //we have to check that the resource is still in the pool
                     {
 			unused.add(0,  resc );
@@ -1398,7 +1400,7 @@ class BasicResourcePool implements ResourcePool
 			if (card == null && logger.isLoggable( MLevel.FINE ))
 			    logger.fine("Resource " + resc + " was removed from the pool during its refurbishment for checkin.");
                     }
-		    
+
 		    asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
 		    BasicResourcePool.this.notifyAll();
 		}
@@ -1438,26 +1440,26 @@ class BasicResourcePool implements ResourcePool
             if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
             {
                 if ( logger.isLoggable( MLevel.FINE ) )
-                    logger.fine("awaitAvailable(): " + 
-                                    (exampleResource != null ? 
-                                                    exampleResource : 
+                    logger.fine("awaitAvailable(): " +
+                                    (exampleResource != null ?
+                                                    exampleResource :
                                     "[unknown]") );
                 trace();
             }
-            while ((avail = unused.size()) == 0) 
+            while ((avail = unused.size()) == 0)
             {
                 // the if case below can only occur when 1) a user attempts a
                 // checkout which would provoke an acquire; 2) this
                 // increments the pending acquires, so we go to the
                 // wait below without provoking postAcquireMore(); 3)
                 // the resources are acquired; 4) external management
-                // of the pool (via for instance unpoolResource() 
+                // of the pool (via for instance unpoolResource()
                 // depletes the newly acquired resources before we
                 // regain this' monitor; 5) we fall into wait() with
                 // no acquires being scheduled, and perhaps a managed.size()
                 // of zero, leading to deadlock. This could only occur in
                 // fairly pathological situations where the pool is being
-                // externally forced to a very low (even zero) size, but 
+                // externally forced to a very low (even zero) size, but
                 // since I've seen it, I've fixed it.
                 if (pending_acquires == 0 && managed.size() < max)
                     _recheckResizePool();
@@ -1494,7 +1496,7 @@ class BasicResourcePool implements ResourcePool
 
     // should NOT be called from synchronized method
     private void synchronousRemoveArbitraryResource()
-    { 
+    {
         assert !Thread.holdsLock( this );
 
         Object removeMe = null;
@@ -1584,8 +1586,8 @@ class BasicResourcePool implements ResourcePool
 
         int num_to_remove = managed.size() - new_sz;
         int count = 0;
-        for (Iterator ii = cloneOfUnused().iterator(); 
-        ii.hasNext() && count < num_to_remove; 
+        for (Iterator ii = cloneOfUnused().iterator();
+        ii.hasNext() && count < num_to_remove;
         ++count)
         {
             Object resc = ii.next();
@@ -1651,7 +1653,7 @@ class BasicResourcePool implements ResourcePool
         // (false should work as well, but true seems safer.
         //  we certainly don't want to do anything else with
         //  this resource.)
-        if (pc == null) 
+        if (pc == null)
         {
             if ( logger.isLoggable( MLevel.FINE ) )
                 logger.fine( "Resource " + resc + " was being tested for expiration, but has already been removed from the pool.");
@@ -1668,9 +1670,9 @@ class BasicResourcePool implements ResourcePool
                 int msz = managed.size();
                 expired = (msz > min && idle_age > excess_max_idle_time);
                 if ( expired && logger.isLoggable( MLevel.FINER ) )
-                    logger.log(MLevel.FINER, 
-                                    "EXPIRED excess idle resource: " + resc + 
-                                    " ---> idle_time: " + idle_age + 
+                    logger.log(MLevel.FINER,
+                                    "EXPIRED excess idle resource: " + resc +
+                                    " ---> idle_time: " + idle_age +
                                     "; excess_max_idle_time: " + excess_max_idle_time +
                                     "; pool_size: " + msz +
                                     "; min_pool_size: " + min +
@@ -1680,9 +1682,9 @@ class BasicResourcePool implements ResourcePool
             {
                 expired = idle_age > max_idle_time;
                 if ( expired && logger.isLoggable( MLevel.FINER ) )
-                    logger.log(MLevel.FINER, 
-                                    "EXPIRED idle resource: " + resc + 
-                                    " ---> idle_time: " + idle_age + 
+                    logger.log(MLevel.FINER,
+                                    "EXPIRED idle resource: " + resc +
+                                    " ---> idle_time: " + idle_age +
                                     "; max_idle_time: " + max_idle_time +
                                     " [" + this + "]");
             }
@@ -1692,9 +1694,9 @@ class BasicResourcePool implements ResourcePool
                 expired = ( abs_age > max_resource_age );
 
                 if ( expired && logger.isLoggable( MLevel.FINER ) )
-                    logger.log(MLevel.FINER, 
-                                    "EXPIRED old resource: " + resc + 
-                                    " ---> absolute_age: " + abs_age + 
+                    logger.log(MLevel.FINER,
+                                    "EXPIRED old resource: " + resc +
+                                    " ---> absolute_age: " + abs_age +
                                     "; max_absolute_age: " + max_resource_age +
                                     " [" + this + "]");
             }
@@ -1705,7 +1707,7 @@ class BasicResourcePool implements ResourcePool
             expired = checkout_age > destroy_unreturned_resc_time;
         }
 
-        return expired; 
+        return expired;
     }
 
 
@@ -1729,14 +1731,14 @@ class BasicResourcePool implements ResourcePool
         assert !Thread.holdsLock( this );
 
         try
-        { 
-            mgr.refurbishResourceOnCheckout(resc); 
+        {
+            mgr.refurbishResourceOnCheckout(resc);
             return true;
         }
         catch (Exception e)
         {
             //uh oh... bad resource...
-            if (Debug.DEBUG) 
+            if (Debug.DEBUG)
             {
                 //e.printStackTrace();
                 if (logger.isLoggable( MLevel.FINE ))
@@ -1756,14 +1758,14 @@ class BasicResourcePool implements ResourcePool
         assert !Thread.holdsLock( this );
 
         try
-        { 
-            mgr.refurbishResourceOnCheckin(resc); 
+        {
+            mgr.refurbishResourceOnCheckin(resc);
             return true;
         }
         catch (Exception e)
         {
             //uh oh... bad resource...
-            if (Debug.DEBUG) 
+            if (Debug.DEBUG)
             {
                 //e.printStackTrace();
                 if (logger.isLoggable( MLevel.FINE ))
@@ -1782,7 +1784,7 @@ class BasicResourcePool implements ResourcePool
     {
         assert Thread.holdsLock( this );
 
-        if (broken) 
+        if (broken)
             throw new ResourcePoolException("Attempted to use a closed or broken resource pool");
     }
 
@@ -1805,24 +1807,24 @@ class BasicResourcePool implements ResourcePool
     }
 
     private final HashMap cloneOfManaged()
-    { 
+    {
         assert Thread.holdsLock( this );
 
-        return (HashMap) managed.clone(); 
+        return (HashMap) managed.clone();
     }
 
     private final LinkedList cloneOfUnused()
-    { 
+    {
         assert Thread.holdsLock( this );
 
-        return (LinkedList) unused.clone(); 
+        return (LinkedList) unused.clone();
     }
 
     private final HashSet cloneOfExcluded()
-    { 
+    {
         assert Thread.holdsLock( this );
 
-        return (HashSet) excluded.clone(); 
+        return (HashSet) excluded.clone();
     }
 
     class ScatteredAcquireTask implements Runnable
@@ -1833,8 +1835,8 @@ class BasicResourcePool implements ResourcePool
         { this ( (num_acq_attempts >= 0 ? num_acq_attempts : -1) , true ); }
 
         private ScatteredAcquireTask(int attempts_remaining, boolean first_attempt)
-        { 
-            this.attempts_remaining = attempts_remaining; 
+        {
+            this.attempts_remaining = attempts_remaining;
             if (first_attempt)
             {
                 incrementPendingAcquires();
@@ -1857,7 +1859,7 @@ class BasicResourcePool implements ResourcePool
             {
                 boolean fkap;
 		boolean bkn;
-		synchronized( BasicResourcePool.this ) 
+		synchronized( BasicResourcePool.this )
 		{
 		    fkap = BasicResourcePool.this.force_kill_acquires;
 		    bkn  = BasicResourcePool.this.broken;
@@ -1877,7 +1879,7 @@ class BasicResourcePool implements ResourcePool
 
 		// to avoid a race conditon, we now decrement within doAcquire() while
 		// holding the BasicResourcePool's lock.
-                //decrementPendingAcquires(); 
+                //decrementPendingAcquires();
 
 		try
 		    {
@@ -1887,10 +1889,10 @@ class BasicResourcePool implements ResourcePool
 					  ". Decremented pending_acquires [" + pending_acquires + "], " +
 					  " attempts_remaining: " + attempts_remaining);
 		    }
-		catch (Exception e) 
+		catch (Exception e)
 		    {
 			// this catch clause is overkill, but the logic that follows
-			// presumes that any Exception would have been due to a failure in 
+			// presumes that any Exception would have been due to a failure in
 			// BasicResourcePool.this.doAcquireAndDecrementPendingAcquiresWithinLockOnSuccess();
 			// so we swallow any unlikely, unexpected Exception from within the logging
 			// libraries.
@@ -1912,7 +1914,7 @@ class BasicResourcePool implements ResourcePool
                                         this + " -- Acquisition Attempt Failed!!! Clearing pending acquires. " +
                                         "While trying to acquire a needed new resource, we failed " +
                                         "to succeed more than the maximum number of allowed " +
-                                        "acquisition attempts (" + num_acq_attempts + "). " + 
+                                        "acquisition attempts (" + num_acq_attempts + "). " +
                                         "Last acquisition attempt exception: ",
                                         e);
                     }
@@ -1932,7 +1934,7 @@ class BasicResourcePool implements ResourcePool
                         catch (InterruptedException ie)
                         {
                             if ( logger.isLoggable(MLevel.WARNING) )
-                                logger.log(MLevel.WARNING, 
+                                logger.log(MLevel.WARNING,
                                                 "Failed to force-kill pending acquisition attempts after acquisition failue, " +
                                                 " due to an InterruptedException!",
                                                 ie );
@@ -1966,9 +1968,9 @@ class BasicResourcePool implements ResourcePool
                 }
             }
 	    finally
-	    { 
+	    {
 		if (recheck)
-		    recheckResizePool(); 
+		    recheckResizePool();
 	    }
         }
     }
@@ -1981,7 +1983,7 @@ class BasicResourcePool implements ResourcePool
     {
         boolean success = false;
 
-        public AcquireTask() 
+        public AcquireTask()
         { incrementPendingAcquires(); }
 
         public void run()
@@ -1996,7 +1998,7 @@ class BasicResourcePool implements ResourcePool
                     try
                     {
                         if (i > 0)
-                            Thread.sleep(acq_attempt_delay); 
+                            Thread.sleep(acq_attempt_delay);
 
                         //we don't want this call to be sync'd
                         //on the pool, so that resource acquisition
@@ -2009,7 +2011,7 @@ class BasicResourcePool implements ResourcePool
 			else // this is our last attempt
 			    {
 				decremented = true;
-				recheck = true; // we'd better recheck the size, since we might have a decrement unmatched by an acquisition 
+				recheck = true; // we'd better recheck the size, since we might have a decrement unmatched by an acquisition
 				BasicResourcePool.this.doAcquireAndDecrementPendingAcquiresWithinLockAlways();
 			    }
 
@@ -2038,7 +2040,7 @@ class BasicResourcePool implements ResourcePool
                         setLastAcquisitionFailure(e);
                     }
                 }
-                if (!success) 
+                if (!success)
                 {
                     if ( logger.isLoggable( MLevel.WARNING ) )
                     {
@@ -2046,7 +2048,7 @@ class BasicResourcePool implements ResourcePool
                                         this + " -- Acquisition Attempt Failed!!! Clearing pending acquires. " +
                                         "While trying to acquire a needed new resource, we failed " +
                                         "to succeed more than the maximum number of allowed " +
-                                        "acquisition attempts (" + num_acq_attempts + "). " + 
+                                        "acquisition attempts (" + num_acq_attempts + "). " +
                                         (lastException == null ? "" : "Last acquisition attempt exception: "),
                                         lastException);
                     }
@@ -2089,10 +2091,10 @@ class BasicResourcePool implements ResourcePool
             }
             finally
             {
-		if (! decremented) 
-		    decrementPendingAcquires(); 
+		if (! decremented)
+		    decrementPendingAcquires();
 		if (recheck)
-		    recheckResizePool(); 
+		    recheckResizePool();
 	    }
         }
 
@@ -2102,8 +2104,8 @@ class BasicResourcePool implements ResourcePool
             //and someone hasn't signalled that our resource source is down
             //and not max attempts is set,
             //or we are less than the set limit
-            return 
-		!success && 
+            return
+		!success &&
 		!isForceKillAcquiresPending() &&
 		goodAttemptNumber( attempt_num );
         }
@@ -2122,7 +2124,7 @@ class BasicResourcePool implements ResourcePool
      */
     class RemoveTask implements Runnable
     {
-        public RemoveTask() 
+        public RemoveTask()
         { incrementPendingRemoves(); }
 
         public void run()
@@ -2161,8 +2163,8 @@ class BasicResourcePool implements ResourcePool
     }
 
     // this is run by a single-threaded timer, so we don't have
-    // to worry about multiple threads executing the task at the same 
-    // time 
+    // to worry about multiple threads executing the task at the same
+    // time
     class CheckIdleResourcesTask extends TimerTask
     {
         public void run()
@@ -2207,8 +2209,8 @@ class BasicResourcePool implements ResourcePool
             try
             {
                 try
-                { 
-                    mgr.refurbishIdleResource( resc ); 
+                {
+                    mgr.refurbishIdleResource( resc );
                 }
                 catch ( Exception e )
                 {
@@ -2219,7 +2221,7 @@ class BasicResourcePool implements ResourcePool
                     {
                         if ( managed.keySet().contains( resc ) ) //resc might have been culled as expired while we tested
                         {
-                            removeResource( resc ); 
+                            removeResource( resc );
                             ensureMinResources();
                         }
 
@@ -2260,8 +2262,8 @@ class BasicResourcePool implements ResourcePool
 //  Object checkResource;
 
 //  public synchronized void setCheckResource( Object resc )
-//  { 
-//  this.checkResource = resc; 
+//  {
+//  this.checkResource = resc;
 //  this.notifyAll();
 //  }
 
@@ -2280,10 +2282,10 @@ class BasicResourcePool implements ResourcePool
 //  try
 //  {
 //  had_to_wait = true;
-//  this.wait(); 
+//  this.wait();
 //  }
 //  catch ( InterruptedException e )
-//  { 
+//  {
 //  e.printStackTrace();
 //  set_interrupt = true;
 //  }
