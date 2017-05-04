@@ -408,10 +408,10 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                         for ( Iterator ii = closeExceptions.iterator(); ii.hasNext(); )
                         {
                             Throwable t = (Throwable) ii.next();
-//                          System.err.print("[c3p0 -- conection resource close Exception]: ");
+//                          System.err.print("[c3p0 -- connection resource close Exception]: ");
 //                          t.printStackTrace();
                             if ( logger.isLoggable( MLevel.INFO ) )
-                                logger.log( MLevel.INFO, "[c3p0 -- conection resource close Exception]", t );
+                                logger.log( MLevel.INFO, "[c3p0 -- connection resource close Exception]", t );
                         }
                     }
                     reset( txn_known_resolved );
