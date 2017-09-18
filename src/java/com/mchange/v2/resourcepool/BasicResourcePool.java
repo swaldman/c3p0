@@ -960,10 +960,12 @@ class BasicResourcePool implements ResourcePool
                 otherWaiters.add( t );
                 this.wait();
             }
-            force_kill_acquires = false;
         }
         finally
-        { otherWaiters.remove( t ); }
+        {
+            force_kill_acquires = false;
+            otherWaiters.remove( t );
+        }
     }
 
     //same as close(), but we do not destroy checked out
