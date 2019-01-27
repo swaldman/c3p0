@@ -6,9 +6,9 @@
   <property file="../settings/build-c3p0.properties" />
   <property file="build.properties" />
 
-  <property name="c3p0.version" value="0.9.6-pre1" />
+  <property name="c3p0.version" value="0.9.5.3" />
 
-  <property name="c3p0.copyright.year" value="2015" />
+  <property name="c3p0.copyright.year" value="2019" />
 
   <property name="c3p0.name"    value="c3p0-${c3p0.version}" />
 
