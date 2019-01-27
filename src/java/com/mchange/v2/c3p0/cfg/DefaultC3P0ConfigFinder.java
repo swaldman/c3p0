@@ -43,8 +43,9 @@ import java.util.Properties;
 
 public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 {
-    final static String XML_CFG_FILE_KEY            = "com.mchange.v2.c3p0.cfg.xml";
-    final static String CLASSLOADER_RESOURCE_PREFIX = "classloader:";
+    final static String XML_CFG_FILE_KEY               = "com.mchange.v2.c3p0.cfg.xml";
+    final static String XML_CFG_EXPAND_ENTITY_REFS_KEY = "com.mchange.v2.c3p0.cfg.xml.expandEntityReferences";
+    final static String CLASSLOADER_RESOURCE_PREFIX    = "classloader:";
 
     final static MLogger logger = MLog.getLogger( DefaultC3P0ConfigFinder.class );
 
@@ -68,9 +69,11 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
 
 	String cfgFile = C3P0Config.getPropsFileConfigProperty( XML_CFG_FILE_KEY );
+	boolean expandEntityReferences = findExpandEntityReferences();
+	
 	if (cfgFile == null)
 	    {
-		C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromDefaultResource();
+		C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromDefaultResource( expandEntityReferences );
 		if (xmlConfig != null)
 		    {
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
@@ -111,7 +114,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 			    mbOverrideWarning( "file", cfgFile );
 			}
 
-			C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromInputStream( is );
+			C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromInputStream( is, expandEntityReferences );
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
 			out = xmlConfig;
 		    }
@@ -141,5 +144,18 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
     {
 	if ( warn_of_xml_overrides && logger.isLoggable( MLevel.WARNING ) )
 	    logger.log( MLevel.WARNING, "Configuation defined in " + srcType + "'" + srcName + "' overrides all other c3p0 config." );
+    }
+
+    private boolean findExpandEntityReferences()
+    {
+	String check = C3P0Config.getPropsFileConfigProperty( XML_CFG_EXPAND_ENTITY_REFS_KEY );
+	boolean out = (check != null && check.trim().equalsIgnoreCase("true"));
+	if ( out && logger.isLoggable( MLevel.WARNING ) )
+	    logger.log( MLevel.WARNING,
+			"Configuration property '" + XML_CFG_EXPAND_ENTITY_REFS_KEY + "' is set to 'true'. " +
+			"Entity references will be resolved in XML c3p0 configuration files. This may be a security hazard. " +
+			"Be sure you understand your XML config files, including the full transitive closure of entity references. " +
+			"See CVE-2018-20433, https://nvd.nist.gov/vuln/detail/CVE-2018-20433");
+	return out;
     }
 }

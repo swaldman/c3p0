@@ -115,7 +115,13 @@ public final class C3P0ConfigXmlUtils
 
     }
 
-    public static C3P0Config extractXmlConfigFromDefaultResource() throws Exception
+    // thanks to zhutougg on GitHub https://github.com/zhutougg/c3p0/commit/2eb0ea97f745740b18dd45e4a909112d4685f87b
+    // let's address hazards associated with overliberal parsing of XML, CVE-2018-20433
+    //
+    // by default entity references will not be expanded, but callers can specify expansion if they wish (important
+    // to retain backwards compatibility with existing config files where users understand the risks)
+
+    public static C3P0Config extractXmlConfigFromDefaultResource( boolean expandEntityReferences ) throws Exception
     {
         InputStream is = null;
 
@@ -128,7 +134,7 @@ public final class C3P0ConfigXmlUtils
                 return null;
             }
             else
-                return extractXmlConfigFromInputStream( is );
+                return extractXmlConfigFromInputStream( is, expandEntityReferences );
         }
         finally
         {
@@ -141,9 +147,12 @@ public final class C3P0ConfigXmlUtils
         }
     }
 
-    public static C3P0Config extractXmlConfigFromInputStream(InputStream is) throws Exception
+    public static C3P0Config extractXmlConfigFromInputStream(InputStream is, boolean expandEntityReferences) throws Exception
     {
         DocumentBuilderFactory fact = DocumentBuilderFactory.newInstance();
+
+	fact.setExpandEntityReferences( expandEntityReferences );
+
         DocumentBuilder db = fact.newDocumentBuilder();
         Document doc = db.parse( is );
 
@@ -253,6 +262,22 @@ public final class C3P0ConfigXmlUtils
         return out;
     }
 
+    /*
+    // preserve old public API, but with security-conservative defaults now
+    // i don't think this API is used by anyone, so I'm gonna leave this commented out unless
+    // somebody complains
+
+    public static C3P0Config extractXmlConfigFromDefaultResource() throws Exception
+    {
+	return extractXmlConfigFromDefaultResource( false );
+    }
+
+    public static C3P0Config extractXmlConfigFromInputStream(InputStream is) throws Exception
+    {
+	return extractXmlConfigFromInputStream( is, false )
+    }
+    */
+													  
     private C3P0ConfigXmlUtils()
     {}
 }
