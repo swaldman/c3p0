@@ -1616,7 +1616,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
       <p>
 	c3p0 uses a custom logging library similar to jakarta commons-logging. Log messages can be directed to
 	the to the popular <a href="http://www.slf4j.org/">slf4j</a> (with its <a href="http://logback.qos.ch/">logback backend</a>), 
-	to the venerable log4j library,
+	to the venerable log4j library, the more recent log4j2 library,
 	to the standard logging facility introduced with jdk1.4, or to
 	<tt>System.err</tt>. Nearly all configuration should be done at the level of your preferred logging
 	library. There are a very few configuration options specific to c3p0's logging, and usually the defaults
@@ -1643,12 +1643,13 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<dd>
 	  <div class="propdesc">
 	    Determines which library c3p0 will output log messages to. By default, if slf4j is available,
-	    it will use that library, otherwise log4j if available, otherwise jdk1.4 logging apis,
+	    it will use that library, otherwise log4j if available, otherwise log4j2 if available, otherwise jdk1.4 logging apis,
 	    and if all are unavailable, it will fallback to logging via <tt>System.err</tt>.
 	    If you want to directly control which library is used, you may set this property to one of:
 	    <ul>
 	      <li><tt>com.mchange.v2.log.slf4j.Slf4jMLog</tt></li>
 	      <li><tt>com.mchange.v2.log.log4j.Log4jMLog</tt></li>
+	      <li><tt>com.mchange.v2.log.log4j2.Log4j2MLog</tt></li>
 	      <li><tt>com.mchange.v2.log.jdk14logging.Jdk14MLog</tt></li>
 	      <li><tt>com.mchange.v2.log.FallbackMLog</tt></li>
 	    </ul>
@@ -1656,6 +1657,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <ul>
 	      <li><tt>slf4j</tt></li>
 	      <li><tt>log4j</tt></li>
+	      <li><tt>log4j2</tt></li>
 	      <li><tt>jul, jdk14, java.util.logging</tt></li>
 	      <li><tt>fallback</tt></li>
 	    </ul>
