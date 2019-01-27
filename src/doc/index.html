@@ -2756,8 +2756,11 @@ c3p0 {
       that is, in any location you specify under your classpath, including jar-file <tt>META-INF</tt> directories.
     </p>
     <p>
-      Due to <a href="">security concerns surrounding liberal parsing of XML references</a>, as of c3p0-0.9.5.3, c3p0 by default <i>no longer expands entity references in XML config files</i>.
-      However, installations that understand the full transitive closure of all entity references in their XML config may override this conservative behavior by setting the following property
+      Due to <a href="https://nvd.nist.gov/vuln/detail/CVE-2018-20433">security concerns surrounding liberal parsing of XML references</a>,
+      as of c3p0-0.9.5.3, c3p0 by default <i>no longer expands entity references in XML config files.
+      Entity references may be silently ignored!</i>
+      However, in the <i>very rare cases</i> where configurations intentionally rely upon entity reference expansion, you can turn it back on.
+      Installations that understand the full transitive closure of all entity references in their XML config may enable entity reference expansion by setting the following property
       to <tt>true</tt>:
     </p>
     <ul class="other_props_list">

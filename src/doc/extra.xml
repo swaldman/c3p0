@@ -1,0 +1,5 @@
+<user-overrides user="nobody">
+  <property name="unreturnedConnectionTimeout">25</property>
+  <property name="debugUnreturnedConnectionStackTraces">true</property>
+</user-overrides>
+
