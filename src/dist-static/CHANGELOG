@@ -1,3 +1,12 @@
+c3p0-0.9.5.3
+	-- Address CVE-2018-20433, https://nvd.nist.gov/vuln/detail/CVE-2018-20433 re liberal parsing of
+	   XML config. By default, c3p0 no longer expands entity references in XML config files. This
+	   behavior can be overridden via config property 'com.mchange.v2.c3p0.cfg.xml.expandEntityReferences'
+	   by applications that understand the security concerns but wish to make use of entity references.
+	   Thanks to user zhutougg on GitHub for calling attention to and suggesting a fix for this issue.
+	-- Upgrade dependency to mchange-commons-java 0.2.15, which includes support for log4j2 (implemented
+	   in mchange-commons-java by GitHub user fireandfuel. Many thanks!
+
 c3p0-0.9.5.2
 	-- Fix a bug in MLog bridge to slf4j logging, in which loggability of levels of wrapped loggers
 	   was misreported, leading to useless allocation of log Strings below the logging threshold. Grr.
