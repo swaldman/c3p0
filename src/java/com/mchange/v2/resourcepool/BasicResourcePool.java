@@ -962,6 +962,44 @@ class BasicResourcePool implements ResourcePool
             }
             force_kill_acquires = false;
         }
+	catch ( InterruptedException e )
+	{
+	    // We were interrupted while trying to kill acquireWaiter Threads
+	    // let's make a best-effort attempt to finish our work
+            for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
+                ((Thread) ii.next()).interrupt();
+
+	    // and let's log the issue
+	    if (logger.isLoggable( MLevel.WARNING ))
+		logger.log( MLevel.WARNING,
+			    "An interrupt left an attempt to gently clear threads waiting on resource acquisition potentially incomplete! " +
+			    "We have made a best attempt to finish that by interrupt()ing the waiting Threads." );
+	    
+	    force_kill_acquires = false;
+
+	    e.fillInStackTrace();
+	    throw e;
+	}
+	catch ( Throwable ick )
+	{
+	    // let's still make a best-effort attempt to finish our work
+            for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
+                ((Thread) ii.next()).interrupt();
+
+	    // and let's log the issue, with the throwable
+	    if (logger.isLoggable( MLevel.SEVERE ))
+		logger.log( MLevel.SEVERE,
+			    "An unexpected problem caused our attempt to gently clear threads waiting on resource acquisition to fail! " +
+			    "We have made a best attempt to finish that by interrupt()ing the waiting Threads.",
+			    ick );
+	    
+	    force_kill_acquires = false;
+
+	    // we still throw the unexpected throwable
+	    if ( ick instanceof RuntimeException ) throw (RuntimeException) ick;
+	    else if ( ick instanceof Error ) throw (Error) ick;
+	    else throw new RuntimeException("Wrapped unexpected Throwable.", ick );
+	}
         finally
         { otherWaiters.remove( t ); }
     }

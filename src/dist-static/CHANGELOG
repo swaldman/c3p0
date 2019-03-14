@@ -1,3 +1,9 @@
+        -- Address situation where a throwable during forceKillAcquires() left the force_kill_acquires flag
+	   set to true, making it impossible for the pool to restart acquisition attempts on recovery. We
+	   now unset the flag under any circumstance, but log interrupts or unexpected throwables, and make
+	   a best effort to complete the intended expiration of waiting clients by throwing InterruptException
+	   Many thanks to Stefan Cordes (rscadrde on github), Vipin Nair (swvist on github), and Łukasz Jąder
+	   (ljader on github) for their work on this issue.
 c3p0-0.9.5.3
 	-- Address CVE-2018-20433, https://nvd.nist.gov/vuln/detail/CVE-2018-20433 re liberal parsing of
 	   XML config. By default, c3p0 no longer expands entity references in XML config files. This
