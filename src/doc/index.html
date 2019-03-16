@@ -2757,7 +2757,7 @@ c3p0 {
     </p>
     <p>
       Due to <a href="https://nvd.nist.gov/vuln/detail/CVE-2018-20433">security concerns surrounding liberal parsing of XML references</a>,
-      c3p0 now XML files extremely restrictively by default. Among other things, it <i>no longer expands entity references in XML config files.
+      c3p0 now parses XML files extremely restrictively by default. Among other things, it <i>no longer expands entity references in XML config files.
       Entity references may be silently ignored!</i> It also no longer support xml includes, and tries to disable any use of inline document type definitions if the JVM's underlying
       XML library supports that.
       In the <i>very rare cases</i> where configurations intentionally rely upon entity reference expansion, DTDs, XML include, or other dangerous features, you can turn
