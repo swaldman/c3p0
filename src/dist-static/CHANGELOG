@@ -1,3 +1,10 @@
+        -- Disabling entity expansions, as we did in v.0.9.5.3 turns out not to be sufficient to prevent all
+	   XML-config parsing related attacks (if an attacker can control the XML config file that will be
+	   parsed). We now make XML parsing much more restrictove by default, but allow users to revert to the
+	   old, permissive pre-0.9.5.3 behavior by setting config property 'com.mchange.v2.c3p0.cfg.xml.usePermissiveParser'
+	   to true. That property replaces and leaves deprecated the 'com.mchange.v2.c3p0.cfg.xml.expandEntityReferences'
+	   property introduced on 0.9.5.3. Many thanks to Aaron Massey (amassey) at HackerOne for calling attention
+	   to the continued vulnerability of XML parsing to these kinds of attacks.
         -- Address situation where a throwable during forceKillAcquires() left the force_kill_acquires flag
 	   set to true, making it impossible for the pool to restart acquisition attempts on recovery. We
 	   now unset the flag under any circumstance, but log interrupts or unexpected throwables, and make

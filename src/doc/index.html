@@ -2757,17 +2757,21 @@ c3p0 {
     </p>
     <p>
       Due to <a href="https://nvd.nist.gov/vuln/detail/CVE-2018-20433">security concerns surrounding liberal parsing of XML references</a>,
-      as of c3p0-0.9.5.3, c3p0 by default <i>no longer expands entity references in XML config files.
-      Entity references may be silently ignored!</i>
-      However, in the <i>very rare cases</i> where configurations intentionally rely upon entity reference expansion, you can turn it back on.
-      Installations that understand the full transitive closure of all entity references in their XML config may enable entity reference expansion by setting the following property
+      c3p0 now XML files extremely restrictively by default. Among other things, it <i>no longer expands entity references in XML config files.
+      Entity references may be silently ignored!</i> It also no longer support xml includes, and tries to disable any use of inline document type definitions if the JVM's underlying
+      XML library supports that.
+      In the <i>very rare cases</i> where configurations intentionally rely upon entity reference expansion, DTDs, XML include, or other dangerous features, you can turn
+      permissive parsing back on, restoring c3p0's traditional behavior. <i>Be sure you <a href="https://vsecurity.com//download/papers/XMLDTDEntityAttacks.pdf">understand the security concerns</a>,
+      and trust your control over and the integrity of your XML config file, before restoring the old, permissive behavior.</i> Then, if you wish, you may set the following property
       to <tt>true</tt>:
     </p>
     <ul class="other_props_list">
-      <li>com.mchange.v2.c3p0.cfg.xml.expandEntityReferences</li>
+      <li>com.mchange.v2.c3p0.cfg.xml.usePermissiveParser</li>
     </ul>
     <p>
-      This will restore the traditional, liberal parsing of XML config files that c3p0 utilized by default in versions prior to c3p0-0.9.5.3.
+      This will restore the traditional, liberal parsing of XML config files that c3p0 utilized by default in versions prior to c3p0-0.9.5.3. (As of version 0.9.5.4,
+      <tt>com.mchange.v2.c3p0.cfg.xml.usePermissiveParser<tt> replaces the now-deprecated <tt>com.mchange.v2.c3p0.cfg.xml.expandEntityReferences</tt> introduced in 0.9.5.3,
+      because much more than entity reference expansion is now restricted.)
     </p>
 	<h4>Logging-related properties</h4>
 	<p>

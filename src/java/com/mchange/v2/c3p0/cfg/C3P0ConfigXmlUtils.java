@@ -115,13 +115,7 @@ public final class C3P0ConfigXmlUtils
 
     }
 
-    // thanks to zhutougg on GitHub https://github.com/zhutougg/c3p0/commit/2eb0ea97f745740b18dd45e4a909112d4685f87b
-    // let's address hazards associated with overliberal parsing of XML, CVE-2018-20433
-    //
-    // by default entity references will not be expanded, but callers can specify expansion if they wish (important
-    // to retain backwards compatibility with existing config files where users understand the risks)
-
-    public static C3P0Config extractXmlConfigFromDefaultResource( boolean expandEntityReferences ) throws Exception
+    public static C3P0Config extractXmlConfigFromDefaultResource( boolean usePermissiveParser ) throws Exception
     {
         InputStream is = null;
 
@@ -134,7 +128,7 @@ public final class C3P0ConfigXmlUtils
                 return null;
             }
             else
-                return extractXmlConfigFromInputStream( is, expandEntityReferences );
+                return extractXmlConfigFromInputStream( is, usePermissiveParser );
         }
         finally
         {
@@ -147,11 +141,66 @@ public final class C3P0ConfigXmlUtils
         }
     }
 
-    public static C3P0Config extractXmlConfigFromInputStream(InputStream is, boolean expandEntityReferences) throws Exception
+    private static void attemptSetFeature( DocumentBuilderFactory dbf, String featureUri, boolean setting )
+    {
+	try { dbf.setFeature( featureUri, setting ); }
+	catch (ParserConfigurationException e)
+	{
+	    if ( logger.isLoggable( MLevel.FINE ) )
+		logger.log(MLevel.FINE, "Attempted but failed to set presumably unsupported feature '" + featureUri + "' to " + setting + ".");
+	}
+    }
+
+    // thanks to zhutougg on GitHub https://github.com/zhutougg/c3p0/commit/2eb0ea97f745740b18dd45e4a909112d4685f87b
+    // let's address hazards associated with overliberal parsing of XML, CVE-2018-20433
+    //
+    // by default entity references will not be expanded, but callers can specify expansion if they wish (important
+    // to retain backwards compatibility with existing config files where users understand the risks)
+    //
+    // -=-=-=-
+    //
+    // disabling entity expansions turns out not to be sufficient to prevent attacks (if an attacker can control the
+    // XML config file that will be parsed). we now enable a wide variety of restrictions by default, but allow users
+    // to revert to the old behavior by setting usePermissiveParser to 'true'
+    //
+    // Many thanks to Aaron Massey (amassey) at HackerOne for calling attention to the continued vulnerability,
+    // and to Dominique Righetto (righettod on GitHub) for
+    //
+    //    https://github.com/OWASP/CheatSheetSeries/blob/31c94f233c40af4237432008106f42a9c4bff05e/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.md
+    //    (via Aaron Massey)
+    //
+    // for instructions on how to overkill the fix
+    
+    private static void cautionDocumentBuilderFactory( DocumentBuilderFactory dbf )
+    {
+	// the big one, if possible disable doctype declarations entirely
+	attemptSetFeature(dbf, "http://apache.org/xml/features/disallow-doctype-decl", true);
+
+	// for a varety of libraries, disable external general entities
+	attemptSetFeature(dbf, "http://xerces.apache.org/xerces-j/features.html#external-general-entities", false);
+	attemptSetFeature(dbf, "http://xerces.apache.org/xerces2-j/features.html#external-general-entities", false);
+	attemptSetFeature(dbf, "http://xml.org/sax/features/external-general-entities", false);
+
+	// for a variety of libraries, disable external parameter entities
+	attemptSetFeature(dbf, "http://xerces.apache.org/xerces-j/features.html#external-parameter-entities", false);
+	attemptSetFeature(dbf, "http://xerces.apache.org/xerces2-j/features.html#external-parameter-entities", false);
+	attemptSetFeature(dbf, "http://xml.org/sax/features/external-parameter-entities", false);
+
+	// if possible, disable external DTDs
+	attemptSetFeature(dbf, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
+	// disallow xinclude resolution
+	dbf.setXIncludeAware(false);
+
+	// disallow entity reference expansion in general
+	dbf.setExpandEntityReferences( false );
+    }
+
+    public static C3P0Config extractXmlConfigFromInputStream(InputStream is, boolean usePermissiveParser) throws Exception
     {
         DocumentBuilderFactory fact = DocumentBuilderFactory.newInstance();
 
-	fact.setExpandEntityReferences( expandEntityReferences );
+	if (! usePermissiveParser ) cautionDocumentBuilderFactory( fact );
 
         DocumentBuilder db = fact.newDocumentBuilder();
         Document doc = db.parse( is );

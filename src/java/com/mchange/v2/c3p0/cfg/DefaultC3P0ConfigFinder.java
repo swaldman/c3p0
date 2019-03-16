@@ -43,9 +43,10 @@ import java.util.Properties;
 
 public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 {
-    final static String XML_CFG_FILE_KEY               = "com.mchange.v2.c3p0.cfg.xml";
-    final static String XML_CFG_EXPAND_ENTITY_REFS_KEY = "com.mchange.v2.c3p0.cfg.xml.expandEntityReferences";
-    final static String CLASSLOADER_RESOURCE_PREFIX    = "classloader:";
+    final static String XML_CFG_FILE_KEY                  = "com.mchange.v2.c3p0.cfg.xml";
+    final static String XML_CFG_EXPAND_ENTITY_REFS_KEY    = "com.mchange.v2.c3p0.cfg.xml.expandEntityReferences"; // deprecated, defaults to false
+    final static String XML_CFG_USE_PERMISSIVE_PARSER_KEY = "com.mchange.v2.c3p0.cfg.xml.usePermissiveParser";    // defaults to false
+    final static String CLASSLOADER_RESOURCE_PREFIX       = "classloader:";
 
     final static MLogger logger = MLog.getLogger( DefaultC3P0ConfigFinder.class );
 
@@ -69,11 +70,11 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
 
 	String cfgFile = C3P0Config.getPropsFileConfigProperty( XML_CFG_FILE_KEY );
-	boolean expandEntityReferences = findExpandEntityReferences();
+	boolean usePermissiveParser = findUsePermissiveParser();
 	
 	if (cfgFile == null)
 	    {
-		C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromDefaultResource( expandEntityReferences );
+		C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromDefaultResource( usePermissiveParser );
 		if (xmlConfig != null)
 		    {
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
@@ -114,7 +115,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 			    mbOverrideWarning( "file", cfgFile );
 			}
 
-			C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromInputStream( is, expandEntityReferences );
+			C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromInputStream( is, usePermissiveParser );
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
 			out = xmlConfig;
 		    }
@@ -146,16 +147,43 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	    logger.log( MLevel.WARNING, "Configuation defined in " + srcType + "'" + srcName + "' overrides all other c3p0 config." );
     }
 
-    private boolean findExpandEntityReferences()
+    private static boolean affirmativelyTrue( String propStr )
+    { return (propStr != null && propStr.trim().equalsIgnoreCase("true")); }
+
+    private boolean findUsePermissiveParser()
     {
-	String check = C3P0Config.getPropsFileConfigProperty( XML_CFG_EXPAND_ENTITY_REFS_KEY );
-	boolean out = (check != null && check.trim().equalsIgnoreCase("true"));
+	boolean deprecatedExpandEntityRefs = affirmativelyTrue( C3P0Config.getPropsFileConfigProperty( XML_CFG_EXPAND_ENTITY_REFS_KEY ) );
+	boolean usePermissiveParser        = affirmativelyTrue( C3P0Config.getPropsFileConfigProperty( XML_CFG_USE_PERMISSIVE_PARSER_KEY ) );
+
+	boolean out = usePermissiveParser || deprecatedExpandEntityRefs;
+	    
 	if ( out && logger.isLoggable( MLevel.WARNING ) )
+	{
+	    String warningKey;
+	    if ( deprecatedExpandEntityRefs )
+	    {
+		logger.log( MLevel.WARNING,
+			    "You have set the configuration property '" + XML_CFG_EXPAND_ENTITY_REFS_KEY + "', which has been deprecated, to true. " +
+			    "Please use '" + XML_CFG_USE_PERMISSIVE_PARSER_KEY + "' instead. " +
+			    "Please be aware that permissive parsing enables inline document type definitions, XML inclusions, and other fetures!");
+		if ( usePermissiveParser )
+		    warningKey = "Configuration property '" + XML_CFG_USE_PERMISSIVE_PARSER_KEY + "'";
+		else
+		    warningKey = "Configuration property '" + XML_CFG_EXPAND_ENTITY_REFS_KEY + "' (deprecated)";
+	    }
+	    else
+		warningKey = "Configuration property '" + XML_CFG_USE_PERMISSIVE_PARSER_KEY + "'";
+	    
 	    logger.log( MLevel.WARNING,
-			"Configuration property '" + XML_CFG_EXPAND_ENTITY_REFS_KEY + "' is set to 'true'. " +
-			"Entity references will be resolved in XML c3p0 configuration files. This may be a security hazard. " +
-			"Be sure you understand your XML config files, including the full transitive closure of entity references. " +
-			"See CVE-2018-20433, https://nvd.nist.gov/vuln/detail/CVE-2018-20433");
+			warningKey + " is set to 'true'. " +
+			"Entity references will be resolved in XML c3p0 configuration files, doctypes and xml includes will be permitted, the file will in general be parsed very permissively. " +
+			"This may be a security hazard. " +
+			"Be sure you understand your XML config files, including the full transitive closure of entity references and incusions. " +
+			"See CVE-2018-20433, https://nvd.nist.gov/vuln/detail/CVE-2018-20433 / " +
+			"See also https://github.com/OWASP/CheatSheetSeries/blob/31c94f233c40af4237432008106f42a9c4bff05e/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.md / " +
+			"See also https://vsecurity.com//download/papers/XMLDTDEntityAttacks.pdf" );
+	}
+	
 	return out;
     }
 }
