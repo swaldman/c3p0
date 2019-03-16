@@ -189,9 +189,19 @@ public final class C3P0Config
 	    }
 	catch (Exception e)
 	    { 
-		
-		if ( logger.isLoggable(MLevel.WARNING) )
-		    logger.log( MLevel.WARNING, "XML configuration disabled! Verify that standard XML libs are available.", e);
+		if ( e instanceof ClassNotFoundException )
+		{
+		    if ( logger.isLoggable(MLevel.WARNING) )
+			logger.log( MLevel.WARNING, "XML configuration disabled! Verify that standard XML libs are available.", e);
+		}
+		else
+		{
+		    if ( logger.isLoggable(MLevel.SEVERE) )
+		    {
+			logger.log( MLevel.SEVERE, "An error occurred while trying to parse the XML configuration!" );
+			logger.log( MLevel.SEVERE, "XML CONFIGURATION IGNORED!", e);
+		    }
+		}
 
 		HashMap flatDefaults = C3P0ConfigUtils.extractHardcodedC3P0Defaults();
 		flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
