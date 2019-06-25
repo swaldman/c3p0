@@ -21,5 +21,12 @@ Please address comments and questions to the [library author](mailto:swaldman@mc
 
 Thank you for your interest in c3p0. I do hope that you find it useful!
 
+---
+
+**Note:** c3p0 has had a good experience with reporting of a security vulnerability via Sonatype's _Central Security Project_.
+If you find a c3p0 security issue, do consider reporting it via https://hackerone.com/central-security-project
+
+
+
 
 
