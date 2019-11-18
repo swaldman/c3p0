@@ -691,7 +691,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.println("else if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))");
                 iw.println("{");
                 iw.upIndent();
-                iw.println("logger.log( MLevel.FINE, this + \042: close() called more than once.\042 );");
+                iw.println("logger.log( MLevel.FINE, this + \042: close() called after already close()ed or abort()ed.\042 );");
 
                 // premature-detach-debug-debug only!
                 if (PREMATURE_DETACH_DEBUG)
@@ -714,6 +714,52 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.println("if (this.isDetached()) return false;");
 
                 super.generateDelegateCode( intfcl, genclass, method, iw );
+            }
+            else if ( mname.equals("abort") )
+            {
+                iw.println("if (!this.isDetached())");
+		iw.println( "{" );
+		iw.upIndent();
+                iw.println("final NewPooledConnection npc = parentPooledConnection;");
+		iw.println("final Executor exec = " + CodegenUtils.generatedArgumentName( 0 ) + ";");
+                iw.println("this.detach();");
+                iw.println("this.inner = null;");
+		iw.println( "Runnable r = new Runnable()" );
+		iw.println( "{" );
+		iw.upIndent();
+                iw.println("public void run()");
+		iw.println( "{" );
+		iw.upIndent();
+		iw.println("try { npc.closeMaybeCheckedOut( true ); }");
+		iw.println("catch (SQLException e)");
+		iw.println( "{" );
+		iw.upIndent();
+                iw.println("if (logger.isLoggable( MLevel.WARNING ))");
+                iw.println("{");
+                iw.upIndent();
+		iw.println("logger.log( MLevel.WARNING, \042An Exception occurred while attempting to destroy NewPooledConnection and underlying physical Connection on abort().\042, e );");
+		iw.downIndent();
+		iw.println( "}" );
+		iw.downIndent();
+		iw.println( "}" );
+		iw.downIndent();
+		iw.println( "}" );
+		iw.downIndent();
+		iw.println( "};" );
+		iw.println( "exec.execute( r );" );
+		iw.downIndent();
+		iw.println( "}" );
+		iw.println("else");
+		iw.println( "{" );
+		iw.upIndent();
+                iw.println("if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("logger.log( MLevel.FINE, this + \042: abort() after already close()ed or abort()ed.\042 );");
+		iw.downIndent();
+		iw.println( "}" );
+		iw.downIndent();
+		iw.println( "}" );
             }
             else
             {
@@ -741,7 +787,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("boolean txn_known_resolved = true;");
             iw.println();
             iw.println("DatabaseMetaData metaData = null;");
-            iw.println();
+	    iw.println();
 
 //          We've nothing to do with preferredTestQuery here... the stuff below was unnecessary
 

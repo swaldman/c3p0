@@ -1,3 +1,6 @@
+	-- Properly implement the JDBC 4.1 abort method. Thanks to Andrew Johnson for calling attention
+	   to this issue.
+c3p0-0.9.5.4
         -- Disabling entity expansions, as we did in v.0.9.5.3 turns out not to be sufficient to prevent all
 	   XML-config parsing related attacks (if an attacker can control the XML config file that will be
 	   parsed). We now make XML parsing much more restrictove by default, but allow users to revert to the
@@ -25,7 +28,7 @@ c3p0-0.9.5.2
 	   was misreported, leading to useless allocation of log Strings below the logging threshold. Grr.
 	   [change is in mchange-commons-java 0.2.11]. Many thanks to Lewis Wong on Stack Exchange for calling
 	   attention to this issue.
-        -- Embed last acquistion failure as nested Exception in CannotAcquireResourceException. Thanks to 
+        -- Embed last acquistion failure as nested Exception in CannotAcquireResourceException. Thanks to
 	   nigam on github for this addition.
 c3p0-0.9.5.1
 	-- Implemented configuration property com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout
