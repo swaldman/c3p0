@@ -140,7 +140,16 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
             if (! isDriverClassLoaded())
             {
                 if (driverClass != null)
-                    Class.forName( driverClass );
+                {
+                    Class driverCls = loadDriver(driverClass);
+                    if(!driverCls.getClassLoader().equals(this.getClass().getClassLoader()))
+                    {
+                        logger.warning( "Driver '" + driverClass + "' was loaded with a classloader different than C3P0's. Forcing lookup by name sonce the DriverManager won't fin it from C3P0's classloader." );
+                        logger.finest("Driver '" + driverClass + "' classloader: " + driverCls.getClassLoader().toString());
+                        logger.finest("C3P0 classloader: " + this.getClass().getClassLoader().toString());
+                        setForceUseNamedDriverClass(true);
+                    }
+                }
                 setDriverClassLoaded( true );
             }
         }
@@ -148,6 +157,25 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         {
             if (logger.isLoggable(MLevel.WARNING))
                 logger.log(MLevel.WARNING, "Could not load driverClass " + driverClass, e);
+        }
+    }
+
+    private Class loadDriver(String driverClass) throws ClassNotFoundException
+    {
+        try
+        {
+            return Class.forName(driverClass);
+        }
+        catch (ClassNotFoundException e)
+        {
+            if (Thread.currentThread().getContextClassLoader() != null)
+            {
+                return Class.forName(driverClass, true, Thread.currentThread().getContextClassLoader());
+            }
+            else
+            {
+                throw e;
+            }
         }
     }
 
@@ -273,9 +301,9 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		    logger.finer( "Circumventing DriverManager and instantiating driver class '" + driverClass + 
 				  "' directly. (forceUseNamedDriverClass = " + forceUseNamedDriverClass + ")" );
 
-		try 
-		{ 
-		    driver = (Driver) Class.forName( driverClass ).newInstance();
+		try
+		{
+		    driver = (Driver) loadDriver(driverClass).newInstance();
 		    this.setDriverClassLoaded( true );
 		}
 		catch (Exception e)
