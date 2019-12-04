@@ -2,13 +2,6 @@ Hi.
 
 Building c3p0 should be as easy as editing build.properties and typing ant.
 
-  *****************************************************************************
-  * NOTE: This version of c3p0 supports the JDBC 3 spec, not JDBC 4, and must *
-  *       be built under JDK 1.5 (or 1.4, with some tweaking). The next major *
-  *       version of c3p0 will support JDBC 4 and JDK 1.6+, but we're not     *
-  *       there yet.                                                          *
-  *****************************************************************************
-
 There is a dependency: You'll need an mchange-commons-java jar file, which is bundled
 in the lib directory of c3p0's binary distribution as a convenience. 
 
