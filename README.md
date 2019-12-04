@@ -11,6 +11,17 @@ c3p0 is now maintained on [github](https://github.com/swaldman/c3p0).
 c3p0 is available as managed dependency on [Sonatype's open-source software repostory](https://oss.sonatype.org/content/repositories/releases/), 
 under <code>[groupId: com.mchange, artifactId: c3p0]</code> For available values of <code>version</code>, look [here](https://oss.sonatype.org/content/repositories/releases/com/mchange/c3p0/).
 
+### maven
+```shell
+<dependencies>
+        <dependency>
+            <groupId>com.mchange</groupId>
+            <artifactId>c3p0</artifactId>
+            <version>0.9.5.2</version>
+        </dependency>
+</dependencies>
+```
+
 You can still find releases at [sourceforge](http://sourceforge.net/projects/c3p0/).
 
 Documentation is available as part of every distribution, as well as [on-line](http://www.mchange.com/projects/c3p0/).
