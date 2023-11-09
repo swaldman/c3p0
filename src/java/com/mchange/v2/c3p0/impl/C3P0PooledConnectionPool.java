@@ -46,6 +46,8 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.LinkedList;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.lang.reflect.Method;
 
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
@@ -92,6 +94,10 @@ public final class C3P0PooledConnectionPool
     final ThrowableHolderPool thp = new ThrowableHolderPool();
 
     final InUseLockFetcher inUseLockFetcher;
+
+    private final AtomicBoolean isRequestBoundaryMethodsInitialised = new AtomicBoolean();
+    private Method beginRequest;
+    private Method endRequest;
 
     public int getStatementDestroyerNumConnectionsInUse()                           { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsInUse(); }
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatements()   { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsWithDeferredDestroyStatements(); }
@@ -684,6 +690,18 @@ public final class C3P0PooledConnectionPool
 	    { 
 		PooledConnection pc = (PooledConnection) this.checkoutAndMarkConnectionInUse(); 
 		pc.addConnectionEventListener( cl );
+          if (pc instanceof AbstractC3P0PooledConnection) {
+              AbstractC3P0PooledConnection acpc = (AbstractC3P0PooledConnection) pc;
+              Connection con = acpc.getPhysicalConnection();
+              if (this.hasRequestBoundaryMethods(con)) {
+                  try {
+                      beginRequest.invoke(con);
+                      logger.log(MLevel.FINEST, "beginRequest method called");
+                  } catch (Exception ex) {
+                      logger.log(MLevel.WARNING, "Error invoking beginRequest method for connection", ex);
+                  }
+              }
+          }
 		return pc;
 	    }
         catch (TimeoutException e)
@@ -693,7 +711,33 @@ public final class C3P0PooledConnectionPool
         catch (Exception e)
         { throw SqlUtils.toSQLException(e); }
     }
-    
+
+    private boolean hasRequestBoundaryMethods(Connection connection) {
+        if (!isRequestBoundaryMethodsInitialised.get()) {
+            try {
+                beginRequest = connection.getClass().getMethod("beginRequest");
+                if (!beginRequest.isAccessible()) {
+                    beginRequest.setAccessible(true);
+                }
+                endRequest = connection.getClass().getMethod("endRequest");
+                if (!endRequest.isAccessible()) {
+                    endRequest.setAccessible(true);
+                }
+                logger.log(MLevel.FINEST, "Request boundary methods found");
+            } catch (NoSuchMethodException ex) {
+                // let methods be null, driver does not implement them
+                logger.log(MLevel.WARNING, "Request boundary methods not found.");
+            } catch (SecurityException securityException) {
+                beginRequest = null;
+                endRequest = null;
+                logger.log(MLevel.WARNING, "Could not make boundary methods accessible.");
+            } finally {
+                isRequestBoundaryMethodsInitialised.set(true);
+            }
+        }
+        return beginRequest != null && endRequest != null;
+    }
+
     private void waitMarkPhysicalConnectionInUse(Connection physicalConnection) throws InterruptedException
     {
         if (effectiveStatementCache)
@@ -806,7 +850,19 @@ public final class C3P0PooledConnectionPool
         try 
 	    {
 		pcon.removeConnectionEventListener( cl );
-		unmarkConnectionInUseAndCheckin( pcon ); 
+		unmarkConnectionInUseAndCheckin( pcon );
+          if (pcon instanceof AbstractC3P0PooledConnection) {
+              AbstractC3P0PooledConnection acpc = (AbstractC3P0PooledConnection) pcon;
+              Connection con = acpc.getPhysicalConnection();
+              if (this.hasRequestBoundaryMethods(con)) {
+                  try {
+                      endRequest.invoke(con);
+                      logger.log(MLevel.FINEST, "endRequest method called");
+                  } catch (Exception ex) {
+                      logger.log(MLevel.WARNING, "Error invoking endRequest method for connection", ex);
+                  }
+              }
+          }
 	    } 
         catch (ResourcePoolException e)
         { throw SqlUtils.toSQLException(e); }
