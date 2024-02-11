@@ -41,14 +41,47 @@ import javax.xml.parsers.*;
 import org.w3c.dom.*;
 import com.mchange.v2.codegen.*;
 import com.mchange.v2.codegen.bean.*;
-import com.mchange.v2.c3p0.impl.*;
+//import com.mchange.v2.c3p0.impl.*;
 
 import java.lang.reflect.Modifier;
 import com.mchange.v1.xml.DomParseUtils;
 
 public class BeangenDataSourceGenerator
 {
+    private final static String BGX_SUFFIX     = ".beangen-xml";
+    private final static int    BGX_SUFFIX_LEN = BGX_SUFFIX.length();
+
     public static void main( String[] argv )
+    {
+	File inDir = new File(argv[0]);
+	File outDir = new File(argv[1]);
+
+	if (!inDir.exists())
+	{
+	    System.err.println("beangen-xml src directory '" + inDir + "' does not exist. aborting.");
+	    return;
+	}
+	if (!outDir.exists())
+	{
+	    System.err.println("Creating beangen output directory: " + outDir);
+	    outDir.mkdirs();
+	}
+	String[] inFiles = inDir.list();
+	for( int i = inFiles.length; --i >= 0; )
+	{
+	    String fname = inFiles[i];
+	    if (fname.endsWith(BGX_SUFFIX))
+	    {
+		String baseName = fname.substring(0, fname.length() - BGX_SUFFIX_LEN);
+                String outName = baseName + ".java";
+		File inFile = new File( inDir, fname );
+		File outFile = new File( outDir, outName );
+		origMain( new String[] {inFile.toString(), outFile.toString()} );
+	    }
+	}
+    }
+
+    public static void origMain( String[] argv )
     {
 	try
 	    {
@@ -58,7 +91,7 @@ public class BeangenDataSourceGenerator
 					   " <infile.xml> <OutputFile.java>");
 			return;
 		    }
-		
+
 
 		File outFile = new File( argv[1] );
 		File parentDir = outFile.getParentFile();

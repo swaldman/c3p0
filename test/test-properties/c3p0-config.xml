@@ -1,8 +1,10 @@
 <?xml version="1.0" standalone="no" ?>
 
+<!--
 <!DOCTYPE c3p0-config [
    <!ENTITY extra SYSTEM "https://www.mchange.com/projects/c3p0/extra.xml">
 ]>
+-->
 
 <c3p0-config>
   <default-config>
@@ -42,7 +44,7 @@
       <!-- <property name="preferredTestQuery">select poop from doop</property> --><!-- intentionally broken -->
     </user-overrides>
 
-    &extra;
+ <!--   &extra; -->
 
   </default-config>
 

@@ -1665,6 +1665,17 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    define an order of preference among logging libraries.
 	  </div>
 	</dd>
+	<dt><a name="com.mchange.v2.log.MLog.useRedirectableLoggers" />com.mchange.v2.log.MLog.useRedirectableLoggers</dt>
+	<dd>
+	  <div class="propdesc">
+	    Using API in <a href="https://www.mchange.com/projects/mchange-commons-java/apidocs/com/mchange/v2/log/MLog.html"><tt>com.mchange.v2.log.MLog</tt></a>,
+	    it is possible to change at runtime what library c3p0 output logs to,
+	    or to switch midstream to the standard-error based fallback logger. However, for this to be useful, loggers
+	    already constructed against the original configuration need to be sensitive to the change. Setting this value to <tt>true</tt>
+	    will cause c3p0 to use slightly less performant loggers that can be redirected between libraries at runtime. This setting
+	    is <tt>false</tt> by default.
+	  </div>
+	</dd>
 	<dt><a name="com.mchange.v2.log.jdk14logging.suppressStackWalk" />com.mchange.v2.log.jdk14logging.suppressStackWalk</dt>
 	<dd>
 	  <div class="propdesc">
