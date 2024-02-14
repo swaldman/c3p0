@@ -57,7 +57,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   def beangenGeneratedSourceDir = T{ T.dest }
   def beangen = T {
     bean.run(
-      T.task(Args("beangen/com/mchange/v2/c3p0/impl",(beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()))
+      T.task(Args("bean/beangen/com/mchange/v2/c3p0/impl",(beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()))
     )()
     PathRef(beangenGeneratedSourceDir())
   }
