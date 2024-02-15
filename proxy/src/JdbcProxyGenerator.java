@@ -1227,6 +1227,8 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 return;
             }
 
+            // System.err.println("java.class.path: " + System.getProperty("java.class.path"));
+
             DelegatorGenerator mdgen = new NewProxyMetaDataGenerator();
             DelegatorGenerator rsgen = new NewProxyResultSetGenerator();
             DelegatorGenerator stgen = new NewProxyAnyStatementGenerator();

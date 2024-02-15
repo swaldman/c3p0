@@ -51,6 +51,10 @@ public final class OneThreadRepeatedInsertOrQueryTest
 
     public static void main(String[] argv)
     {
+
+        /*
+          Let's get this stuff from c3p0.properties or sysprops
+        
 	String jdbc_url = null;
 	String username = null;
 	String password = null;
@@ -71,11 +75,12 @@ public final class OneThreadRepeatedInsertOrQueryTest
 	
 	if (! jdbc_url.startsWith("jdbc:") )
 	    usage();
-	
+        */
 	
 	try
 	    {
-		DataSource ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+		//DataSource ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+		DataSource ds_unpooled = DataSources.unpooledDataSource();
 		ds = DataSources.pooledDataSource( ds_unpooled );
 
 		Connection con = null;

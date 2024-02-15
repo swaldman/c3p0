@@ -135,7 +135,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     super.generatedSources() ++ Agg(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
   }
 
-  object test extends JavaModule {
+  object test extends JavaModule with TestModule.Junit5 {
     override def moduleDeps = Seq(c3p0)
 
     override def ivyDeps = T{
@@ -177,6 +177,15 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     }
     def c3p0Dispersion = T {
       this.runMain("com.mchange.v2.c3p0.test.ConnectionDispersionTest")()
+    }
+    def c3p0OneThreadRepeat = T {
+      this.runMain("com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest")()
+    }
+    def c3p0RefSer = T {
+      this.runMain("com.mchange.v2.c3p0.test.TestRefSerStuff")
+    }
+    def c3p0JavaBeanRef = T {
+      this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")
     }
   }
 
