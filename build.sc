@@ -135,6 +135,14 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     super.generatedSources() ++ Agg(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
   }
 
+  // we are currently building in Java 11, but releasing Java 6 compatible class files
+  // for users of smaller JDBC subsets
+  val JvmCompatVersion = "6"
+
+  // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
+  // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
+  override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
+
   object test extends JavaModule with TestModule.Junit5 {
     override def moduleDeps = Seq(c3p0)
 
