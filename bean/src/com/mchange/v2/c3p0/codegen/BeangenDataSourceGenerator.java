@@ -158,7 +158,7 @@ public class BeangenDataSourceGenerator
 		w.flush();
 		w.close();
 
-		System.err.println("Processed: " + argv[0] ); //+ " -> " + argv[1]);
+		System.err.println("Processed: " + argv[0] + " -> " + argv[1]);
 	    }
 	catch ( Exception e )
 	    { e.printStackTrace(); }

@@ -1,15 +1,46 @@
 import $meta._
 
 import mill._
+import mill.api.Result
 import mill.scalalib._
 import mill.scalalib.publish._
+import mill.util.Jvm
 
 object Dependency {
   val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:0.2.20"
+  val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
+  val PgJdbc = ivy"org.postgresql:postgresql:42.6.0"
 }
 
 object c3p0 extends RootModule with JavaModule with PublishModule {
   trait Gen extends JavaModule {
+    def runIf(conditionAndArgs: Task[Args]): Command[Unit] = T.command {
+      val caa = conditionAndArgs().value
+      val condition = caa.head
+      // println(s"!!!!! $condition")
+      val args = caa.tail
+      val truthyCondition = "true".equalsIgnoreCase(condition) || "t".equalsIgnoreCase(condition)
+      if (truthyCondition) {
+        try Result.Success(
+            Jvm.runSubprocess(
+              finalMainClass(),
+              runClasspath().map(_.path),
+              forkArgs(),
+              forkEnv(),
+              args,
+              workingDir = forkWorkingDir(),
+              useCpPassingJar = runUseArgsFile()
+            )
+          )
+        catch {
+          case e: Exception =>
+            Result.Failure("subprocess failed")
+        }
+      }
+      else {
+        Result.Success( () )
+      }
+    }
     override def ivyDeps = T{
       super.ivyDeps() ++ Agg(Dependency.MchangeCommonsJava)
     }
@@ -30,45 +61,94 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   override def ivyDeps = T{
     super.ivyDeps() ++ Agg(Dependency.MchangeCommonsJava)
   }
-  def genDebugSources = T.persistent {
+  def buildModTime : T[Long] = T.input {
+    val out = math.max( os.mtime( os.pwd / "build.sc" ), os.mtime( os.pwd / "mill-build" / "build.sc" ) )
+    //println( s"buildModTime: $out" )
+    out
+  }
+  private def recursiveDirModTime( dir : os.Path ) : Long = {
+    if (!os.exists(dir)) {
+      -1L
+    }
+    else {
+      val mtimes = os.walk.attrs(dir, includeTarget = true).map( _._2.mtime.toMillis )
+      if (mtimes.size < 2) -1L else mtimes.max // if there's only one mtime, it's the empty target
+    }
+  }
+  def genDebugSources = T { // mill correctly caches these with no work on our part
     com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${os.pwd}/src",s"--outputbase=${T.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
     PathRef(T.dest)
   }
   def genC3P0SubstitutionsSource = T.persistent {
     val version = publishVersion()
-    val text =
-      s"""|package com.mchange.v2.c3p0.subst;
-          |
-          |public final class C3P0Substitutions
-          |{
-          |    public final static String VERSION    = "${version}";
-          |    public final static String DEBUG      = "${Debug}";
-          |    public final static String TRACE      = "${Trace}";
-          |    public final static String TIMESTAMP  = "${java.time.Instant.now}";
-          |
-          |    private C3P0Substitutions()
-          |    {}
-          |}
-          |""".stripMargin
-    val path = T.dest / "com" / "mchange" / "v2" / "c3p0" / "subst" / "C3P0Substitutions.java"
-    os.write( path, data = text, createFolders = true )
+    val bmt = buildModTime()
+    val dmt = recursiveDirModTime( T.dest )
+    if ( bmt > dmt ) {
+      val text =
+        s"""|package com.mchange.v2.c3p0.subst;
+            |
+            |public final class C3P0Substitutions
+            |{
+            |    public final static String VERSION    = "${version}";
+            |    public final static String DEBUG      = "${Debug}";
+            |    public final static String TRACE      = "${Trace}";
+            |    public final static String TIMESTAMP  = "${java.time.Instant.now}";
+            |
+            |    private C3P0Substitutions()
+            |    {}
+            |}
+            |""".stripMargin
+      val path = T.dest / "com" / "mchange" / "v2" / "c3p0" / "subst" / "C3P0Substitutions.java"
+      System.err.println("Regenerating C3P0Substitutions.java")
+      os.write.over( path, data = text, createFolders = true )
+    }
     PathRef(T.dest)
   }
-  def beangenGeneratedSourceDir = T{ T.dest }
+  def beangenGeneratedSourceDir = T.persistent { T.dest }
   def beangen = T {
-    bean.run(
-      T.task(Args("bean/beangen/com/mchange/v2/c3p0/impl",(beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()))
+    val realDest = beangenGeneratedSourceDir()
+    bean.runIf(
+      T.task(
+        Args(
+          (Seq(buildModTime(),recursiveDirModTime(os.pwd/"bean"/"beangen"),recursiveDirModTime(os.pwd/"bean"/"src")).max > recursiveDirModTime(beangenGeneratedSourceDir())).toString,
+          "bean/beangen/com/mchange/v2/c3p0/impl",
+          (beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()
+        )
+      )
     )()
-    PathRef(beangenGeneratedSourceDir())
+    PathRef(realDest)
   }
-  def proxygenGeneratedSourceDir = T{ T.dest }
+  def proxygenGeneratedSourceDir = T.persistent { T.dest }
   def proxygen = T {
-    proxy.run(T.task(Args(proxygenGeneratedSourceDir().toString)))()
+    proxy.runIf(
+      T.task(
+        Args(
+          (math.max(buildModTime(),recursiveDirModTime(os.pwd/"proxy"/"src")) > recursiveDirModTime(proxygenGeneratedSourceDir())).toString,
+          proxygenGeneratedSourceDir().toString
+        )
+      )
+    )()
     PathRef(proxygenGeneratedSourceDir())
   }
 
   override def generatedSources = T {
     super.generatedSources() ++ Agg(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
+  }
+
+  object test extends JavaModule {
+    override def moduleDeps = Seq(c3p0)
+
+    override def ivyDeps = T{
+      super.ivyDeps() ++ Agg(Dependency.JUnit,Dependency.PgJdbc)
+    }
+
+    override def forkArgs = T {
+      "-Dc3p0.jdbcUrl=jdbc:postgresql://localhost:5432/c3p0" :: Nil
+    }
+
+    def c3p0BenchmarkApp = T {
+      this.runMain("com.mchange.v2.c3p0.test.C3P0BenchmarkApp")()
+    }
   }
 
   override def artifactName = T{"c3p0"}
