@@ -48,6 +48,8 @@ import com.mchange.v1.db.sql.StatementUtils;
 import java.io.StringWriter;
 import java.io.PrintWriter;
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.mchange.v2.io.IndentedWriter;
 
 public abstract class GooGooStatementCache
@@ -827,7 +829,7 @@ public abstract class GooGooStatementCache
             Set stmtSet = statementSet( pcon );
             if (stmtSet == null)
             {
-                stmtSet = new HashSet();
+                stmtSet = Collections.newSetFromMap(new ConcurrentHashMap());
                 cxnToStmtSets.put( pcon, stmtSet );
             }
             stmtSet.add( ps );
