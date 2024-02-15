@@ -1,3 +1,6 @@
+	-- Add support for JDBC 4.3 beginRequest and endRequest methods.
+	   See https://github.com/swaldman/c3p0/pull/170
+	   Thanks Fernanda Meheust!
 	-- Consider ourselves to be a wrapper for a thing if the thing we wrap itself declares itself
 	   as the wrapper of that thing. See https://github.com/swaldman/c3p0/pull/149
 	   Thanks François JACQUES!

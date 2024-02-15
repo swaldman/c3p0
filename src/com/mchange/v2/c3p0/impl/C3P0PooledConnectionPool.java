@@ -41,6 +41,7 @@ import com.mchange.v2.c3p0.SQLWarnings;
 import com.mchange.v2.c3p0.UnifiedConnectionTester;
 import com.mchange.v2.c3p0.WrapperConnectionPoolDataSource;
 
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -93,6 +94,9 @@ public final class C3P0PooledConnectionPool
 
     final InUseLockFetcher inUseLockFetcher;
 
+    //MT: protected by this' lock
+    private RequestBoundaryMarker requestBoundaryMarker;
+
     public int getStatementDestroyerNumConnectionsInUse()                           { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsInUse(); }
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatements()   { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsWithDeferredDestroyStatements(); }
     public int getStatementDestroyerNumDeferredDestroyStatements()                  { return scache == null ? -1 : scache.getStatementDestroyerNumDeferredDestroyStatements(); } 
@@ -130,37 +134,135 @@ public final class C3P0PooledConnectionPool
     private static InUseLockFetcher RESOURCE_ITSELF_IN_USE_LOCK_FETCHER = new ResourceItselfInUseLockFetcher();
     private static InUseLockFetcher C3P0_POOLED_CONNECION_NESTED_LOCK_LOCK_FETCHER = new C3P0PooledConnectionNestedLockLockFetcher();
 
+    private interface RequestBoundaryMarker
+    {
+	public void attemptNotifyBeginRequest(PooledConnection pc);
+	public void attemptNotifyEndRequest(PooledConnection pc);
+    }
+    private static class NoOpRequestBoundaryMarker implements RequestBoundaryMarker
+    {
+	public void attemptNotifyBeginRequest(PooledConnection pc) {}
+	public void attemptNotifyEndRequest(PooledConnection pc) {}
+    }
+    private static RequestBoundaryMarker NO_OP_REQUEST_BOUNDARY_MARKER = new NoOpRequestBoundaryMarker();
+
+    private static class LiveRequestBoundaryMarker implements RequestBoundaryMarker
+    {
+	Method beginRequest;
+	Method endRequest;
+
+	LiveRequestBoundaryMarker(Method beginRequest, Method endRequest)
+	{
+	    this.beginRequest = beginRequest;
+	    this.endRequest   = endRequest;
+	}
+
+	public void attemptNotifyBeginRequest(PooledConnection pc)
+	{
+	    if (pc instanceof AbstractC3P0PooledConnection)
+	    {
+		AbstractC3P0PooledConnection acpc = (AbstractC3P0PooledConnection) pc;
+		Connection conn = acpc.getPhysicalConnection();
+		try
+		{
+		    beginRequest.invoke(conn);
+		    logger.log(MLevel.FINEST, "beginRequest method called");
+		}
+		catch (Exception ex)
+		{ logger.log(MLevel.WARNING, "Error invoking beginRequest method for connection", ex); }
+	    }
+	}
+	public void attemptNotifyEndRequest(PooledConnection pc)
+	{
+	    if (pc instanceof AbstractC3P0PooledConnection)
+	    {
+		AbstractC3P0PooledConnection acpc = (AbstractC3P0PooledConnection) pc;
+		Connection conn = acpc.getPhysicalConnection();
+		try
+		{
+		    endRequest.invoke(conn);
+		    logger.log(MLevel.FINEST, "endRequest method called");
+		}
+		catch (Exception ex)
+		{ logger.log(MLevel.WARNING, "Error invoking endRequest method for connection", ex); }
+	    }
+	}
+    }
+
+    // we assume (pretty safely I think) that all PooledConnections we see will have the same type
+    // and physical connection type
+    private synchronized RequestBoundaryMarker findRequestBoundaryMarker(PooledConnection pc)
+    {
+	if (this.requestBoundaryMarker != null)
+	    return this.requestBoundaryMarker;
+	else
+	{
+	    if (pc instanceof AbstractC3P0PooledConnection)
+	    {
+		AbstractC3P0PooledConnection acpc = (AbstractC3P0PooledConnection) pc;
+		Connection conn = acpc.getPhysicalConnection();
+		try
+		{
+		    Method beginRequest = conn.getClass().getMethod("beginRequest");
+		    if (!beginRequest.isAccessible()) beginRequest.setAccessible(true);
+		    Method endRequest = conn.getClass().getMethod("endRequest");
+		    if (!endRequest.isAccessible()) endRequest.setAccessible(true);
+		    logger.log(MLevel.FINEST, "Request boundary methods found");
+		    this.requestBoundaryMarker = new LiveRequestBoundaryMarker(beginRequest, endRequest);
+		}
+		catch (NoSuchMethodException ex)
+		{
+		    // let methods be null, driver does not implement them
+		    logger.log(MLevel.WARNING, "Request boundary methods not found.");
+		    this.requestBoundaryMarker = NO_OP_REQUEST_BOUNDARY_MARKER;
+		}
+		catch (SecurityException securityException)
+		{
+		    logger.log(MLevel.WARNING, "Could not make boundary methods accessible.");
+		    this.requestBoundaryMarker = NO_OP_REQUEST_BOUNDARY_MARKER;
+		}
+	    }
+	    else
+		this.requestBoundaryMarker = NO_OP_REQUEST_BOUNDARY_MARKER;
+
+	    return this.requestBoundaryMarker;
+	}
+    }
+
+    private void markBeginRequest(PooledConnection pc) { findRequestBoundaryMarker(pc).attemptNotifyBeginRequest(pc); }
+    private void markEndRequest(PooledConnection pc) { findRequestBoundaryMarker(pc).attemptNotifyEndRequest(pc); }
+
     C3P0PooledConnectionPool( final ConnectionPoolDataSource cpds,
-                    final DbAuth auth,
-                    int min, 
-                    int max, 
-                    int start,
-                    int inc,
-                    int acq_retry_attempts,
-                    int acq_retry_delay,
-                    boolean break_after_acq_failure,
-                    int checkoutTimeout, //milliseconds
-                    int idleConnectionTestPeriod, //seconds
-                    int maxIdleTime, //seconds
-                    int maxIdleTimeExcessConnections, //seconds
-                    int maxConnectionAge, //seconds
-                    int propertyCycle, //seconds
-                    int unreturnedConnectionTimeout, //seconds
-                    boolean debugUnreturnedConnectionStackTraces,
-                    boolean forceSynchronousCheckins,
-                    final boolean testConnectionOnCheckout,
-                    final boolean testConnectionOnCheckin,
-                    int maxStatements,
-                    int maxStatementsPerConnection,
-		    /* boolean statementCacheDeferredClose,      */
-                    final ConnectionTester connectionTester,
-                    final ConnectionCustomizer connectionCustomizer,
-                    final String testQuery,
-                    final ResourcePoolFactory fact,
-                    ThreadPoolAsynchronousRunner taskRunner,
-		    ThreadPoolAsynchronousRunner deferredStatementDestroyer,
-                    final String parentDataSourceIdentityToken) throws SQLException
-                    {
+			      final DbAuth auth,
+			      int min,
+			      int max,
+			      int start,
+			      int inc,
+			      int acq_retry_attempts,
+			      int acq_retry_delay,
+			      boolean break_after_acq_failure,
+			      int checkoutTimeout, //milliseconds
+			      int idleConnectionTestPeriod, //seconds
+			      int maxIdleTime, //seconds
+			      int maxIdleTimeExcessConnections, //seconds
+			      int maxConnectionAge, //seconds
+			      int propertyCycle, //seconds
+			      int unreturnedConnectionTimeout, //seconds
+			      boolean debugUnreturnedConnectionStackTraces,
+			      boolean forceSynchronousCheckins,
+			      final boolean testConnectionOnCheckout,
+			      final boolean testConnectionOnCheckin,
+			      int maxStatements,
+			      int maxStatementsPerConnection,
+			      /* boolean statementCacheDeferredClose,      */
+			      final ConnectionTester connectionTester,
+			      final ConnectionCustomizer connectionCustomizer,
+			      final String testQuery,
+			      final ResourcePoolFactory fact,
+			      ThreadPoolAsynchronousRunner taskRunner,
+			      ThreadPoolAsynchronousRunner deferredStatementDestroyer,
+			      final String parentDataSourceIdentityToken) throws SQLException
+    {
         try
         {
             if (maxStatements > 0 && maxStatementsPerConnection > 0)
@@ -684,6 +786,7 @@ public final class C3P0PooledConnectionPool
 	    { 
 		PooledConnection pc = (PooledConnection) this.checkoutAndMarkConnectionInUse(); 
 		pc.addConnectionEventListener( cl );
+		markBeginRequest(pc);
 		return pc;
 	    }
         catch (TimeoutException e)
@@ -806,7 +909,8 @@ public final class C3P0PooledConnectionPool
         try 
 	    {
 		pcon.removeConnectionEventListener( cl );
-		unmarkConnectionInUseAndCheckin( pcon ); 
+		unmarkConnectionInUseAndCheckin( pcon );
+		markEndRequest( pcon );
 	    } 
         catch (ResourcePoolException e)
         { throw SqlUtils.toSQLException(e); }
