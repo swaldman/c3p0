@@ -317,7 +317,7 @@ public abstract class GooGooStatementCache
         if (stmtSet != null)
         {
             // we clone to prevent a rare ConcurrentModificationException, which can occur if
-            // an Exception occurs during Statement checking
+            // an Exception occurs during Statement checkin
             //
             // see https://github.com/swaldman/c3p0/pull/22
             Set snapshot = (Set) stmtSet.clone();
