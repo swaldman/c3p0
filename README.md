@@ -32,6 +32,8 @@ If you maintain a local ivy repository, You can customize `publishVersion` in [`
 $ mill publishLocal
 ```
 
+For now (v0.10.x), c3p0 is built under a Java 11 VM, targetting JDK 1.6 classfiles for continued compatibility with legacy apps.
+
 ### License
 
 c3p0 is licensed under [LGPL v.2.1](LICENSE-LGPL) or [EPL v.1.0](LICENSE-EPL), at your option.
