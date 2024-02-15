@@ -1,17 +1,12 @@
 # c3p0
 
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
-support for caching and reuse of PreparedStatements. It is licensed under 
-[LGPL v.2.1](LICENSE-LGPL)
-or [EPL v.1.0](LICENSE-EPL), 
-at your option.
+support for caching and reuse of `PreparedStatement` objects.
 
-c3p0 is now maintained on [github](https://github.com/swaldman/c3p0).
+c3p0 is available as managed dependency on Maven Central,
+<code>[groupId: com.mchange, artifactId: c3p0]</code> For available versions, look [here](https://oss.sonatype.org/content/repositories/releases/com/mchange/c3p0/).
 
-c3p0 is available as managed dependency on [Sonatype's open-source software repostory](https://oss.sonatype.org/content/repositories/releases/), 
-under <code>[groupId: com.mchange, artifactId: c3p0]</code> For available values of <code>version</code>, look [here](https://oss.sonatype.org/content/repositories/releases/com/mchange/c3p0/).
-
-Documentation is [here](http://www.mchange.com/projects/c3p0/).
+Please see the [documentation](http://www.mchange.com/projects/c3p0/) for more.
 
 From the current *development snapshot*, here are the latest [CHANGELOG](CHANGELOG)
 
@@ -36,6 +31,10 @@ If you maintain a local ivy repository, You can customize `publishVersion` in [`
 ```plaintext
 $ mill publishLocal
 ```
+
+### License
+
+c3p0 is licensed under [LGPL v.2.1](LICENSE-LGPL) or [EPL v.1.0](LICENSE-EPL), at your option.
 
 ---
 

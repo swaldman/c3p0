@@ -1,3 +1,9 @@
+c3p0-0.10.0-pre1
+	-- Fix doc comments no longer acceptable under persnicketty JDK 11
+	-- Build with JDK 11 JVM (still emitting JDK 1.6 compatible sources)
+	-- Get tests working under new mill build
+	-- Reorganize to switch build from ant to mill
+	-- Update to mchange-commons-java 0.2.20
 c3p0-0.9.5.5
 	-- Update docs to describe new com.mchange.v2.log.MLog.useRedirectableLoggers setting, implemented
 	   in mchange-commons-java 0.2.19
