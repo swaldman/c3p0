@@ -49,10 +49,11 @@ public final class RawConnectionOpTest
 	ComboPooledDataSource cpds = null;
 	try
 	    {
+                /*
 		String jdbc_url    = null;
 		String username    = null;
 		String password    = null;
-		
+
 		if (argv.length == 3)
 		    {
 			jdbc_url   = argv[0];
@@ -67,17 +68,20 @@ public final class RawConnectionOpTest
 		    }
 		else
 		    usage();
-		
+
 		if (! jdbc_url.startsWith("jdbc:") )
 		    usage();
-				    
+                */
+
 		cpds = new ComboPooledDataSource();
-		cpds.setJdbcUrl( jdbc_url );
-		cpds.setUser( username );
-		cpds.setPassword( password );
+
+                // let system properties or c3p0.properties set this stuff up for now
+		// cpds.setJdbcUrl( jdbc_url );
+		// cpds.setUser( username );
+		// cpds.setPassword( password );
   		cpds.setMaxPoolSize( 10 );
 //  		cpds.setUsesTraditionalReflectiveProxies( true );
-				
+
 		C3P0ProxyConnection conn = (C3P0ProxyConnection) cpds.getConnection();
 		Method toStringMethod = Object.class.getMethod("toString", new Class[]{});
 		Method identityHashCodeMethod = System.class.getMethod("identityHashCode", new Class[] {Object.class});
@@ -92,7 +96,7 @@ public final class RawConnectionOpTest
 		Integer ihc2 = (Integer) stmt.rawStatementOperation(identityHashCodeMethod, null, new Object[]{C3P0ProxyStatement.RAW_STATEMENT});
 		System.out.println("System.identityHashCode( rawStatement ) -> " + Integer.toHexString( ihc2.intValue() ));
 
-		conn.close();	
+		conn.close();
 
   		for (int i = 0; i < 10; ++i)
   		    {
@@ -116,8 +120,8 @@ public final class RawConnectionOpTest
     private static void usage()
     {
 	System.err.println("java " + RawConnectionOpTest.class.getName() + " \\");
-	System.err.println("\t<jdbc_driver_class> \\");
-	System.err.println("\t<jdbc_url> [<username> <password>]");
+	//System.err.println("\t<jdbc_driver_class> \\");
+	//System.err.println("\t<jdbc_url> [<username> <password>]");
 	System.exit(-1);
     }
 }

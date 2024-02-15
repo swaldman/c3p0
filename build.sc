@@ -141,13 +141,42 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     override def ivyDeps = T{
       super.ivyDeps() ++ Agg(Dependency.JUnit,Dependency.PgJdbc)
     }
-
     override def forkArgs = T {
-      "-Dc3p0.jdbcUrl=jdbc:postgresql://localhost:5432/c3p0" :: Nil
+      "-Dc3p0.jdbcUrl=jdbc:postgresql://localhost:5432/c3p0" ::
+      //"-Dcom.sun.management.jmxremote.port=38383" ::
+      //"-Dcom.sun.management.jmxremote.authenticate=false" ::
+      //"-Dcom.sun.management.jmxremote.ssl=false" ::
+      //"-server" ::
+      //"-Xrunhprof:cpu=times,file=/tmp/java.hprof,doe=y,format=a" ::
+      //"-Xprof" ::
+      //"-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" ::
+      //"-verbose:class"
+      //"-ea" ::
+      Nil
     }
-
-    def c3p0BenchmarkApp = T {
+    def c3p0Benchmark = T {
       this.runMain("com.mchange.v2.c3p0.test.C3P0BenchmarkApp")()
+    }
+    def c3p0Stats = T {
+      this.runMain("com.mchange.v2.c3p0.test.StatsTest")()
+    }
+    def c3p0Proxywrapper = T {
+      this.runMain("com.mchange.v2.c3p0.test.ProxyWrappersTest")()
+    }
+    def c3p0RawConnectionOp = T {
+      this.runMain("com.mchange.v2.c3p0.test.RawConnectionOpTest")()
+    }
+    def c3p0Load = T {
+      this.runMain("com.mchange.v2.c3p0.test.LoadPoolBackedDataSource")()
+    }
+    def c3p0PSLoad = T {
+      this.runMain("com.mchange.v2.c3p0.test.PSLoadPoolBackedDataSource")()
+    }
+    def c3p0InterruptedBatch = T {
+      this.runMain("com.mchange.v2.c3p0.test.InterruptedBatchTest")()
+    }
+    def c3p0Dispersion = T {
+      this.runMain("com.mchange.v2.c3p0.test.ConnectionDispersionTest")()
     }
   }
 

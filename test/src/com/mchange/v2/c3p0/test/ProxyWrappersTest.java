@@ -50,10 +50,13 @@ public final class ProxyWrappersTest
 	try
 	    {
 		cpds = new ComboPooledDataSource();
-		cpds.setDriverClass( "org.postgresql.Driver" );
-		cpds.setJdbcUrl( "jdbc:postgresql://localhost/c3p0-test" );
-		cpds.setUser("swaldman");
-		cpds.setPassword("test");
+
+		// let system properties or c3p0.properties set this stuff up
+		// cpds.setDriverClass( "org.postgresql.Driver" );
+		// cpds.setJdbcUrl( "jdbc:postgresql://localhost/c3p0-test" );
+		// cpds.setUser("swaldman");
+		// cpds.setPassword("test");
+		
 		cpds.setMinPoolSize(5);
 		cpds.setAcquireIncrement(5);
 		cpds.setMaxPoolSize(20);

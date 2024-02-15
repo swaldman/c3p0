@@ -87,6 +87,7 @@ public final class ConnectionDispersionTest
 
     public static void main(String[] argv)
     {
+        /*
 	String jdbc_url = null;
 	String username = null;
 	String password = null;
@@ -104,16 +105,20 @@ public final class ConnectionDispersionTest
 	    }
 	else
 	    usage();
-	
+
 	if (! jdbc_url.startsWith("jdbc:") )
 	    usage();
-	
+        */
+
 	try
 	    {
 		ComboPooledDataSource ds = new ComboPooledDataSource();
-		ds.setJdbcUrl( jdbc_url );
-		ds.setUser( username );
-		ds.setPassword( password );
+
+                // expect this stuff through sysprops or c3p0.properties or whatnot
+		// ds.setJdbcUrl( jdbc_url );
+		// ds.setUser( username );
+		// ds.setPassword( password );
+
 		setDataSource( ds );
 
 		// get the DataSource initialized

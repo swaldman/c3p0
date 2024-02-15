@@ -55,13 +55,13 @@ public final class LoadPoolBackedDataSource
         {
             System.err.println( LoadPoolBackedDataSource.class.getName() + 
                                 " now requires no args. Please set everything in standard c3p0 config files.");
-            return;                    
+            return;
         }
         String jdbc_url = null;
         String username = null;
         String password = null;
 
-    /*       
+    /*
 	if (argv.length == 3)
 	    {
 		jdbc_url = argv[0];

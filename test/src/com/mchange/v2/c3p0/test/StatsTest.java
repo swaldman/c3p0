@@ -57,9 +57,12 @@ public final class StatsTest
 	try
 	    {
 		ComboPooledDataSource cpds = new ComboPooledDataSource();
-		cpds.setJdbcUrl( argv[0] );
-		cpds.setUser( argv[1] );
-		cpds.setPassword( argv[2] );
+		
+		//we'll let sysprops of c3p0.properties set-up this stuff for now 
+		//cpds.setJdbcUrl( argv[0] );
+		//cpds.setUser( argv[1] );
+		//cpds.setPassword( argv[2] );
+		
 		cpds.setMinPoolSize(5);
 		cpds.setAcquireIncrement(5);
 		cpds.setMaxPoolSize(20);
