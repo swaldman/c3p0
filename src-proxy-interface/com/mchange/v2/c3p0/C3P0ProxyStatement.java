@@ -70,10 +70,10 @@ public interface C3P0ProxyStatement extends Statement
      *  retrieved from a c3p0-provided Connection to a 
      *  C3P0ProxyStatement.</p>
      *
-     *  <p>This method works by making a reflective call of method <tt>m</tt> on
-     *  Object <tt>target</tt> (which may be null for static methods), passing
-     *  and argument list <tt>args</tt>. For the method target, or for any argument,
-     *  you may substitute the special token <tt>C3P0ProxyStatement.RAW_STATEMENT</tt></p>
+     *  <p>This method works by making a reflective call of method <code>m</code> on
+     *  Object <code>target</code> (which may be null for static methods), passing
+     *  and argument list <code>args</code>. For the method target, or for any argument,
+     *  you may substitute the special token <code>C3P0ProxyStatement.RAW_STATEMENT</code></p>
      *
      *  <p>Any ResultSets returned by the operation will be proxied
      *  and c3p0-managed, meaning that these resources will be automatically closed 

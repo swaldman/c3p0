@@ -348,10 +348,10 @@ public final class C3P0Registry
     }
 
     /**
-     * <b>Note:</b> If multiple PooledDataSources in your JVM share the same <tt>dataSourceName</tt>, which of those
+     * <b>Note:</b> If multiple PooledDataSources in your JVM share the same <code>dataSourceName</code>, which of those
      *              multiple DataSources will be returned by this method is undefined!
      *
-     * @return a PooledDataSource with the given <tt>dataSourceName</tt>, if at least one exists. <tt>null</tt> otherwise.
+     * @return a PooledDataSource with the given <code>dataSourceName</code>, if at least one exists. <code>null</code> otherwise.
      *
      */
     public synchronized static PooledDataSource pooledDataSourceByName( String dataSourceName )

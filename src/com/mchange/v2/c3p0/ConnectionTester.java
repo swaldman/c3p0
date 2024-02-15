@@ -44,7 +44,7 @@ import java.sql.Connection;
  *  of Connections and responding to Connection errors encountered.</p>
  *
  *  <p><b>Recommended:</b> If you'd like your ConnectionTester
- *  to support the user-configured <tt>preferredTestQuery</tt>
+ *  to support the user-configured <code>preferredTestQuery</code>
  *  parameter, please implement {@link com.mchange.v2.c3p0.UnifiedConnectionTester}.
  *
  *  <p>ConnectionTesters should be Serializable, immutable, 

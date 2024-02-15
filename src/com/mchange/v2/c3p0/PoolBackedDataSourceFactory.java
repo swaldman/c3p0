@@ -51,7 +51,7 @@ public final class PoolBackedDataSourceFactory
     /**
      *  Creates a pool-backed DataSource that implements Referenceable
      *  for binding to JNDI name services. For this to work,
-     *  <TT>unpooledDataSource</TT> must also implement Referenceable.
+     *  <code>unpooledDataSource</code> must also implement Referenceable.
      *
      *  @param unpooledDataSource an unpooledDataSource to use as the
      *         primary source for connections.
@@ -106,7 +106,7 @@ public final class PoolBackedDataSourceFactory
      *  Creates a pool-backed DataSource that uses default pool parameters and
      *  implements Referenceable
      *  for binding to JNDI name services. For this to work,
-     *  <TT>unpooledDataSource</TT> must also implement Referenceable.
+     *  <code>unpooledDataSource</code> must also implement Referenceable.
      *
      *  @param unpooledDataSource an unpooledDataSource to use as the
      *         primary source for connections.
@@ -138,7 +138,7 @@ public final class PoolBackedDataSourceFactory
     /**
      *  Creates a pool-backed DataSource that implements Referenceable.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param jdbcDriverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
      *  @param password a password (may be null) for authentication to the RDBMS
@@ -189,7 +189,7 @@ public final class PoolBackedDataSourceFactory
      *  Creates a pool-backed DataSource that implements Referenceable and uses
      *  default pooling parameters.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param jdbcDriverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
      *  @param password a password (may be null) for authentication to the RDBMS
@@ -218,7 +218,7 @@ public final class PoolBackedDataSourceFactory
     /**
      *  Creates a pool-backed DataSource that implements Serializable
      *  for binding to JNDI name services. For this to work,
-     *  <TT>unpooledDataSource</TT> must also implement Serializable.
+     *  <code>unpooledDataSource</code> must also implement Serializable.
      *
      *  @param unpooledDataSource an unpooledDataSource to use as the
      *         primary source for connections.
@@ -268,7 +268,7 @@ public final class PoolBackedDataSourceFactory
      *  Creates a pool-backed DataSource that uses default pool parameters and
      *  implements Serializable
      *  for binding to JNDI name services. For this to work,
-     *  <TT>unpooledDataSource</TT> must also implement Serializable.
+     *  <code>unpooledDataSource</code> must also implement Serializable.
      *
      *  @param unpooledDataSource an unpooledDataSource to use as the
      *         primary source for connections.
@@ -295,7 +295,7 @@ public final class PoolBackedDataSourceFactory
     /**
      *  Creates a pool-backed DataSource that implements Serializable.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param jdbcDriverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
      *  @param password a password (may be null) for authentication to the RDBMS
@@ -342,7 +342,7 @@ public final class PoolBackedDataSourceFactory
      *  Creates a pool-backed DataSource that implements Serializable and uses
      *  default pooling parameters.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param jdbcDriverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
      *  @param password a password (may be null) for authentication to the RDBMS
@@ -364,7 +364,7 @@ public final class PoolBackedDataSourceFactory
     }
 
     /**
-     *  Creates a pool-backed DataSource using <TT>unpooledDataSource</TT>
+     *  Creates a pool-backed DataSource using <code>unpooledDataSource</code>
      *  as its source for Connections. Not necessarily suitable for JNDI binding.
      *
      *  @param unpooledDataSource an unpooledDataSource to use as the
@@ -404,7 +404,7 @@ public final class PoolBackedDataSourceFactory
     }
 
     /**
-     *  Creates a pool-backed DataSource using <TT>unpooledDataSource</TT>
+     *  Creates a pool-backed DataSource using <code>unpooledDataSource</code>
      *  as its source for Connections. Not necessarily suitable for JNDI binding.
      *
      *  @param unpooledDataSource an unpooledDataSource to use as the
@@ -439,7 +439,7 @@ public final class PoolBackedDataSourceFactory
     }
 
     /**
-     *  Creates a pool-backed DataSource using <TT>unpooledDataSource</TT>
+     *  Creates a pool-backed DataSource using <code>unpooledDataSource</code>
      *  as its source for Connections and default values for pool params. 
      *
      *  @param unpooledDataSource an unpooledDataSource to use as the
@@ -451,7 +451,7 @@ public final class PoolBackedDataSourceFactory
     /**
      *  Creates a pool-backed DataSource.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param jdbcDriverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
      *  @param password a password (may be null) for authentication to the RDBMS
@@ -499,7 +499,7 @@ public final class PoolBackedDataSourceFactory
     /**
      *  Creates a pool-backed DataSource.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param jdbcDriverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
      *  @param password a password (may be null) for authentication to the RDBMS
@@ -542,7 +542,7 @@ public final class PoolBackedDataSourceFactory
      *  Creates a pool-backed DataSource.
      *
      *  <P>Warning: If you use this method, you must make sure a JDBC driver
-     *  capable of resolving <TT>jdbcUrl</TT> has been preloaded!</P>
+     *  capable of resolving <code>jdbcUrl</code> has been preloaded!</P>
      *
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
@@ -591,7 +591,7 @@ public final class PoolBackedDataSourceFactory
      *  Creates a pool-backed DataSource.
      *
      *  <P>Warning: If you use this method, you must make sure a JDBC driver
-     *  capable of resolving <TT>jdbcUrl</TT> has been preloaded!</P>
+     *  capable of resolving <code>jdbcUrl</code> has been preloaded!</P>
      *
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
@@ -635,7 +635,7 @@ public final class PoolBackedDataSourceFactory
      *  Creates a pool-backed DataSource using default values for pool parameters.
      *  Not necessarily suitable for JNDI binding.
      *
-     *  @param jdbcDriverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param jdbcDriverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS
      *  @param password a password (may be null) for authentication to the RDBMS
@@ -656,7 +656,7 @@ public final class PoolBackedDataSourceFactory
      *
      *
      *  <P>Warning: If you use this method, you must make sure a JDBC driver
-     *  capable of resolving <TT>jdbcUrl</TT> has been preloaded!</P>
+     *  capable of resolving <code>jdbcUrl</code> has been preloaded!</P>
      *
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param user a username (may be null) for authentication to the RDBMS

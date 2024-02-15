@@ -54,16 +54,16 @@ import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.beans.BeansUtils;
 
 /**
- *  <p>A simple factory class for creating DataSources. Generally, users will call <tt>DataSources.unpooledDataSource()</tt> to get
- *  a basic DataSource, and then get a pooled version by calling <tt>DataSources.pooledDataSource()</tt>.</p>
+ *  <p>A simple factory class for creating DataSources. Generally, users will call <code>DataSources.unpooledDataSource()</code> to get
+ *  a basic DataSource, and then get a pooled version by calling <code>DataSources.pooledDataSource()</code>.</p>
  *
  *  <p>Most users will not need to worry about configuration details. If you want to use a PreparedStatement cache, be sure to call
- *  the version of <tt>DataSources.pooledDataSource()</tt> that accepts a <tt>statement_cache_size</tt> parameter, and set that to
+ *  the version of <code>DataSources.pooledDataSource()</code> that accepts a <code>statement_cache_size</code> parameter, and set that to
  *  be a number (much) greater than zero. (For maximum performance, you would set this to be several times the number kinds of 
  *  PreparedStatements you expect your application to use.)</p>
  *
  * <p>For those interested in detailed configuration, note that c3p0 pools can be configured by explicit method calls on PoolConfig objects,
- * by defining System properties, or by defining a <tt>c3p0.properties</tt> file in your resource path. See {@link com.mchange.v2.c3p0.PoolConfig}
+ * by defining System properties, or by defining a <code>c3p0.properties</code> file in your resource path. See {@link com.mchange.v2.c3p0.PoolConfig}
  * for details.</p>
  *
  */

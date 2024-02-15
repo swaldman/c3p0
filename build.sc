@@ -197,13 +197,14 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     }
   }
 
+  val organization = "com.mchange"
   override def artifactName = T{"c3p0"}
   override def publishVersion = T{"0.10.0-pre1-SNAPSHOT"}
 
   override def pomSettings = T {
     PomSettings(
       description = "A mature JDBC3+ Connection pooling library",
-      organization = "com.mchange",
+      organization = organization,
       url = "https://www.mchange.com/projects/c3p0",
       licenses = Seq(License.`LGPL-2.1-only`,License.`EPL-1.0`),
       versionControl = VersionControl.github("swaldman", "c3p0"),

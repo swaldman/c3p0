@@ -52,10 +52,10 @@ import javax.sql.DataSource;
 public final class DriverManagerDataSourceFactory
 {
     /**
-     *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
+     *  Creates an unpooled DataSource that users <code>java.sql.DriverManager</code>
      *  behind the scenes to acquire Connections.
      *
-     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param dfltUser a username (may be null) for authentication to the RDBMS
      *  @param dfltPassword a password (may be null) for authentication to the RDBMS
@@ -80,10 +80,10 @@ public final class DriverManagerDataSourceFactory
     }
 
     /**
-     *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
+     *  Creates an unpooled DataSource that users <code>java.sql.DriverManager</code>
      *  behind the scenes to acquire Connections.
      *
-     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param props propertis object that should be passed to DriverManager.getConnection()
      *  @param refFactoryLoc a codebase url where JNDI clients can find the  
@@ -105,10 +105,10 @@ public final class DriverManagerDataSourceFactory
     } 
 
     /**
-     *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
+     *  Creates an unpooled DataSource that users <code>java.sql.DriverManager</code>
      *  behind the scenes to acquire Connections.
      *
-     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      *  @param dfltUser a username (may be null) for authentication to the RDBMS
      *  @param dfltPassword a password (may be null) for authentication to the RDBMS
@@ -121,10 +121,10 @@ public final class DriverManagerDataSourceFactory
     { return create( driverClass, jdbcUrl, dfltUser, dfltPassword, null ); }
 
     /**
-     *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
+     *  Creates an unpooled DataSource that users <code>java.sql.DriverManager</code>
      *  behind the scenes to acquire Connections.
      *
-     *  @param driverClass a jdbc driver class that can resolve <TT>jdbcUrl</TT>.
+     *  @param driverClass a jdbc driver class that can resolve <code>jdbcUrl</code>.
      *  @param jdbcUrl the jdbcUrl of the RDBMS that Connections should be made to.
      */
     public static DataSource create(String driverClass, String jdbcUrl)
@@ -132,7 +132,7 @@ public final class DriverManagerDataSourceFactory
     { return DriverManagerDataSourceFactory.create( driverClass, jdbcUrl, (String) null, null); }
 
     /**
-     *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
+     *  Creates an unpooled DataSource that users <code>java.sql.DriverManager</code>
      *  behind the scenes to acquire Connections.
      *
      *  <P>Warning: since you do not set the driver class, the resulting DataSource
@@ -148,7 +148,7 @@ public final class DriverManagerDataSourceFactory
     { return DriverManagerDataSourceFactory.create( null, jdbcUrl, dfltUser, dfltPassword ); }
 
     /**
-     *  Creates an unpooled DataSource that users <TT>java.sql.DriverManager</TT>
+     *  Creates an unpooled DataSource that users <code>java.sql.DriverManager</code>
      *  behind the scenes to acquire Connections.
      *
      *  <P>Warning: since you do not set the driver class, the resulting DataSource

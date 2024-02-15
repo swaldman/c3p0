@@ -50,30 +50,30 @@ import java.util.Map;
  *  poorly coded applications that leak Connections, but which you are not permitted to fix; 
  *  or 3) to work around problems that may occur if an underlying jdbc driver / DBMS system is
  *  unreliable. In the third case, most users will be better off not using the present interface
- *  at all, and using the DataSources' <tt>maxIdleTime</tt>, <tt>idleConnectionTestPeriod</tt>,
- *  or <tt>testConnectionOnCheckout</tt> parameters to help your DataSources "automatically" heal. 
+ *  at all, and using the DataSources' <code>maxIdleTime</code>, <code>idleConnectionTestPeriod</code>,
+ *  or <code>testConnectionOnCheckout</code> parameters to help your DataSources "automatically" heal. 
  *  But for those who prefer a more direct, manual approach, this interface is for you. It is anticipated
  *  that the methods of this interface will primarily be of use to administrators managing c3p0
  *  PooledDataSources via JMX MBeans.</p>
  *
- *  <a name="peruserpools"><h3>Method Names & Per-User Pools</h3></a>
+ *  <a id="peruserpools"><b>Method Names &amp; Per-User Pools</b></a>
  *
  *  <p>To understand this interface, you need to realize that a c3p0 PooledDataSource may represent
  *  not just one pool of Connections, but many, if users call the method
- *  <tt>Connection getConnection(String username, String password)</tt> rather than the
- *  no-argument <tt>getConnection()</tt> method. If users make use of non-default username, password
+ *  <code>Connection getConnection(String username, String password)</code> rather than the
+ *  no-argument <code>getConnection()</code> method. If users make use of non-default username, password
  *  combinations, there will be a separate pool for each set of authentification criteria supplied.</p>
  *
  *  <p>Many methods in this interface have three variants:</p>
  *  <ol>
- *    <li><tt><i>&lt;method-name&gt;</i>DefaultUser()</tt></li>
- *    <li><tt><i>&lt;method-name&gt;</i>(String username, String password)</tt></li>
- *    <li><tt><i>&lt;method-name&gt;</i>AllUsers()</tt></li>
+ *    <li><code><i>&lt;method-name&gt;</i>DefaultUser()</code></li>
+ *    <li><code><i>&lt;method-name&gt;</i>(String username, String password)</code></li>
+ *    <li><code><i>&lt;method-name&gt;</i>AllUsers()</code></li>
  *  </ol>
  *  <p>The first variant makes use of the pool maintained for the default user --
- *  Connections created by calls to the no argument <tt>getConnection()</tt>,
+ *  Connections created by calls to the no argument <code>getConnection()</code>,
  *  the second variant lets you keeps track of pools created by calling 
- *  <tt>getConnection( <i>username</i>, <i>password</i> )</tt>, and the third variant
+ *  <code>getConnection( <i>username</i>, <i>password</i> )</code>, and the third variant
  *  provides aggregate information or performs operation on all pools.</p> 
  *
  *  <p>Under most circumstances, non-default authentication credentials will not
@@ -88,16 +88,16 @@ import java.util.Map;
  *  ways to do so.</p>
  *
  *  <ol>
- *    <li><b><tt>hardReset()</tt></b> immediately closes all Connections managed by the DataSource, including
+ *    <li><b><code>hardReset()</code></b> immediately closes all Connections managed by the DataSource, including
  *    those that are currently checked out, bringing the DataSource back to the state it was in before
  *    the first client called getConnection(). This method is obviously disruptive, and should be with
  *    great care. Administrators who need to work around client applications that leak Connections, can
  *    periodically poll for pool exhaustion (using the methods of this class, or by attempting to retrieve
  *    a Connection and timing out) and use this method clean-up all Connections and start over. But calling
- *    this method risks breaking Connections in current use by valid applications.<br/><br/></li>
+ *    this method risks breaking Connections in current use by valid applications.<br><br></li>
  *
- *    <li><b><tt>softResetDefaultUser()</tt></b>, <b><tt>softReset( <i>username</i>, <i>password</i> )</tt></b> and
- *    <b><tt>softResetAllUsers()</tt></b> asks the DataSource to flush its current pool of Connections and
+ *    <li><b><code>softResetDefaultUser()</code></b>, <b><code>softReset( <i>username</i>, <i>password</i> )</code></b> and
+ *    <b><code>softResetAllUsers()</code></b> asks the DataSource to flush its current pool of Connections and
  *    reacquire <i>without</i> invalidating currently checked-out Connections. Currently checked out Connections
  *    are logically removed from the pool, but their destruction is deferred until a client attempts to close() / check-in
  *    the Connection. Administrators who suspect that some Connections in the pool may be invalid, but who do not
@@ -113,11 +113,11 @@ import java.util.Map;
  *  <p>For each <a href="#peruserpools">per-user pool</a>, four different statistics are available:</p>
  *
  *  <ol>
- *    <li><tt>numConnections</tt> represents the total number of Connections in the pool.<br/><br/></li>
- *    <li><tt>numIdleConnections</tt> represents the number of Connections in the pool that are currently available for checkout.<br/><br/></li> 
- *    <li><tt>numBusyConnections</tt> represents the number of Connections in the pool that are currently checked out. The
- *    invariant <tt>numIdleConnections + numBusyConnections == numConnections</tt> should always hold.<br/><br/></li>
- *    <li><tt>numUnclosedOrphanedConnections</tt> will only be non-zero following a call to <tt>softReset()</tt>. It represents
+ *    <li><code>numConnections</code> represents the total number of Connections in the pool.<br><br></li>
+ *    <li><code>numIdleConnections</code> represents the number of Connections in the pool that are currently available for checkout.<br><br></li> 
+ *    <li><code>numBusyConnections</code> represents the number of Connections in the pool that are currently checked out. The
+ *    invariant <code>numIdleConnections + numBusyConnections == numConnections</code> should always hold.<br><br></li>
+ *    <li><code>numUnclosedOrphanedConnections</code> will only be non-zero following a call to <code>softReset()</code>. It represents
  *    the number of Connections that were checked out when a soft reset occurred and were therefore
  *    silently excluded from the pool, and which remain unclosed by the client application.</li>
  *  </ol>
@@ -293,7 +293,7 @@ public interface PooledDataSource extends DataSource /*, AutoCloseable // save f
     public void close() throws SQLException;
 
     /**
-     * <p>Should be used only with great caution. If <tt>force_destroy</tt> is set to true,
+     * <p>Should be used only with great caution. If <code>force_destroy</code> is set to true,
      *    this immediately destroys any pool and cleans up all resources
      *    this DataSource may be using, <u><i>even if other DataSources are sharing that
      *    pool!</i></u> In general, it is difficult to know whether a pool is being shared by
@@ -307,7 +307,7 @@ public interface PooledDataSource extends DataSource /*, AutoCloseable // save f
      *    In this case, you may wish to use force destroy. Otherwise, it is much safer to use
      *    the simple destroy() method, which will not shut down pools that may still be in use.</p>
      *
-     * <p><b>To close a pool normally, use the no argument close method, or set <tt>force_destroy</tt>
+     * <p><b>To close a pool normally, use the no argument close method, or set <code>force_destroy</code>
      *    to false.</b></p>
      *    
      *  @deprecated the force_destroy argument is now meaningless, as pools are no longer

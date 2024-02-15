@@ -47,16 +47,18 @@ import java.sql.Connection;
  *  
  *  <ol>
  *    <li>Extend {@link com.mchange.v2.c3p0.AbstractConnectionTester}</li>
- *    <li>Override only the two abstract methods</li>
- *    <ul>
- *       <li><tt>public int activeCheckConnection(Connection c, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)</tt></li>
- *       <li><tt>public int statusOnException(Connection c, Throwable t, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)</tt></li>
- *    </ul>
- *    <li>Take care to ensure that your methods are defined to allow <tt>preferredTestQuery</tt> and 
- *    <tt>rootCauseOutParamHolder</tt> to be <tt>null</tt>.</li>
+ *    <li>
+ *        Override only the two abstract methods
+ *        <ul>
+ *           <li><code>public int activeCheckConnection(Connection c, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)</code></li>
+ *           <li><code>public int statusOnException(Connection c, Throwable t, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)</code></li>
+ *        </ul>
+ *    </li>
+ *    <li>Take care to ensure that your methods are defined to allow <code>preferredTestQuery</code> and 
+ *    <code>rootCauseOutParamHolder</code> to be <code>null</code>.</li>
  *  </ol>
  *  
- *  <p>Parameter <tt>rootCauseOutParamHolder</tt> is an optional parameter, which if supplied, will be a Throwable array whose size
+ *  <p>Parameter <code>rootCauseOutParamHolder</code> is an optional parameter, which if supplied, will be a Throwable array whose size
  *  it at least one. If a Connection test fails because of some Exception, the Connection tester may set this Exception as the
  *  zero-th element of the array to provide information about why and how the test failed.</p> 
  */

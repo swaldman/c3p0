@@ -60,7 +60,7 @@ import com.mchange.v2.log.MLogger;
  *    <li>Any property will default to a value defined by a System Property, using the property name shown the table below.</li>
  *    <li>Any property not set in either of the above ways will default to a value found in a user-supplied Java properties file,
  *        which may be placed in the resource path of
- *        the ClassLoader that loaded the c3p0 libraries under the name <tt>/c3p0.properties</tt>.</li>
+ *        the ClassLoader that loaded the c3p0 libraries under the name <code>/c3p0.properties</code>.</li>
  *    <li>Any property not set in any of the above ways will be defined according c3p0's built-in defaults.</li>
  *  </ol>
  *
