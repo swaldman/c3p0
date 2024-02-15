@@ -1,3 +1,5 @@
+	-- Fix rare ConcurrentModificationException in GooGooStatementCache when Connections are
+	   closed. See https://github.com/swaldman/c3p0/pull/22 thanks Mathilde Ffrench, Joel Caplin!
 c3p0-0.10.0-pre1
 	-- Fix doc comments no longer acceptable under persnicketty JDK 11
 	-- Build with JDK 11 JVM (still emitting JDK 1.6 compatible sources)

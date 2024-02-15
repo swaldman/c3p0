@@ -309,15 +309,20 @@ public abstract class GooGooStatementCache
     }
 
 
-    public synchronized void checkinAll(Connection pcon)
-    throws SQLException
+    public synchronized void checkinAll(Connection pcon) throws SQLException
     {
         //new Exception("checkinAll()").printStackTrace();
 
-        Set stmtSet = cxnStmtMgr.statementSet( pcon );
+        HashSet stmtSet = cxnStmtMgr.statementSet( pcon );
         if (stmtSet != null)
         {
-            for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
+            // we clone to prevent a rare ConcurrentModificationException, which can occur if
+            // an Exception occurs during Statement checking
+            //
+            // see https://github.com/swaldman/c3p0/pull/22
+            Set snapshot = (Set) stmtSet.clone();
+
+            for (Iterator ii = snapshot.iterator(); ii.hasNext(); )
             {
                 Object stmt = ii.next();
                 if (checkedOut.contains( stmt ))
@@ -813,8 +818,8 @@ public abstract class GooGooStatementCache
         public Set connectionSet()
         { return cxnToStmtSets.keySet(); }
 
-        public Set statementSet( Connection pcon )
-        { return (Set) cxnToStmtSets.get( pcon ); }
+        public HashSet statementSet( Connection pcon )
+        { return (HashSet) cxnToStmtSets.get( pcon ); }
 
         public int getNumStatementsForConnection( Connection pcon )
         {
