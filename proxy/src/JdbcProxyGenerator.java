@@ -1185,8 +1185,8 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
     private static void generateIsWrapperHelperMethods( Class intfcl, IndentedWriter iw ) throws IOException
     {
 	iw.println("// helper methods for unwrap( ... ), isWrapperFor( ... )"); 
-	iw.println("private boolean isWrapperForInner( Class intfcl )");
-	iw.println("{ return ( " + intfcl.getName() + ".class == intfcl || intfcl.isAssignableFrom( inner.getClass() ) ); }");
+	iw.println("private boolean isWrapperForInner( Class intfcl ) throws SQLException"); // last case will be okay, because we will ask inner to unwrap, not return it directly
+	iw.println("{ return ( " + intfcl.getName() + ".class == intfcl || intfcl.isAssignableFrom( inner.getClass() ) || inner.isWrapperFor( intfcl ) ); }");
 	iw.println();
 	iw.println("private boolean isWrapperForThis( Class intfcl )");
 	iw.println("{ return intfcl.isAssignableFrom( this.getClass() ); }");

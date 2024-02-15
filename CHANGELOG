@@ -1,5 +1,9 @@
+	-- Consider ourselves to be a wrapper for a thing if the thing we wrap itself declares itself
+	   as the wrapper of that thing. See https://github.com/swaldman/c3p0/pull/149
+	   Thanks François JACQUES!
 	-- Fix rare ConcurrentModificationException in GooGooStatementCache when Connections are
-	   closed. See https://github.com/swaldman/c3p0/pull/22 thanks Mathilde Ffrench, Joel Caplin!
+	   closed. See https://github.com/swaldman/c3p0/pull/22
+	   Thanks Mathilde Ffrench, Joel Caplin!
 c3p0-0.10.0-pre1
 	-- Fix doc comments no longer acceptable under persnicketty JDK 11
 	-- Build with JDK 11 JVM (still emitting JDK 1.6 compatible sources)
