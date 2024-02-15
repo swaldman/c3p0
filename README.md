@@ -8,7 +8,7 @@ c3p0 is available as managed dependency on Maven Central,
 
 Please see the [documentation](http://www.mchange.com/projects/c3p0/) for more.
 
-From the current *development snapshot*, here are the latest [CHANGELOG](CHANGELOG)
+From the current *development snapshot*, here are the latest [CHANGELOG](CHANGELOG).
 
 Please address comments and questions to the [library author](mailto:swaldman@mchange.com), although keep in mind he is an abysmal correspondent and basically an asshole. Despite that, your feedback is very much appreciated. You may also open issues on github and/or sourceforge.
 
@@ -18,7 +18,7 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
 
-Install `mill`, then run
+Install `mill`. Then, within this repository direcory, run
 
 ```plaintext
 $ mill jar
