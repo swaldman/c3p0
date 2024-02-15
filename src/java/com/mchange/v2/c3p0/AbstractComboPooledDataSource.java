@@ -791,8 +791,8 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
     }
 
     // JDBC4 Wrapper stuff
-    private boolean isWrapperForDmds(Class<?> iface)
-    { return iface.isAssignableFrom( dmds.getClass() ); }
+    private boolean isWrapperForDmds(Class<?> iface) throws SQLException
+    { return iface.isAssignableFrom( dmds.getClass() ) || dmds.isWrapperFor(iface); }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     { return isWrapperForDmds( iface ) || isWrapperForThis( iface ); }
