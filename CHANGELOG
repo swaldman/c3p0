@@ -1,3 +1,4 @@
+c3p0-0.10.0-pre2
 	-- Add "Automatic-Module-Name" entry to jar manifest for interoperability with Project Jigsaw / Java 9 modules
 	   See https://github.com/swaldman/c3p0/issues/171
 	   Thanks Jörg Hohwiller

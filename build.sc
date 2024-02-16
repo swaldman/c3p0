@@ -15,7 +15,7 @@ object Dependency {
 object c3p0 extends RootModule with JavaModule with PublishModule {
   val organization = "com.mchange"
   override def artifactName = T{"c3p0"}
-  override def publishVersion = T{"0.10.0-pre2-SNAPSHOT"}
+  override def publishVersion = T{"0.10.0-pre2"}
 
   trait Gen extends JavaModule {
     def runIf(conditionAndArgs: Task[Args]): Command[Unit] = T.command {
