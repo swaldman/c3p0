@@ -1,7 +1,7 @@
 import $meta._
 
 import mill._
-import mill.api.Result
+import mill.api.{JarManifest,Result}
 import mill.scalalib._
 import mill.scalalib.publish._
 import mill.util.Jvm
@@ -146,6 +146,11 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
   // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
   override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
+
+  override def manifest = T {
+    val mainTups = JarManifest.MillDefault.main + Tuple2("Automatic-Module-Name","com.mchange.v2.c3p0")
+    JarManifest( main = mainTups )
+  }
 
   object test extends JavaModule with TestModule.Junit5 {
     override def moduleDeps = Seq(c3p0)

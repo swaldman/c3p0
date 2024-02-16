@@ -1,3 +1,6 @@
+	-- Add "Automatic-Module-Name" entry to jar manifest for interoperability with Project Jigsaw / Java 9 modules
+	   See https://github.com/swaldman/c3p0/issues/171
+	   Thanks Jörg Hohwiller
 	-- Try context ClassLoader if library ClassLoader fails to load a named, necessary driver class.
 	   See https://github.com/swaldman/c3p0/pull/115
 	   Thanks Rodrigo Merino!
