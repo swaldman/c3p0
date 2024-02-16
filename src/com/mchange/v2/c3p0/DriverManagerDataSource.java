@@ -123,24 +123,24 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         };
         this.addPropertyChangeListener( driverClassListener );
     }
-    
+
     private synchronized boolean isDriverClassLoaded()
     { return driver_class_loaded; }
-    
+
     private synchronized void setDriverClassLoaded(boolean dcl)
-    { 
+    {
 	this.driver_class_loaded = dcl; 
 	if (! driver_class_loaded) clearDriver(); // if we are changing to a yet-unloaded Driver class, the existing driver must be stale
     }
-    
-    private synchronized void ensureDriverLoaded() throws SQLException
+
+    private synchronized void ensureIfPossibleDriverClassLoaded() throws SQLException
     {
         try
         {
             if (! isDriverClassLoaded())
             {
                 if (driverClass != null)
-                    Class.forName( driverClass );
+                    loadDriverClass( driverClass );
                 setDriverClassLoaded( true );
             }
         }
@@ -151,12 +151,31 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         }
     }
 
+    private Class loadDriverClass(String driverClass) throws ClassNotFoundException
+    {
+        try
+        {
+            return Class.forName(driverClass);
+        }
+        catch (ClassNotFoundException e)
+        {
+            if (Thread.currentThread().getContextClassLoader() != null)
+            {
+                return Class.forName(driverClass, true, Thread.currentThread().getContextClassLoader());
+            }
+            else
+            {
+                throw e;
+            }
+        }
+    }
+
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
     // sync'ing the method creates the danger that one freeze on connect
     // blocks access to the entire DataSource
     public Connection getConnection() throws SQLException
     { 
-        ensureDriverLoaded();
+        ensureIfPossibleDriverClassLoaded();
 
         Connection out = driver().connect( jdbcUrl, properties ); 
         if (out == null)
@@ -170,7 +189,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // blocks access to the entire DataSource
     public Connection getConnection(String username, String password) throws SQLException
     { 
-        ensureDriverLoaded();
+        ensureIfPossibleDriverClassLoaded();
 
         Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );  
         if (out == null)
@@ -257,6 +276,13 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         return overriding;
     }
 
+    // called only from sync'ed methods
+    private void logCircumventingDriverManager()
+    {
+	if ( logger.isLoggable( MLevel.FINER ) )
+	    logger.finer( "Circumventing DriverManager and instantiating driver class '" + driverClass + "' directly. (forceUseNamedDriverClass = " + forceUseNamedDriverClass + ")" );
+    }
+
     private synchronized Driver driver() throws SQLException
     {
  	//To simulate an unreliable DataSource...
@@ -267,21 +293,36 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         //System.err.println( "driver() <-- " + this );
         if (driver == null)
 	{
-	    if (driverClass != null && forceUseNamedDriverClass)
+	    if (driverClass != null)
 	    {
-		if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
-		    logger.finer( "Circumventing DriverManager and instantiating driver class '" + driverClass + 
-				  "' directly. (forceUseNamedDriverClass = " + forceUseNamedDriverClass + ")" );
-
-		try 
-		{ 
-		    driver = (Driver) Class.forName( driverClass ).newInstance();
-		    this.setDriverClassLoaded( true );
+		try
+		{
+		    if (forceUseNamedDriverClass)
+		    {
+			if ( Debug.DEBUG ) logCircumventingDriverManager();
+			driver = (Driver) loadDriverClass( driverClass ).newInstance();
+			this.setDriverClassLoaded( true );
+		    }
+		    else
+		    {
+			driver = DriverManager.getDriver( jdbcUrl ); // if not forceUseNamedDriverClass, prefer jdbcUrl-based lookup if that succeeds, otherwise load driver by classname
+			if (driver == null)
+			{
+			    if ( Debug.DEBUG ) logCircumventingDriverManager();
+			    driver = (Driver) loadDriverClass( driverClass ).newInstance();
+			}
+		    }
 		}
-		catch (Exception e)
-		    { SqlUtils.toSQLException("Cannot instantiate specified JDBC driver. Exception while initializing named, forced-to-use driver class'" + driverClass +"'", e); }
+		catch (SQLException e)
+		{ throw e; }
+		catch (ClassNotFoundException e)
+		{ SqlUtils.toSQLException("Could not load specified JDBC driver class. Driver class: '" + driverClass +"'", e); }
+		catch (InstantiationException e)
+		{ SqlUtils.toSQLException("Could not instantiate specified JDBC driver class with no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		catch (IllegalAccessException e)
+		{ SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, no-arg constructor is not accessible. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
 	    }
-	    else
+	    else // if no driverClass is specified, we only have one way to try
 		driver = DriverManager.getDriver( jdbcUrl );
         }
         return driver;

@@ -1,3 +1,6 @@
+	-- Try context ClassLoader if library ClassLoader fails to load a named, necessary driver class.
+	   See https://github.com/swaldman/c3p0/pull/115
+	   Thanks Rodrigo Merino!
 	-- Let statement cache fail not-quietly if drivers provide PreparedStatements without a proper equals implementation.
 	   See https://github.com/swaldman/c3p0/pull/59/
 	   Thanks Thomas Beckmann!
