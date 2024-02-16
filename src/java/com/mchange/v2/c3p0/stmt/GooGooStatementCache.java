@@ -611,6 +611,9 @@ public abstract class GooGooStatementCache
         boolean out;
         LinkedList q = checkoutQueue( key );
         out = q.remove( pstmt );
+        if (!out && Debug.DEBUG && !pstmt.equals(pstmt))
+            throw new RuntimeException("Driver bug: " +
+            "Your JDBC driver seems to proxy statement objects but fails handling equals() correctly as the object is not equal to itself!");
         if (q.isEmpty() && keySet( key ).isEmpty())
             keyToKeyRec.remove( key );
         return out;
