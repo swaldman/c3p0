@@ -1482,6 +1482,7 @@ class BasicResourcePool implements ResourcePool
                                     "[unknown]") );
                 trace();
             }
+            long remainingTimeout = timeout;
             while ((avail = unused.size()) == 0)
             {
                 // the if case below can only occur when 1) a user attempts a
@@ -1500,8 +1501,9 @@ class BasicResourcePool implements ResourcePool
                 if (pending_acquires == 0 && managed.size() < max)
                     _recheckResizePool();
 
-                this.wait(timeout);
-                if (timeout > 0 && System.currentTimeMillis() - start > timeout)
+                this.wait(remainingTimeout);
+                remainingTimeout = Math.max(0, timeout - (System.currentTimeMillis() - start));
+                if (timeout > 0 && remainingTimeout == 0)
                     throw new TimeoutException("A client timed out while waiting to acquire a resource from " + this + " -- timeout at awaitAvailable()");
                 if (force_kill_acquires)
                     throw new CannotAcquireResourceException("A ResourcePool could not acquire a resource from its primary factory or source.", getLastAcquisitionFailure());
