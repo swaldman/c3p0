@@ -614,6 +614,19 @@ public abstract class GooGooStatementCache
         boolean out;
         LinkedList q = checkoutQueue( key );
         out = q.remove( pstmt );
+	if (Debug.DEBUG)
+	{
+	    if (!out && !pstmt.equals(pstmt))
+	    {
+		// apparently this happens with some versions of some drivers?
+		// see https://github.com/swaldman/c3p0/pull/59/
+		String msg =
+		    "Apparent JDBC Driver Bug! PreparedStatement.equals(...) is improperly implemented (perhaps as a naive dynamic proxy?) " +
+		    "A PreparedStatement fails to equal itself! PreparedStatement caching will be pathological " +
+		    "under these circumstances. Please turn it off, set configuration parameters maxStatements and maxStatementsPerConnection both to 0.";
+		throw new RuntimeException(msg);
+	    }
+	}
         if (q.isEmpty() && keySet( key ).isEmpty())
             keyToKeyRec.remove( key );
         return out;

@@ -1,3 +1,6 @@
+	-- Let statement cache fail not-quietly if drivers provide PreparedStatements without a proper equals implementation.
+	   See https://github.com/swaldman/c3p0/pull/59/
+	   Thanks Thomas Beckmann!
 	-- Be slightly less negative in the docs about unreturnedConnectionTimeout.
 	   See https://github.com/swaldman/c3p0/pull/160
 	   Thanks Matteo Mazza!
