@@ -748,6 +748,18 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         for ( Iterator ii = uncachedActiveStatements.iterator(); ii.hasNext(); )
         {
             Statement stmt = (Statement) ii.next();
+
+            try
+            { stmt.cancel(); }
+            catch ( SQLException e )
+            {
+		closeExceptions.add(e);
+
+		if ( logger.isLoggable( MLevel.FINER ) )
+		    logger.log( MLevel.FINER,
+				"An Exception occurred while trying to cancel the following uncached Statement: " + stmt,
+				e);
+	    }
             try
             { stmt.close(); }
             catch ( SQLException e )
