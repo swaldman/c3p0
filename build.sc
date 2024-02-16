@@ -152,6 +152,19 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     JarManifest( main = mainTups )
   }
 
+  def allLicenses : T[Seq[PathRef]] = T {
+    (os.pwd / "LICENSE" :: os.pwd / "LICENSE-LGPL" :: os.pwd / "LICENSE-EPL" :: Nil).map( PathRef(_) )
+  }
+
+  // is the same manifest good?
+  // some users want licenses in the source jars... https://github.com/swaldman/c3p0/issues/167
+  def sourceJar: T[PathRef] = T {
+    Jvm.createJar(
+      (allSources() ++ resources() ++ compileResources() ++ allLicenses()).map(_.path).filter(os.exists),
+      manifest()
+    )
+  }
+
   object test extends JavaModule with TestModule.Junit5 {
     override def moduleDeps = Seq(c3p0)
 
