@@ -2707,12 +2707,17 @@ c3p0 {
 		applications with occasional Connection leaks to survive, rather than eventually exhausting the Connection
 		pool. And that's a shame. Zero means no timeout, applications are expected to close() their own Connections.
 		Obviously, if a non-zero value is set, it should be to a value longer than any Connection should reasonably
-		be checked-out. Otherwise, the pool will occasionally kill Connections in active use, which is bad. 
-	    <b><i>This is basically a bad idea, but it's a commonly requested feature. Fix your $%!@% applications
-	    so they don't leak Connections! Use this temporarily in combination with 
+		be checked-out. Otherwise, the pool will occasionally kill Connections in active use, which is bad.
+		[See <a href="#configuring_to_debug_and_workaround_broken_clients">"Configuring to Debug and Workaround Broken Client Applications"</a>]<br><br>
+		<i>Setting <code>unreturnedConnectionTimeout</code> to an appropriate value may increase resiliency of your application.
+		  It can be a useful backstop. But it's better to be neurotic about closing your Connections in the first place.
+		  Now that we have <a href="https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html">try-with-resources</a>, it's not so hard to get
+		  robust resource cleanup right!
+		  If you do set this property, please monitor your logs to observe and fix any Connection leaks.
+		  (The message "A checked-out resource is overdue, and will be destroyed" will appear at <code>INFO</code> in the log for logger <code>com.mchange.v2.resourcepool.BasicResourcePool</code>.)
+		  Use this setting in temporary combination with 
 	    <tt>debugUnreturnedConnectionStackTraces</tt> to figure out
-	    where Connections are being checked-out that don't make it back into the pool!</i></b>
-	    [See <a href="#configuring_to_debug_and_workaround_broken_clients">"Configuring to Debug and Workaround Broken Client Applications"</a>]
+	    where Connections are being checked-out that don't make it back into the pool!</i>
 	  </div>
 	</dd>
 	<dt><a name="user" />user</dt>

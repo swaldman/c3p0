@@ -1,3 +1,6 @@
+	-- Be slightly less negative in the docs about unreturnedConnectionTimeout.
+	   See https://github.com/swaldman/c3p0/pull/160
+	   Thanks Matteo Mazza!
 	-- Implement more robustly accurate checkoutTimeout.
 	   See https://github.com/swaldman/c3p0/pull/138 https://github.com/swaldman/c3p0/issues/137
 	   Thanks François JACQUES!
