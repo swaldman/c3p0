@@ -1,3 +1,6 @@
+	-- Implement more robustly accurate checkoutTimeout.
+	   See https://github.com/swaldman/c3p0/pull/138 https://github.com/swaldman/c3p0/issues/137
+	   Thanks François JACQUES!
 	-- Add support for JDBC 4.3 beginRequest and endRequest methods.
 	   See https://github.com/swaldman/c3p0/pull/170
 	   Thanks Fernanda Meheust!
