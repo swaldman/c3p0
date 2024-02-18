@@ -50,25 +50,6 @@ class BasicResourcePool implements ResourcePool
     final static int AUTO_MIN_CULL_FREQUENCY = (1 * 1000); //15 mins
 
 
-    //XXX: temporary -- for selecting between AcquireTask types
-    //     remove soon, and use only ScatteredAcquireTask,
-    //     presuming no problems appear
-    final static String USE_SCATTERED_ACQUIRE_TASK_KEY = "com.mchange.v2.resourcepool.experimental.useScatteredAcquireTask";
-    final static boolean USE_SCATTERED_ACQUIRE_TASK;
-    static
-    {
-        String checkScattered = com.mchange.v2.cfg.MConfig.readVmConfig().getProperty(USE_SCATTERED_ACQUIRE_TASK_KEY);
-        if (checkScattered != null && checkScattered.trim().toLowerCase().equals("false"))
-        {
-            USE_SCATTERED_ACQUIRE_TASK = false;
-	    if ( logger.isLoggable( MLevel.INFO ) )
-		logger.info(BasicResourcePool.class.getName() + " using traditional, Thread-blocking AcquireTask. Yuk. Why? It's no longer supported.");
-        }
-        else
-            USE_SCATTERED_ACQUIRE_TASK = true;
-    }
-    // end temporary switch between acquire task types
-
     //MT: unchanged post c'tor
     final Manager mgr;
 
@@ -516,18 +497,8 @@ class BasicResourcePool implements ResourcePool
     {
         assert Thread.holdsLock(this);
 
-        // XXX: temporary switch -- assuming no problems appear, we'll get rid of AcquireTask
-        //      in favor of ScatteredAcquireTask
-        if ( USE_SCATTERED_ACQUIRE_TASK )
-        {
-            for (int i = 0; i < count; ++i)
-                taskRunner.postRunnable( new ScatteredAcquireTask() );
-        }
-        else
-        {
-            for (int i = 0; i < count; ++i)
-                taskRunner.postRunnable( new AcquireTask() );
-        }
+        for (int i = 0; i < count; ++i)
+            taskRunner.postRunnable( new ScatteredAcquireTask() );
     }
 
     // must be called from synchronized method
@@ -2011,145 +1982,6 @@ class BasicResourcePool implements ResourcePool
 		    recheckResizePool();
 	    }
         }
-    }
-
-    /*
-     *  task we post to separate thread to acquire
-     *  pooled resources
-     */
-    class AcquireTask implements Runnable
-    {
-        boolean success = false;
-
-        public AcquireTask()
-        { incrementPendingAcquires(); }
-
-        public void run()
-        {
-	    boolean decremented = false;
-	    boolean recheck     = false;
-            try
-            {
-                Exception lastException = null;
-                for (int i = 0; shouldTry( i ); ++i)
-                {
-                    try
-                    {
-                        if (i > 0)
-                            Thread.sleep(acq_attempt_delay);
-
-                        //we don't want this call to be sync'd
-                        //on the pool, so that resource acquisition
-                        //does not interfere with other pool clients.
-			if ( goodAttemptNumber( i + 1 ) ) //this isn't our last attempt
-			    {
-				BasicResourcePool.this.doAcquireAndDecrementPendingAcquiresWithinLockOnSuccess();
-				decremented = true;
-			    }
-			else // this is our last attempt
-			    {
-				decremented = true;
-				recheck = true; // we'd better recheck the size, since we might have a decrement unmatched by an acquisition
-				BasicResourcePool.this.doAcquireAndDecrementPendingAcquiresWithinLockAlways();
-			    }
-
-                        success = true;
-                    }
-                    catch (InterruptedException e)
-                    {
-                        // end the whole task on interrupt, regardless of success
-                        // or failure
-                        throw e;
-                    }
-                    catch (Exception e)
-                    {
-                        //e.printStackTrace();
-
-                        // if num_acq_attempts <= 0, we try to acquire forever, so the end-of-batch
-                        // log message below will never be triggered if there is a persistent problem
-                        // so in this case, it's better flag a higher-than-debug-level message for
-                        // each failed attempt. (Thanks to Eric Crahen for calling attention to this
-                        // issue.)
-                        MLevel logLevel = (num_acq_attempts > 0 ? MLevel.FINE : MLevel.INFO);
-                        if (logger.isLoggable( logLevel ))
-                            logger.log( logLevel, "An exception occurred while acquiring a poolable resource. Will retry.", e );
-
-                        lastException = e;
-                        setLastAcquisitionFailure(e);
-                    }
-                }
-                if (!success)
-                {
-                    if ( logger.isLoggable( MLevel.WARNING ) )
-                    {
-                        logger.log( MLevel.WARNING,
-                                        this + " -- Acquisition Attempt Failed!!! Clearing pending acquires. " +
-                                        "While trying to acquire a needed new resource, we failed " +
-                                        "to succeed more than the maximum number of allowed " +
-                                        "acquisition attempts (" + num_acq_attempts + "). " +
-                                        (lastException == null ? "" : "Last acquisition attempt exception: "),
-                                        lastException);
-                    }
-                    if (break_on_acquisition_failure)
-                    {
-                        //System.err.println("\tTHE RESOURCE POOL IS PERMANENTLY BROKEN!");
-                        if ( logger.isLoggable( MLevel.SEVERE ) )
-                            logger.severe("A RESOURCE POOL IS PERMANENTLY BROKEN! [" + this + "]");
-                        unexpectedBreak();
-                    }
-                    else
-                        forceKillAcquires();
-                }
-                else
-                    recheckResizePool();
-            }
-            catch ( ResourceClosedException e ) // one of our async threads died
-            {
-                //e.printStackTrace();
-                if ( Debug.DEBUG )
-                {
-                    if ( logger.isLoggable( MLevel.FINE ) )
-                        logger.log( MLevel.FINE, "a resource pool async thread died.", e );
-                }
-                unexpectedBreak();
-            }
-            catch (InterruptedException e) //from force kill acquires, or by the thread pool during the long task...
-            {
-                if ( logger.isLoggable( MLevel.WARNING ) )
-                {
-                    logger.log( MLevel.WARNING,
-                                    BasicResourcePool.this + " -- Thread unexpectedly interrupted while performing an acquisition attempt.",
-                                    e );
-                }
-
-//              System.err.println(BasicResourcePool.this + " -- Thread unexpectedly interrupted while waiting for stale acquisition attempts to die.");
-//              e.printStackTrace();
-
-                recheckResizePool();
-            }
-            finally
-            {
-		if (! decremented)
-		    decrementPendingAcquires();
-		if (recheck)
-		    recheckResizePool();
-	    }
-        }
-
-        private boolean shouldTry(int attempt_num)
-        {
-            //try if we haven't already succeeded
-            //and someone hasn't signalled that our resource source is down
-            //and not max attempts is set,
-            //or we are less than the set limit
-            return
-		!success &&
-		!isForceKillAcquiresPending() &&
-		goodAttemptNumber( attempt_num );
-        }
-
-	private boolean goodAttemptNumber(int attempt_num)
-	{ return (num_acq_attempts <= 0 || attempt_num < num_acq_attempts); }
     }
 
     /*

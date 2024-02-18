@@ -1,3 +1,4 @@
+	-- Remove vestiges of unsupported BasicResourcePool.AcquireTask
 	-- Disable very slow handholding function intended to help with misspellings / misspecifications
 	   of resource "/c3p0-config.xml"
 	   See https://github.com/swaldman/c3p0/issues/121

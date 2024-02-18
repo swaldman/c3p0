@@ -2903,27 +2903,6 @@ c3p0 {
 	  queryless test entirely? If you want to do something totally different, you can implement your own <tt>DefaultConnectionTester.QuerylessTestRunner</tt>.
 	  Or you can just implement <tt>ConnectionTester</tt> directly, and set the parameter <tt>connectionTesterClassName</tt>.
 	</p>
-	<h4>Experimental properties</h4>
-	<p>
-	  c3p0-0.9.1 included a new implementation of asynchronous Connection acquisition that
-	  should improve c3p0's performance and resource utilization in cases where database
-	  acquisition attempts, for whatever reason, occasionally fail. The new implementation
-	  should be significantly better than the "traditional" Connection acquisition strategy,
-	  but was added too late in the c3p0-0.9.1 development cycle to be fully tested and
-	  enabled by default. Users are encouraged to try the new implementation, both because
-	  it is better, and to help iron out any unanticipated problems.
-	</p>
-	<p>
-	  For a full description of the new implementation and the resource bottleneck it is
-	  designed to overcome, please see the <tt>CHANGELOG</tt> entry for <tt>c3p0-0.9.1-pre11</tt>.
-	</p>
-	<p>
-	  As of c3p0-0.9.2 this feature is enabled by default. To revert to the traditional Connection
-	  acquisition behavior, set the following parameter to <tt>false</tt>.
-	</p>
-	<ul class="other_props_list">
-	  <li>com.mchange.v2.resourcepool.experimental.useScatteredAcquireTask</li>
-	</ul>
       </div>
     </div>
     <hr/>
