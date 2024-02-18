@@ -6,6 +6,8 @@ import mill.scalalib._
 import mill.scalalib.publish._
 import mill.util.Jvm
 
+import java.nio.file.attribute.{PosixFilePermission => PFP}
+
 object Dependency {
   val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:0.2.20"
   val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
@@ -75,6 +77,13 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   override def ivyDeps = T{
     super.ivyDeps() ++ Agg(Dependency.MchangeCommonsJava)
   }
+
+  private val WritePermissions : os.PermSet = "-w--w--w-"
+
+  def readOnly( perms : os.PermSet ) : os.PermSet = perms -- WritePermissions
+
+  def makeDirContentsReadOnly( dir : os.Path ) = os.walk(dir).foreach( p => os.perms.set(p, readOnly(os.perms(p))) )
+
   def buildModTime : T[Long] = T.input {
     val out = math.max( os.mtime( os.pwd / "build.sc" ), os.mtime( os.pwd / "mill-build" / "build.sc" ) )
     //println( s"buildModTime: $out" )
@@ -116,6 +125,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
       System.err.println("Regenerating C3P0Substitutions.java")
       os.write.over( path, data = text, createFolders = true )
     }
+    makeDirContentsReadOnly(T.dest)
     PathRef(T.dest)
   }
   def beangenGeneratedSourceDir = T.persistent { T.dest }
@@ -130,10 +140,12 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
         )
       )
     )()
+    makeDirContentsReadOnly(realDest)
     PathRef(realDest)
   }
   def proxygenGeneratedSourceDir = T.persistent { T.dest }
   def proxygen = T {
+    val realDest = proxygenGeneratedSourceDir()
     proxy.runIf(
       T.task(
         Args(
@@ -142,7 +154,8 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
         )
       )
     )()
-    PathRef(proxygenGeneratedSourceDir())
+    makeDirContentsReadOnly(realDest)
+    PathRef(realDest)
   }
 
   override def generatedSources = T {

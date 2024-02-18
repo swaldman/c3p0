@@ -1,3 +1,4 @@
+	-- Make generated source files read-only so we're less likely to accidentally edit them.
 	-- Have build fail if we try to build with an unexpected JVM version.
 	   We want to use a consistent JVM version (currently 11) and target version (currently 7)
 	   when we build c3p0.
