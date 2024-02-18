@@ -139,9 +139,9 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     super.generatedSources() ++ Agg(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
   }
 
-  // we are currently building in Java 11, but releasing Java 6 compatible class files
+  // we are currently building in Java 11, but releasing Java 7 compatible class files
   // for users of smaller JDBC subsets
-  val JvmCompatVersion = "6"
+  val JvmCompatVersion = "7"
 
   // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
   // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime

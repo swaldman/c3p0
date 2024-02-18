@@ -1,3 +1,6 @@
+	-- Let PooledDataSource implement AutoCloseable.
+	   This necessitates targeting Java 7, rather than Java 6, classfiles.
+	   Thanks koszta5!
 	-- Bring documentation of acquireRetryAttempts into sync with c3p0's actual behavior.
 	   See https://github.com/swaldman/c3p0/issues/132
            Thanks marcatl, MichaelMih, Leona Nezvalova!
