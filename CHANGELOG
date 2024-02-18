@@ -1,3 +1,7 @@
+	-- Disable very slow handholding function intended to help with misspellings / misspecifications
+	   of resource "/c3p0-config.xml"
+	   See https://github.com/swaldman/c3p0/issues/121
+	   Thanks chinhodado!
 	-- Let PooledDataSource implement AutoCloseable.
 	   This necessitates targeting Java 7, rather than Java 6, classfiles.
 	   Thanks koszta5!

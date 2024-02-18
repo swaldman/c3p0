@@ -63,6 +63,10 @@ public final class C3P0ConfigXmlUtils
     //
     // should only be run if we've checked for the correct file, but
     // not found it
+    //
+    // MAYBE I SHOULD HAVE CARED ABOUT INITIALIZATION TIME
+    // see https://github.com/swaldman/c3p0/issues/121
+    // disabling for now
     private final static void warnCommonXmlConfigResourceMisspellings()
     {
         if (logger.isLoggable( MLevel.WARNING) )
@@ -124,7 +128,11 @@ public final class C3P0ConfigXmlUtils
             is = C3P0ConfigUtils.class.getResourceAsStream(XML_CONFIG_RSRC_PATH);
             if ( is == null )
             {
-                warnCommonXmlConfigResourceMisspellings();
+                // see https://github.com/swaldman/c3p0/issues/121
+                // probably not worth its cost in initialization time
+                // so disabled for now.
+                //
+                // warnCommonXmlConfigResourceMisspellings();
                 return null;
             }
             else
