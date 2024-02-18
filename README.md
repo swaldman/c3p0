@@ -8,7 +8,7 @@ c3p0 is available as managed dependency on Maven Central,
 
 Please see the [documentation](http://www.mchange.com/projects/c3p0/) for more.
 
-From the current *development snapshot*, here are the latest [CHANGELOG](CHANGELOG).
+From the current *development snapshot*, here is the latest [CHANGELOG](CHANGELOG).
 
 Please address comments and questions to the [library author](mailto:swaldman@mchange.com), although keep in mind he is an abysmal correspondent and basically an asshole. Despite that, your feedback is very much appreciated. You may also open issues on github and/or sourceforge.
 
@@ -24,7 +24,7 @@ Install `mill`. Then, within this repository direcory, run
 $ mill jar
 ```
 
-You'll find the raw as library `out/out.jar`.
+You'll find the raw as library `out/jar.dest/out.jar`.
 
 If you maintain a local ivy repository, You can customize `publishVersion` in [`build.sc`](build.sc), then run
 
@@ -32,7 +32,7 @@ If you maintain a local ivy repository, You can customize `publishVersion` in [`
 $ mill publishLocal
 ```
 
-For now (v0.10.x), c3p0 is built under a Java 11 VM, targetting JDK 1.6 classfiles for continued compatibility with legacy apps.
+For now (v0.10.x), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 ### License
 
