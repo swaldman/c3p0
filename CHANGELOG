@@ -1,3 +1,6 @@
+	-- Have build fail if we try to build with an unexpected JVM version.
+	   We want to use a consistent JVM version (currently 11) and target version (currently 7)
+	   when we build c3p0.
 	-- Remove vestiges of unsupported BasicResourcePool.AcquireTask
 	-- Disable very slow handholding function intended to help with misspellings / misspecifications
 	   of resource "/c3p0-config.xml"

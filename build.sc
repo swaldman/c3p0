@@ -17,6 +17,16 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   override def artifactName = T{"c3p0"}
   override def publishVersion = T{"0.10.0-pre3-SNAPSHOT"}
 
+  // we are currently building in Java 11, but releasing Java 7 compatible class files
+  // for users of smaller JDBC subsets
+  val JvmCompatVersion = "7"
+
+  require( sys.props("java.runtime.version").startsWith("11"), s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)" )
+
+  // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
+  // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
+  override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
+
   trait Gen extends JavaModule {
     def runIf(conditionAndArgs: Task[Args]): Command[Unit] = T.command {
       val caa = conditionAndArgs().value
@@ -138,14 +148,6 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   override def generatedSources = T {
     super.generatedSources() ++ Agg(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
   }
-
-  // we are currently building in Java 11, but releasing Java 7 compatible class files
-  // for users of smaller JDBC subsets
-  val JvmCompatVersion = "7"
-
-  // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
-  // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
-  override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
   override def manifest = T {
     val mainTups = JarManifest.MillDefault.main + Tuple2("Automatic-Module-Name","com.mchange.v2.c3p0")
