@@ -1,4 +1,5 @@
 c3p0-0.10.0-pre3
+	-- Disable making generated source read-only. It interferes too much with the build.
 	-- Make generated source files read-only so we're less likely to accidentally edit them.
 	-- Have build fail if we try to build with an unexpected JVM version.
 	   We want to use a consistent JVM version (currently 11) and target version (currently 7)

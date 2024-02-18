@@ -82,6 +82,11 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
 
   def readOnly( perms : os.PermSet ) : os.PermSet = perms -- WritePermissions
 
+  // i intended to make generated source dir contents read-only, but this prevents the build from
+  // overwriting when necessary. so this is not currently in use.
+  //
+  // i'd have to add logic to restore writability during rebuilds, cleans,
+  // etc which seems maybe too complicated.
   def makeDirContentsReadOnly( dir : os.Path ) = os.walk(dir).foreach( p => os.perms.set(p, readOnly(os.perms(p))) )
 
   def buildModTime : T[Long] = T.input {
@@ -125,7 +130,6 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
       System.err.println("Regenerating C3P0Substitutions.java")
       os.write.over( path, data = text, createFolders = true )
     }
-    makeDirContentsReadOnly(T.dest)
     PathRef(T.dest)
   }
   def beangenGeneratedSourceDir = T.persistent { T.dest }
@@ -140,7 +144,6 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
         )
       )
     )()
-    makeDirContentsReadOnly(realDest)
     PathRef(realDest)
   }
   def proxygenGeneratedSourceDir = T.persistent { T.dest }
@@ -154,7 +157,6 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
         )
       )
     )()
-    makeDirContentsReadOnly(realDest)
     PathRef(realDest)
   }
 
