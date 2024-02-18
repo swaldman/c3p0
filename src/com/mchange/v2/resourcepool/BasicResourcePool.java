@@ -1166,7 +1166,7 @@ class BasicResourcePool implements ResourcePool
     { doAcquire( DECREMENT_WITH_CERTAINTY ); }
 
     private final static int NO_DECREMENT             = 0;
-    private final static int DECREMENT_ON_SUCCESS     =1;
+    private final static int DECREMENT_ON_SUCCESS     = 1;
     private final static int DECREMENT_WITH_CERTAINTY = 2;
 
     private void doAcquire( int decrement_policy ) throws Exception

@@ -1,3 +1,6 @@
+	-- Bring documentation of acquireRetryAttempts into sync with c3p0's actual behavior.
+	   See https://github.com/swaldman/c3p0/issues/132
+           Thanks marcatl, MichaelMih, Leona Nezvalova!
 	-- Include license files in published source jar.
 	   See https://github.com/swaldman/c3p0/issues/167
 c3p0-0.10.0-pre2

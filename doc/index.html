@@ -1287,7 +1287,7 @@ public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTe
 	the DataSource will see an Exception, indicating that a Connection could not be acquired.
 	Note that clients do not see any Exception until a full round of attempts fail, which
 	may be some time after the initial Connection attempt. If <tt>acquireRetryAttempts</tt> 
-	is set to 0, c3p0 will attempt to acquire new Connections indefinitely, and calls to
+	is set to a value less than 0, c3p0 will attempt to acquire new Connections indefinitely, and calls to
 	<tt>getConnection()</tt> may block indefinitely waiting for a successful acquisition.
       </p>
       <p>
@@ -2218,8 +2218,8 @@ c3p0 {
 	<dd>
 	  <div class="default">Default: 30</div>
 	  <div class="propdesc">
-	    Defines how many times c3p0 will try to acquire a new Connection from the database before giving up. If
-	    this value is less than or equal to zero, c3p0 will keep trying to fetch a Connection indefinitely.	  
+	    Defines how many times c3p0 will retry after a failure to acquire a new Connection from the database before giving up. If
+	    this value is less than zero, c3p0 will keep trying to fetch a Connection indefinitely.
 	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
 	  </div>
 	</dd>
