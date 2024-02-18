@@ -10,7 +10,9 @@ Please see the [documentation](http://www.mchange.com/projects/c3p0/) for more.
 
 From the current *development snapshot*, here is the latest [CHANGELOG](CHANGELOG).
 
-Please address comments and questions to the [library author](mailto:swaldman@mchange.com), although keep in mind he is an abysmal correspondent and basically an asshole. Despite that, your feedback is very much appreciated. You may also open issues on github and/or sourceforge.
+Please address comments and questions to the [library author](mailto:swaldman@mchange.com), although keep in mind he is an abysmal correspondent and basically an asshole. 
+
+Despite that, your feedback is very much appreciated. You may also open issues on github and/or sourceforge.
 
 Thank you for your interest in c3p0. I do hope that you find it useful!
 
