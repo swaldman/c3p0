@@ -78,6 +78,7 @@ public final class C3P0Defaults
     private final static String AUTOMATIC_TEST_TABLE             = null;
     private final static String CONNECTION_CUSTOMIZER_CLASS_NAME = null;
     private final static String CONNECTION_TESTER_CLASS_NAME     = "com.mchange.v2.c3p0.impl.DefaultConnectionTester";
+    private final static String TASK_RUNNER_FACTORY_CLASS_NAME   = "com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory";
     private final static String CONTEXT_CLASS_LOADER_SOURCE      = "caller"; // caller | library | none
     private final static String DRIVER_CLASS                     = null;
     private final static String JDBC_URL                         = null;
@@ -167,18 +168,11 @@ public final class C3P0Defaults
     public static String connectionCustomizerClassName()
     { return CONNECTION_CUSTOMIZER_CLASS_NAME; }
 
+    public static String taskRunnerFactoryClassName()
+    { return TASK_RUNNER_FACTORY_CLASS_NAME; }
+
     public static String contextClassLoaderSource()
     { return CONTEXT_CLASS_LOADER_SOURCE; }
-
-    // public synchronized static ConnectionTester connectionTester()
-    // { 
-    // 	if ( CONNECTION_TESTER == null )
-    // 	    CONNECTION_TESTER = new DefaultConnectionTester();
-    // 	return CONNECTION_TESTER;
-    // }
-    //
-    // public static String connectionTesterClassName()
-    // { return connectionTester().getClass().getName(); }
 
     public static String connectionTesterClassName()
     { return CONNECTION_TESTER_CLASS_NAME; }
