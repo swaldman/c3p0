@@ -340,6 +340,7 @@
 	  <li><a href="#configuring_unresolved">Configuring Unresolved Transaction Handling</a></li>
 	  <li><a href="#configuring_to_debug_and_workaround_broken_clients">Configuring To Debug and Workaround Broken Client Applications</a></li>
 	  <li><a href="#configuring_to_avoid_memory_leaks_on_redeploy">Configuring To Avoid Memory Leaks On Redeploy</a></li>
+	  <li><a href="#configuring_threading">Configuring Threading</a></li>
 	  <li><a href="#other_ds_configuration">Other DataSource Configuration</a></li>
 	  <li><a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a></li>
 	  <li><a href="#configuring_logging">Configuring Logging</a></li>
@@ -1471,6 +1472,43 @@ public class VerboseConnectionCustomizer
 	so that c3p0's Threads use the the c3p0 library's <tt>AccessControlContext</tt>, rather than an <tt>AccessControlContext</tt> 
 	that may be associated with the client application and prevent its garbage collection.
       </p>
+      <p>
+        <b>Note:</b> If users take control over c3p0's threading by providing a non-default <tt>taskRunnerFactoryClassName</tt>,
+        these properties may or may not be honored.
+      </p>
+      <h3>
+	<a name="configuring_threading">Configuring threading</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	See <a href="#configuration_properties">Appendix A</a> for information about the following configuration properties:
+      </p>
+      <ul>
+	<li><a class="cfg_param" href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a></li>
+	<li><a class="cfg_param" href="#numHelperThreads">numHelperThreads</a></li>
+	<li><a class="cfg_param" href="#taskRunnerFactoryClassName">taskRunnerFactoryClassName</a></li>
+      </ul>
+      <p>
+      	<tt>numHelperThreads</tt> and <tt>maxAdministrativeTaskTime</tt> help to configure the behavior
+      	of DataSource thread pools. By default, each DataSource has only three associated helper threads.
+      	If performance seems to drag under heavy load, or if you observe via JMX or direct inspection of
+      	a <tt>PooledDataSource</tt>, that the number of "pending tasks" is usually greater than zero, try
+      	increasing <tt>numHelperThreads</tt>. <tt>maxAdministrativeTaskTime</tt> may be useful for users
+      	experiencing tasks that hang indefinitely and "APPARENT DEADLOCK" messages. (See Appendix A for more.)
+      </p>
+      <p>
+        Alternatively, you can take full control over what kind of threading or thread pool your c3p0
+        <tt>DataSource</tt> uses, by providing a non-default value for <tt>taskRunnerFactoryClassName</tt>.
+        This should be the fully qualified class name of an immutable class with a public no-arg constructor,
+        which implements the interface <a href="apidocs/com/mchange/v2/c3p0/TaskRunnerFactory.html"><tt>TaskRunnerFactory</tt></a>.
+        It becomes up to the implementor of this class whether and how <tt>numHelperThreads</tt> or <tt>maxAdministrativeTaskTime</tt>
+        are supported. <tt>contextClassLoaderSource</tt> and <tt>privilegeSpawnedThreads</tt> may not be supported unless
+        threads are spawned directly within the factory method of this class.
+      </p>
+      <p>
+        Most users will want to leave <tt>taskRunnerFactoryClassName</tt> at c3p0's default, or use else published alternative implementations,
+        rather than roll your own. But of course you can roll your own!
+      </p>
       <h3>
 	<a name="other_ds_configuration">Other DataSource Configuration</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -1482,18 +1520,8 @@ public class VerboseConnectionCustomizer
 	<li><a class="cfg_param" href="#checkoutTimeout">checkoutTimeout</a></li>
 	<li><a class="cfg_param" href="#factoryClassLocation">factoryClassLocation</a></li>
 	<li><a class="cfg_param" href="#forceSynchronousCheckins">forceSynchronousCheckins</a></li>
-	<li><a class="cfg_param" href="#maxAdministrativeTaskTime">maxAdministrativeTaskTime</a></li>
-	<li><a class="cfg_param" href="#numHelperThreads">numHelperThreads</a></li>
 	<li><a class="cfg_param" href="#usesTraditionalReflectiveProxies"><s>usesTraditionalReflectiveProxies</s></a></li>
       </ul>
-      <p>
-      	<tt>numHelperThreads</tt> and <tt>maxAdministrativeTaskTime</tt> help to configure the behavior
-      	of DataSource thread pools. By default, each DataSource has only three associated helper threads.
-      	If performance seems to drag under heavy load, or if you observe via JMX or direct inspection of
-      	a <tt>PooledDataSource</tt>, that the number of "pending tasks" is usually greater than zero, try
-      	increasing <tt>numHelperThreads</tt>. <tt>maxAdministrativeTaskTime</tt> may be useful for users
-      	experiencing tasks that hang indefinitely and "APPARENT DEADLOCK" messages. (See Appendix A for more.)
-      </p>
       <p>
 	Ordinarily check-ins are performed asynchronously so that clients do not experience the overhead of
 	on-check-in Connection tests and/or operations specified in <tt>ConnectionCustomizer.onCheckIn(...)</tt>.
@@ -2170,9 +2198,9 @@ c3p0 {
 	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
 	    <a href="#driverClass">driverClass</a><br/>
 	    <a href="#extensions">extensions</a><br/>
+	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	  </td>
 	  <td>
-	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	    <a href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a><br/>
 	    <a href="#forceSynchronousCheckins">forceSynchronousCheckins</a><br/>
 	    <a href="#forceUseNamedDriverClass">forceUseNamedDriverClass</a><br/>
@@ -2186,10 +2214,10 @@ c3p0 {
 	    <a href="#maxPoolSize">maxPoolSize</a><br/>
 	    <a href="#maxStatements">maxStatements</a><br/>
 	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
-	  </td>
-	  <td>
 	    <a href="#minPoolSize">minPoolSize</a><br/>
 	    <a href="#numHelperThreads">numHelperThreads</a><br/>
+	  </td>
+	  <td>
 	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
 	    <a href="#overrideDefaultPassword">overrideDefaultPassword</a><br/>
 	    <a href="#password">password</a><br/>
@@ -2197,6 +2225,7 @@ c3p0 {
 	    <a href="#privilegeSpawnedThreads">privilegeSpawnedThreads</a><br/>
 	    <a href="#propertyCycle">propertyCycle</a><br/>
 	    <a href="#statementCacheNumDeferredCloseThreads">statementCacheNumDeferredCloseThreads</a><br/>
+	    <a href="#taskRunnerFactoryClassName">taskRunnerFactoryClassName</a><br/>
 	    <a href="#testConnectionOnCheckin">testConnectionOnCheckin</a><br/>
 	    <a href="#testConnectionOnCheckout">testConnectionOnCheckout</a><br/>
 	    <a href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a><br/>
@@ -2672,6 +2701,18 @@ c3p0 {
 	    Basically, if you need more than one Thread dedicated solely to destroying cached Statements, you should set <tt>maxStatements</tt>
 	    and/or <tt>maxStatementsPerConnection</tt> so that you don't churn through Statements so quickly.
             [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
+	    <div class="per-user">Does Not Support Per-User Overrides.</div>
+	  </div>
+	</dd>
+	<dt><a name="taskRunnerFactoryClassName" />taskRunnerFactoryClassName</dt>
+	<dd>
+	  <div class="default">Default: <tt>com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory</tt></div>
+	  <div class="propdesc">
+            Fully qualified class name of an implementation of <tt>com.mchange.v2.c3p0.TaskRunnerFactory</tt>
+            which determines how c3p0's many, many asynchronous operations are posted and divided among threads.
+            Most users will want to leave this at c3p0's default, or use published alternative implementations
+            rather than roll your own. But of course you can roll your own!
+            [See <a href="#configuring_threading">"Configuring Threading"</a>]
 	    <div class="per-user">Does Not Support Per-User Overrides.</div>
 	  </div>
 	</dd>
