@@ -1,16 +1,16 @@
 package com.mchange.v2.c3p0.test;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ThreadFactory;
 import javax.sql.ConnectionPoolDataSource;
 import com.mchange.v2.async.ThreadPoolReportingAsynchronousRunner;
 import com.mchange.v2.c3p0.TaskRunnerFactory;
+import com.mchange.v2.c3p0.TaskRunnerThreadFactory;
 import com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory;
 
 import com.mchange.v2.log.*;
 
-// TODO: Implement and use TaskRunnerThreadFactory
 public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
 {
     //MT: thread-safe
@@ -26,7 +26,7 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
         Timer timer
     )
     {
-        ThreadPoolReportingAsynchronousRunner out = new ThreadPerAsynchronousRunner( timer, max_administrative_task_time_if_supported * 1000, threadLabelIfSupported );
+        ThreadPoolReportingAsynchronousRunner out = new ThreadPerAsynchronousRunner( timer, max_administrative_task_time_if_supported * 1000, contextClassLoaderSourceIfSupported, privilige_spawned_threads_if_supported, threadLabelIfSupported );
         if (logger.isLoggable(MLevel.INFO))
             logger.log(MLevel.INFO, "Created TaskRunner: " + out);
         return out;
@@ -35,24 +35,24 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
     private static class ThreadPerAsynchronousRunner implements ThreadPoolReportingAsynchronousRunner
     {
         private ThreadGroup ourGroup = new ThreadGroup(this.toString() + "-ThreadGroup");
-        private AtomicInteger idCounter = new AtomicInteger(0);
 
         private final static String SEP = System.lineSeparator();
 
         private Timer timer;
         int     matt_ms;
-        String  threadLabel;
 
-        ThreadPerAsynchronousRunner( Timer timer, int matt_ms, String threadLabel )
+        ThreadFactory tf;
+
+        ThreadPerAsynchronousRunner( Timer timer, int matt_ms, String contextClassLoaderSource, boolean privilige_spawned_threads, String threadLabel )
         {
             this.timer = timer;
             this.matt_ms = matt_ms;
-            this.threadLabel = threadLabel;
+            this.tf = new TaskRunnerThreadFactory( contextClassLoaderSource, privilige_spawned_threads, threadLabel, ourGroup );
         }
 
         public void postRunnable(Runnable r)
         {
-            final Thread t = new Thread(ourGroup, r, threadLabel + "-" + idCounter.incrementAndGet());
+            final Thread t = tf.newThread(r);
             t.start();
 
             if (matt_ms > 0)
