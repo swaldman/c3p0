@@ -128,9 +128,9 @@ public final class C3P0PooledConnectionPoolManager
 
     private final static TaskRunnerFactory DEFAULT_TASK_RUNNER_FACTORY = new DefaultTaskRunnerFactory();
 
-    private ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported )
+    private ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported, ConnectionPoolDataSource cpds )
     {
-        return this.getTaskRunnerFactory(null).createTaskRunner( num_threads_if_supported, max_administrative_task_time_if_supported, timer, threadLabelIfSupported );
+        return this.getTaskRunnerFactory(null).createTaskRunner( num_threads_if_supported, max_administrative_task_time_if_supported, timer, threadLabelIfSupported, cpds );
     }
 
     private String idString()
@@ -219,14 +219,14 @@ public final class C3P0PooledConnectionPoolManager
 
         int matt = this.getMaxAdministrativeTaskTime();
 
-	this.taskRunner = createTaskRunner( num_task_threads, matt, timer, idStr + "-HelperThread" );
+	this.taskRunner = createTaskRunner( num_task_threads, matt, timer, idStr + "-HelperThread", cpds );
         //this.taskRunner = new RoundRobinAsynchronousRunner( num_task_threads, true );
         //this.rpfact = ResourcePoolFactory.createInstance( taskRunner, timer );
 
         int num_deferred_close_threads = this.getStatementCacheNumDeferredCloseThreads();
 
 	if (num_deferred_close_threads > 0)
-	    this.deferredStatementDestroyer = DEFAULT_TASK_RUNNER_FACTORY.createTaskRunner( num_deferred_close_threads, matt, timer, idStr + "-DeferredStatementDestroyerThread" );
+	    this.deferredStatementDestroyer = DEFAULT_TASK_RUNNER_FACTORY.createTaskRunner( num_deferred_close_threads, matt, timer, idStr + "-DeferredStatementDestroyerThread", cpds );
 	else
 	    this.deferredStatementDestroyer = null;
 

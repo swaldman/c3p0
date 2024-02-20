@@ -1,12 +1,13 @@
 package com.mchange.v2.c3p0.impl;
 
 import java.util.Timer;
+import javax.sql.ConnectionPoolDataSource;
 import com.mchange.v2.async.*;
 import com.mchange.v2.c3p0.TaskRunnerFactory;
 
 public final class DefaultTaskRunnerFactory implements TaskRunnerFactory
 {
-    public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads, int matt  /* maxAdministrativeTaskTime */, Timer timer, String threadLabel )
+    public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads, int matt  /* maxAdministrativeTaskTime */, Timer timer, String threadLabel, ConnectionPoolDataSource cpds )
     {
         ThreadPoolAsynchronousRunner out = null;
         if ( matt > 0 )
