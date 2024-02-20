@@ -8,7 +8,7 @@
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of EITHER:
  *
- *     1) The GNU Lesser General Public License (LGPL), version 2.1, as 
+ *     1) The GNU Lesser General Public License (LGPL), version 2.1, as
  *        published by the Free Software Foundation
  *
  * OR
@@ -29,8 +29,8 @@
  * If not, the text of these licenses are currently available at
  *
  * LGPL v2.1: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
- *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php 
- * 
+ *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php
+ *
  */
 
 package com.mchange.v2.c3p0;
@@ -88,55 +88,55 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 
     public boolean isJndiLookupCaching()
     { return jrfds.isCaching();  }
-    
+
     public void setJndiLookupCaching( boolean caching )
     { jrfds.setCaching( caching ); }
-    
+
     public Hashtable getJndiEnv()
     { return jrfds.getJndiEnv(); }
-    
+
     public void setJndiEnv( Hashtable jndiEnv )
     { jrfds.setJndiEnv( jndiEnv ); }
-    
+
     public Object getJndiName()
     { return jrfds.getJndiName(); }
-    
+
     public void setJndiName( Object jndiName ) throws PropertyVetoException
     { jrfds.setJndiName( jndiName ); }
 
     public int getAcquireIncrement()
     { return wcpds.getAcquireIncrement(); }
-	
+
     public void setAcquireIncrement( int acquireIncrement )
     { wcpds.setAcquireIncrement( acquireIncrement ); }
-	
+
     public int getAcquireRetryAttempts()
     { return wcpds.getAcquireRetryAttempts(); }
-	
+
     public void setAcquireRetryAttempts( int ara )
     { wcpds.setAcquireRetryAttempts( ara ); }
-	
+
     public int getAcquireRetryDelay()
     { return wcpds.getAcquireRetryDelay(); }
-	
+
     public void setAcquireRetryDelay( int ard )
     { wcpds.setAcquireRetryDelay( ard ); }
-	
+
     public boolean isAutoCommitOnClose()
     { return wcpds.isAutoCommitOnClose(); }
 
     public void setAutoCommitOnClose( boolean autoCommitOnClose )
     { wcpds.setAutoCommitOnClose( autoCommitOnClose ); }
-	
+
     public void setAutomaticTestTable( String att )
     { wcpds.setAutomaticTestTable( att ); }
-	
+
     public String getAutomaticTestTable()
     { return wcpds.getAutomaticTestTable(); }
-	
+
     public void setBreakAfterAcquireFailure( boolean baaf )
     { wcpds.setBreakAfterAcquireFailure( baaf ); }
-	
+
     public boolean isBreakAfterAcquireFailure()
     { return wcpds.isBreakAfterAcquireFailure(); }
 
@@ -145,108 +145,114 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 
     public int getCheckoutTimeout()
     { return wcpds.getCheckoutTimeout(); }
-	
+
     public String getConnectionTesterClassName()
     { return wcpds.getConnectionTesterClassName(); }
-	
+
     public void setConnectionTesterClassName( String connectionTesterClassName ) throws PropertyVetoException
     { wcpds.setConnectionTesterClassName( connectionTesterClassName ); }
-	
+
+    public String getTaskRunnerFactoryClassName()
+    { return wcpds.getTaskRunnerFactoryClassName(); }
+
+    public void setTaskRunnerFactoryClassName( String taskRunnerFactoryClassName ) throws PropertyVetoException
+    { wcpds.setTaskRunnerFactoryClassName( taskRunnerFactoryClassName ); }
+
     public boolean isForceIgnoreUnresolvedTransactions()
     { return wcpds.isForceIgnoreUnresolvedTransactions(); }
-	
+
     public void setForceIgnoreUnresolvedTransactions( boolean forceIgnoreUnresolvedTransactions )
     { wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); }
-	
+
     public String getIdentityToken()
     { return identityToken; }
-	
+
     public void setIdentityToken(String identityToken)
     { this.identityToken = identityToken; }
-	
+
     public void setIdleConnectionTestPeriod( int idleConnectionTestPeriod )
     { wcpds.setIdleConnectionTestPeriod( idleConnectionTestPeriod ); }
-    
+
     public int getIdleConnectionTestPeriod()
     { return wcpds.getIdleConnectionTestPeriod(); }
-	
+
     public int getInitialPoolSize()
     { return wcpds.getInitialPoolSize(); }
-	
+
     public void setInitialPoolSize( int initialPoolSize )
     { wcpds.setInitialPoolSize( initialPoolSize ); }
 
     public int getMaxIdleTime()
     { return wcpds.getMaxIdleTime(); }
-	
+
     public void setMaxIdleTime( int maxIdleTime )
     { wcpds.setMaxIdleTime( maxIdleTime ); }
-	
+
     public int getMaxPoolSize()
     { return wcpds.getMaxPoolSize(); }
-	
+
     public void setMaxPoolSize( int maxPoolSize )
     { wcpds.setMaxPoolSize( maxPoolSize ); }
-	
+
     public int getMaxStatements()
     { return wcpds.getMaxStatements(); }
-	
+
     public void setMaxStatements( int maxStatements )
     { wcpds.setMaxStatements( maxStatements ); }
-	
+
     public int getMaxStatementsPerConnection()
     { return wcpds.getMaxStatementsPerConnection(); }
-	
+
     public void setMaxStatementsPerConnection( int mspc )
     { wcpds.setMaxStatementsPerConnection( mspc ); }
-	
+
     public int getMinPoolSize()
     { return wcpds.getMinPoolSize(); }
-	
+
     public void setMinPoolSize( int minPoolSize )
     { wcpds.setMinPoolSize( minPoolSize ); }
-	
+
     public String getPreferredTestQuery()
     { return wcpds.getPreferredTestQuery(); }
-	
+
     public void setPreferredTestQuery( String ptq )
     { wcpds.setPreferredTestQuery( ptq ); }
-	
+
     public int getPropertyCycle()
     { return wcpds.getPropertyCycle(); }
-	
+
     public void setPropertyCycle( int propertyCycle )
     { wcpds.setPropertyCycle( propertyCycle ); }
-	
+
     public boolean isTestConnectionOnCheckin()
     { return wcpds.isTestConnectionOnCheckin(); }
-	
+
     public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin )
     { wcpds.setTestConnectionOnCheckin( testConnectionOnCheckin ); }
-	
+
     public boolean isTestConnectionOnCheckout()
     { return wcpds.isTestConnectionOnCheckout(); }
-	
+
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); }
-	
+
     public boolean isUsesTraditionalReflectiveProxies()
     { return wcpds.isUsesTraditionalReflectiveProxies(); }
-	
+
     public void setUsesTraditionalReflectiveProxies( boolean utrp )
     { wcpds.setUsesTraditionalReflectiveProxies( utrp ); }
-	
+
     public String getFactoryClassLocation()
     { return jrfds.getFactoryClassLocation(); }
 
     public void setFactoryClassLocation( String factoryClassLocation )
-    { 
+    {
 	jrfds.setFactoryClassLocation( factoryClassLocation );
 	wcpds.setFactoryClassLocation( factoryClassLocation );
     }
 
     final static JavaBeanReferenceMaker referenceMaker = new JavaBeanReferenceMaker();
-    
+
     static
     {
 	referenceMaker.setFactoryClassName( C3P0JavaBeanObjectFactory.class.getName() );
@@ -276,19 +282,19 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	referenceMaker.addReferenceProperty("testConnectionOnCheckout");
 	referenceMaker.addReferenceProperty("usesTraditionalReflectiveProxies");
     }
-    
+
     public Reference getReference() throws NamingException
     { return referenceMaker.createReference( this ); }
 
     //implementation of javax.sql.ConnectionPoolDataSource
     public PooledConnection getPooledConnection()
 	throws SQLException
-    { return wcpds.getPooledConnection(); } 
- 
+    { return wcpds.getPooledConnection(); }
+
     public PooledConnection getPooledConnection(String user, String password)
 	throws SQLException
-    { return wcpds.getPooledConnection( user, password ); } 
- 
+    { return wcpds.getPooledConnection( user, password ); }
+
     public PrintWriter getLogWriter()
 	throws SQLException
     { return wcpds.getLogWriter(); }
@@ -316,15 +322,14 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 		//e.printStackTrace();
 		if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ) )
 		    logger.log( MLevel.FINE, "An exception occurred while extracting property names and values for toString()", e);
-		sb.append( e.toString() ); 
+		sb.append( e.toString() );
 	    }
 	sb.append("]");
 	return sb.toString();
     }
 
-	
+
     // JDK7 add-on
     public Logger getParentLogger() throws SQLFeatureNotSupportedException
     { throw new SQLFeatureNotSupportedException("javax.sql.DataSource.getParentLogger() is not currently supported by " + this.getClass().getName());}
 }
-

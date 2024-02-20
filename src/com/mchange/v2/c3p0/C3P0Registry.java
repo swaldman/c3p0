@@ -112,6 +112,9 @@ public final class C3P0Registry
     private final static Map classNamesToConnectionTesters = new HashMap();
 
     //MT: protected by ITS OWN LOCK
+    private final static Map classNamesToTaskRunnerFactories = new HashMap();
+
+    //MT: protected by ITS OWN LOCK
     private final static Map classNamesToConnectionCustomizers = new HashMap();
 
     private static ManagementCoordinator mc;
@@ -138,7 +141,7 @@ public final class C3P0Registry
             }
         }
         else
-        {    
+        {
             try
             {
                 Class.forName("java.lang.management.ManagementFactory");
@@ -206,6 +209,37 @@ public final class C3P0Registry
 	    classNamesToConnectionTesters.clear();
 	    classNamesToConnectionTesters.put(C3P0Defaults.connectionTesterClassName(), recreateDefaultConnectionTester());
 	}
+    }
+
+    private final static TaskRunnerFactory DEFAULT_TASK_RUNNER_FACTORY = new DefaultTaskRunnerFactory();
+
+    public static TaskRunnerFactory getDefaultTaskRunnerFactory()
+    { return getTaskRunnerFactory( C3P0Defaults.taskRunnerFactoryClassName() ); }
+
+    public static TaskRunnerFactory getTaskRunnerFactory( String className )
+    {
+        try
+        {
+	    synchronized ( classNamesToTaskRunnerFactories )
+	    {
+		TaskRunnerFactory out = (TaskRunnerFactory) classNamesToTaskRunnerFactories.get( className );
+		if (out == null)
+		{
+		    out = (TaskRunnerFactory) Class.forName( className ).newInstance();
+		    classNamesToTaskRunnerFactories.put( className, out );
+		}
+		return out;
+	    }
+        }
+        catch (Exception e)
+        {
+            if (logger.isLoggable( MLevel.WARNING ))
+                logger.log( MLevel.WARNING,
+                                "Could not create for find TaskRunnerFactory with class name '" +
+                                className + "'. Using default.",
+                                e );
+            return DEFAULT_TASK_RUNNER_FACTORY;
+        }
     }
 
     public static ConnectionCustomizer getConnectionCustomizer( String className ) throws SQLException

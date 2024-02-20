@@ -383,10 +383,22 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
     { return wcpds.getConnectionTesterClassName(); }
 
     public void setConnectionTesterClassName( String connectionTesterClassName ) throws PropertyVetoException
-    { 
+    {
 	if ( diff( wcpds.getConnectionTesterClassName(), connectionTesterClassName ) )
 	{
 	    wcpds.setConnectionTesterClassName( connectionTesterClassName ); 
+	    this.resetPoolManager( false );
+	}
+    }
+
+    public String getTaskRunnerFactoryClassName()
+    { return wcpds.getTaskRunnerFactoryClassName(); }
+
+    public void setTaskRunnerFactoryClassName( String taskRunnerFactoryClassName ) throws PropertyVetoException
+    {
+	if ( diff( wcpds.getTaskRunnerFactoryClassName(), taskRunnerFactoryClassName ) )
+	{
+	    wcpds.setTaskRunnerFactoryClassName( taskRunnerFactoryClassName );
 	    this.resetPoolManager( false );
 	}
     }

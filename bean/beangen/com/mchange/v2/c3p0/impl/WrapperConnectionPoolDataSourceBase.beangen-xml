@@ -174,6 +174,14 @@
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
+       <type>String</type>
+       <name>taskRunnerFactoryClassName</name>
+       <default-value>C3P0Config.initializeStringPropertyVar("taskRunnerFactoryClassName", C3P0Defaults.taskRunnerFactoryClassName())</default-value>
+       <constrained/>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
        <type>boolean</type>
        <name>testConnectionOnCheckout</name>
        <default-value>C3P0Config.initializeBooleanPropertyVar("testConnectionOnCheckout", C3P0Defaults.testConnectionOnCheckout())</default-value>

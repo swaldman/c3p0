@@ -66,7 +66,7 @@ import com.mchange.v2.log.MLogger;
  *
  *  <p><i>Please see c3p0's main documentation for a description of all available parameters.</i></p>
  *
- *  @deprecated as of c3p0-0.9.1. To manipulate config programmaticall, please use ComboPooledDataSource
+ *  @deprecated as of c3p0-0.9.1. To manipulate config programmatically, please use ComboPooledDataSource
  *
  */
 public final class PoolConfig
@@ -90,6 +90,7 @@ public final class PoolConfig
     public final static String TEST_CONNECTION_ON_CHECKOUT          = "c3p0.testConnectionOnCheckout";
     public final static String TEST_CONNECTION_ON_CHECKIN           = "c3p0.testConnectionOnCheckin";
     public final static String CONNECTION_TESTER_CLASS_NAME         = "c3p0.connectionTesterClassName";
+    public final static String TASK_RUNNER_FACTORY_CLASS_NAME       = "c3p0.taskRunnerFactoryClassName";
     public final static String AUTOMATIC_TEST_TABLE                 = "c3p0.automaticTestTable";
     public final static String AUTO_COMMIT_ON_CLOSE                 = "c3p0.autoCommitOnClose";
     public final static String FORCE_IGNORE_UNRESOLVED_TRANSACTIONS = "c3p0.forceIgnoreUnresolvedTransactions";
@@ -172,6 +173,9 @@ public final class PoolConfig
     public static String defaultConnectionTesterClassName()
     { return DEFAULTS.getConnectionTesterClassName(); }
 
+    public static String defaultTaskRunnerFactoryClassName()
+    { return DEFAULTS.getTaskRunnerFactoryClassName(); }
+
     public static String defaultAutomaticTestTable()
     { return DEFAULTS.getAutomaticTestTable(); }
 
@@ -210,6 +214,7 @@ public final class PoolConfig
     boolean forceIgnoreUnresolvedTransactions;
     boolean usesTraditionalReflectiveProxies;
     String  connectionTesterClassName;
+    String  taskRunnerFactoryClassName;
     String  automaticTestTable;
     int     numHelperThreads;
     String  preferredTestQuery;
@@ -238,40 +243,40 @@ public final class PoolConfig
 
     public int getMaxStatements()
     { return maxStatements; }
-    
+
     public int getMaxStatementsPerConnection()
     { return maxStatementsPerConnection; }
-    
+
     public int getInitialPoolSize()
     { return initialPoolSize; }
-    
+
     public int getMinPoolSize()
     { return minPoolSize; }
-    
+
     public int getMaxPoolSize()
     { return maxPoolSize; }
-    
+
     public int getIdleConnectionTestPeriod()
     { return idleConnectionTestPeriod; }
-    
+
     public int getMaxIdleTime()
     { return maxIdleTime; }
-    
+
     public int getPropertyCycle()
     { return propertyCycle; }
-    
+
     public int getAcquireIncrement()
     { return acquireIncrement; }
-    
+
     public int getCheckoutTimeout()
     { return checkoutTimeout; }
-    
+
     public int getAcquireRetryAttempts()
     { return acquireRetryAttempts; }
-    
+
     public int getAcquireRetryDelay()
     { return acquireRetryDelay; }
-    
+
     public boolean isBreakAfterAcquireFailure()
     { return this.breakAfterAcquireFailure;	}
 
@@ -280,10 +285,13 @@ public final class PoolConfig
 
     public String getConnectionTesterClassName()
     { return connectionTesterClassName; }
-    
+
+    public String getTaskRunnerFactoryClassName()
+    { return taskRunnerFactoryClassName; }
+
     public String getAutomaticTestTable()
     { return automaticTestTable; }
-    
+
     /**
      * @deprecated use isTestConnectionOnCheckout
      */
@@ -301,7 +309,7 @@ public final class PoolConfig
 
     public boolean isForceIgnoreUnresolvedTransactions()
     { return this.forceIgnoreUnresolvedTransactions; }
-    
+
     public void setNumHelperThreads( int numHelperThreads )
     { this.numHelperThreads = numHelperThreads;	}
 
@@ -313,58 +321,61 @@ public final class PoolConfig
 
     public void setMaxStatements( int maxStatements )
     { this.maxStatements = maxStatements; }
-    
+
     public void setMaxStatementsPerConnection( int maxStatementsPerConnection )
     { this.maxStatementsPerConnection = maxStatementsPerConnection; }
-    
+
     public void setInitialPoolSize( int initialPoolSize )
     { this.initialPoolSize = initialPoolSize; }
-    
+
     public void setMinPoolSize( int minPoolSize )
     { this.minPoolSize = minPoolSize; }
-    
+
     public void setMaxPoolSize( int maxPoolSize )
     { this.maxPoolSize = maxPoolSize; }
-    
+
     public void setIdleConnectionTestPeriod( int idleConnectionTestPeriod )
     { this.idleConnectionTestPeriod = idleConnectionTestPeriod; }
-    
+
     public void setMaxIdleTime( int maxIdleTime )
     { this.maxIdleTime = maxIdleTime; }
-    
+
     public void setPropertyCycle( int propertyCycle )
     { this.propertyCycle = propertyCycle; }
-    
+
     public void setCheckoutTimeout( int checkoutTimeout )
     { this.checkoutTimeout = checkoutTimeout; }
-    
+
     public void setAcquireIncrement( int acquireIncrement )
     { this.acquireIncrement = acquireIncrement; }
-    
+
     public void setAcquireRetryAttempts( int acquireRetryAttempts )
     { this.acquireRetryAttempts = acquireRetryAttempts; }
-    
+
     public void setAcquireRetryDelay( int acquireRetryDelay )
     { this.acquireRetryDelay = acquireRetryDelay; }
-    
+
     public void setConnectionTesterClassName( String connectionTesterClassName )
     { this.connectionTesterClassName = connectionTesterClassName; }
-    
+
+    public void setTaskRunnerFactoryClassName( String taskRunnerFactoryClassName )
+    { this.taskRunnerFactoryClassName = taskRunnerFactoryClassName; }
+
     public void setAutomaticTestTable( String automaticTestTable )
     { this.automaticTestTable = automaticTestTable; }
-    
+
     public void setBreakAfterAcquireFailure( boolean breakAfterAcquireFailure )
     { this.breakAfterAcquireFailure = breakAfterAcquireFailure; }
-    
+
     public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies )
     { this.usesTraditionalReflectiveProxies = usesTraditionalReflectiveProxies; }
-    
+
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { this.testConnectionOnCheckout = testConnectionOnCheckout; }
-    
+
     public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin )
     { this.testConnectionOnCheckin = testConnectionOnCheckin; }
-    
+
     public void setAutoCommitOnClose( boolean autoCommitOnClose )
     { this.autoCommitOnClose = autoCommitOnClose;  }
 
@@ -399,6 +410,7 @@ public final class PoolConfig
 	String autoCommitOnCloseStr                 = null;
 	String forceIgnoreUnresolvedTransactionsStr = null;
 	String connectionTesterClassName            = null;
+	String taskRunnerFactoryClassName           = null;
 	String automaticTestTable                   = null;
 	String numHelperThreadsStr                  = null;
 	String preferredTestQuery                   = null;
@@ -425,6 +437,7 @@ public final class PoolConfig
 		autoCommitOnCloseStr = props.getProperty(AUTO_COMMIT_ON_CLOSE);
 		forceIgnoreUnresolvedTransactionsStr = props.getProperty(FORCE_IGNORE_UNRESOLVED_TRANSACTIONS);
 		connectionTesterClassName = props.getProperty(CONNECTION_TESTER_CLASS_NAME);
+		taskRunnerFactoryClassName = props.getProperty(TASK_RUNNER_FACTORY_CLASS_NAME);
 		automaticTestTable = props.getProperty(AUTOMATIC_TEST_TABLE);
 		numHelperThreadsStr = props.getProperty(NUM_HELPER_THREADS);
 		preferredTestQuery = props.getProperty(PREFERRED_TEST_QUERY);
@@ -582,6 +595,14 @@ public final class PoolConfig
 	    pcfg.setConnectionTesterClassName( defaults.getConnectionTesterClassName() );
 	else
 	    pcfg.setConnectionTesterClassName( C3P0Defaults.connectionTesterClassName() );
+
+	// taskRunnerFactoryClassName
+	if ( taskRunnerFactoryClassName != null )
+	    pcfg.setTaskRunnerFactoryClassName( taskRunnerFactoryClassName.trim() );
+	else if (defaults != null)
+	    pcfg.setTaskRunnerFactoryClassName( defaults.getTaskRunnerFactoryClassName() );
+	else
+	    pcfg.setTaskRunnerFactoryClassName( C3P0Defaults.taskRunnerFactoryClassName() );
 
 	// automaticTestTable
 	if ( automaticTestTable != null )

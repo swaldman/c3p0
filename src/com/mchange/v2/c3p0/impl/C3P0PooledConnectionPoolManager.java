@@ -8,7 +8,7 @@
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of EITHER:
  *
- *     1) The GNU Lesser General Public License (LGPL), version 2.1, as 
+ *     1) The GNU Lesser General Public License (LGPL), version 2.1, as
  *        published by the Free Software Foundation
  *
  * OR
@@ -29,8 +29,8 @@
  * If not, the text of these licenses are currently available at
  *
  * LGPL v2.1: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
- *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php 
- * 
+ *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php
+ *
  */
 
 package com.mchange.v2.c3p0.impl;
@@ -130,7 +130,7 @@ public final class C3P0PooledConnectionPoolManager
 
     private ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported )
     {
-        return DEFAULT_TASK_RUNNER_FACTORY.createTaskRunner( num_threads_if_supported, max_administrative_task_time_if_supported, timer, threadLabelIfSupported );
+        return this.getTaskRunnerFactory(null).createTaskRunner( num_threads_if_supported, max_administrative_task_time_if_supported, timer, threadLabelIfSupported );
     }
 
     private String idString()
@@ -164,7 +164,7 @@ public final class C3P0PooledConnectionPoolManager
 	    AccessController.doPrivileged( privilegedPoolsInit );
 	}
 	else
-	    _poolsInit(); 
+	    _poolsInit();
     }
 
     private void poolsInit()
@@ -249,8 +249,8 @@ public final class C3P0PooledConnectionPoolManager
             try
             { ((C3P0PooledConnectionPool) ii.next()).close( close_outstanding_connections ); }
             catch ( Exception e )
-            { 
-                //e.printStackTrace(); 
+            {
+                //e.printStackTrace();
                 logger.log(MLevel.WARNING, "An Exception occurred while trying to clean up a pool!", e);
             }
         }
@@ -270,7 +270,7 @@ public final class C3P0PooledConnectionPoolManager
         this.authsToPools = null;
     }
 
-    public C3P0PooledConnectionPoolManager(ConnectionPoolDataSource cpds, 
+    public C3P0PooledConnectionPoolManager(ConnectionPoolDataSource cpds,
 					   Map flatPropertyOverrides,     // Map of properties, usually null
 					   Map forceUserOverrides,        // userNames to Map of properties, usually null
 					   int num_task_threads,
@@ -523,9 +523,9 @@ public final class C3P0PooledConnectionPoolManager
         if (out == null && flatPropertyOverrides != null) //flatPropertyOverrides is a rarely used mechanism for forcing a config
             out = flatPropertyOverrides.get( propName );
 
-        //if the ConnectionPoolDataSource has config parameter defined as a property use it 
+        //if the ConnectionPoolDataSource has config parameter defined as a property use it
         //(unless there was a user-specific or force override found above)
-        if (out == null) 
+        if (out == null)
         {
             try
             {
@@ -540,8 +540,8 @@ public final class C3P0PooledConnectionPoolManager
             catch (Exception e)
             {
                 if (logger.isLoggable( MLevel.WARNING ))
-                    logger.log(MLevel.WARNING, 
-                                    "An exception occurred while trying to read property '" + propName + 
+                    logger.log(MLevel.WARNING,
+                                    "An exception occurred while trying to read property '" + propName +
                                     "' from ConnectionPoolDataSource: " + cpds +
                                     ". Default config value will be used.",
                                     e );
@@ -801,6 +801,14 @@ public final class C3P0PooledConnectionPoolManager
     private ConnectionTester getConnectionTester(String userName)
     { return C3P0Registry.getConnectionTester( getConnectionTesterClassName( userName ) ); }
 
+    // userName should always be null here, we don't support per-user config of task runner factories
+    private String getTaskRunnerFactoryClassName(String userName)
+    { return getString("taskRunnerFactoryClassName", userName ); }
+
+    // userName should always be null here, we don't support per-user config of task runner factories
+    private TaskRunnerFactory getTaskRunnerFactory(String userName)
+    { return C3P0Registry.getTaskRunnerFactory( getTaskRunnerFactoryClassName( userName ) ); }
+
     private String getConnectionCustomizerClassName(String userName)
     { return getString("connectionCustomizerClassName", userName ); }
 
@@ -846,7 +854,7 @@ public final class C3P0PooledConnectionPoolManager
     // properties that don't support per-user overrides
 
     private String getContextClassLoaderSource()
-    { 
+    {
 	try { return getString("contextClassLoaderSource", null ); }
         catch (Exception e)
         {
@@ -855,9 +863,9 @@ public final class C3P0PooledConnectionPoolManager
             return C3P0Defaults.contextClassLoaderSource();
         }
     }
-	
+
     private boolean getPrivilegeSpawnedThreads()
-    { 
+    {
 	try { return getBoolean("privilegeSpawnedThreads", null ); }
         catch (Exception e)
         {
@@ -866,7 +874,7 @@ public final class C3P0PooledConnectionPoolManager
             return C3P0Defaults.privilegeSpawnedThreads();
         }
     }
-	
+
     private int getMaxAdministrativeTaskTime()
     {
         try
@@ -905,7 +913,7 @@ public final class C3P0PooledConnectionPoolManager
             {
                 if ( logger.isLoggable( MLevel.WARNING ) )
                 {
-                    logger.logp(MLevel.WARNING, 
+                    logger.logp(MLevel.WARNING,
                                     C3P0PooledConnectionPoolManager.class.getName(),
                                     "createPooledConnectionPool",
                                     "[c3p0] Both automaticTestTable and preferredTestQuery have been set! " +
@@ -978,9 +986,9 @@ public final class C3P0PooledConnectionPoolManager
     // only called from sync'ed methods
     private String initializeAutomaticTestTable(String automaticTestTable, DbAuth auth) throws SQLException
     {
-        PooledConnection throwawayPooledConnection =    auth.equals( defaultAuth ) ? 
-                                                        cpds.getPooledConnection() : 
-                                                        cpds.getPooledConnection(auth.getUser(), auth.getPassword()); 
+        PooledConnection throwawayPooledConnection =    auth.equals( defaultAuth ) ?
+                                                        cpds.getPooledConnection() :
+                                                        cpds.getPooledConnection(auth.getUser(), auth.getPassword());
         Connection c = null;
         PreparedStatement testStmt = null;
         PreparedStatement createStmt = null;
@@ -1008,7 +1016,7 @@ public final class C3P0PooledConnectionPoolManager
                 rs = testStmt.executeQuery();
                 has_rows = rs.next();
                 if (has_rows)
-                    throw new SQLException("automatic test table '" + automaticTestTable + 
+                    throw new SQLException("automatic test table '" + automaticTestTable +
                                     "' contains rows, and it should not! Please set this " +
                                     "parameter to the name of a table c3p0 can create on its own, " +
                     "that is not used elsewhere in the database!");
@@ -1024,7 +1032,7 @@ public final class C3P0PooledConnectionPoolManager
                 catch (SQLException e)
                 {
                     if (logger.isLoggable( MLevel.WARNING ))
-                        logger.log(MLevel.WARNING, 
+                        logger.log(MLevel.WARNING,
                                         "An attempt to create an automatic test table failed. Create SQL: " +
                                         createSql,
                                         e );
@@ -1034,42 +1042,42 @@ public final class C3P0PooledConnectionPoolManager
             return out;
         }
         finally
-        { 
+        {
             ResultSetUtils.attemptClose( mdrs );
             ResultSetUtils.attemptClose( rs );
             StatementUtils.attemptClose( testStmt );
             StatementUtils.attemptClose( createStmt );
-            ConnectionUtils.attemptClose( c ); 
+            ConnectionUtils.attemptClose( c );
             try{ if (throwawayPooledConnection != null) throwawayPooledConnection.close(); }
-            catch ( Exception e ) 
-            { 
-                //e.printStackTrace(); 
+            catch ( Exception e )
+            {
+                //e.printStackTrace();
                 logger.log(MLevel.WARNING, "A PooledConnection failed to close.", e);
             }
         }
     }
-    
+
     private void ensureFirstConnectionAcquisition(DbAuth auth) throws SQLException
     {
-        PooledConnection throwawayPooledConnection =    auth.equals( defaultAuth ) ? 
-                                                        cpds.getPooledConnection() : 
-                                                        cpds.getPooledConnection(auth.getUser(), auth.getPassword()); 
+        PooledConnection throwawayPooledConnection =    auth.equals( defaultAuth ) ?
+                                                        cpds.getPooledConnection() :
+                                                        cpds.getPooledConnection(auth.getUser(), auth.getPassword());
         Connection c = null;
         try
         {
             c = throwawayPooledConnection.getConnection();
         }
         finally
-        { 
-            ConnectionUtils.attemptClose( c ); 
+        {
+            ConnectionUtils.attemptClose( c );
             try{ if (throwawayPooledConnection != null) throwawayPooledConnection.close(); }
-            catch ( Exception e ) 
-            { 
-                //e.printStackTrace(); 
+            catch ( Exception e )
+            {
+                //e.printStackTrace();
                 logger.log(MLevel.WARNING, "A PooledConnection failed to close.", e);
             }
         }
-    }    
+    }
 }
 
 
@@ -1090,7 +1098,7 @@ public final class C3P0PooledConnectionPoolManager
 //ConnectionTester connectionTester)
 //{
 //C3P0PooledConnectionPoolManager nascent = new C3P0PooledConnectionPoolManager( cpds,
-//defaultAuth,  
+//defaultAuth,
 //maxStatements,
 //minPoolSize,
 //maxPoolSize,
@@ -1192,30 +1200,30 @@ public final class C3P0PooledConnectionPoolManager
 //(aa.forceIgnoreUnresolvedTransactions ? 1<<3 : 0) ^
 //(aa.breakAfterAcquireFailure          ? 1<<4 : 0) ^
 //aa.defaultAuth.hashCode() ^
-//aa.connectionTester.getClass().hashCode(); 
+//aa.connectionTester.getClass().hashCode();
 ////System.err.println("coalesceHash() --> " + out);
 //return out;
 //};
 //};
 
-//int maxStatements                          = PoolConfig.defaultMaxStatements(); 
-//int maxStatementsPerConnection             = PoolConfig.defaultMaxStatementsPerConnection(); 
-//int minPoolSize                            = PoolConfig.defaultMinPoolSize();  
-//int maxPoolSize                            = PoolConfig.defaultMaxPoolSize();  
+//int maxStatements                          = PoolConfig.defaultMaxStatements();
+//int maxStatementsPerConnection             = PoolConfig.defaultMaxStatementsPerConnection();
+//int minPoolSize                            = PoolConfig.defaultMinPoolSize();
+//int maxPoolSize                            = PoolConfig.defaultMaxPoolSize();
 //int idleConnectionTestPeriod               = PoolConfig.defaultIdleConnectionTestPeriod();
-//int maxIdleTime                            = PoolConfig.defaultMaxIdleTime();  
-//int checkoutTimeout                        = PoolConfig.defaultCheckoutTimeout(); 
-//int acquireIncrement                       = PoolConfig.defaultAcquireIncrement(); 
-//int acquireRetryAttempts                   = PoolConfig.defaultAcquireRetryAttempts(); 
-//int acquireRetryDelay                      = PoolConfig.defaultAcquireRetryDelay(); 
-//boolean breakAfterAcquireFailure           = PoolConfig.defaultBreakAfterAcquireFailure(); 
-//boolean testConnectionOnCheckout           = PoolConfig.defaultTestConnectionOnCheckout(); 
-//boolean testConnectionOnCheckin            = PoolConfig.defaultTestConnectionOnCheckin(); 
-//boolean autoCommitOnClose                  = PoolConfig.defaultAutoCommitOnClose(); 
-//boolean forceIgnoreUnresolvedTransactions  = PoolConfig.defaultForceIgnoreUnresolvedTransactions(); 
-//String preferredTestQuery                  = PoolConfig.defaultPreferredTestQuery(); 
-//String automaticTestTable                  = PoolConfig.defaultAutomaticTestTable(); 
-//DbAuth defaultAuth                         = C3P0ImplUtils.NULL_AUTH; 
+//int maxIdleTime                            = PoolConfig.defaultMaxIdleTime();
+//int checkoutTimeout                        = PoolConfig.defaultCheckoutTimeout();
+//int acquireIncrement                       = PoolConfig.defaultAcquireIncrement();
+//int acquireRetryAttempts                   = PoolConfig.defaultAcquireRetryAttempts();
+//int acquireRetryDelay                      = PoolConfig.defaultAcquireRetryDelay();
+//boolean breakAfterAcquireFailure           = PoolConfig.defaultBreakAfterAcquireFailure();
+//boolean testConnectionOnCheckout           = PoolConfig.defaultTestConnectionOnCheckout();
+//boolean testConnectionOnCheckin            = PoolConfig.defaultTestConnectionOnCheckin();
+//boolean autoCommitOnClose                  = PoolConfig.defaultAutoCommitOnClose();
+//boolean forceIgnoreUnresolvedTransactions  = PoolConfig.defaultForceIgnoreUnresolvedTransactions();
+//String preferredTestQuery                  = PoolConfig.defaultPreferredTestQuery();
+//String automaticTestTable                  = PoolConfig.defaultAutomaticTestTable();
+//DbAuth defaultAuth                         = C3P0ImplUtils.NULL_AUTH;
 //ConnectionTester connectionTester          = C3P0ImplUtils.defaultConnectionTester();;
 
 
@@ -1224,7 +1232,7 @@ public final class C3P0PooledConnectionPoolManager
 //// our implementation of ConnectionPoolDataSource.
 ////
 //// If other implementations are used, the only
-//// hazard is the possibility that there will be 
+//// hazard is the possibility that there will be
 //// two pools for the same real authorization credentials
 //// one for when the credentials are explicitly specified,
 //// and one for when the defaults are used.
@@ -1297,4 +1305,3 @@ public final class C3P0PooledConnectionPoolManager
 //}
 
 //}
-
