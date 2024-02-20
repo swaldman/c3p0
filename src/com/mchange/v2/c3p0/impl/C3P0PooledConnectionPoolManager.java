@@ -226,7 +226,7 @@ public final class C3P0PooledConnectionPoolManager
         int num_deferred_close_threads = this.getStatementCacheNumDeferredCloseThreads();
 
 	if (num_deferred_close_threads > 0)
-	    this.deferredStatementDestroyer = createTaskRunner( num_deferred_close_threads, matt, timer, idStr + "-DeferredStatementDestroyerThread" );
+	    this.deferredStatementDestroyer = DEFAULT_TASK_RUNNER_FACTORY.createTaskRunner( num_deferred_close_threads, matt, timer, idStr + "-DeferredStatementDestroyerThread" );
 	else
 	    this.deferredStatementDestroyer = null;
 
