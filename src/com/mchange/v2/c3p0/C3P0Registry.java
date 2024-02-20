@@ -8,7 +8,7 @@
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of EITHER:
  *
- *     1) The GNU Lesser General Public License (LGPL), version 2.1, as 
+ *     1) The GNU Lesser General Public License (LGPL), version 2.1, as
  *        published by the Free Software Foundation
  *
  * OR
@@ -29,8 +29,8 @@
  * If not, the text of these licenses are currently available at
  *
  * LGPL v2.1: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
- *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php 
- * 
+ *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php
+ *
  */
 
 package com.mchange.v2.c3p0;
@@ -59,7 +59,7 @@ import com.mchange.v2.c3p0.management.*;
  *  and then re-look them up again (not a great idea, but not uncommon) might see
  *  distinct DataSources over multiple lookups.
  *
- *  C3P0 resolves this issue has followed: At first creation or lookup of a PooledDataSource, 
+ *  C3P0 resolves this issue has followed: At first creation or lookup of a PooledDataSource,
  *  c3p0 creates a hard reference to that DataSource. So long as the DataSource has not
  *  been close()ed or DataSources.destroy()ed, subsequent lookups will consistently
  *  return the same DataSource. If the DataSource is never closed, then there is a potential
@@ -71,27 +71,27 @@ import com.mchange.v2.c3p0.management.*;
  *  looking up a DataSource after having close()ed it in the current VM is undefined.
  *
  *  Note that unpooled c3p0 DataSources are always held by weak references, since
- *  they are never explicitly close()ed. The result of looking up an unpooled DataSource, 
+ *  they are never explicitly close()ed. The result of looking up an unpooled DataSource,
  *  modifying it, dereferencing it, and then relooking up is therefore undefined as well.
  *
  *  These issues are mostly academic. Under normal use scenarios, how c3p0 deals with
  *  maintaining its registry doesn't much matter. In the past, c3p0 maintained hard
  *  references to DataSources indefinitely. At least one user ran into side effects
  *  of the unwanted retention of old DataSources (in a process left to run for months
- *  at a time, and frequently reconstructing multiple DataSources), so now we take care 
- *  to ensure that when users properly close() and dereference DataSources, they can 
+ *  at a time, and frequently reconstructing multiple DataSources), so now we take care
+ *  to ensure that when users properly close() and dereference DataSources, they can
  *  indeed be garbage collected.
  */
 public final class C3P0Registry
 {
     private final static String MC_PARAM = "com.mchange.v2.c3p0.management.ManagementCoordinator";
-    
+
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( C3P0Registry.class );
 
     //MT: protected by class' lock
     static boolean banner_printed = false;
-    
+
     //MT: protected by class' lock
     static boolean registry_mbean_registered = false;
 
@@ -133,7 +133,7 @@ public final class C3P0Registry
             catch (Exception e)
             {
                 if (logger.isLoggable(MLevel.WARNING))
-                    logger.log(MLevel.WARNING, 
+                    logger.log(MLevel.WARNING,
                                "Could not instantiate user-specified ManagementCoordinator " + userManagementCoordinator +
                                ". Using NullManagementCoordinator (c3p0 JMX management disabled!)",
                                e );
@@ -151,7 +151,7 @@ public final class C3P0Registry
             catch (Exception e)
             {
                 if ( logger.isLoggable( MLevel.INFO ) )
-                    logger.log( MLevel.INFO, 
+                    logger.log( MLevel.INFO,
                                     "jdk1.5 management interfaces unavailable... JMX support disabled.",
                                     e);
                 mc = new NullManagementCoordinator();
@@ -160,8 +160,8 @@ public final class C3P0Registry
     }
 
     public static void markConfigRefreshed()
-    { 
-	resetConnectionTesterCache(); 
+    {
+	resetConnectionTesterCache();
     }
 
     public static ConnectionTester getDefaultConnectionTester()
@@ -175,7 +175,7 @@ public final class C3P0Registry
 	    {
 		ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
 		if (out == null)
-		{ 
+		{
 		    out = (ConnectionTester) Class.forName( className ).newInstance();
 		    classNamesToConnectionTesters.put( className, out );
 		}
@@ -185,7 +185,7 @@ public final class C3P0Registry
         catch (Exception e)
         {
             if (logger.isLoggable( MLevel.WARNING ))
-                logger.log( MLevel.WARNING, 
+                logger.log( MLevel.WARNING,
                                 "Could not create for find ConnectionTester with class name '" +
                                 className + "'. Using default.",
                                 e );
@@ -196,11 +196,11 @@ public final class C3P0Registry
     // DefaultConnectionTester instantiation is now sensitive to config of QuerylessConnectionTester,
     // so when config is updated, we should recreate it. So we can't just hardcode an instance.
     private static ConnectionTester recreateDefaultConnectionTester()
-    { 
+    {
 	try { return (ConnectionTester) Class.forName( C3P0Defaults.connectionTesterClassName() ).newInstance(); }
 	catch ( Exception e )
 	    { throw new Error("Huh? We cannot instantiate the hard-coded, default ConnectionTester? We are very broken.", e); }
-    } 
+    }
 
     private static void resetConnectionTesterCache()
     {
@@ -254,7 +254,7 @@ public final class C3P0Registry
 		{
 		    ConnectionCustomizer out = (ConnectionCustomizer) classNamesToConnectionCustomizers.get( className );
 		    if (out == null)
-		    { 
+		    {
 			out = (ConnectionCustomizer) Class.forName( className ).newInstance();
 			classNamesToConnectionCustomizers.put( className, out );
 		    }
@@ -264,7 +264,7 @@ public final class C3P0Registry
             catch (Exception e)
             {
                 if (logger.isLoggable( MLevel.WARNING ))
-                    logger.log( MLevel.WARNING, 
+                    logger.log( MLevel.WARNING,
                                     "Could not create for find ConnectionCustomizer with class name '" +
                                     className + "'.",
                                     e );
@@ -279,14 +279,14 @@ public final class C3P0Registry
         if (! banner_printed )
         {
             if (logger.isLoggable( MLevel.INFO ) )
-                logger.info("Initializing c3p0-" + C3P0Substitutions.VERSION + " [built " + C3P0Substitutions.TIMESTAMP + 
-                                "; debug? " + C3P0Substitutions.DEBUG + 
-                                "; trace: " + C3P0Substitutions.TRACE 
+                logger.info("Initializing c3p0-" + C3P0Substitutions.VERSION + " [built " + C3P0Substitutions.TIMESTAMP +
+                                "; debug? " + C3P0Substitutions.DEBUG +
+                                "; trace: " + C3P0Substitutions.TRACE
                                 +']');
             banner_printed = true;
         }
     }
-    
+
     // must be called from a static, sync'ed method
     private static void attemptRegisterRegistryMBean()
     {
@@ -312,20 +312,20 @@ public final class C3P0Registry
         }
     }
 
-    private static synchronized Object findTokenized( String identityToken ) 
+    private static synchronized Object findTokenized( String identityToken )
     { return tokensToTokenized.get( identityToken ); }
 
-    // don't call this with C3P0Registry.class' lock, as PooledDataSource.getExtensions() is 
+    // don't call this with C3P0Registry.class' lock, as PooledDataSource.getExtensions() is
     // generally synchronized and the nested locking can provoke deadlocks.
     public static Map extensionsForToken( String pooledDataSourceIdentityToken )
 	throws NoSuchElementException, IllegalArgumentException
     {
 	Object o = findTokenized( pooledDataSourceIdentityToken );
-	if ( o == null ) throw new NoSuchElementException( "No object is known to be identified by token '" + 
-							   pooledDataSourceIdentityToken + 
+	if ( o == null ) throw new NoSuchElementException( "No object is known to be identified by token '" +
+							   pooledDataSourceIdentityToken +
 							   "'. Either it is a bad token, or the object was no longer in use and has been garbage collected." );
 	if (! (o instanceof PooledDataSource ) )
-	    throw new IllegalArgumentException( "The object '" + o + "', identified by token '" + pooledDataSourceIdentityToken + 
+	    throw new IllegalArgumentException( "The object '" + o + "', identified by token '" + pooledDataSourceIdentityToken +
 						"', is not a PooledDataSource and therefore cannot have extensions." );
 
 	return ((PooledDataSource) o).getExtensions();
@@ -338,7 +338,7 @@ public final class C3P0Registry
             banner();
             attemptRegisterRegistryMBean();
         }
-        
+
         if (idt.getIdentityToken() == null)
             throw new RuntimeException("[c3p0 issue] The identityToken of a registered object should be set prior to registration.");
 
@@ -349,7 +349,7 @@ public final class C3P0Registry
 
         return coalesceCheck;
     }
-    
+
     public static synchronized void markClosed(PooledDataSource pds)
     {
         unclosedPooledDataSources.remove(pds);
@@ -358,7 +358,7 @@ public final class C3P0Registry
         {
             mc.attemptUnmanageC3P0Registry();
             registry_mbean_registered = false;
-        }   
+        }
     }
 
     public synchronized static Set getPooledDataSources()
@@ -400,14 +400,14 @@ public final class C3P0Registry
     }
 
     public synchronized static Set allIdentityTokens()
-    { 
-        Set out = Collections.unmodifiableSet( tokensToTokenized.keySet() ); 
+    {
+        Set out = Collections.unmodifiableSet( tokensToTokenized.keySet() );
         //System.err.println( "allIdentityTokens(): " + out );
         return out;
     }
 
     public synchronized static Set allIdentityTokenized()
-    { 
+    {
         HashSet out = new HashSet();
         out.addAll( tokensToTokenized.values() );
         //System.err.println( "allIdentityTokenized(): " + out );
@@ -415,8 +415,8 @@ public final class C3P0Registry
     }
 
     public synchronized static Set allPooledDataSources()
-    { 
-        Set out = Collections.unmodifiableSet( unclosedPooledDataSources ); 
+    {
+        Set out = Collections.unmodifiableSet( unclosedPooledDataSources );
         //System.err.println( "allPooledDataSources(): " + out );
         return out;
     }
@@ -426,24 +426,24 @@ public final class C3P0Registry
 
     public synchronized static int getNumPoolsAllDataSources() throws SQLException
     {
-	int count = 0; 
-	for (Iterator ii = unclosedPooledDataSources.iterator(); ii.hasNext();) 
-	    { 
-		PooledDataSource pds = (PooledDataSource) ii.next(); 
-		count += pds.getNumUserPools(); 
-	    } 
-	return count; 
+	int count = 0;
+	for (Iterator ii = unclosedPooledDataSources.iterator(); ii.hasNext();)
+	    {
+		PooledDataSource pds = (PooledDataSource) ii.next();
+		count += pds.getNumUserPools();
+	    }
+	return count;
     }
 
     public synchronized int getNumThreadsAllThreadPools() throws SQLException
     {
-	int count = 0; 
-	for (Iterator ii = unclosedPooledDataSources.iterator(); ii.hasNext();) 
-	    { 
-		PooledDataSource pds = (PooledDataSource) ii.next(); 
-		count += pds.getNumHelperThreads(); 
-	    } 
-	return count; 
+	int count = 0;
+	for (Iterator ii = unclosedPooledDataSources.iterator(); ii.hasNext();)
+	    {
+		PooledDataSource pds = (PooledDataSource) ii.next();
+		count += pds.getNumHelperThreads();
+	    }
+	return count;
     }
 
     public synchronized static Map getConfigExtensionsForPooledDataSource( String identityToken ) throws SQLException
