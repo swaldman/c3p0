@@ -91,7 +91,7 @@ public final class C3P0ImplUtils
 		    long_tokens = true;
 		else
 		    long_tokens = false;
-		
+
 		if (long_tokens)
 		    ID_TOKEN_COUNTER = createEncounterCounter();
 		else
@@ -100,7 +100,7 @@ public final class C3P0ImplUtils
 	else
 	    ID_TOKEN_COUNTER = createEncounterCounter();
      }
-    
+
     // Note that is important that EncounterCounters be based on identity hash code here,
     // since they will be used to test IdentityTokenized, whose equals methods aren't well-formed,
     // until their identity tokens are allocated, which is what we are doing here.
@@ -115,10 +115,10 @@ public final class C3P0ImplUtils
     // portion of the tokens.
     private static EncounterCounter createEncounterCounter()
     { return EncounterUtils.syncWrap( EncounterUtils.createWeak( IdentityHashCodeIdenticator.INSTANCE ) ); }
-    
+
     public final static String VMID_PROPKEY = "com.mchange.v2.c3p0.VMID";
     private final static String VMID_PFX;
-    
+
     static
     {
         String vmid = C3P0Config.getPropsFileConfigProperty( VMID_PROPKEY );
@@ -129,12 +129,6 @@ public final class C3P0ImplUtils
         else
             VMID_PFX = vmid + "|";
     }
-
-    //MT: protected by class' lock
-    static String connectionTesterClassName = null;
-
-    //static ConnectionTester cachedTester = null;
-    
 
     // identityHashCode() is not a sufficient unique token, because they are
     // not guaranteed unique, and in practice are occasionally not unique,
@@ -248,38 +242,10 @@ public final class C3P0ImplUtils
 		    {
 			//System.err.println("Rolling back potentially unresolved txn...");
 			pCon.rollback();
-		    }	
+		    }
 		pCon.setAutoCommit( true ); //implies commit if not already rolled back.
 	    }
     }
-
-    /*
-    public synchronized static ConnectionTester defaultConnectionTester()
-    {
-	String dfltCxnTesterClassName = PoolConfig.defaultConnectionTesterClassName();
-	if ( connectionTesterClassName != null && connectionTesterClassName.equals(dfltCxnTesterClassName) )
-	    return cachedTester;
-	else
-	    {
-		try 
-		    { 
-			cachedTester = (ConnectionTester) Class.forName( dfltCxnTesterClassName ).newInstance(); 
-			connectionTesterClassName = cachedTester.getClass().getName();
-		    }
-		catch ( Exception e )
-		    {
-			//e.printStackTrace();
-			if ( logger.isLoggable( MLevel.WARNING ) )
-			    logger.log(MLevel.WARNING, 
-				       "Could not load ConnectionTester " + dfltCxnTesterClassName + ", using built in default.", 
-				       e);
-			cachedTester = C3P0Defaults.connectionTester();
-			connectionTesterClassName = cachedTester.getClass().getName();
-		    }
-		return cachedTester;
-	    }
-    }
-    */
 
     public static boolean supportsMethod(Object target, String mname, Class[] argTypes)
     {
