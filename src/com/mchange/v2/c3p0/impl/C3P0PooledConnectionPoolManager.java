@@ -126,31 +126,7 @@ public final class C3P0PooledConnectionPoolManager
     public String getStatementDestroyerStatus()
     { return deferredStatementDestroyer != null ? deferredStatementDestroyer.getStatus() : null; }
 
-    private final static TaskRunnerFactory DEFAULT_TASK_RUNNER_FACTORY = new TaskRunnerFactory()
-    {
-        public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads, int matt  /* maxAdministrativeTaskTime */, Timer timer, String threadLabel )
-        {
-            ThreadPoolAsynchronousRunner out = null;
-            if ( matt > 0 )
-            {
-                int matt_ms = matt * 1000;
-                out = new ThreadPoolAsynchronousRunner( num_threads, 
-                                                        true,        // daemon thread
-                                                        matt_ms,     // wait before interrupt()
-                                                        matt_ms * 3, // wait before deadlock declared if no tasks clear
-                                                        matt_ms * 6, // wait before deadlock tasks are interrupted (again)
-                                                                     // after the hung thread has been cleared and replaced
-                                                                     // (in hopes of getting the thread to terminate for
-                                                                     // garbage collection)
-                                                        timer,
-                                                        threadLabel );
-            }
-            else
-                out = new ThreadPoolAsynchronousRunner( num_threads, true, timer, threadLabel );
-
-            return out;
-        }
-    };
+    private final static TaskRunnerFactory DEFAULT_TASK_RUNNER_FACTORY = new DefaultTaskRunnerFactory();
 
     private ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported )
     {
@@ -202,11 +178,11 @@ public final class C3P0PooledConnectionPoolManager
 	{
 	    ContextClassLoaderPoolsInitThread( ClassLoader ccl )
 	    { this.setContextClassLoader( ccl ); }
-	    
+
 	    public void run()
 	    { maybePrivilegedPoolsInit( privilege_spawned_threads ); }
 	};
-	
+
 	try
 	{
 	    if ( "library".equalsIgnoreCase( contextClassLoaderSource ) )
