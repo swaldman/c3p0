@@ -69,11 +69,11 @@ public final class C3P0PooledConnectionPoolManager
     final static int DFLT_NUM_TASK_THREADS_PER_DATA_SOURCE = 3;
 
     //MT: protected by this' lock
-    ThreadPoolAsynchronousRunner taskRunner;
-    ThreadPoolAsynchronousRunner deferredStatementDestroyer;
-    Timer                        timer; 
-    ResourcePoolFactory          rpfact;
-    Map                          authsToPools;
+    ThreadPoolReportingAsynchronousRunner taskRunner;
+    ThreadPoolReportingAsynchronousRunner deferredStatementDestroyer;
+    Timer                                 timer;
+    ResourcePoolFactory                   rpfact;
+    Map                                   authsToPools;
 
     /* MT: independently thread-safe, never reassigned post-ctor or factory */
     final ConnectionPoolDataSource cpds;
@@ -128,7 +128,7 @@ public final class C3P0PooledConnectionPoolManager
 
     private final static TaskRunnerFactory DEFAULT_TASK_RUNNER_FACTORY = new TaskRunnerFactory()
     {
-        public ThreadPoolAsynchronousRunner createTaskRunner( int num_threads, int matt  /* maxAdministrativeTaskTime */, Timer timer, String threadLabel )
+        public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads, int matt  /* maxAdministrativeTaskTime */, Timer timer, String threadLabel )
         {
             ThreadPoolAsynchronousRunner out = null;
             if ( matt > 0 )
@@ -152,7 +152,7 @@ public final class C3P0PooledConnectionPoolManager
         }
     };
 
-    private ThreadPoolAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported )
+    private ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported )
     {
         return DEFAULT_TASK_RUNNER_FACTORY.createTaskRunner( num_threads_if_supported, max_administrative_task_time_if_supported, timer, threadLabelIfSupported );
     }
@@ -248,7 +248,7 @@ public final class C3P0PooledConnectionPoolManager
         //this.rpfact = ResourcePoolFactory.createInstance( taskRunner, timer );
 
         int num_deferred_close_threads = this.getStatementCacheNumDeferredCloseThreads();
-	
+
 	if (num_deferred_close_threads > 0)
 	    this.deferredStatementDestroyer = createTaskRunner( num_deferred_close_threads, matt, timer, idStr + "-DeferredStatementDestroyerThread" );
 	else

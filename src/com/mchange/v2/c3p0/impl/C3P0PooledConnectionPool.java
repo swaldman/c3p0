@@ -55,7 +55,7 @@ import javax.sql.PooledConnection;
 
 import com.mchange.v1.db.sql.ConnectionUtils;
 import com.mchange.v2.async.AsynchronousRunner;
-import com.mchange.v2.async.ThreadPoolAsynchronousRunner;
+import com.mchange.v2.async.ThreadPoolReportingAsynchronousRunner;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
@@ -259,8 +259,8 @@ public final class C3P0PooledConnectionPool
 			      final ConnectionCustomizer connectionCustomizer,
 			      final String testQuery,
 			      final ResourcePoolFactory fact,
-			      ThreadPoolAsynchronousRunner taskRunner,
-			      ThreadPoolAsynchronousRunner deferredStatementDestroyer,
+			      ThreadPoolReportingAsynchronousRunner taskRunner,
+			      ThreadPoolReportingAsynchronousRunner deferredStatementDestroyer,
 			      final String parentDataSourceIdentityToken) throws SQLException
     {
         try

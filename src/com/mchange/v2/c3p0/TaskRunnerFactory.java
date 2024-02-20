@@ -5,5 +5,5 @@ import java.util.Timer;
 
 public interface TaskRunnerFactory
 {
-    public ThreadPoolAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported );
+    public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported );
 }
