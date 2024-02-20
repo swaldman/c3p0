@@ -10,12 +10,21 @@ import com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory;
 
 import com.mchange.v2.log.*;
 
-public class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
+// TODO: Implement and use TaskRunnerThreadFactory
+public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
 {
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( ThreadPerTaskRunnerFactory.class );
 
-    public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported, ConnectionPoolDataSource cpds )
+    public ThreadPoolReportingAsynchronousRunner createTaskRunner(
+        int num_threads_if_supported,
+        int max_administrative_task_time_if_supported, // in seconds!
+        String contextClassLoaderSourceIfSupported,
+        boolean privilige_spawned_threads_if_supported,
+        String threadLabelIfSupported,
+        ConnectionPoolDataSource cpds,
+        Timer timer
+    )
     {
         ThreadPoolReportingAsynchronousRunner out = new ThreadPerAsynchronousRunner( timer, max_administrative_task_time_if_supported * 1000, threadLabelIfSupported );
         if (logger.isLoggable(MLevel.INFO))

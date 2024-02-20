@@ -39,6 +39,9 @@ import java.beans.*;
 import java.util.*;
 import java.lang.reflect.*;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.cfg.*;
 
@@ -285,6 +288,63 @@ public final class C3P0ImplUtils
 	    }
 	else
 	    return Collections.EMPTY_MAP;
+    }
+
+    public static void runWithContextClassLoaderAndPrivileges( final String contextClassLoaderSource, final boolean privilege_spawned_threads, final Runnable runnable )
+    {
+	class ContextClassLoaderPoolsInitThread extends Thread
+	{
+	    ContextClassLoaderPoolsInitThread( ClassLoader ccl )
+	    { this.setContextClassLoader( ccl ); }
+
+	    public void run()
+	    { maybePrivilegedRun( privilege_spawned_threads, runnable ); }
+	};
+
+	try
+	{
+	    if ( "library".equalsIgnoreCase( contextClassLoaderSource ) )
+	    {
+		Thread t = new ContextClassLoaderPoolsInitThread( C3P0ImplUtils.class.getClassLoader() );
+		t.start();
+		t.join();
+	    }
+	    else if ( "none".equalsIgnoreCase( contextClassLoaderSource ) )
+	    {
+		Thread t = new ContextClassLoaderPoolsInitThread( null );
+		t.start();
+		t.join();
+	    }
+	    else
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) && ! "caller".equalsIgnoreCase( contextClassLoaderSource ) )
+		    logger.log( MLevel.WARNING, "Unknown contextClassLoaderSource: " + contextClassLoaderSource + " -- should be 'caller', 'library', or 'none'. Using default value 'caller'." );
+		maybePrivilegedRun( privilege_spawned_threads, runnable );
+	    }
+	}
+	catch ( InterruptedException e )
+	{
+	    if ( logger.isLoggable( MLevel.SEVERE ) )
+		logger.log( MLevel.SEVERE, "Unexpected interruption while trying to run task with contextClassLoaderSource '"+contextClassLoaderSource+"' and privilege_spawned_threads '"+privilege_spawned_threads+"'.", e );
+	}
+    }
+
+    private static void maybePrivilegedRun( final boolean privilege_spawned_threads, final Runnable runnable )
+    {
+	if ( privilege_spawned_threads )
+	{
+	    PrivilegedAction privilegedRun = new PrivilegedAction()
+	    {
+		public Object run()
+		{
+		    runnable.run();
+		    return null;
+		}
+	    };
+	    AccessController.doPrivileged( privilegedRun );
+	}
+	else
+	    runnable.run();
     }
 
     /**

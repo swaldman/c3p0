@@ -8,15 +8,32 @@ import com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory;
 
 import com.mchange.v2.log.*;
 
-public class LogCreationTaskRunnerFactory implements TaskRunnerFactory
+public final class LogCreationTaskRunnerFactory implements TaskRunnerFactory
 {
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( LogCreationTaskRunnerFactory.class );
 
-    public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported, ConnectionPoolDataSource cpds )
+    public ThreadPoolReportingAsynchronousRunner createTaskRunner(
+        int num_threads_if_supported,
+        int max_administrative_task_time_if_supported, // in seconds!
+        String contextClassLoaderSourceIfSupported,
+        boolean privilige_spawned_threads_if_supported,
+        String threadLabelIfSupported,
+        ConnectionPoolDataSource cpds,
+        Timer timer
+    )
     {
         TaskRunnerFactory inner = new DefaultTaskRunnerFactory();
-        ThreadPoolReportingAsynchronousRunner out = inner.createTaskRunner( num_threads_if_supported, max_administrative_task_time_if_supported, timer, threadLabelIfSupported, cpds );
+        ThreadPoolReportingAsynchronousRunner out =
+            inner.createTaskRunner(
+               num_threads_if_supported,
+               max_administrative_task_time_if_supported,
+               contextClassLoaderSourceIfSupported,
+               privilige_spawned_threads_if_supported,
+               threadLabelIfSupported,
+               cpds,
+               timer
+            );
         if (logger.isLoggable(MLevel.INFO))
             logger.log(MLevel.INFO, "Created TaskRunner: " + out);
         return out;

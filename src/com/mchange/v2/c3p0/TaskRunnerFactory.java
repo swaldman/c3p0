@@ -6,5 +6,13 @@ import com.mchange.v2.async.*;
 
 public interface TaskRunnerFactory
 {
-    public ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported, ConnectionPoolDataSource cpds );
+    public ThreadPoolReportingAsynchronousRunner createTaskRunner(
+        int num_threads_if_supported,
+        int max_administrative_task_time_if_supported, // in seconds!
+        String contextClassLoaderSourceIfSupported,
+        boolean privilige_spawned_threads_if_supported,
+        String threadLabelIfSupported,
+        ConnectionPoolDataSource cpds,
+        Timer timer
+    );
 }

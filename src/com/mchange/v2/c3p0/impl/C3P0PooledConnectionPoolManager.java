@@ -41,9 +41,6 @@ import java.lang.reflect.*;
 import java.sql.*;
 import javax.sql.*;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.cfg.*;
 import com.mchange.v2.async.*;
@@ -128,9 +125,25 @@ public final class C3P0PooledConnectionPoolManager
 
     private final static TaskRunnerFactory DEFAULT_TASK_RUNNER_FACTORY = new DefaultTaskRunnerFactory();
 
-    private ThreadPoolReportingAsynchronousRunner createTaskRunner( int num_threads_if_supported, int max_administrative_task_time_if_supported, Timer timer, String threadLabelIfSupported, ConnectionPoolDataSource cpds )
+    private ThreadPoolReportingAsynchronousRunner createTaskRunner(
+        int num_threads_if_supported,
+        int max_administrative_task_time_if_supported, // in seconds!
+        String contextClassLoaderSourceIfSupported,
+        boolean privilige_spawned_threads_if_supported,
+        String threadLabelIfSupported,
+        ConnectionPoolDataSource cpds,
+        Timer timer
+    )
     {
-        return this.getTaskRunnerFactory(null).createTaskRunner( num_threads_if_supported, max_administrative_task_time_if_supported, timer, threadLabelIfSupported, cpds );
+        return this.getTaskRunnerFactory(null).createTaskRunner(
+            num_threads_if_supported,
+            max_administrative_task_time_if_supported,
+            contextClassLoaderSourceIfSupported,
+            privilige_spawned_threads_if_supported,
+            threadLabelIfSupported,
+            cpds,
+            timer
+        );
     }
 
     private String idString()
@@ -149,6 +162,7 @@ public final class C3P0PooledConnectionPoolManager
 	return sb.toString();
     }
 
+    /*
     private void maybePrivilegedPoolsInit( final boolean privilege_spawned_threads )
     {
 	if ( privilege_spawned_threads )
@@ -166,7 +180,9 @@ public final class C3P0PooledConnectionPoolManager
 	else
 	    _poolsInit();
     }
+    */
 
+    /*
     private void poolsInit()
     {
 	//Threads are shared by all users, can't support per-user overrides
@@ -210,32 +226,52 @@ public final class C3P0PooledConnectionPoolManager
 		logger.log( MLevel.SEVERE, "Unexpected interruption while trying to initialize DataSource Thread resources [ poolsInit() ].", e );
 	}
     }
+    */
 
-    private synchronized void _poolsInit()
+    private void poolsInit()
     {
-	String idStr = idString();
+        int     max_administrative_task_time = this.getMaxAdministrativeTaskTime();
+	String  contextClassLoaderSource     = this.getContextClassLoaderSource();
+	boolean privilege_spawned_threads    = this.getPrivilegeSpawnedThreads();
+        int     num_deferred_close_threads   = this.getStatementCacheNumDeferredCloseThreads();
 
-        this.timer = new Timer(idStr + "-AdminTaskTimer", true );
+	final String idStr = idString();
 
-        int matt = this.getMaxAdministrativeTaskTime();
+        final Timer[] timerHolder = new Timer[1];
 
-	this.taskRunner = createTaskRunner( num_task_threads, matt, timer, idStr + "-HelperThread", cpds );
-        //this.taskRunner = new RoundRobinAsynchronousRunner( num_task_threads, true );
-        //this.rpfact = ResourcePoolFactory.createInstance( taskRunner, timer );
+        ThreadPoolReportingAsynchronousRunner _taskRunner;
+        ThreadPoolReportingAsynchronousRunner _deferredStatementDestroyer;
+        ResourcePoolFactory                   _rpfact;
 
-        int num_deferred_close_threads = this.getStatementCacheNumDeferredCloseThreads();
+        Runnable initializeTimer = new Runnable()
+        {
+            public void run()  { timerHolder[0] = new Timer(idStr + "-AdminTaskTimer", true ); }
+        };
+        C3P0ImplUtils.runWithContextClassLoaderAndPrivileges( contextClassLoaderSource, privilege_spawned_threads, initializeTimer );
+
+        final Timer _timer = timerHolder[0];
+
+        _taskRunner = createTaskRunner( num_task_threads, max_administrative_task_time, contextClassLoaderSource, privilege_spawned_threads, idStr + "-HelperThread", cpds, _timer );
 
 	if (num_deferred_close_threads > 0)
-	    this.deferredStatementDestroyer = DEFAULT_TASK_RUNNER_FACTORY.createTaskRunner( num_deferred_close_threads, matt, timer, idStr + "-DeferredStatementDestroyerThread", cpds );
+	    _deferredStatementDestroyer =
+                DEFAULT_TASK_RUNNER_FACTORY.createTaskRunner( num_deferred_close_threads, max_administrative_task_time, contextClassLoaderSource, privilege_spawned_threads, idStr + "-DeferredStatementDestroyerThread", cpds, _timer );
 	else
-	    this.deferredStatementDestroyer = null;
+	    _deferredStatementDestroyer = null;
 
         if (POOL_EVENT_SUPPORT)
-            this.rpfact = ResourcePoolFactory.createInstance( taskRunner, null, timer );
+            _rpfact = ResourcePoolFactory.createInstance( _taskRunner, null, _timer );
         else
-            this.rpfact = BasicResourcePoolFactory.createNoEventSupportInstance( taskRunner, timer );
+            _rpfact = BasicResourcePoolFactory.createNoEventSupportInstance( _taskRunner, _timer );
 
-        this.authsToPools = new HashMap();
+        synchronized (this)
+        {
+            this.timer                      = _timer;
+            this.taskRunner                 = _taskRunner;
+            this.deferredStatementDestroyer = _deferredStatementDestroyer;
+            this.rpfact                     = _rpfact;
+            this.authsToPools               = new HashMap();
+        }
     }
 
     private void poolsDestroy()
