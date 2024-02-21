@@ -18,8 +18,17 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     private final static String SEP = System.lineSeparator();
     private final static StackTraceElement[] EMPTY_STACK_TRACES = new StackTraceElement[0];
 
-    protected abstract Executor findCreateExecutor();
-    protected abstract boolean  taskRunnerOwnsExecutor();
+    // for lazy initialization, called only on first-use    
+    protected abstract Executor findCreateExecutor(
+        int num_threads_if_supported,
+        int max_administrative_task_time_if_supported, // in seconds!
+        String contextClassLoaderSourceIfSupported,
+        boolean privilige_spawned_threads_if_supported,
+        String threadLabelIfSupported,
+        ConnectionPoolDataSource cpds
+    );
+
+    protected abstract boolean taskRunnerOwnsExecutor();
 
     public abstract ThreadPoolReportingAsynchronousRunner createTaskRunner(
         int num_threads_if_supported,
@@ -35,8 +44,14 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     protected abstract class AbstractExecutorAsynchronousRunner implements ThreadPoolReportingAsynchronousRunner
     {
         //MT: post-constructor final, internally thread-safe
-        private final Timer timer;
-        private final int   matt_ms;
+        final int num_threads_if_supported;
+        final int max_administrative_task_time_if_supported; // in seconds!
+        final String contextClassLoaderSourceIfSupported;
+        final boolean privilige_spawned_threads_if_supported;
+        final String threadLabelIfSupported;
+        final ConnectionPoolDataSource cpds;
+        final Timer timer;
+        final int matt_ms;
 
         // supports lazy load of executor, which is managed separately from other state
         private Object xlock = new Object();
@@ -60,15 +75,37 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         {
             synchronized (xlock)
             {
-                if (x == null) x = findCreateExecutor();
+                if (x == null)
+                    x = findCreateExecutor(
+                            num_threads_if_supported,
+                            max_administrative_task_time_if_supported, // in seconds!
+                            contextClassLoaderSourceIfSupported,
+                            privilige_spawned_threads_if_supported,
+                            threadLabelIfSupported,
+                            cpds
+                        );
                 return x;
             }
         }
 
-        protected AbstractExecutorAsynchronousRunner( Timer timer, int matt_ms, String contextClassLoaderSource, boolean privilege_spawned_threads )
+        protected AbstractExecutorAsynchronousRunner(
+            int num_threads_if_supported,
+            int max_administrative_task_time_if_supported, // in seconds!
+            String contextClassLoaderSourceIfSupported,
+            boolean privilige_spawned_threads_if_supported,
+            String threadLabelIfSupported,
+            ConnectionPoolDataSource cpds,
+            Timer timer
+        )
         {
+            this.num_threads_if_supported = num_threads_if_supported;
+            this.max_administrative_task_time_if_supported = max_administrative_task_time_if_supported; // in seconds!
+            this.contextClassLoaderSourceIfSupported = contextClassLoaderSourceIfSupported;
+            this.privilige_spawned_threads_if_supported = privilige_spawned_threads_if_supported;
+            this.threadLabelIfSupported = threadLabelIfSupported;
+            this.cpds = cpds;
             this.timer = timer;
-            this.matt_ms = matt_ms;
+            this.matt_ms = max_administrative_task_time_if_supported * 1000;
         }
 
         private final class WrapperRunnable implements Runnable
