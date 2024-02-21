@@ -1,0 +1,4 @@
+* TODO Change defaults
+** TODO Use large-but-nonzero default for `maxAdminstrativeTaskTime`? (And change docs! Also, not in migration notes)
+** TODO Set `testConnectionOnCheckout` to `true` by default (Big migration note!)
+* TODO New docs build
