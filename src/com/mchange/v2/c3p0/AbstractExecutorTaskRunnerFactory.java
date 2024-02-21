@@ -1,5 +1,6 @@
 package com.mchange.v2.c3p0;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -19,18 +20,17 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     private final static StackTraceElement[] EMPTY_STACK_TRACES = new StackTraceElement[0];
 
     // for lazy initialization, called only on first-use
-    protected abstract Executor findCreateExecutor(
-        int num_threads_if_supported,
-        int max_administrative_task_time_if_supported, // in seconds!
-        String contextClassLoaderSourceIfSupported,
-        boolean privilege_spawned_threads_if_supported,
-        String threadLabelIfSupported,
-        ConnectionPoolDataSource cpds
-    );
+    protected abstract Executor findCreateExecutor( TaskRunnerInit init );
 
     protected abstract boolean taskRunnerOwnsExecutor();
 
-    public abstract ThreadPoolReportingAsynchronousRunner createTaskRunner(
+    protected abstract ThreadPoolReportingAsynchronousRunner createTaskRunner( TaskRunnerInit init, Timer timer );
+
+    // override with whatever you want to extract and use
+    protected HashMap otherPropertiesFromConnectionPoolDataSource(ConnectionPoolDataSource cpds)
+    { return new HashMap(); }
+
+    public ThreadPoolReportingAsynchronousRunner createTaskRunner(
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
@@ -38,18 +38,26 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds,
         Timer timer
-    );
+    )
+    {
+        HashMap otherProperties = otherPropertiesFromConnectionPoolDataSource( cpds );
+        TaskRunnerInit init = new TaskRunnerInit(
+            num_threads_if_supported,
+            max_administrative_task_time_if_supported, // in seconds!
+            contextClassLoaderSourceIfSupported,
+            privilege_spawned_threads_if_supported,
+            threadLabelIfSupported,
+            otherProperties
+        );
+
+        return createTaskRunner(init, timer);
+    }
 
     // it's the informational methods near the end that concrete implementations want to consider overriding
     protected abstract class AbstractExecutorAsynchronousRunner implements ThreadPoolReportingAsynchronousRunner
     {
         //MT: post-constructor final, internally thread-safe
-        protected final int num_threads_if_supported;
-        protected final int max_administrative_task_time_if_supported; // in seconds!
-        protected final String contextClassLoaderSourceIfSupported;
-        protected final boolean privilege_spawned_threads_if_supported;
-        protected final String threadLabelIfSupported;
-        protected final ConnectionPoolDataSource cpds;
+        protected final TaskRunnerInit init;
         protected final Timer timer;
         private final int matt_ms;
 
@@ -75,37 +83,16 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         {
             synchronized (xlock)
             {
-                if (x == null)
-                    x = findCreateExecutor(
-                            num_threads_if_supported,
-                            max_administrative_task_time_if_supported, // in seconds!
-                            contextClassLoaderSourceIfSupported,
-                            privilege_spawned_threads_if_supported,
-                            threadLabelIfSupported,
-                            cpds
-                        );
+                if (x == null) x = findCreateExecutor(init);
                 return x;
             }
         }
 
-        protected AbstractExecutorAsynchronousRunner(
-            int num_threads_if_supported,
-            int max_administrative_task_time_if_supported, // in seconds!
-            String contextClassLoaderSourceIfSupported,
-            boolean privilege_spawned_threads_if_supported,
-            String threadLabelIfSupported,
-            ConnectionPoolDataSource cpds,
-            Timer timer
-        )
+        protected AbstractExecutorAsynchronousRunner( TaskRunnerInit init, Timer timer )
         {
-            this.num_threads_if_supported = num_threads_if_supported;
-            this.max_administrative_task_time_if_supported = max_administrative_task_time_if_supported; // in seconds!
-            this.contextClassLoaderSourceIfSupported = contextClassLoaderSourceIfSupported;
-            this.privilege_spawned_threads_if_supported = privilege_spawned_threads_if_supported;
-            this.threadLabelIfSupported = threadLabelIfSupported;
-            this.cpds = cpds;
+            this.init = init;
             this.timer = timer;
-            this.matt_ms = max_administrative_task_time_if_supported * 1000;
+            this.matt_ms = init.max_administrative_task_time_if_supported * 1000;
         }
 
         private final class WrapperRunnable implements Runnable
