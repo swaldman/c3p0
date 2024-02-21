@@ -9,6 +9,7 @@ import mill.util.Jvm
 import java.nio.file.attribute.{PosixFilePermission => PFP}
 
 object Dependency {
+  // mill-build/build.sc also has a mchange-commons-java dependency. Best to keep them in sync
   val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:0.3.0-SNAPSHOT"
   val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
   val PgJdbc = ivy"org.postgresql:postgresql:42.6.0"

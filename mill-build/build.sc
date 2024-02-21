@@ -1,7 +1,7 @@
 import mill._, scalalib._
 
 object Dependency {
-  val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:0.2.20"
+  val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:0.3.0-SNAPSHOT"
 }
 
 object millbuild extends MillBuildRootModule {
