@@ -9,6 +9,7 @@ import javax.sql.ConnectionPoolDataSource;
 
 import com.mchange.v2.async.*;
 import com.mchange.v2.log.*;
+import com.mchange.v2.util.ResourceClosedException;
 
 public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFactory
 {
@@ -17,7 +18,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     private final static String SEP = System.lineSeparator();
     private final static StackTraceElement[] EMPTY_STACK_TRACES = new StackTraceElement[0];
 
-    protected abstract Executor findCreateExecutor( String contextClassLoaderSourceIfSupported, boolean privilege_spawned_threads_if_supported );
+    protected abstract Executor findCreateExecutor();
     protected abstract boolean  taskRunnerOwnsExecutor();
 
     public abstract ThreadPoolReportingAsynchronousRunner createTaskRunner(
@@ -33,14 +34,19 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     // it's the informational methods near the end that concrete implementations want to consider overriding
     protected abstract class AbstractExecutorAsynchronousRunner implements ThreadPoolReportingAsynchronousRunner
     {
-        private Timer timer;
-        private int   matt_ms;
+        //MT: post-constructor final, internally thread-safe
+        private final Timer timer;
+        private final int   matt_ms;
 
-        private Executor executor;
+        // supports lazy load of executor, which is managed separately from other state
+        private Object xlock = new Object();
+
+        //MT: protected by xlock's lock
+        private Executor x = null;
 
         //MT: protected by this' lock
-        private HashSet activeWrapperRunnables = new HashSet();
-        private boolean is_closed = false;
+        private HashSet  activeWrapperRunnables = new HashSet();
+        private boolean  is_closed              = false;
 
         protected synchronized void registerActive( WrapperRunnable wr )   { activeWrapperRunnables.add( wr );     }
         protected synchronized void unregisterActive( WrapperRunnable wr ) { activeWrapperRunnables.remove( wr );  }
@@ -50,11 +56,19 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
 
         protected synchronized boolean isClosed() { return is_closed; }
 
+        protected Executor executor()
+        {
+            synchronized (xlock)
+            {
+                if (x == null) x = findCreateExecutor();
+                return x;
+            }
+        }
+
         protected AbstractExecutorAsynchronousRunner( Timer timer, int matt_ms, String contextClassLoaderSource, boolean privilege_spawned_threads )
         {
             this.timer = timer;
             this.matt_ms = matt_ms;
-            this.executor = findCreateExecutor( contextClassLoaderSource, privilege_spawned_threads );
         }
 
         private final class WrapperRunnable implements Runnable
@@ -72,24 +86,27 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             {
                 try
                 {
-                    if (Thread.interrupted())
+                    boolean interrupted = Thread.interrupted();
+                    synchronized (AbstractExecutorAsynchronousRunner.this)
                     {
-                        if (isClosed())
-                            return;
-                        else
+                        if (isClosed()) return;
+                        if (interrupted)
                         {
                             if (logger.isLoggable(MLevel.WARNING))
                                 logger.log(MLevel.WARNING, "Cleared an interrupt set on executor thread prior to task start.");
                         }
+                        setCarrier( Thread.currentThread() );
+                        registerActive(this);
                     }
-                    setCarrier( Thread.currentThread() );
-                    registerActive(this);
                     inner.run();
                 }
                 finally
                 {
-                    unregisterActive(this);
-                    setCarrier(null);
+                    synchronized (AbstractExecutorAsynchronousRunner.this)
+                    {
+                        unregisterActive(this);
+                        setCarrier(null);
+                    }
                 }
             }
 
@@ -106,10 +123,13 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             public synchronized String getCarrierName() { return carrier.getName(); }
         }
 
-        public void postRunnable(Runnable r)
+        public synchronized void postRunnable(Runnable r)
         {
+            if (isClosed())
+                throw new ResourceClosedException("Attempted to use " + this + " after it has been closed.");
+
             final WrapperRunnable wr = new WrapperRunnable(r);
-            executor.execute(wr);
+            executor().execute(wr);
 
             if (matt_ms > 0)
             {
@@ -132,15 +152,16 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
                 }
                 if ( taskRunnerOwnsExecutor() )
                 {
-                    if ( executor instanceof ExecutorService )
+                    Executor undead = executor();
+                    if ( undead instanceof ExecutorService )
                     {
-                        ExecutorService es = (ExecutorService) executor;
+                        ExecutorService es = (ExecutorService) undead;
                         if (skip_remaining_tasks) es.shutdownNow();
                         else es.shutdown();
                     }
-                    else if (executor instanceof AutoCloseable)
+                    else if (undead instanceof AutoCloseable)
                     {
-                        try { ((AutoCloseable) executor).close(); }
+                        try { ((AutoCloseable) undead).close(); }
                         catch (Exception e)
                         {
                             if (logger.isLoggable(MLevel.WARNING))
