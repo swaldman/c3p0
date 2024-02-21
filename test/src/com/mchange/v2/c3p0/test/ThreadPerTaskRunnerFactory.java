@@ -65,7 +65,7 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
                 }
         }
 
-        public void close( boolean skip_remaining_tasks ) { ourGroup.interrupt(); }
+        public void close( boolean skip_remaining_tasks ) { if (skip_remaining_tasks) ourGroup.interrupt(); }
         public void close() { close( true ); }
 
         public int getThreadCount() { return ourGroup.activeCount(); }
