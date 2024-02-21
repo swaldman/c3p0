@@ -1,3 +1,12 @@
+	-- DefineFixedThreadPoolExecutorTaskRunnerFactory, a simple example that
+	   replaces c3p0's traditional Thread pool with an unshared ThreadPoolExecutor
+	   of size numHelperThreads.
+	-- Define AbstractExecutorTaskRunnerFactory, which users can extend to use or
+	   share java.util.concurrent.Executor instances rather than c3p0's traditional
+	   hand-rolled Thread pool.
+	   See https://github.com/swaldman/c3p0/issues/76
+	       https://github.com/swaldman/c3p0/issues/41
+	   Thanks Michele Rossi, and mysterious GitHub @ghost.
 	-- Define TaskRunnerFactory, and config param TaskRunnerFactoryClassName.
 	   Users can provide implementations of TaskRunnerFactory with a public no-arg
 	   constructor to take full control of threading, thread-pooling, etc.
