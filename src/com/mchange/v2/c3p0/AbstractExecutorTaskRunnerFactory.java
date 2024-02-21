@@ -22,6 +22,10 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     // for lazy initialization, called only on first-use
     protected abstract Executor findCreateExecutor( TaskRunnerInit init );
 
+    /**
+     * If the task runner will "own" the Executor it finds/creates,
+     * then when the task runner is closed() so to will the Executor be.
+     */
     protected abstract boolean taskRunnerOwnsExecutor();
 
     protected abstract ThreadPoolReportingAsynchronousRunner createTaskRunner( TaskRunnerInit init, Timer timer );
