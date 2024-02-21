@@ -8,7 +8,7 @@
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of EITHER:
  *
- *     1) The GNU Lesser General Public License (LGPL), version 2.1, as 
+ *     1) The GNU Lesser General Public License (LGPL), version 2.1, as
  *        published by the Free Software Foundation
  *
  * OR
@@ -29,8 +29,8 @@
  * If not, the text of these licenses are currently available at
  *
  * LGPL v2.1: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
- *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php 
- * 
+ *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php
+ *
  */
 
 package com.mchange.v2.c3p0.test;
@@ -48,7 +48,7 @@ public final class C3P0BenchmarkApp
     final static String EMPTY_TABLE_CREATE = "CREATE TABLE emptyyukyuk (a varchar(8), b varchar(8))";
     final static String EMPTY_TABLE_SELECT = "SELECT * FROM emptyyukyuk";
     final static String EMPTY_TABLE_DROP   = "DROP TABLE emptyyukyuk";
-    
+
     final static String EMPTY_TABLE_CONDITIONAL_SELECT = "SELECT * FROM emptyyukyuk where a = ?";
 
     final static String N_ENTRY_TABLE_CREATE = "CREATE TABLE n_entryyukyuk (a INTEGER)";
@@ -62,11 +62,11 @@ public final class C3P0BenchmarkApp
     {
         if (argv.length > 0)
         {
-            System.err.println( C3P0BenchmarkApp.class.getName() + 
+            System.err.println( C3P0BenchmarkApp.class.getName() +
                                 " now requires no args. Please set everything in standard c3p0 config files.");
-            return;                    
+            return;
         }
-        
+
 	DataSource ds_unpooled = null;
 	DataSource ds_pooled   = null;
 	try
@@ -86,7 +86,7 @@ public final class C3P0BenchmarkApp
 
 		//ds_pooled = DataSources.pooledDataSource(ds_unpooled);
 		*/
-        
+
  		ComboPooledDataSource cpds = new ComboPooledDataSource();
  		//ComboPooledDataSource cpds = new ComboPooledDataSource("kittycat");
                 //ComboPooledDataSource cpds = new ComboPooledDataSource("dumbTestConfig");
@@ -115,7 +115,7 @@ public final class C3P0BenchmarkApp
 	catch( Throwable t )
 	    {
 		System.err.print("Aborting tests on Throwable -- ");
-		t.printStackTrace(); 
+		t.printStackTrace();
 
 		// Throwable printMe = t;
 		// do
@@ -161,8 +161,8 @@ public final class C3P0BenchmarkApp
 	PreparedStatement ps1 = null;
 	PreparedStatement ps2 = null;
 	PreparedStatement ps3 = null;
-	try 
-	    { 
+	try
+	    {
 		con = ds.getConnection();
 		ps1 = con.prepareStatement(EMPTY_TABLE_CREATE);
 		ps2 = con.prepareStatement(N_ENTRY_TABLE_CREATE);
@@ -185,7 +185,7 @@ public final class C3P0BenchmarkApp
 		StatementUtils.attemptClose( ps1 );
 		StatementUtils.attemptClose( ps2 );
 		StatementUtils.attemptClose( ps3 );
-		ConnectionUtils.attemptClose( con ); 
+		ConnectionUtils.attemptClose( con );
 	    }
     }
 
@@ -195,8 +195,8 @@ public final class C3P0BenchmarkApp
 	Connection con        = null;
 	PreparedStatement ps1 = null;
 	PreparedStatement ps2 = null;
-	try 
-	    { 
+	try
+	    {
 		con = ds.getConnection();
 		ps1 = con.prepareStatement(EMPTY_TABLE_DROP);
 		ps2 = con.prepareStatement(N_ENTRY_TABLE_DROP);
@@ -213,14 +213,14 @@ public final class C3P0BenchmarkApp
 	    {
 		StatementUtils.attemptClose( ps1 );
 		StatementUtils.attemptClose( ps2 );
-		ConnectionUtils.attemptClose( con ); 
+		ConnectionUtils.attemptClose( con );
 	    }
     }
 
     static abstract class Test
     {
 	String name;
-	
+
 	Test(String name)
 	{ this.name = name; }
 
@@ -232,7 +232,7 @@ public final class C3P0BenchmarkApp
 	    System.out.println('\t' + "unpooled: " + msecs_unpooled + " msecs");
 	    System.out.println('\t' + "  pooled: " + msecs_pooled + " msecs");
 	    System.out.println('\t' + "speed-up factor: " + msecs_unpooled / msecs_pooled + " times");
-	    System.out.println('\t' + "speed-up absolute: " + (msecs_unpooled - msecs_pooled)  + 
+	    System.out.println('\t' + "speed-up absolute: " + (msecs_unpooled - msecs_pooled)  +
 			       " msecs");
 	    System.out.println();
 
@@ -255,7 +255,7 @@ public final class C3P0BenchmarkApp
 	{
 	    long start;
 	    long end;
-	    
+
 	    start = System.currentTimeMillis();
 	    for (int i = 0; i < n; ++i)
 		{
@@ -279,8 +279,8 @@ public final class C3P0BenchmarkApp
 	protected long test(DataSource ds, int n) throws SQLException
 	{
 	    Connection con = null;
-	    try 
-		{ 
+	    try
+		{
 		    con = ds.getConnection();
 		    return test( con , n );
 		}
@@ -290,10 +290,10 @@ public final class C3P0BenchmarkApp
 	}
 
 	long test(Connection con, int n) throws SQLException
-	{ 
+	{
 	    long start;
 	    long end;
-	    
+
 	    Statement stmt = null;
 	    start = System.currentTimeMillis();
 	    for (int i = 0; i < n; ++i)
@@ -318,25 +318,25 @@ public final class C3P0BenchmarkApp
 	{
 	    Connection con  = null;
 	    Statement  stmt = null;
-	    try 
-		{ 
+	    try
+		{
 		    con = ds.getConnection();
 		    stmt = con.createStatement();
 		    //System.err.println( stmt.getClass().getName() );
 		    return test( stmt , n );
 		}
 	    finally
-		{ 
-		    StatementUtils.attemptClose( stmt ); 
-		    ConnectionUtils.attemptClose( con ); 
+		{
+		    StatementUtils.attemptClose( stmt );
+		    ConnectionUtils.attemptClose( con );
 		}
 	}
 
 	long test(Statement stmt, int n) throws SQLException
-	{ 
+	{
 	    long start;
 	    long end;
-	    
+
 	    start = System.currentTimeMillis();
 	    for (int i = 0; i < n; ++i)
 		stmt.executeQuery(EMPTY_TABLE_SELECT).close();
@@ -354,32 +354,32 @@ public final class C3P0BenchmarkApp
 	{
 	    Connection con  = null;
 	    Statement  stmt = null;
-	    try 
-		{ 
+	    try
+		{
 		    con = ds.getConnection();
 		    return test( con , n );
 		}
 	    finally
-		{ 
-		    StatementUtils.attemptClose( stmt ); 
-		    ConnectionUtils.attemptClose( con ); 
+		{
+		    StatementUtils.attemptClose( stmt );
+		    ConnectionUtils.attemptClose( con );
 		}
 	}
 
 	long test(Connection con, int n) throws SQLException
-	{ 
+	{
 	    ResultSet rs = null;
 
 	    try
 		{
 		    long start;
 		    long end;
-		    
+
 		    start = System.currentTimeMillis();
 		    for (int i = 0; i < n; ++i)
-			rs = con.getMetaData().getTables( null, 
-							null, 
-							"PROBABLYNOT", 
+			rs = con.getMetaData().getTables( null,
+							null,
+							"PROBABLYNOT",
 							new String[] {"TABLE"} );
 		    end = System.currentTimeMillis();
 		    return end - start;
@@ -398,11 +398,11 @@ public final class C3P0BenchmarkApp
 	{
 	    long start;
 	    long end;
-	    
+
 	    Connection        con   = null;
 	    PreparedStatement pstmt = null;
-	    try 
-		{ 
+	    try
+		{
 		    con = ds.getConnection();
 		    start = System.currentTimeMillis();
 		    for (int i = 0; i < n; ++i)
@@ -414,9 +414,9 @@ public final class C3P0BenchmarkApp
     Leftover random abuses from ad hoc testing...
 
  				{
- 				    pstmt = con.prepareStatement(EMPTY_TABLE_CONDITIONAL_SELECT, 
- 								 ResultSet.TYPE_SCROLL_SENSITIVE, 
- 								 ResultSet.CONCUR_UPDATABLE, 
+ 				    pstmt = con.prepareStatement(EMPTY_TABLE_CONDITIONAL_SELECT,
+ 								 ResultSet.TYPE_SCROLL_SENSITIVE,
+ 								 ResultSet.CONCUR_UPDATABLE,
  								 ResultSet.HOLD_CURSORS_OVER_COMMIT);
  				}
 
@@ -443,31 +443,31 @@ public final class C3P0BenchmarkApp
 	{
 	    Connection        con   = null;
 	    PreparedStatement pstmt = null;
-	    try 
-		{ 
+	    try
+		{
 		    con = ds.getConnection();
 		    pstmt = con.prepareStatement(EMPTY_TABLE_SELECT);
 
 // 		    Leftover from ad-hoc testing...
 //
-// 		    pstmt = con.prepareStatement(EMPTY_TABLE_SELECT, 
-// 						 ResultSet.TYPE_SCROLL_SENSITIVE, 
-// 						 ResultSet.CONCUR_UPDATABLE, 
+// 		    pstmt = con.prepareStatement(EMPTY_TABLE_SELECT,
+// 						 ResultSet.TYPE_SCROLL_SENSITIVE,
+// 						 ResultSet.CONCUR_UPDATABLE,
 // 						 ResultSet.HOLD_CURSORS_OVER_COMMIT);
 		    return test( pstmt , n );
 		}
 	    finally
-		{ 
-		    StatementUtils.attemptClose( pstmt ); 
-		    ConnectionUtils.attemptClose( con ); 
+		{
+		    StatementUtils.attemptClose( pstmt );
+		    ConnectionUtils.attemptClose( con );
 		}
 	}
 
 	long test(PreparedStatement pstmt, int n) throws SQLException
-	{ 
+	{
 	    long start;
 	    long end;
-	    
+
 	    start = System.currentTimeMillis();
 	    for (int i = 0; i < n; ++i)
 		pstmt.executeQuery().close();
@@ -488,11 +488,11 @@ public final class C3P0BenchmarkApp
 
   	    long start;
   	    long end;
-	    
+
   	    Connection        con   = null;
   	    PreparedStatement pstmt = null;
   	    ResultSet         rs    = null;
-	    
+
 	    try
 		{
 		    con = ds.getConnection();
@@ -510,10 +510,10 @@ public final class C3P0BenchmarkApp
 		    return end - start;
 		}
 	    finally
-		{ 
-		    ResultSetUtils.attemptClose( rs ); 
-		    StatementUtils.attemptClose( pstmt ); 
-		    ConnectionUtils.attemptClose( con ); 
+		{
+		    ResultSetUtils.attemptClose( rs );
+		    StatementUtils.attemptClose( pstmt );
+		    ConnectionUtils.attemptClose( con );
 		}
 	}
     }
@@ -524,10 +524,10 @@ public final class C3P0BenchmarkApp
 // 	volatile Statement stmt;
 
   	FiveThreadPSQueryTestTest()
-  	{ 
-	    super( "Five threads getting a connection, executing a query, " + 
+  	{
+	    super( "Five threads getting a connection, executing a query, " +
 		   System.getProperty( "line.separator" ) +
-		   "and retrieving results concurrently via a prepared statement (in a transaction)." ); 
+		   "and retrieving results concurrently via a prepared statement (in a transaction)." );
 	}
 
   	protected long test(final DataSource ds, final int n) throws Exception
@@ -542,7 +542,7 @@ public final class C3P0BenchmarkApp
 		    Connection        con   = null;
 		    PreparedStatement pstmt = null;
 		    ResultSet         rs    = null;
-		    
+
 		    for (int i = 0; i < (n / 5); ++i)
 			{
 			    try
@@ -584,9 +584,9 @@ public final class C3P0BenchmarkApp
 				    con.commit();
 				}
 			    catch (Exception e)
-				{ 
+				{
 				    System.err.print("FiveThreadPSQueryTestTest exception -- ");
-				    e.printStackTrace(); 
+				    e.printStackTrace();
 				    try { if (con != null) con.rollback(); }
 				    catch (SQLException e2)
 					{
@@ -596,15 +596,15 @@ public final class C3P0BenchmarkApp
 				}
 			    finally
 				{
-				    ResultSetUtils.attemptClose( rs ); 
+				    ResultSetUtils.attemptClose( rs );
 				    StatementUtils.attemptClose( pstmt );
-				    ConnectionUtils.attemptClose( con ); 
+				    ConnectionUtils.attemptClose( con );
 				    con = null;
 
 // 				    StatementUtils.attemptClose( pstmt ); //dup close
 // 				    ConnectionUtils.attemptClose( con ); //dup close
 // 				    try { System.err.println( pstmt.getConnection() ); } catch (Exception e) {e.printStackTrace();}
-// 				    ResultSetUtils.attemptClose( rs ); 
+// 				    ResultSetUtils.attemptClose( rs );
 				}
 			}
 		    //System.out.println(this + " finished.");
@@ -638,14 +638,14 @@ public final class C3P0BenchmarkApp
 //  	{
 //  	    long start;
 //  	    long end;
-	    
+
 //  	    long start_ctrl;
 //  	    long end_ctrl;
 
 //  	    Connection        con   = null;
 //  	    PreparedStatement pstmt = null;
 //  	    ResultSet         rs    = null;
-	    
+
 //  	    start = System.currentTimeMillis();
 //  	    for (int i = 0; i < n; ++i)
 //  		{
@@ -661,10 +661,10 @@ public final class C3P0BenchmarkApp
 //  				}
 //  			}
 //  		    finally
-//  			{ 
-//  			    ResultSetUtils.attemptClose( rs ); 
-//  			    StatementUtils.attemptClose( pstmt ); 
-//  			    ConnectionUtils.attemptClose( con ); 
+//  			{
+//  			    ResultSetUtils.attemptClose( rs );
+//  			    StatementUtils.attemptClose( pstmt );
+//  			    ConnectionUtils.attemptClose( con );
 //  			}
 //  		}
 //  	    end = System.currentTimeMillis();
@@ -680,10 +680,10 @@ public final class C3P0BenchmarkApp
 //  			    rs = pstmt.executeQuery();
 //  			}
 //  		    finally
-//  			{ 
-//  			    ResultSetUtils.attemptClose( rs ); 
-//  			    StatementUtils.attemptClose( pstmt ); 
-//  			    ConnectionUtils.attemptClose( con ); 
+//  			{
+//  			    ResultSetUtils.attemptClose( rs );
+//  			    StatementUtils.attemptClose( pstmt );
+//  			    ConnectionUtils.attemptClose( con );
 //  			}
 //  		}
 //  	    end_ctrl = System.currentTimeMillis();
@@ -692,8 +692,3 @@ public final class C3P0BenchmarkApp
 //  	}
 //      }
 }
-
-
-
-
-
