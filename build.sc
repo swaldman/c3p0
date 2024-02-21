@@ -17,7 +17,7 @@ object Dependency {
 object c3p0 extends RootModule with JavaModule with PublishModule {
   val organization = "com.mchange"
   override def artifactName = T{"c3p0"}
-  override def publishVersion = T{"0.10.0-pre3"}
+  override def publishVersion = T{"0.10.0-pre4-SNAPSHOT"}
 
   // we are currently building in Java 11, but releasing Java 7 compatible class files
   // for users of smaller JDBC subsets
@@ -182,8 +182,15 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     )
   }
 
-  object test extends JavaModule with TestModule.Junit5 {
+  // for now at least, I don't mean to publish tests as a public library,
+  // but I do want to publish them locally so I have them when working on related
+  // libraries
+  object test extends JavaModule with TestModule.Junit5 with PublishModule {
     override def moduleDeps = Seq(c3p0)
+
+    override def artifactName = T{"c3p0-test"}
+    override def publishVersion = T{ c3p0.publishVersion() }
+
 
     override def ivyDeps = T{
       super.ivyDeps() ++ Agg(Dependency.JUnit,Dependency.PgJdbc)
@@ -233,6 +240,18 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     }
     def c3p0JavaBeanRef = T {
       this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")
+    }
+    override def pomSettings = T {
+      PomSettings(
+        description = "Tests of c3p0, a mature JDBC3+ Connection pooling library",
+        organization = organization,
+        url = "https://www.mchange.com/projects/c3p0",
+        licenses = Seq(License.`LGPL-2.1-only`,License.`EPL-1.0`),
+        versionControl = VersionControl.github("swaldman", "c3p0"),
+        developers = Seq(
+          Developer("swaldman", "Steve Waldman", "https://github.com/swaldman")
+        )
+      )
     }
   }
 
