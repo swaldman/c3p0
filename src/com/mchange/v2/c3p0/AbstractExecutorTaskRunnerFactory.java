@@ -18,7 +18,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     private final static String SEP = System.lineSeparator();
     private final static StackTraceElement[] EMPTY_STACK_TRACES = new StackTraceElement[0];
 
-    // for lazy initialization, called only on first-use    
+    // for lazy initialization, called only on first-use
     protected abstract Executor findCreateExecutor(
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
@@ -44,14 +44,14 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     protected abstract class AbstractExecutorAsynchronousRunner implements ThreadPoolReportingAsynchronousRunner
     {
         //MT: post-constructor final, internally thread-safe
-        final int num_threads_if_supported;
-        final int max_administrative_task_time_if_supported; // in seconds!
-        final String contextClassLoaderSourceIfSupported;
-        final boolean privilige_spawned_threads_if_supported;
-        final String threadLabelIfSupported;
-        final ConnectionPoolDataSource cpds;
-        final Timer timer;
-        final int matt_ms;
+        protected final int num_threads_if_supported;
+        protected final int max_administrative_task_time_if_supported; // in seconds!
+        protected final String contextClassLoaderSourceIfSupported;
+        protected final boolean privilige_spawned_threads_if_supported;
+        protected final String threadLabelIfSupported;
+        protected final ConnectionPoolDataSource cpds;
+        protected final Timer timer;
+        private final int matt_ms;
 
         // supports lazy load of executor, which is managed separately from other state
         private Object xlock = new Object();
@@ -216,7 +216,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         public int getThreadCount()      { return -1; }
         public int getActiveCount()      { return activeCount(); }
         public int getIdleCount()        { return -1; }
-        public int getPendingTaskCount() { return  0; }
+        public int getPendingTaskCount() { return -1; }
 
         public String getStatus()
         {
