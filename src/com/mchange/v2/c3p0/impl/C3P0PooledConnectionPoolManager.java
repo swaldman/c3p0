@@ -129,7 +129,7 @@ public final class C3P0PooledConnectionPoolManager
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
-        boolean privilige_spawned_threads_if_supported,
+        boolean privilege_spawned_threads_if_supported,
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds,
         Timer timer
@@ -139,7 +139,7 @@ public final class C3P0PooledConnectionPoolManager
             num_threads_if_supported,
             max_administrative_task_time_if_supported,
             contextClassLoaderSourceIfSupported,
-            privilige_spawned_threads_if_supported,
+            privilege_spawned_threads_if_supported,
             threadLabelIfSupported,
             cpds,
             timer

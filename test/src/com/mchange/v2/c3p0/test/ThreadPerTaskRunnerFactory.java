@@ -20,13 +20,13 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
-        boolean privilige_spawned_threads_if_supported,
+        boolean privilege_spawned_threads_if_supported,
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds,
         Timer timer
     )
     {
-        ThreadPoolReportingAsynchronousRunner out = new ThreadPerAsynchronousRunner( timer, max_administrative_task_time_if_supported * 1000, contextClassLoaderSourceIfSupported, privilige_spawned_threads_if_supported, threadLabelIfSupported );
+        ThreadPoolReportingAsynchronousRunner out = new ThreadPerAsynchronousRunner( timer, max_administrative_task_time_if_supported * 1000, contextClassLoaderSourceIfSupported, privilege_spawned_threads_if_supported, threadLabelIfSupported );
         if (logger.isLoggable(MLevel.INFO))
             logger.log(MLevel.INFO, "Created TaskRunner: " + out);
         return out;
@@ -43,11 +43,11 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
 
         ThreadFactory tf;
 
-        ThreadPerAsynchronousRunner( Timer timer, int matt_ms, String contextClassLoaderSource, boolean privilige_spawned_threads, String threadLabel )
+        ThreadPerAsynchronousRunner( Timer timer, int matt_ms, String contextClassLoaderSource, boolean privilege_spawned_threads, String threadLabel )
         {
             this.timer = timer;
             this.matt_ms = matt_ms;
-            this.tf = new TaskRunnerThreadFactory( contextClassLoaderSource, privilige_spawned_threads, threadLabel, ourGroup );
+            this.tf = new TaskRunnerThreadFactory( contextClassLoaderSource, privilege_spawned_threads, threadLabel, ourGroup );
         }
 
         public void postRunnable(Runnable r)

@@ -14,12 +14,12 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
-        boolean privilige_spawned_threads_if_supported,
+        boolean privilege_spawned_threads_if_supported,
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds
     )
     {
-        ThreadFactory tf = new TaskRunnerThreadFactory( contextClassLoaderSourceIfSupported, privilige_spawned_threads_if_supported, threadLabelIfSupported, null );
+        ThreadFactory tf = new TaskRunnerThreadFactory( contextClassLoaderSourceIfSupported, privilege_spawned_threads_if_supported, threadLabelIfSupported, null );
         return Executors.newFixedThreadPool( num_threads_if_supported, tf );
     }
 
@@ -29,7 +29,7 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
-        boolean privilige_spawned_threads_if_supported,
+        boolean privilege_spawned_threads_if_supported,
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds,
         Timer timer
@@ -39,7 +39,7 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
             num_threads_if_supported,
             max_administrative_task_time_if_supported, // in seconds!
             contextClassLoaderSourceIfSupported,
-            privilige_spawned_threads_if_supported,
+            privilege_spawned_threads_if_supported,
             threadLabelIfSupported,
             cpds,
             timer
@@ -52,7 +52,7 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
             int num_threads_if_supported,
             int max_administrative_task_time_if_supported, // in seconds!
             String contextClassLoaderSourceIfSupported,
-            boolean privilige_spawned_threads_if_supported,
+            boolean privilege_spawned_threads_if_supported,
             String threadLabelIfSupported,
             ConnectionPoolDataSource cpds,
             Timer timer
@@ -62,7 +62,7 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
                 num_threads_if_supported,
                 max_administrative_task_time_if_supported, // in seconds!
                 contextClassLoaderSourceIfSupported,
-                privilige_spawned_threads_if_supported,
+                privilege_spawned_threads_if_supported,
                 threadLabelIfSupported,
                 cpds,
                 timer

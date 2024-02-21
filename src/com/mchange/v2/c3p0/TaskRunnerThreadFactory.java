@@ -40,7 +40,7 @@ public final class TaskRunnerThreadFactory implements ThreadFactory
     //MT: Protected by this' lock
     int count = 0;
 
-    public TaskRunnerThreadFactory( String contextClassLoaderSource, boolean privilige_spawned_threads, String threadLabel, ThreadGroup threadGroup /* can be null */ )
+    public TaskRunnerThreadFactory( String contextClassLoaderSource, boolean privilege_spawned_threads, String threadLabel, ThreadGroup threadGroup /* can be null */ )
     {
         if ("none".equalsIgnoreCase(contextClassLoaderSource))
             this.contextClassLoaderSetter = NO_CLASSLOADER;

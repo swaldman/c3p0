@@ -23,7 +23,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
-        boolean privilige_spawned_threads_if_supported,
+        boolean privilege_spawned_threads_if_supported,
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds
     );
@@ -34,7 +34,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
-        boolean privilige_spawned_threads_if_supported,
+        boolean privilege_spawned_threads_if_supported,
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds,
         Timer timer
@@ -47,7 +47,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         protected final int num_threads_if_supported;
         protected final int max_administrative_task_time_if_supported; // in seconds!
         protected final String contextClassLoaderSourceIfSupported;
-        protected final boolean privilige_spawned_threads_if_supported;
+        protected final boolean privilege_spawned_threads_if_supported;
         protected final String threadLabelIfSupported;
         protected final ConnectionPoolDataSource cpds;
         protected final Timer timer;
@@ -80,7 +80,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
                             num_threads_if_supported,
                             max_administrative_task_time_if_supported, // in seconds!
                             contextClassLoaderSourceIfSupported,
-                            privilige_spawned_threads_if_supported,
+                            privilege_spawned_threads_if_supported,
                             threadLabelIfSupported,
                             cpds
                         );
@@ -92,7 +92,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             int num_threads_if_supported,
             int max_administrative_task_time_if_supported, // in seconds!
             String contextClassLoaderSourceIfSupported,
-            boolean privilige_spawned_threads_if_supported,
+            boolean privilege_spawned_threads_if_supported,
             String threadLabelIfSupported,
             ConnectionPoolDataSource cpds,
             Timer timer
@@ -101,7 +101,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             this.num_threads_if_supported = num_threads_if_supported;
             this.max_administrative_task_time_if_supported = max_administrative_task_time_if_supported; // in seconds!
             this.contextClassLoaderSourceIfSupported = contextClassLoaderSourceIfSupported;
-            this.privilige_spawned_threads_if_supported = privilige_spawned_threads_if_supported;
+            this.privilege_spawned_threads_if_supported = privilege_spawned_threads_if_supported;
             this.threadLabelIfSupported = threadLabelIfSupported;
             this.cpds = cpds;
             this.timer = timer;

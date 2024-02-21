@@ -10,7 +10,7 @@ public interface TaskRunnerFactory
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
         String contextClassLoaderSourceIfSupported,
-        boolean privilige_spawned_threads_if_supported,
+        boolean privilege_spawned_threads_if_supported,
         String threadLabelIfSupported,
         ConnectionPoolDataSource cpds,
         Timer timer
