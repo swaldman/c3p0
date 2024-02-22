@@ -62,66 +62,14 @@ import com.mchange.v2.beans.BeansUtils;
  *  be a number (much) greater than zero. (For maximum performance, you would set this to be several times the number kinds of 
  *  PreparedStatements you expect your application to use.)</p>
  *
- * <p>For those interested in detailed configuration, note that c3p0 pools can be configured by explicit method calls on PoolConfig objects,
- * by defining System properties, or by defining a <code>c3p0.properties</code> file in your resource path. See {@link com.mchange.v2.c3p0.PoolConfig}
- * for details.</p>
+ *  <p>For those interested in detailed configuration, note that c3p0 pools can be configured by providing explicit <code>Properties</code> objects
+ *  (driver properties for <code>unpooledDataSource()</code>, bean properties for <code>pooledDataSource()</code>),
+ *  by defining a <code>c3p0.properties</code> file in your resource path, or by defining System properties.</p>
  *
  */
 public final class DataSources
 {
     final static MLogger logger = MLog.getLogger( DataSources.class );
-
-    final static Set WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS; //22 -- includes factory class location
-    final static Set POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS; //2 -- includes factory class location, excludes pool-owner id token
-
-    static
-    {
-	// As of c3p0-0.9.1
-	//
-	// This list is no longer updated, as the PoolConfig approach to setting up DataSources
-	// is now deprecated. (This was getting to be hard to maintain as new config properties
-	// were added.)
-	String[] props = new String[]
-	{
-	    "checkoutTimeout", //1 
-	    "acquireIncrement",  //2
-	    "acquireRetryAttempts", //3
-	    "acquireRetryDelay", //4
-	    "autoCommitOnClose", //5
-	    "connectionTesterClassName", //6
-	    "forceIgnoreUnresolvedTransactions", //7
-	    "idleConnectionTestPeriod", //8
-	    "initialPoolSize", //9
-	    "maxIdleTime", //10
-	    "maxPoolSize", //11
-	    "maxStatements", //12
-	    "maxStatementsPerConnection", //13
-	    "minPoolSize", //14
-	    "propertyCycle", //15
-	    "breakAfterAcquireFailure", //16
-	    "testConnectionOnCheckout", //17
-	    "testConnectionOnCheckin", //18
-	    "usesTraditionalReflectiveProxies", //19
-	    "preferredTestQuery", //20
-	    "automaticTestTable", //21
-	    "factoryClassLocation" //22
-	};
-
-	WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS = Collections.unmodifiableSet( new HashSet( Arrays.asList( props ) ) );
-
-	// As of c3p0-0.9.1
-	//
-	// This list is no longer updated, as the PoolConfig approach to setting up DataSources
-	// is now deprecated. (This was getting to be hard to maintain as new config properties
-	// were added.)
-	props = new String[]
-	{
-	    "numHelperThreads",
-	    "factoryClassLocation"
-	};
-
-	POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS = Collections.unmodifiableSet( new HashSet( Arrays.asList( props ) ) );
-    }
 
     /**
      * Defines an unpooled DataSource all of whose paramateres (especially jdbcUrl)
@@ -155,8 +103,7 @@ public final class DataSources
      * Defines an unpooled DataSource on the specified JDBC URL.
      *
      *  @param driverProps the usual DriverManager properties for your JDBC driver
-     *         (e.g. "user" and "password" for all drivers that support
-     *         authentication)
+     *         (e.g. "user" and "password" for most drivers that support authentication)
      * 
      *  @see java.sql.DriverManager
      */
@@ -188,72 +135,10 @@ public final class DataSources
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource, int statement_cache_size ) throws SQLException
     {
-// 	PoolConfig pcfg = new PoolConfig();
-// 	pcfg.setMaxStatements( statement_cache_size );
-
 	Map overrideProps = new HashMap();
 	overrideProps.put( "maxStatements", new Integer( statement_cache_size ) );
 	return pooledDataSource( unpooledDataSource, null, overrideProps );
     }
-
-    /**
-     * <p>Creates a pooled version of an unpooled DataSource using configuration 
-     *    information supplied explicitly by a {@link com.mchange.v2.c3p0.PoolConfig}.
-     *
-     *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
-     *
-     *  @deprecated if you want to set properties programmatically, please construct a ComboPooledDataSource and
-     *              set its properties rather than using PoolConfig
-     */
-    public static DataSource pooledDataSource( DataSource unpooledDataSource, PoolConfig pcfg ) throws SQLException
-    {
-	try
-	    {
-		WrapperConnectionPoolDataSource wcpds = new WrapperConnectionPoolDataSource();
-		wcpds.setNestedDataSource( unpooledDataSource );
-		
-		// set PoolConfig info -- WrapperConnectionPoolDataSource properties 
-		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, wcpds, WRAPPER_CXN_POOL_DATA_SOURCE_OVERWRITE_PROPS );
-		
-		PoolBackedDataSource nascent_pbds = new PoolBackedDataSource();
-		nascent_pbds.setConnectionPoolDataSource( wcpds );
-		BeansUtils.overwriteSpecificAccessibleProperties( pcfg, nascent_pbds, POOL_BACKED_DATA_SOURCE_OVERWRITE_PROPS );
-
-		return nascent_pbds;
-	    }
-// 	catch ( PropertyVetoException e )
-// 	    {
-// 		e.printStackTrace();
-// 		PropertyChangeEvent evt = e.getPropertyChangeEvent();
-// 		throw new SQLException("Illegal value attempted for property " + evt.getPropertyName() + ": " + evt.getNewValue());
-// 	    }
- 	catch ( Exception e )
- 	    {
- 		//e.printStackTrace();
-		SQLException sqle = SqlUtils.toSQLException("Exception configuring pool-backed DataSource: " + e, e);
-		if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINE ) && e != sqle)
-		    logger.log( MLevel.FINE, "Converted exception to throwable SQLException", e );
- 		throw sqle;
- 	    }
-    }
-
-    /*
-    public static DataSource pooledDataSource( DataSource unpooledDataSource, String overrideDefaultUser, String overrideDefaultPassword ) throws SQLException
-    {
-	Map overrideProps;
-
-	if (overrideDefaultUser != null)
-	    {
-		overrideProps = new HashMap();
-		overrideProps.put( "overrideDefaultUser", overrideDefaultUser );
-		overrideProps.put( "overrideDefaultPassword", overrideDefaultPassword );
-	    }
-	else
-	    overrideProps = null;
-
-	return pooledDataSource( unpooledDataSource, null, overrideProps );
-    }
-    */
 
     public static DataSource pooledDataSource( DataSource unpooledDataSource, String configName ) throws SQLException
     { return pooledDataSource( unpooledDataSource, configName, null ); }
@@ -312,7 +197,6 @@ public final class DataSources
      *    information supplied explicitly by a Java Properties object.</p>
      *
      *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
-     *  @see com.mchange.v2.c3p0.PoolConfig
      */
     public static DataSource pooledDataSource( DataSource unpooledDataSource, Properties props ) throws SQLException
     { 
@@ -341,8 +225,6 @@ public final class DataSources
      *    another DataSource created by this library destroys both the outer and the wrapped
      *    DataSource. There is no reason to hold a reference to a nested DataSource in order
      *    to explicitly destroy it.</p>
-     *
-     *  @see com.mchange.v2.c3p0.PoolConfig
      */
     public static void destroy( DataSource pooledDataSource ) throws SQLException
     { destroy( pooledDataSource, false ); }

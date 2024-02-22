@@ -612,41 +612,6 @@ ds_pooled = DataSources.pooledDataSource( ds_unpooled, overrides );
 ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoApp", overrides );
       </div>
 
-      <p><a id="showDataSourcesWithPoolConfig"
-	    style="display: block"
-	    href="#"
-	    onClick="return toggleDisplay('showDataSourcesWithPoolConfig', 'DataSourcesWithPoolConfig');"
-	    >Show deprecated PoolConfig approach...</a></p>
-      <div class="deprecated" style="display: none" id="DataSourcesWithPoolConfig">
-	<h5>Deprecated! Programmatic configuration via PoolConfig</h5>
-	<p>
-	  If you use the <a href="apidocs/com/mchange/v2/c3p0/DataSources.html">DataSources</a>
-	  factory class, and you want to programmatically override default configuration
-	  parameters, make use of the <a href="apidocs/com/mchange/v2/c3p0/PoolConfig.html"><tt>PoolConfig</tt></a> class:
-	</p>
-	<div class="example">
-DataSource ds_unpooled = DataSources.unpooledDataSource("jdbc:postgresql://localhost/testdb",
-                                                        "swaldman",
-                                                        "test-password");
-
-PoolConfig pc = new PoolConfig();
-pc.setMaxStatements(200);  //turn on Statement pooling
-
-// pass our overriding PoolConfig to the DataSources.pooledDataSource() factory method.
-
-ds_pooled = DataSources.pooledDataSource( ds_unpooled, pc );
-
-// The DataSource ds_pooled is now a fully configured and usable pooled DataSource,
-// with Statement caching enabled for a maximum of up to 200 statements.
-
-...
-	</div>
-	<a id="hideDataSourcesWithPoolConfig"
-	   href="#"
-	   onClick="return toggleDisplay('showDataSourcesWithPoolConfig', 'DataSourcesWithPoolConfig');"
-	   >Hide deprecated PoolConfig approach</a>
-      </div>
-
       <div class="boxed">
 	<a name="forceOverrideBox" />
 	<h4>RARE: Forcing authentication information, regardless of (mis)configuration of the underlying (unpooled) DataSource</h4>
@@ -3394,7 +3359,7 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
 	      change "mbean" to "jboss" where your old file says 'code="com.mchange.v2.c3p0.mbean.C3P0PooledDataSource"'. Just do it!
 	</p>
 	<p>
-		<a id="hideDataSourcesWithPoolConfig"
+		<a id="hideDataSourcesWithJbossConfigName"
 	   	href="#"
 	   	onClick="return toggleDisplay('showDeprecatedJbossConfigName', 'DeprecatedJbossConfigName');"
 	   	>Hide box.</a>
