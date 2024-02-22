@@ -8,7 +8,7 @@
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of EITHER:
  *
- *     1) The GNU Lesser General Public License (LGPL), version 2.1, as 
+ *     1) The GNU Lesser General Public License (LGPL), version 2.1, as
  *        published by the Free Software Foundation
  *
  * OR
@@ -29,8 +29,8 @@
  * If not, the text of these licenses are currently available at
  *
  * LGPL v2.1: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
- *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php 
- * 
+ *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php
+ *
  */
 
 package com.mchange.v2.c3p0.impl;
@@ -77,36 +77,36 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	{
 	    //      if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
 	    //      logger.finer("Entering DefaultConnectionTester.activeCheckConnection(Connection c). [using default system-table query]");
-	    
+
 	    ResultSet rs = null;
 	    try
-	    { 
-		rs = c.getMetaData().getTables( null, 
-						null, 
-						"PROBABLYNOT", 
+	    {
+		rs = c.getMetaData().getTables( null,
+						null,
+						"PROBABLYNOT",
 						new String[] {"TABLE"} );
 		return CONNECTION_IS_OKAY;
 	    }
 	    catch (SQLException e)
-	    { 
+	    {
 		if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
 		    logger.log( MLevel.FINE, "Connection " + c + " failed default system-table Connection test with an Exception!", e );
-		
+
 		if (rootCauseOutParamHolder != null)
 		    rootCauseOutParamHolder[0] = e;
-		
+
 		String state = e.getSQLState();
 		if ( INVALID_DB_STATES.contains( state ) )
 		    {
 			if (logger.isLoggable(MLevel.WARNING))
 			    logger.log(MLevel.WARNING,
-				       "SQL State '" + state + 
-				       "' of Exception which occurred during a Connection test (fallback DatabaseMetaData test) implies that the database is invalid, " + 
+				       "SQL State '" + state +
+				       "' of Exception which occurred during a Connection test (fallback DatabaseMetaData test) implies that the database is invalid, " +
 				       "and the pool should refill itself with fresh Connections.", e);
 			return DATABASE_IS_INVALID;
 		    }
 		else
-		    return CONNECTION_IS_INVALID; 
+		    return CONNECTION_IS_INVALID;
 	    }
 	    catch (Exception e)
 	    {
@@ -119,8 +119,8 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 		return CONNECTION_IS_INVALID;
 	    }
 	    finally
-	    { 
-		ResultSetUtils.attemptClose( rs ); 
+	    {
+		ResultSetUtils.attemptClose( rs );
 		//          if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
 		//          logger.finer("Exiting DefaultConnectionTester.activeCheckConnection(Connection c). [using default system-table query]");
 	    }
@@ -132,7 +132,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
 	    try
-	    { 
+	    {
 		boolean okay = c.isValid( IS_VALID_TIMEOUT );
 		if (okay)
 		    return CONNECTION_IS_OKAY;
@@ -144,22 +144,22 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 		}
 	    }
 	    catch (SQLException e)
-	    { 
+	    {
 		if (rootCauseOutParamHolder != null)
 		    rootCauseOutParamHolder[0] = e;
-		
+
 		String state = e.getSQLState();
 		if ( INVALID_DB_STATES.contains( state ) )
 		    {
 			if (logger.isLoggable(MLevel.WARNING))
 			    logger.log(MLevel.WARNING,
-				       "SQL State '" + state + 
-				       "' of Exception which occurred during a Connection test (fallback DatabaseMetaData test) implies that the database is invalid, " + 
+				       "SQL State '" + state +
+				       "' of Exception which occurred during a Connection test (fallback DatabaseMetaData test) implies that the database is invalid, " +
 				       "and the pool should refill itself with fresh Connections.", e);
 			return DATABASE_IS_INVALID;
 		    }
 		else
-		    return CONNECTION_IS_INVALID; 
+		    return CONNECTION_IS_INVALID;
 	    }
 	    catch (Exception e)
 	    {
@@ -224,15 +224,15 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 
 	String timeoutStr = C3P0Config.getMultiPropertiesConfig().getProperty( IS_VALID_TIMEOUT_KEY );
 	try { if (timeoutStr != null ) isValidTimeout = Integer.parseInt( timeoutStr );	}
-	catch( NumberFormatException e ) 
+	catch( NumberFormatException e )
 	{
 	    if ( logger.isLoggable( MLevel.WARNING ) )
 		logger.log( MLevel.WARNING, "Could not parse value set for " + IS_VALID_TIMEOUT_KEY + " ['" + timeoutStr + "'] into int.", e );
 	}
 
-	if (isValidTimeout <= 0) 
+	if (isValidTimeout <= 0)
 	    isValidTimeout = 0;
-	else 
+	else
 	{
 	    if ( logger.isLoggable( MLevel.INFO ) )
 		logger.log( MLevel.INFO, "Connection.isValid(...) based Connection tests will timeout and fail after " + isValidTimeout + " seconds." );
@@ -247,7 +247,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	//
 	// when modifying this default, don't forget to also modify the log message in reflectTestRunner(...)
 	//
-	QuerylessTestRunner defaultQuerylessTestRunner = SWITCH; 
+	QuerylessTestRunner defaultQuerylessTestRunner = SWITCH;
 
 	// Adding a new config parameter for this is useless overkill, I think.
 	// Both THREAD_LOCAL and SWITCH work very well, extra overhead from resolving
@@ -262,7 +262,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	    querylessTestRunner = ( reflected != null ? reflected : defaultQuerylessTestRunner );
 	}
     }
-    
+
     //MT: final reference, internally threadsafe
     private final QuerylessTestRunner querylessTestRunner;
 
@@ -278,20 +278,20 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
             Statement stmt = null;
             ResultSet rs   = null;
             try
-            { 
+            {
                 //if (Math.random() < 0.1)
                 //    throw new NullPointerException("Test.");
-                
+
                 stmt = c.createStatement();
                 rs = stmt.executeQuery( query );
                 //rs.next();
                 return CONNECTION_IS_OKAY;
             }
             catch (SQLException e)
-            { 
+            {
                 if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ) )
                     logger.log( MLevel.FINE, "Connection " + c + " failed Connection test with an Exception! [query=" + query + "]", e );
-                
+
                 if (rootCauseOutParamHolder != null)
                     rootCauseOutParamHolder[0] = e;
 
@@ -300,14 +300,14 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
                 {
                     if (logger.isLoggable(MLevel.WARNING))
                         logger.log(MLevel.WARNING,
-                                        "SQL State '" + state + 
-                                        "' of Exception which occurred during a Connection test (test with query '" + query + 
-                                        "') implies that the database is invalid, " + 
+                                        "SQL State '" + state +
+                                        "' of Exception which occurred during a Connection test (test with query '" + query +
+                                        "') implies that the database is invalid, " +
                                         "and the pool should refill itself with fresh Connections.", e);
                     return DATABASE_IS_INVALID;
                 }
                 else
-                    return CONNECTION_IS_INVALID; 
+                    return CONNECTION_IS_INVALID;
             }
             catch (Exception e)
             {
@@ -320,8 +320,8 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
                 return CONNECTION_IS_INVALID;
             }
             finally
-            { 
-                ResultSetUtils.attemptClose( rs ); 
+            {
+                ResultSetUtils.attemptClose( rs );
                 StatementUtils.attemptClose( stmt );
 
 //              if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX &&  logger.isLoggable( MLevel.FINER ) )
@@ -341,14 +341,14 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
         try
         {
             if (t instanceof SQLException)
-            { 
+            {
                 String state = ((SQLException) t).getSQLState();
                 if ( INVALID_DB_STATES.contains( state ) )
                 {
                     if (logger.isLoggable(MLevel.WARNING))
                         logger.log(MLevel.WARNING,
-                                        "SQL State '" + state + 
-                                        "' of Exception tested by statusOnException() implies that the database is invalid, " + 
+                                        "SQL State '" + state +
+                                        "' of Exception tested by statusOnException() implies that the database is invalid, " +
                                         "and the pool should refill itself with fresh Connections.", t);
                     return DATABASE_IS_INVALID;
                 }
@@ -361,7 +361,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
                     logger.log( MLevel.FINE, "Connection test failed because test-provoking Throwable is an unexpected, non-SQLException.", t);
                 if (rootCauseOutParamHolder != null)
                     rootCauseOutParamHolder[0] = t;
-                return CONNECTION_IS_INVALID; 
+                return CONNECTION_IS_INVALID;
             }
         }
         catch (Exception e)
@@ -379,7 +379,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 //          if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
 //          {
 //          if ( logger.isLoggable( MLevel.FINER ) )
-//          logger.finer("Exiting DefaultConnectionTester.statusOnException(Connection c, Throwable t, String query) " + queryInfo(query)); 
+//          logger.finer("Exiting DefaultConnectionTester.statusOnException(Connection c, Throwable t, String query) " + queryInfo(query));
 //          }
         }
     }
@@ -407,7 +407,7 @@ class ThreadLocalQuerylessTestRunner implements DefaultConnectionTester.Queryles
     {
 	protected Object initialValue() { return new WeakHashMap(); }
     };
-    
+
     private final static Class[] ARG_ARRAY = new Class[] { Integer.TYPE };
 
     private static Map classToTestRunner()
@@ -416,9 +416,9 @@ class ThreadLocalQuerylessTestRunner implements DefaultConnectionTester.Queryles
 
     private static DefaultConnectionTester.QuerylessTestRunner findTestRunner( Class cClass )
     {
-	try 
-	{ 
-	    cClass.getDeclaredMethod( "isValid", ARG_ARRAY ); 
+	try
+	{
+	    cClass.getDeclaredMethod( "isValid", ARG_ARRAY );
 	    return DefaultConnectionTester.IS_VALID;
 	}
 	catch( NoSuchMethodException e )
