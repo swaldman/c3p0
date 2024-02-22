@@ -192,6 +192,17 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     override def artifactName = T{"c3p0-test"}
     override def publishVersion = T{ c3p0.publishVersion() }
 
+    /**
+      * A place for resources we want seen by local (test) runs, but
+      * should not be published (even locally) into the c3p0-test jar,
+      * so that when we run tests from elsewhere, they are not polluted
+      * by settings in these resources
+      */
+    def localResources : T[Seq[PathRef]] = T.sources { millSourcePath / "resources-local" }
+
+    override def runClasspath : T[Seq[PathRef]] = T{
+      super.runClasspath() ++ localResources()
+    }
 
     override def ivyDeps = T{
       super.ivyDeps() ++ Agg(Dependency.JUnit,Dependency.PgJdbc)
