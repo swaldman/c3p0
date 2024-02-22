@@ -1,3 +1,9 @@
+	-- Relicense to allow users to opt for LGPL-2.1 or later, rather than LGPL-2.1-only.
+	   See https://github.com/swaldman/c3p0/issues/133
+	   Thanks Bernhard E. Reiter!
+	-- Define (in a separate, Java 21, project) a loom virtual-threads based
+	   TaskRunnerFactory, VirtualThreadPerTaskExecutorTaskRunnerFactory.
+	   See https://github.com/swaldman/c3p0-loom
 	-- DefineFixedThreadPoolExecutorTaskRunnerFactory, a simple example that
 	   replaces c3p0's traditional Thread pool with an unshared ThreadPoolExecutor
 	   of size numHelperThreads.

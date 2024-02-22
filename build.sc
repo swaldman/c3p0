@@ -247,7 +247,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
         description = "Tests of c3p0, a mature JDBC3+ Connection pooling library",
         organization = organization,
         url = "https://www.mchange.com/projects/c3p0",
-        licenses = Seq(License.`LGPL-2.1-only`,License.`EPL-1.0`),
+        licenses = Seq(License.`LGPL-2.1-or-later`,License.`EPL-1.0`),
         versionControl = VersionControl.github("swaldman", "c3p0"),
         developers = Seq(
           Developer("swaldman", "Steve Waldman", "https://github.com/swaldman")
@@ -261,7 +261,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
       description = "A mature JDBC3+ Connection pooling library",
       organization = organization,
       url = "https://www.mchange.com/projects/c3p0",
-      licenses = Seq(License.`LGPL-2.1-only`,License.`EPL-1.0`),
+      licenses = Seq(License.`LGPL-2.1-or-later`,License.`EPL-1.0`),
       versionControl = VersionControl.github("swaldman", "c3p0"),
       developers = Seq(
         Developer("swaldman", "Steve Waldman", "https://github.com/swaldman")
