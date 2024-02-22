@@ -236,12 +236,6 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); }
 
-    public boolean isUsesTraditionalReflectiveProxies()
-    { return wcpds.isUsesTraditionalReflectiveProxies(); }
-
-    public void setUsesTraditionalReflectiveProxies( boolean utrp )
-    { wcpds.setUsesTraditionalReflectiveProxies( utrp ); }
-
     public String getFactoryClassLocation()
     { return jrfds.getFactoryClassLocation(); }
 
@@ -280,7 +274,6 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	referenceMaker.addReferenceProperty("propertyCycle");
 	referenceMaker.addReferenceProperty("testConnectionOnCheckin");
 	referenceMaker.addReferenceProperty("testConnectionOnCheckout");
-	referenceMaker.addReferenceProperty("usesTraditionalReflectiveProxies");
     }
 
     public Reference getReference() throws NamingException

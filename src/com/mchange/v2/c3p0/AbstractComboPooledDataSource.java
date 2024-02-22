@@ -595,18 +595,6 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
-    public boolean isUsesTraditionalReflectiveProxies()
-    { return wcpds.isUsesTraditionalReflectiveProxies(); }
-
-    public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies )
-    {
-	if ( diff( wcpds.isUsesTraditionalReflectiveProxies(), usesTraditionalReflectiveProxies ) )
-	{
-	    wcpds.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies ); 
-	    this.resetPoolManager( false );
-	}
-    }
-
     public String getPreferredTestQuery()
     { return wcpds.getPreferredTestQuery(); }
 

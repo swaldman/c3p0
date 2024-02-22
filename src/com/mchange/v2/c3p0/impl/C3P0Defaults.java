@@ -67,7 +67,6 @@ public final class C3P0Defaults
     private final static boolean TEST_CONNECTION_ON_CHECKIN                  = false;
     private final static boolean AUTO_COMMIT_ON_CLOSE                        = false;
     private final static boolean FORCE_IGNORE_UNRESOLVED_TXNS                = false;
-    private final static boolean USES_TRADITIONAL_REFLECTIVE_PROXIES         = false;
     private final static boolean DEBUG_UNRETURNED_CONNECTION_STACK_TRACES    = false;
     private final static boolean PRIVILEGE_SPAWNED_THREADS                   = false;
     private final static boolean FORCE_USE_NAMED_DRIVER_CLASS                = false;
@@ -209,9 +208,6 @@ public final class C3P0Defaults
 
     public static boolean debugUnreturnedConnectionStackTraces()
     { return DEBUG_UNRETURNED_CONNECTION_STACK_TRACES; }
-
-    public static boolean usesTraditionalReflectiveProxies()
-    { return USES_TRADITIONAL_REFLECTIVE_PROXIES; }
 
     public static boolean privilegeSpawnedThreads()
     { return PRIVILEGE_SPAWNED_THREADS; }

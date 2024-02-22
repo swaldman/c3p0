@@ -162,26 +162,14 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    if (conn == null)
 		throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
 				       "DataSource: " + getNestedDataSource());
-	    if ( this.isUsesTraditionalReflectiveProxies( this.getUser() ) )
-	    {
-		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
-		return new C3P0PooledConnection( conn, 
-						 connectionTester,
-						 this.isAutoCommitOnClose( this.getUser() ), 
-						 this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
-						 cc,
-						 pdsIdt); 
-	    }
-	    else
-	    {
-		return new NewPooledConnection( conn, 
-						connectionTester,
-						this.isAutoCommitOnClose( this.getUser() ), 
-						this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
-						this.getPreferredTestQuery( this.getUser() ),
-						cc,
-						pdsIdt); 
-	    }
+            return new NewPooledConnection( conn, 
+                                            connectionTester,
+                                            this.isAutoCommitOnClose( this.getUser() ), 
+                                            this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
+                                            this.getPreferredTestQuery( this.getUser() ),
+                                            cc,
+                                            pdsIdt); 
+
 	}
 	catch (SQLException e)
 	{
@@ -221,26 +209,13 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    if (conn == null)
 		throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
 				       "DataSource: " + getNestedDataSource());
-	    if ( this.isUsesTraditionalReflectiveProxies( user ) )
-	    {
-		//return new C3P0PooledConnection( new com.mchange.v2.c3p0.test.CloseReportingConnection( conn ), 
-		return new C3P0PooledConnection( conn,
-						 connectionTester,
-						 this.isAutoCommitOnClose( user ), 
-						 this.isForceIgnoreUnresolvedTransactions( user ),
-						 cc,
-						 pdsIdt);
-	    }
-	    else
-	    {
-		return new NewPooledConnection( conn, 
-						connectionTester,
-						this.isAutoCommitOnClose( user ), 
-						this.isForceIgnoreUnresolvedTransactions( user ),
-						this.getPreferredTestQuery( user ),
-						cc,
-						pdsIdt); 
-	    }
+            return new NewPooledConnection( conn, 
+                                            connectionTester,
+                                            this.isAutoCommitOnClose( user ), 
+                                            this.isForceIgnoreUnresolvedTransactions( user ),
+                                            this.getPreferredTestQuery( user ),
+                                            cc,
+                                            pdsIdt); 
 	}
 	catch (SQLException e)
 	{
@@ -276,15 +251,6 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 
 	Boolean override = C3P0ConfigUtils.extractBooleanOverride( "forceIgnoreUnresolvedTransactions", userName, userOverrides );
 	return ( override == null ? this.isForceIgnoreUnresolvedTransactions() : override.booleanValue() );
-    }
-
-    private boolean isUsesTraditionalReflectiveProxies( String userName )
-    {
-	if ( userName == null )
-	    return this.isUsesTraditionalReflectiveProxies();
-
-	Boolean override = C3P0ConfigUtils.extractBooleanOverride( "usesTraditionalReflectiveProxies", userName, userOverrides );
-	return ( override == null ? this.isUsesTraditionalReflectiveProxies() : override.booleanValue() );
     }
 
     private String getPreferredTestQuery( String userName )

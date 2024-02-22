@@ -152,9 +152,6 @@ public interface C3P0PooledDataSourceMBean
     public boolean isTestConnectionOnCheckin();
     public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin ) throws NamingException;
 
-    public boolean isUsesTraditionalReflectiveProxies();
-    public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies ) throws NamingException;
-
     public String getPreferredTestQuery();
     public void setPreferredTestQuery( String preferredTestQuery ) throws NamingException;
 

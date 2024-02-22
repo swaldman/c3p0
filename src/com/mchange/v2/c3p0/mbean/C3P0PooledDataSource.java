@@ -328,15 +328,6 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 	rebind();
     }
 
-    public boolean isUsesTraditionalReflectiveProxies()
-    { return combods.isUsesTraditionalReflectiveProxies(); }
-
-    public void setUsesTraditionalReflectiveProxies( boolean usesTraditionalReflectiveProxies ) throws NamingException
-    {
-	combods.setUsesTraditionalReflectiveProxies( usesTraditionalReflectiveProxies );
-	rebind();
-    }
-
     public String getPreferredTestQuery()
     { return combods.getPreferredTestQuery(); }
 

@@ -1049,9 +1049,7 @@ public final class C3P0PooledConnectionPool
 
             final PooledConnection pc = (PooledConnection) evt.getSource();
             int status;
-            if (pc instanceof C3P0PooledConnection)
-                status = ((C3P0PooledConnection) pc).getConnectionStatus();
-            else if (pc instanceof NewPooledConnection)
+            if (pc instanceof NewPooledConnection)
                 status = ((NewPooledConnection) pc).getConnectionStatus();
             else //default to invalid connection, but not invalid database
                 status = ConnectionTester.CONNECTION_IS_INVALID;

@@ -80,7 +80,6 @@ public final class RawConnectionOpTest
 		// cpds.setUser( username );
 		// cpds.setPassword( password );
   		cpds.setMaxPoolSize( 10 );
-//  		cpds.setUsesTraditionalReflectiveProxies( true );
 
 		C3P0ProxyConnection conn = (C3P0ProxyConnection) cpds.getConnection();
 		Method toStringMethod = Object.class.getMethod("toString", new Class[]{});
