@@ -239,6 +239,7 @@
          font-family: monospace;
          line-height: 1.5;
          padding: 8px;
+         vertical-align: top;
       }
 
       table.beanPropSummaryTable tr td  a {
@@ -1485,7 +1486,6 @@ public class VerboseConnectionCustomizer
 	<li><a class="cfg_param" href="#checkoutTimeout">checkoutTimeout</a></li>
 	<li><a class="cfg_param" href="#factoryClassLocation">factoryClassLocation</a></li>
 	<li><a class="cfg_param" href="#forceSynchronousCheckins">forceSynchronousCheckins</a></li>
-	<li><a class="cfg_param" href="#usesTraditionalReflectiveProxies"><s>usesTraditionalReflectiveProxies</s></a></li>
       </ul>
       <p>
 	Ordinarily check-ins are performed asynchronously so that clients do not experience the overhead of
@@ -1502,11 +1502,7 @@ public class VerboseConnectionCustomizer
       </p>
       <p>
       	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
-      	checked out and one cannot be supplied immediately. <tt>usesTraditionalReflectiveProxies</tt> is
-      	of little practical use and is now formally deprecated. It permits you to use an old, now superceded
-	implementation of C3P0-generated proxy objects. (C3P0
-      	used to use reflective, dynamic proxies. Now, for enhanced performance, it uses code-generated, nonrefective
-      	implementations.) <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
+      	checked out and one cannot be supplied immediately. <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
       	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
       	who do not have c3p0 locally installed.
       </p>
@@ -2195,7 +2191,6 @@ c3p0 {
 	    <a href="#testConnectionOnCheckout">testConnectionOnCheckout</a><br/>
 	    <a href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a><br/>
 	    <a href="#user">user</a><br/>
-	    <a href="#usesTraditionalReflectiveProxies"><s>usesTraditionalReflectiveProxies</s></a><br/>
 	  </td>
 	</tr>
       </table>
@@ -2446,7 +2441,7 @@ c3p0 {
 	    <tt><a href="#driverClass">driverClass</a></tt>), or if you wish to specify which driver to use directly (and avoid <tt>DriverManager</tt>
 	    resolution), you may specify <a href="#driverClass">driverClass</a> in combination with
 	    <a href="#forceUseNamedDriverClass">forceUseNamedDriverClass</a>. Unless you are supplying your own unpooled DataSource,
-	    a <a href="#jdbcUrl"jdbcUrl</a> must always be provided and appropriate for the JDBC driver, however it is resolved.
+	    a <a href="#jdbcUrl">jdbcUrl</a> must always be provided and appropriate for the JDBC driver, however it is resolved.
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
@@ -2737,19 +2732,6 @@ c3p0 {
 	    <tt>getConnection()</tt> method. (See also <a href="#password">password</a>.)
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
-	<dt><a name="usesTraditionalReflectiveProxies" /><s>usesTraditionalReflectiveProxies</s></dt>
-	<dd>
-	  <div class="default">Default: false</div>
-	  <div class="propdesc">
-	    <span class="deprecated">Deprecated.</span> c3p0 originally used reflective dynamic proxies for
-	    implementations of Connections and other JDBC
-	    interfaces. As of c3p0-0.8.5, non-reflective, code-generated implementations are used instead. As
-	    this was a major change, and the old codebase had been extensively used and tested, this parameter
-	    was added to allow users to revert of they had problems. The new, non-reflexive implementation is
-	    faster, and has now been widely deployed and tested, so it is unlikely that this parameter will be useful.
-	    Both the old reflective and newer non-reflective codebases are being maintained, but support for the
-	    older codebase may (or may not) be dropped in the future.
- 	  </div>
 	</dd>
       </dl>
       <h3>
@@ -3413,8 +3395,6 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
       &lt;!-- &lt;attribute name="TestConnectionOnCheckin"&gt;false&lt;/attribute&gt;              --&gt;
       &lt;!-- &lt;attribute name="TestConnectionOnCheckout"&gt;false&lt;/attribute&gt;             --&gt;
       &lt;!-- &lt;attribute name="UnreturnedConnectionTimeout"&gt;0&lt;/attribute&gt;              --&gt;
-      &lt;!-- &lt;attribute name="UsesTraditionalReflectiveProxies"&gt;false&lt;/attribute&gt;     --&gt;
-
 
       &lt;depends&gt;jboss:service=Naming&lt;/depends&gt;
    &lt;/mbean&gt;
