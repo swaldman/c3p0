@@ -3462,13 +3462,16 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
     <h2><a name="oracle-specific">Appendix F: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
-	The Oracle thin JDBC driver provides a non-standard API for creating temporary BLOBs and CLOBs that
+        These utilities are no longer supported. Please use <code>Connection.unwrap(...)</code> to access Oracle-specific APIs.
+      </p>
+      <p>
+	<s>The Oracle thin JDBC driver provides a non-standard API for creating temporary BLOBs and CLOBs that
 	requires users to call methods on the raw, Oracle-specific Connection implementation. Advanced users
 	might use the <a href="#raw_connection_ops">raw connection operations</a> described above to access this
 	functionality, but a convenience class is available in a separate jar file (<tt>c3p0-oracle-thin-extras-@c3p0.version@.jar</tt>)
 	for easier access to this functionality. Please see the
 	<a href="apidocs-oracle-thin/index.html">API docs for <tt>com.mchange.v2.c3p0.dbms.OracleUtils</tt></a>
-	for details.
+	for details.</s>
       </p>
     </div>
     <hr/>
