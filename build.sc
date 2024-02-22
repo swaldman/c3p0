@@ -6,11 +6,13 @@ import mill.scalalib._
 import mill.scalalib.publish._
 import mill.util.Jvm
 
-import java.nio.file.attribute.{PosixFilePermission => PFP}
+import scala.annotation.tailrec
 
 object Dependency {
   // mill-build/build.sc also has a mchange-commons-java dependency. Best to keep them in sync
-  val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:0.3.0-SNAPSHOT"
+  val MchangeCommonsJavaVersion = "0.3.0-SNAPSHOT"
+
+  val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
   val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
   val PgJdbc = ivy"org.postgresql:postgresql:42.6.0"
 }
@@ -185,18 +187,47 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
 
   object doc extends JavaModule
   {
-    val StagingDir = "/Users/swaldman/development/gitproj/www.mchange.com/projects/c3p0-versions"
+    val StagingDir = os.Path("/Users/swaldman/development/gitproj/www.mchange.com/projects/c3p0-versions")
+
+    def replacements : T[Map[String,String]] = T {
+        import java.time.ZonedDateTime
+        Map(
+          "@c3p0.version@" -> c3p0.publishVersion(),
+          "@mchange-commons-java.version@" -> Dependency.MchangeCommonsJavaVersion,
+          "@c3p0.copyright.year@" -> ZonedDateTime.now().getYear.toString
+        );
+    }
+
+    @tailrec
+    def replaceAll( replacements : List[(String,String)], template : String ) : String = {
+      replacements match {
+      	case head :: tail => replaceAll(tail, template.replace(head._1, head._2))
+        case Nil          => template
+      }
+    }
 
     def docsrc : T[PathRef] = T.source { millSourcePath / "docsrc" }
 
     def docroot : T[PathRef] = T {
+      val javadocRoot = c3p0.docJar().path / os.up / "javadoc"
+      val replaceMap = replacements()
       val docsrcDir = docsrc().path
       val sourcePaths = os.walk(docsrcDir)
       def destPath( sourcePath : os.Path ) = T.dest / sourcePath.relativeTo(docsrcDir)
       sourcePaths.foreach { sp =>
-        os.copy.over( sp, destPath(sp) )
+        if (sp.toString.endsWith(".html")) {
+          val replaced = replaceAll( replaceMap.toList, os.read(sp) )
+          os.write(destPath(sp), replaced)
+        }
+        else
+          os.copy.over( from=sp, to=destPath(sp) )
       }
+      os.copy.over( from = javadocRoot, to = T.dest / "apidocs" )
       PathRef(T.dest)
+    }
+
+    def stage : T[Unit] = T {
+      os.copy.over( from = docroot().path, to = StagingDir / ("c3p0-" + c3p0.publishVersion()) )
     }
   }
 
