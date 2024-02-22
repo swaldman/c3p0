@@ -183,6 +183,23 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     )
   }
 
+  object doc extends JavaModule
+  {
+    val StagingDir = "/Users/swaldman/development/gitproj/www.mchange.com/projects/c3p0-versions"
+
+    def docsrc : T[PathRef] = T.source { millSourcePath / "docsrc" }
+
+    def docroot : T[PathRef] = T {
+      val docsrcDir = docsrc().path
+      val sourcePaths = os.walk(docsrcDir)
+      def destPath( sourcePath : os.Path ) = T.dest / sourcePath.relativeTo(docsrcDir)
+      sourcePaths.foreach { sp =>
+        os.copy.over( sp, destPath(sp) )
+      }
+      PathRef(T.dest)
+    }
+  }
+
   // for now at least, I don't mean to publish tests as a public library,
   // but I do want to publish them locally so I have them when working on related
   // libraries
