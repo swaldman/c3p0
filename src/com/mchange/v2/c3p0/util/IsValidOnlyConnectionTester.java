@@ -8,7 +8,7 @@
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of EITHER:
  *
- *     1) The GNU Lesser General Public License (LGPL), version 2.1, as 
+ *     1) The GNU Lesser General Public License (LGPL), version 2.1, as
  *        published by the Free Software Foundation
  *
  * OR
@@ -29,8 +29,8 @@
  * If not, the text of these licenses are currently available at
  *
  * LGPL v2.1: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
- *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php 
- * 
+ *  EPL v1.0: http://www.eclipse.org/org/documents/epl-v10.php
+ *
  */
 
 package com.mchange.v2.c3p0.util;
@@ -52,12 +52,12 @@ public abstract class IsValidOnlyConnectionTester extends AbstractConnectionTest
     // is a doubled warning. we can live with that.
     volatile boolean warned = false;
 
-    private void checkWarn( String preferredTestQuery ) 
-    { 
-	if (preferredTestQuery != null && !warned) 
+    private void checkWarn( String preferredTestQuery )
+    {
+	if (preferredTestQuery != null && !warned)
 	{
 	    if ( logger.isLoggable( MLevel.WARNING ) )
-		logger.log( MLevel.WARNING, 
+		logger.log( MLevel.WARNING,
 			    "preferredTestQuery or automaticTestTable has been set, which " + this.getClass().getSimpleName() + " does not support. " +
 			    "preferredTestQuery and/or automaticTestTable will be ignored." );
 	    warned = true;
@@ -69,7 +69,7 @@ public abstract class IsValidOnlyConnectionTester extends AbstractConnectionTest
     public int activeCheckConnection(Connection c, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)
     {
 	checkWarn( preferredTestQuery );
-	try 
+	try
 	{
 	    int timeout = this.getIsValidTimeout();
 	    boolean okay = c.isValid( timeout );
@@ -90,7 +90,7 @@ public abstract class IsValidOnlyConnectionTester extends AbstractConnectionTest
 	    if (logger.isLoggable(MLevel.WARNING))
 	    {
 		logger.log(MLevel.WARNING,
-			   "SQL State '" + sqle.getSQLState() + "' of Exception tested by activeCheckConnection(...) implies that the database is invalid, " + 
+			   "SQL State '" + sqle.getSQLState() + "' of Exception tested by activeCheckConnection(...) implies that the database is invalid, " +
 			   "and the pool should refill itself with fresh Connections.", sqle);
 	    }
 	    return db_invalid ? DATABASE_IS_INVALID : CONNECTION_IS_INVALID;
@@ -106,17 +106,17 @@ public abstract class IsValidOnlyConnectionTester extends AbstractConnectionTest
     public int statusOnException(Connection c, Throwable t, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)
     {
 	checkWarn( preferredTestQuery );
-	
+
         try
         {
             if (t instanceof SQLException)
-            { 
+            {
                 if ( probableInvalidDb( (SQLException) t ) )
                 {
                     if (logger.isLoggable(MLevel.WARNING))
 		    {
                         logger.log(MLevel.WARNING,
-                                        "SQL State of SQLException tested by statusOnException() implies that the database is invalid, " + 
+                                        "SQL State of SQLException tested by statusOnException() implies that the database is invalid, " +
                                         "and the pool should refill itself with fresh Connections.", t);
 		    }
                     return DATABASE_IS_INVALID;
@@ -128,7 +128,7 @@ public abstract class IsValidOnlyConnectionTester extends AbstractConnectionTest
             {
                 if ( logger.isLoggable( MLevel.FINE ) ) logger.log( MLevel.FINE, "Connection test failed because test-provoking Throwable is an unexpected, non-SQLException.", t);
                 if (rootCauseOutParamHolder != null) rootCauseOutParamHolder[0] = t;
-                return CONNECTION_IS_INVALID; 
+                return CONNECTION_IS_INVALID;
             }
         }
         catch (Exception e)
