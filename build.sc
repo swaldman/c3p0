@@ -65,7 +65,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     }
     override def forkArgs = T{Seq("-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog")}
   }
-  object bean  extends Gen {}
+  object bean extends Gen {}
 
   object proxy extends Gen {
     override def sources = T { super.sources() :+ PathRef( os.pwd / "src-proxy-interface" ) }
@@ -115,6 +115,8 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     val bmt = buildModTime()
     val dmt = recursiveDirModTime( T.dest )
     if ( bmt > dmt ) {
+      import java.time.Instant
+      val timestamp = sys.env.get("SOURCE_DATE_EPOCH").map( sde => Instant.ofEpochSecond( sde.toLong ) ).getOrElse( Instant.now )
       val text =
         s"""|package com.mchange.v2.c3p0.subst;
             |
@@ -123,7 +125,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
             |    public final static String VERSION    = "${version}";
             |    public final static String DEBUG      = "${Debug}";
             |    public final static String TRACE      = "${Trace}";
-            |    public final static String TIMESTAMP  = "${java.time.Instant.now}";
+            |    public final static String TIMESTAMP  = "${timestamp}";
             |
             |    private C3P0Substitutions()
             |    {}

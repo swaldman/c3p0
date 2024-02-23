@@ -1,6 +1,13 @@
+	-- Support SOURCE_DATE_EPOCH for deterministic builds.
+	   (Here and in mchange-commons-java.)
+	   See https://github.com/swaldman/c3p0/issues/163
+	       https://reproducible-builds.org/docs/source-date-epoch/
+	       https://github.com/swaldman/mchange-commons-java/commit/09480482ddde70b98baf8437e66c5e3bba9ae3e2
+	   Thanks Bernhard M. Wiedemann!
 	-- Eliminate support for traditional reflective proxies.
 	-- Fix bad anchor in docs, thanks Hakan!
 	-- Relicense to allow users to opt for LGPL-2.1 or later, rather than LGPL-2.1-only.
+	   (Here and in mchange-commons-java.)
 	   See https://github.com/swaldman/c3p0/issues/133
 	   Thanks Bernhard E. Reiter!
 	-- Define (in a separate, Java 21, project) a loom virtual-threads based
@@ -34,6 +41,7 @@ c3p0-0.10.0-pre3
 	   See https://github.com/swaldman/c3p0/issues/132
            Thanks marcatl, MichaelMih, Leona Nezvalova!
 	-- Include license files in published source jar.
+	   (Here and in mchange-commons-java.)
 	   See https://github.com/swaldman/c3p0/issues/167
 c3p0-0.10.0-pre2
 	-- Add "Automatic-Module-Name" entry to jar manifest for interoperability with Project Jigsaw / Java 9 modules
