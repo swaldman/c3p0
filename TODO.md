@@ -7,4 +7,5 @@
   - Break testing out into separate NullConnectionTester and ConnectionTester paths
   - Simplify docs for default NullConnectionTesterPath, remove existing docs to an appendix
 * Revise / update documentation
+* Make loom warning about context classloader / privilege threads conditional on those actually being requested.
 
