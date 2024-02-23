@@ -6,6 +6,5 @@
   - Implement connectionIsValidTimeout
   - Break testing out into separate NullConnectionTester and ConnectionTester paths
   - Simplify docs for default NullConnectionTesterPath, remove existing docs to an appendix
-* Support deterministic builds (settable / suppressable timestamps)
 * Revise / update documentation
 
