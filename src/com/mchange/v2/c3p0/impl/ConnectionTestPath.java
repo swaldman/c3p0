@@ -5,5 +5,8 @@ import javax.sql.PooledConnection;
 
 interface ConnectionTestPath
 {
+    // if proxyConn is provided, just test it.
+    // if not, we have to get a proxy Connection from the PooledConnection,
+    // then be sure to close() or detach the proxy
     public void testPooledConnection(PooledConnection pc, Connection proxyConn) throws Exception;
 }

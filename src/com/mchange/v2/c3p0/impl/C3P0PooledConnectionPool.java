@@ -430,7 +430,6 @@ public final class C3P0PooledConnectionPool
 				try
 				{
 				    waitMarkPooledConnectionInUse( pc );
-				    assert !Boolean.FALSE.equals(pooledConnectionInUse( pc )); //null or true are okay
 
 				    if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
 					finerLoggingTestPooledConnection( pc, "CHECKOUT" );
@@ -559,9 +558,13 @@ public final class C3P0PooledConnectionPool
                     }
                 }
 
+                // connections should be marked in use prior to any test
+                // and unmarked in some finally after the test and other operations complete
                 private void testPooledConnection(Object resc) throws Exception
 		{ testPooledConnection( resc, null ); }
 
+                // connections should be marked in use prior to any test
+                // and unmarked in some finally after the test and other operations complete
                 private void testPooledConnection(Object resc, Connection proxyConn) throws Exception
                 {
                     PooledConnection pc = (PooledConnection) resc;
