@@ -10,7 +10,7 @@ import scala.annotation.tailrec
 
 object Dependency {
   // mill-build/build.sc also has a mchange-commons-java dependency. Best to keep them in sync
-  val MchangeCommonsJavaVersion = "0.3.0-SNAPSHOT"
+  val MchangeCommonsJavaVersion = "0.3.0"
 
   val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
   val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
@@ -20,7 +20,7 @@ object Dependency {
 object c3p0 extends RootModule with JavaModule with PublishModule {
   val organization = "com.mchange"
   override def artifactName = T{"c3p0"}
-  override def publishVersion = T{"0.10.0-pre4-SNAPSHOT"}
+  override def publishVersion = T{"0.10.0-pre4"}
 
   // we are currently building in Java 11, but releasing Java 7 compatible class files
   // for users of smaller JDBC subsets

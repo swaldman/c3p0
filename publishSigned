@@ -1,0 +1,40 @@
+#!/usr/bin/env -S scala-cli shebang
+
+// this is modified from my usual script to only publish the root module.
+// for now, we are only publishing c3p0-test locally.
+
+// expects SONATYPE_USERNAME and SONATYPE_PASSWORD to be set prior to running!
+
+val console = System.console()
+if (console == null) {
+  System.err.println("Could not initialize system console. Exiting.")
+  System.exit(1)
+}
+
+val sonatypeUsername = System.getenv("SONATYPE_USERNAME")
+val sonatypePassword = System.getenv("SONATYPE_PASSWORD")
+if (sonatypeUsername == null) {
+  System.err.println(s"Environment variable 'SONATYPE_USERNAME' not set. Exiting.")
+  System.exit(1)
+}
+if (sonatypePassword == null) {
+  System.err.println(s"Environment variable 'SONATYPE_PASSWORD' not set. Exiting.")
+  System.exit(1)
+}
+
+val gpgPassphrase = console.readPassword("Please enter GPG passphrase for signing: ")
+
+def millBinary( local : Boolean ) =
+  (if local then "./" else "") + "mill"
+
+val useLocal = (new java.io.File( millBinary(true) )).exists()
+
+val argsPreparsed = Seq(
+  millBinary( useLocal ), "mill.scalalib.PublishModule/publishAll", "publishArtifacts",
+  "--sonatypeCreds", s"${sonatypeUsername}:${sonatypePassword}",
+  "--gpgArgs", s"--passphrase=${new String(gpgPassphrase)},--batch,--yes,-a,-b,--no-tty,--pinentry-mode=loopback",
+  "--release", "false"
+)
+
+import scala.sys.process._
+argsPreparsed.!
