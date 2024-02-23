@@ -72,8 +72,6 @@ public final class C3P0PooledConnectionPool
 {
     private final static boolean ASYNCHRONOUS_CONNECTION_EVENT_LISTENER = false;
 
-    private final static Throwable[] EMPTY_THROWABLE_HOLDER = new Throwable[1];
-
     final static MLogger logger = MLog.getLogger( C3P0PooledConnectionPool.class );
 
     final ResourcePool rp;
@@ -89,8 +87,6 @@ public final class C3P0PooledConnectionPool
 
     final AsynchronousRunner sharedTaskRunner;
     final AsynchronousRunner deferredStatementDestroyer;;
-
-    final ThrowableHolderPool thp = new ThrowableHolderPool();
 
     final InUseLockFetcher inUseLockFetcher;
 
@@ -288,11 +284,12 @@ public final class C3P0PooledConnectionPool
 
             class PooledConnectionResourcePoolManager implements ResourcePool.Manager
             {
-                //SynchronizedIntHolder totalOpenedCounter  = new SynchronizedIntHolder();
-                //SynchronizedIntHolder connectionCounter   = new SynchronizedIntHolder();
-                //SynchronizedIntHolder failedCloseCounter  = new SynchronizedIntHolder();
+                ConnectionTestPath connectionTestPath;
 
-                final boolean connectionTesterIsDefault = (connectionTester instanceof DefaultConnectionTester);
+                void initAfterResourcePoolConstructed()
+                {
+                   this.connectionTestPath = new ConnectionTesterConnectionTestPath( rp, connectionTester, scache, testQuery, c3p0PooledConnections );
+                }
 
                 public Object acquireResource() throws Exception
                 {
@@ -319,8 +316,10 @@ public final class C3P0PooledConnectionPool
                         }
                         catch (ClassCastException e)
                         {
-                            throw SqlUtils.toSQLException("Cannot use a ConnectionCustomizer with a non-c3p0 ConnectionPoolDataSource." +
-                                            " ConnectionPoolDataSource: " + cpds.getClass().getName(), e);
+                            String msg =
+                                "Cannot use a ConnectionCustomizer with a non-c3p0 ConnectionPoolDataSource." +
+                                " ConnectionPoolDataSource: " + cpds.getClass().getName();
+                            throw SqlUtils.toSQLException(msg, e);
                         }
                     }
 
@@ -339,9 +338,7 @@ public final class C3P0PooledConnectionPool
                                 // System.err.print("implemented for external (non-c3p0) ");
                                 // System.err.println("ConnectionPoolDataSources.");
 
-                                logger.warning("StatementPooling not " +
-                                                "implemented for external (non-c3p0) " +
-                                "ConnectionPoolDataSources.");
+                                logger.warning("StatementPooling not implemented for external (non-c3p0) ConnectionPoolDataSources.");
                             }
                         }
 
@@ -570,117 +567,7 @@ public final class C3P0PooledConnectionPool
                     PooledConnection pc = (PooledConnection) resc;
 		    assert !Boolean.FALSE.equals(pooledConnectionInUse( pc )); //null or true are okay
 
-                    Throwable[] throwableHolder = EMPTY_THROWABLE_HOLDER;
-                    int status;
-                    Connection openedConn = null;
-                    Throwable rootCause = null;
-                    try
-                    {
-			// No! Connection must be marked in use PRIOR TO Connection test
-                        //waitMarkPooledConnectionInUse( pc );
-
-                        // if this is a c3p0 pooled-connection, let's get underneath the
-                        // proxy wrapper, and test the physical connection sometimes.
-                        // this is faster, when the testQuery would not otherwise be cached,
-                        // and it avoids a potential statusOnException() double-check by the
-                        // PooledConnection implementation should the test query provoke an
-                        // Exception
-                        Connection testConn;
-                        if (scache != null) //when there is a statement cache...
-                        {
-                            // if it's the slow, default query, faster to test the raw Connection
-                            if (testQuery == null && connectionTesterIsDefault && c3p0PooledConnections)
-                                testConn = ((AbstractC3P0PooledConnection) pc).getPhysicalConnection();
-                            else //test will likely be faster on the proxied Connection, because the test query is probably cached
-                                testConn = (proxyConn == null ? (openedConn = pc.getConnection()) : proxyConn);
-                        }
-                        else //where there's no statement cache, better to use the physical connection, if we can get it
-                        {
-                            if (c3p0PooledConnections)
-                                testConn = ((AbstractC3P0PooledConnection) pc).getPhysicalConnection();
-                            else
-                                testConn = (proxyConn == null ? (openedConn = pc.getConnection()) : proxyConn);
-                        }
-
-                        if ( testQuery == null )
-                            status = connectionTester.activeCheckConnection( testConn );
-                        else
-                        {
-                            if (connectionTester instanceof UnifiedConnectionTester)
-                            {
-                                throwableHolder = thp.getThrowableHolder();
-                                status = ((UnifiedConnectionTester) connectionTester).activeCheckConnection( testConn, testQuery, throwableHolder );
-                            }
-                            else if (connectionTester instanceof QueryConnectionTester)
-                                status = ((QueryConnectionTester) connectionTester).activeCheckConnection( testConn, testQuery );
-                            else
-                            {
-                                // System.err.println("[c3p0] WARNING: testQuery '" + testQuery +
-                                // "' ignored. Please set a ConnectionTester that implements " +
-                                // "com.mchange.v2.c3p0.advanced.QueryConnectionTester, or use the " +
-                                // "DefaultConnectionTester, to test with the testQuery.");
-
-                                logger.warning("[c3p0] testQuery '" + testQuery +
-                                                "' ignored. Please set a ConnectionTester that implements " +
-                                                "com.mchange.v2.c3p0.QueryConnectionTester, or use the " +
-                                "DefaultConnectionTester, to test with the testQuery.");
-                                status = connectionTester.activeCheckConnection( testConn );
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        if (Debug.DEBUG)
-                            logger.log(MLevel.FINE, "A Connection test failed with an Exception.", e);
-                        //e.printStackTrace();
-                        status = ConnectionTester.CONNECTION_IS_INVALID;
-//                      System.err.println("rootCause ------>");
-//                      e.printStackTrace();
-                        rootCause = e;
-                    }
-                    finally
-                    {
-                        if (rootCause == null)
-                            rootCause = throwableHolder[0];
-                        else if (throwableHolder[0] != null && logger.isLoggable(MLevel.FINE))
-                            logger.log(MLevel.FINE, "Internal Connection Test Exception", throwableHolder[0]);
-
-                        if (throwableHolder != EMPTY_THROWABLE_HOLDER)
-                            thp.returnThrowableHolder( throwableHolder );
-
-			//debug only
-//  			if (openedConn != null)
-//  			    new Exception("OPENEDCONN in testPooledConnection()").printStackTrace();
-
-			// invalidate opened proxy connection
-			// note that we close only what we might have opened in this method,
-			// if we are handed a proxyConn by the client, we leave it for
-			// that client to close()
-                        ConnectionUtils.attemptClose( openedConn );
-
-			// no! Connection should have been marked in use prior to test and should remain in use after
-                        //unmarkPooledConnectionInUse( pc );
-                    }
-
-                    switch (status)
-                    {
-                    case ConnectionTester.CONNECTION_IS_OKAY:
-                        break; //no problem, babe
-                    case ConnectionTester.DATABASE_IS_INVALID:
-                        rp.resetPool();
-                        //intentional cascade...
-                    case ConnectionTester.CONNECTION_IS_INVALID:
-                        Exception throwMe;
-                        if (rootCause == null)
-                            throwMe = new SQLException("Connection is invalid");
-                        else
-                            throwMe = SqlUtils.toSQLException("Connection is invalid", rootCause);
-                        throw throwMe;
-                    default:
-                        throw new Error("Bad Connection Tester (" +
-                                        connectionTester + ") " +
-                                        "returned invalid status (" + status + ").");
-                    }
+                    connectionTestPath.testPooledConnection( pc, proxyConn );
                 }
 
                 public void destroyResource(Object resc, boolean checked_out) throws Exception
@@ -753,7 +640,7 @@ public final class C3P0PooledConnectionPool
 		}
             }
 
-            ResourcePool.Manager manager = new PooledConnectionResourcePoolManager();
+            PooledConnectionResourcePoolManager manager = new PooledConnectionResourcePoolManager();
 
             synchronized (fact)
             {
@@ -772,8 +659,10 @@ public final class C3P0PooledConnectionPool
                 fact.setAcquisitionRetryAttempts( acq_retry_attempts );
                 fact.setAcquisitionRetryDelay( acq_retry_delay );
                 fact.setBreakOnAcquisitionFailure( break_after_acq_failure );
-                rp = fact.createPool( manager );
+                this.rp = fact.createPool( manager );
             }
+
+            manager.initAfterResourcePoolConstructed();
         }
         catch (ResourcePoolException e)
         { throw SqlUtils.toSQLException(e); }
@@ -1273,24 +1162,4 @@ public final class C3P0PooledConnectionPool
             throw SqlUtils.toSQLException( e );
         }
     }
-
-    final static class ThrowableHolderPool
-    {
-        LinkedList l = new LinkedList();
-
-        synchronized Throwable[] getThrowableHolder()
-        {
-            if (l.size() == 0)
-                return new Throwable[1];
-            else
-                return (Throwable[]) l.remove(0);
-        }
-
-        synchronized void returnThrowableHolder(Throwable[] th)
-        {
-            th[0] = null;
-            l.add(th);
-        }
-    }
-
 }
