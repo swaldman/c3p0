@@ -60,6 +60,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     //MT: thread-safe post-constructor constants
     final Connection             physicalConnection;
     final ConnectionTester       connectionTester;
+    final int                    connectionIsValidTimeout;
     final boolean                autoCommitOnClose;
     final boolean                forceIgnoreUnresolvedTransactions;
     final String                 preferredTestQuery;
@@ -94,12 +95,13 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
     // public API
     public NewPooledConnection(Connection con, 
-                    ConnectionTester connectionTester,
-                    boolean autoCommitOnClose, 
-                    boolean forceIgnoreUnresolvedTransactions,
-                    String  preferredTestQuery,
-                    ConnectionCustomizer cc,
-                    String pdsIdt) throws SQLException
+			       ConnectionTester connectionTester,
+			       int connectionIsValidTimeout,
+			       boolean autoCommitOnClose, 
+			       boolean forceIgnoreUnresolvedTransactions,
+			       String  preferredTestQuery,
+			       ConnectionCustomizer cc,
+			       String pdsIdt) throws SQLException
     { 
         try
         {
@@ -111,6 +113,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
         this.physicalConnection                = con; 
         this.connectionTester                  = connectionTester;
+	this.connectionIsValidTimeout          = connectionIsValidTimeout;
         this.autoCommitOnClose                 = autoCommitOnClose;
         this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
         this.preferredTestQuery                = preferredTestQuery;
@@ -506,7 +509,9 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                 //logger.warning("handle throwable ct: " + connectionTester);
 
                 int status;
-                if (connectionTester instanceof FullQueryConnectionTester)
+		if (connectionTester == null)
+		    status = IsValidSimplifiedConnectionTestPath.isValidTestConnectionForStatusOnly( physicalConnection, connectionIsValidTimeout );
+                else if (connectionTester instanceof FullQueryConnectionTester)
                     status = ((FullQueryConnectionTester) connectionTester).statusOnException( physicalConnection, sqle, preferredTestQuery );
                 else
                     status = connectionTester.statusOnException( physicalConnection, sqle );
@@ -552,12 +557,10 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                         fire_cxn_error = true;
                     else
                     {
-//                      System.err.println("[c3p0] Warning: PooledConnection that has already signalled a Connection error is still in use!");
-//                      System.err.println("[c3p0] Another error has occurred [ " + t + " ] which will not be reported to listeners!");
-                        if ( logger.isLoggable( MLevel.WARNING ) )
+                        if ( logger.isLoggable( MLevel.FINE ) )
                         {
-                            logger.log(MLevel.WARNING, "[c3p0] A PooledConnection that has already signalled a Connection error is still in use!");
-                            logger.log(MLevel.WARNING, "[c3p0] Another error has occurred [ " + t + " ] which will not be reported to listeners!", t);
+                            logger.log(MLevel.FINE, "[c3p0] A PooledConnection that has already signalled a Connection error is still in use!");
+                            logger.log(MLevel.FINE, "[c3p0] Another error has occurred [ " + t + " ] which will not be reported to listeners!", t);
                         }
                     }
                 }

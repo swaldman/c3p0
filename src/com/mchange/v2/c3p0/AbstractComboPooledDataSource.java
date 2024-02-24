@@ -319,6 +319,19 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
+    // WrapperConnectionPoolDataSource properties
+    public int getConnectionIsValidTimeout()
+    { return wcpds.getConnectionIsValidTimeout(); }
+
+    public void setConnectionIsValidTimeout( int connectionIsValidTimeout )
+    { 
+	if ( diff( wcpds.getConnectionIsValidTimeout(), connectionIsValidTimeout ) )
+	{
+	    wcpds.setConnectionIsValidTimeout( connectionIsValidTimeout ); 
+	    this.resetPoolManager( false );
+	}
+    }
+
     public int getAcquireIncrement()
     { return wcpds.getAcquireIncrement(); }
 

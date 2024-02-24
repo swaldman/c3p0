@@ -157,6 +157,15 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 	rebind();
     }
 
+    public int getConnectionIsValidTimeout()
+    { return combods.getConnectionIsValidTimeout(); }
+
+    public void setConnectionIsValidTimeout( int connectionIsValidTimeout ) throws NamingException
+    {
+	combods.setConnectionIsValidTimeout( connectionIsValidTimeout );
+	rebind();
+    }
+
     public int getAcquireIncrement()
     { return combods.getAcquireIncrement(); }
 

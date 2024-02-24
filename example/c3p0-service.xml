@@ -22,6 +22,7 @@
       <!-- <attribute name="AutomaticTestTable"></attribute>                    -->
       <!-- <attribute name="BreakAfterAcquireFailure">false</attribute>         -->
       <!-- <attribute name="CheckoutTimeout">0</attribute>                      -->
+      <!-- <attribute name="ConnectionIsValidTimeout">0</attribute>             -->
       <!-- <attribute name="ConnectionTesterClassName">0</attribute>            -->
       <!-- <attribute name="Description">A pooled c3p0 DataSource</attribute>   -->
       <!-- <attribute name="FactoryClassLocation"></attribute>                  -->

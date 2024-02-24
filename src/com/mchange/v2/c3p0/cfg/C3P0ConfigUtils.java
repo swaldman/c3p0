@@ -188,13 +188,24 @@ public final class C3P0ConfigUtils
 	    return null;
     }
 
-    public static Boolean extractBooleanOverride(String propName, String userName, Map userOverrides)
+    public static Boolean extractBooleanUserOverride(String propName, String userName, Map userOverrides)
     {
 	Object check = extractUserOverride( propName, userName, userOverrides);
 	if ( check == null || check instanceof Boolean )
 	    return (Boolean) check;
 	else if (check instanceof String)
 	    return Boolean.valueOf( (String) check );
+	else
+	    throw new ClassCastException("Parameter '" + propName + "' as overridden for user '" + userName + "' is " + check + ", which cannot be converted to Boolean.");
+    }
+
+    public static Integer extractIntUserOverride(String propName, String userName, Map userOverrides)
+    {
+	Object check = extractUserOverride( propName, userName, userOverrides);
+	if ( check == null || check instanceof Integer )
+	    return (Integer) check;
+	else if (check instanceof String)
+	    return Integer.valueOf( (String) check );
 	else
 	    throw new ClassCastException("Parameter '" + propName + "' as overridden for user '" + userName + "' is " + check + ", which cannot be converted to Boolean.");
     }

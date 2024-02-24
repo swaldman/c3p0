@@ -55,6 +55,7 @@ public final class C3P0Defaults
     private final static int ACQUIRE_RETRY_ATTEMPTS                     = 30;
     private final static int ACQUIRE_RETRY_DELAY                        = 1000; //milliseconds
     private final static int CHECKOUT_TIMEOUT                           = 0;    //milliseconds
+    private final static int CONNECTION_IS_VALID_TIMEOUT                = 0;    //seconds
     private final static int MAX_ADMINISTRATIVE_TASK_TIME               = 0;    //seconds
     private final static int MAX_IDLE_TIME_EXCESS_CONNECTIONS           = 0;    //seconds
     private final static int MAX_CONNECTION_AGE                         = 0;    //seconds
@@ -76,7 +77,7 @@ public final class C3P0Defaults
 
     private final static String AUTOMATIC_TEST_TABLE             = null;
     private final static String CONNECTION_CUSTOMIZER_CLASS_NAME = null;
-    private final static String CONNECTION_TESTER_CLASS_NAME     = "com.mchange.v2.c3p0.impl.DefaultConnectionTester";
+    private final static String CONNECTION_TESTER_CLASS_NAME     = null;
     private final static String TASK_RUNNER_FACTORY_CLASS_NAME   = "com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory";
     private final static String CONTEXT_CLASS_LOADER_SOURCE      = "caller"; // caller | library | none
     private final static String DRIVER_CLASS                     = null;
@@ -94,12 +95,6 @@ public final class C3P0Defaults
     private final static Map EXTENSIONS                          = Collections.emptyMap();
 
     private final static Set KNOWN_PROPERTIES;
-
-    // we need to initialize this lazily, as DefaultConnectionTester needs to access C3P0Config,
-    // which expects this class to be loaded already.
-    //
-    // MT: protected by class' lock
-    // private static ConnectionTester CONNECTION_TESTER = null;
 
     static
     {
@@ -160,6 +155,9 @@ public final class C3P0Defaults
 
     public static int checkoutTimeout()
     { return CHECKOUT_TIMEOUT; }
+
+    public static int connectionIsValidTimeout()
+    { return CONNECTION_IS_VALID_TIMEOUT; }
 
     public static int statementCacheNumDeferredCloseThreads()
     { return STATEMENT_CACHE_NUM_DEFERRED_CLOSE_THREADS; }

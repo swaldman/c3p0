@@ -18,10 +18,18 @@ final class IsValidSimplifiedConnectionTestPath implements ConnectionTestPath
     private final ResourcePool rp;
     private final int          isValidTimeout;
 
-    IsValidSimplifiedConnectionTestPath( ResourcePool rp, int isValidTimeout )
+    IsValidSimplifiedConnectionTestPath( ResourcePool rp, final int isValidTimeout )
     {
 	this.rp = rp;
-	this.isValidTimeout = isValidTimeout;
+
+	if (isValidTimeout < 0)
+	{
+	    if (logger.isLoggable(MLevel.WARNING))
+		logger.log(MLevel.WARNING, "Negative values of connectionIsValidTimeout are not supported. Using default value of " + C3P0Defaults.connectionIsValidTimeout());
+	    this.isValidTimeout = C3P0Defaults.connectionIsValidTimeout();
+	}
+	else
+	    this.isValidTimeout = isValidTimeout;
     }
 
     public void testPooledConnection(PooledConnection pc, Connection proxyConn) throws Exception
@@ -62,6 +70,33 @@ final class IsValidSimplifiedConnectionTestPath implements ConnectionTestPath
 	    if ( logger.isLoggable( MLevel.FINER ) )
 		logger.log(MLevel.FINER, "An unexpected Exception occurred while testing a Connection.", e);
 	    throw e;
+	}
+    }
+
+    public static int isValidTestConnectionForStatusOnly( Connection conn, int isValidTimeout )
+    {
+	try
+	{
+	    if (conn.isValid( isValidTimeout ))
+		return ConnectionTester.CONNECTION_IS_OKAY;
+	    else
+		return ConnectionTester.CONNECTION_IS_INVALID;
+	}
+	catch (SQLException e)
+	{
+	    if ( DefaultConnectionTester.probableInvalidDb(e) )
+		return ConnectionTester.DATABASE_IS_INVALID;
+	    else
+		return ConnectionTester.CONNECTION_IS_INVALID;
+	}
+	catch (Exception e) // some unexpected Exception
+	{
+	    // we might consider resetting the pool for entirely unexpected Exceptions.
+	    // It's arguable, but DefaultConnectionTester traditionally has not, we'll not upset
+	    // upgraders expectations at least for now
+	    if ( logger.isLoggable( MLevel.FINER ) )
+		logger.log(MLevel.FINER, "An unexpected Exception occurred while testing a Connection.", e);
+	    return ConnectionTester.CONNECTION_IS_INVALID;
 	}
     }
 }

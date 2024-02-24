@@ -146,6 +146,12 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public int getCheckoutTimeout()
     { return wcpds.getCheckoutTimeout(); }
 
+    public void setConnectionIsValidTimeout( int civt )
+    { wcpds.setConnectionIsValidTimeout( civt ); }
+
+    public int getConnectionIsValidTimeout()
+    { return wcpds.getConnectionIsValidTimeout(); }
+
     public String getConnectionTesterClassName()
     { return wcpds.getConnectionTesterClassName(); }
 

@@ -59,7 +59,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
 
     //MT: protected by this' lock
-    ConnectionTester connectionTester = C3P0Registry.getDefaultConnectionTester();
+    ConnectionTester connectionTester = null;
     Map              userOverrides;
 
     public WrapperConnectionPoolDataSource(boolean autoregister)
@@ -164,6 +164,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 				       "DataSource: " + getNestedDataSource());
             return new NewPooledConnection( conn, 
                                             connectionTester,
+					    this.getConnectionIsValidTimeout( this.getUser() ),
                                             this.isAutoCommitOnClose( this.getUser() ), 
                                             this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
                                             this.getPreferredTestQuery( this.getUser() ),
@@ -211,6 +212,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 				       "DataSource: " + getNestedDataSource());
             return new NewPooledConnection( conn, 
                                             connectionTester,
+					    this.getConnectionIsValidTimeout( user ),
                                             this.isAutoCommitOnClose( user ), 
                                             this.isForceIgnoreUnresolvedTransactions( user ),
                                             this.getPreferredTestQuery( user ),
@@ -235,12 +237,21 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	}
     }
 
+    private int getConnectionIsValidTimeout( String userName )
+    {
+	if ( userName == null )
+	    return this.getConnectionIsValidTimeout();
+
+	Integer override = (Integer) C3P0ConfigUtils.extractIntUserOverride( "connectionIsValidTimeout", userName, userOverrides );
+	return (override == null ? this.getConnectionIsValidTimeout() : override.intValue());
+    }
+
     private boolean isAutoCommitOnClose( String userName )
     {
 	if ( userName == null )
 	    return this.isAutoCommitOnClose();
 
-	Boolean override = C3P0ConfigUtils.extractBooleanOverride( "autoCommitOnClose", userName, userOverrides );
+	Boolean override = C3P0ConfigUtils.extractBooleanUserOverride( "autoCommitOnClose", userName, userOverrides );
 	return ( override == null ? this.isAutoCommitOnClose() : override.booleanValue() );
     }
 
@@ -249,7 +260,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	if ( userName == null )
 	    return this.isForceIgnoreUnresolvedTransactions();
 
-	Boolean override = C3P0ConfigUtils.extractBooleanOverride( "forceIgnoreUnresolvedTransactions", userName, userOverrides );
+	Boolean override = C3P0ConfigUtils.extractBooleanUserOverride( "forceIgnoreUnresolvedTransactions", userName, userOverrides );
 	return ( override == null ? this.isForceIgnoreUnresolvedTransactions() : override.booleanValue() );
     }
 
@@ -338,6 +349,6 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		this.connectionTester = ct;
 	    }
 	else
-	    this.connectionTester = C3P0Registry.getDefaultConnectionTester();
+	    this.connectionTester = null;
     }
 }

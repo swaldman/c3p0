@@ -86,6 +86,8 @@ public final class C3P0Registry
 {
     private final static String MC_PARAM = "com.mchange.v2.c3p0.management.ManagementCoordinator";
 
+    private final static String OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME = "com.mchange.v2.c3p0.impl.DefaultConnectionTester";
+
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( C3P0Registry.class );
 
@@ -164,40 +166,43 @@ public final class C3P0Registry
 	resetConnectionTesterCache();
     }
 
-    public static ConnectionTester getDefaultConnectionTester()
-    { return getConnectionTester( C3P0Defaults.connectionTesterClassName() ); }
-
     public static ConnectionTester getConnectionTester( String className )
     {
-        try
-        {
-	    synchronized ( classNamesToConnectionTesters )
+	if ( className == null )
+	    return null;
+	else
+	{
+	    try
 	    {
-		ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
-		if (out == null)
+		synchronized ( classNamesToConnectionTesters )
 		{
-		    out = (ConnectionTester) Class.forName( className ).newInstance();
-		    classNamesToConnectionTesters.put( className, out );
+		    ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
+		    if (out == null)
+		    {
+			out = (ConnectionTester) Class.forName( className ).newInstance();
+			classNamesToConnectionTesters.put( className, out );
+		    }
+		    return out;
 		}
-		return out;
 	    }
-        }
-        catch (Exception e)
-        {
-            if (logger.isLoggable( MLevel.WARNING ))
-                logger.log( MLevel.WARNING,
-                                "Could not create for find ConnectionTester with class name '" +
-                                className + "'. Using default.",
-                                e );
-            return recreateDefaultConnectionTester();
-        }
+	    catch (Exception e)
+	    {
+		if (logger.isLoggable( MLevel.WARNING ))
+		    logger.log( MLevel.WARNING,
+				"Could not create for find ConnectionTester with class name '"   +
+				className + "'. Skipping custom ConnectionTester, reverting to " +
+				"null ConnectionTester for IsValidSimplifiedConnectionTestPath." ,
+				e );
+		return null;
+	    }
+	}
     }
 
     // DefaultConnectionTester instantiation is now sensitive to config of QuerylessConnectionTester,
     // so when config is updated, we should recreate it. So we can't just hardcode an instance.
-    private static ConnectionTester recreateDefaultConnectionTester()
+    private static ConnectionTester recreateOldSchoolDefaultConnectionTester()
     {
-	try { return (ConnectionTester) Class.forName( C3P0Defaults.connectionTesterClassName() ).newInstance(); }
+	try { return (ConnectionTester) Class.forName( OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME ).newInstance(); }
 	catch ( Exception e )
 	    { throw new Error("Huh? We cannot instantiate the hard-coded, default ConnectionTester? We are very broken.", e); }
     }
@@ -207,7 +212,7 @@ public final class C3P0Registry
 	synchronized ( classNamesToConnectionTesters )
 	{
 	    classNamesToConnectionTesters.clear();
-	    classNamesToConnectionTesters.put(C3P0Defaults.connectionTesterClassName(), recreateDefaultConnectionTester());
+	    classNamesToConnectionTesters.put(OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME, recreateOldSchoolDefaultConnectionTester());
 	}
     }
 

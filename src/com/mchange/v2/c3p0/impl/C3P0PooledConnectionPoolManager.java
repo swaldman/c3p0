@@ -747,6 +747,17 @@ public final class C3P0PooledConnectionPoolManager
         }
     }
 
+    private int getConnectionIsValidTimeout(String userName)
+    {
+        try
+        { return getInt("connectionIsValidTimeout", userName ); }
+        catch (Exception e)
+        {
+            if ( logger.isLoggable( MLevel.FINE ) )
+                logger.log( MLevel.FINE, "Could not fetch int property", e);
+            return C3P0Defaults.connectionIsValidTimeout();
+        }
+    }
     private int getIdleConnectionTestPeriod(String userName)
     {
         try
@@ -996,6 +1007,7 @@ public final class C3P0PooledConnectionPoolManager
 								      this.getAcquireRetryDelay( userName ),
 								      this.getBreakAfterAcquireFailure( userName ),
 								      this.getCheckoutTimeout( userName ),
+								      this.getConnectionIsValidTimeout( userName ),
 								      this.getIdleConnectionTestPeriod( userName ),
 								      this.getMaxIdleTime( userName ),
 								      this.getMaxIdleTimeExcessConnections( userName ),

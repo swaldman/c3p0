@@ -78,6 +78,10 @@ public interface C3P0PooledDataSourceMBean
 
     public void setCheckoutTimeout( int checkoutTimeout ) throws NamingException;
 
+    public int getConnectionIsValidTimeout();
+
+    public void setConnectionIsValidTimeout( int connectionIsValidTimeout ) throws NamingException;
+
     public int getAcquireIncrement();
 
     public void setAcquireIncrement( int acquireIncrement ) throws NamingException;

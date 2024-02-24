@@ -1,6 +1,7 @@
 <c3p0-config>
   <default-config>
     <!-- <property name="automaticTestTable">con_test</property> -->
+    <!-- <property name="connectionIsValidTimeout">30000</property> -->
     <!-- <property name="checkoutTimeout">30000</property> -->
     <!-- <property name="idleConnectionTestPeriod">30</property> -->
     <!-- <property name="initialPoolSize">10</property> -->

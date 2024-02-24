@@ -59,6 +59,7 @@ import com.mchange.v2.async.ThreadPoolReportingAsynchronousRunner;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.c3p0.C3P0Registry;
 import com.mchange.v2.c3p0.ConnectionTester;
 import com.mchange.v2.c3p0.QueryConnectionTester;
 import com.mchange.v2.resourcepool.CannotAcquireResourceException;
@@ -84,6 +85,7 @@ public final class C3P0PooledConnectionPool
     final boolean effectiveStatementCache; //configured for caching and using c3p0 pooled Connections
 
     final int checkoutTimeout;
+    final int connectionIsValidTimeout;
 
     final AsynchronousRunner sharedTaskRunner;
     final AsynchronousRunner deferredStatementDestroyer;;
@@ -238,6 +240,7 @@ public final class C3P0PooledConnectionPool
 			      int acq_retry_delay,
 			      boolean break_after_acq_failure,
 			      int checkoutTimeout, //milliseconds
+			      final int connectionIsValidTimeout, // seconds
 			      int idleConnectionTestPeriod, //seconds
 			      int maxIdleTime, //seconds
 			      int maxIdleTimeExcessConnections, //seconds
@@ -274,6 +277,8 @@ public final class C3P0PooledConnectionPool
 
             this.checkoutTimeout = checkoutTimeout;
 
+	    this.connectionIsValidTimeout = connectionIsValidTimeout;
+
             this.sharedTaskRunner = taskRunner;
 	    this.deferredStatementDestroyer = deferredStatementDestroyer;
 
@@ -288,7 +293,45 @@ public final class C3P0PooledConnectionPool
 
                 void initAfterResourcePoolConstructed()
                 {
-                   this.connectionTestPath = new ConnectionTesterConnectionTestPath( rp, connectionTester, scache, testQuery, c3p0PooledConnections );
+		    if (connectionTester == null)
+		    {
+			if (testQuery != null)
+			{
+			    if(connectionIsValidTimeout == C3P0Defaults.connectionIsValidTimeout())
+			    {
+				if (logger.isLoggable(MLevel.WARNING))
+				    logger.log( MLevel.WARNING,
+						"Although no ConnectionTester is set, preferredTestQuery (or automaticTestTable) is also set, which can only be supported by a ConnectionTester. " +
+						"Reverting to use of ConnectionTester com.mchange.v2.c3p0.impl.DefaultConnectionTester instead." );
+				this.connectionTestPath = new ConnectionTesterConnectionTestPath( rp, C3P0Registry.getConnectionTester(DefaultConnectionTester.class.getName()), scache, testQuery, c3p0PooledConnections );
+			    }
+			    else
+			    {
+				if (logger.isLoggable(MLevel.WARNING))
+				    logger.log( MLevel.WARNING,
+						"Both a preferredTestQuery (or automaticTestTable) and a non-default value of connectionIsValidTimeout are set, but only " +
+						"one can be simultaneously supported. Will use Connection.isValid( connectionIsValidTimeout ), and " +
+						"ignore test query '" + testQuery + "'." );
+				this.connectionTestPath = new IsValidSimplifiedConnectionTestPath( rp, connectionIsValidTimeout );
+			    }
+			}
+			else
+			    this.connectionTestPath = new IsValidSimplifiedConnectionTestPath( rp, connectionIsValidTimeout );
+		    }
+		    else
+		    {
+			if (logger.isLoggable(MLevel.WARNING) && connectionIsValidTimeout != C3P0Defaults.connectionIsValidTimeout())
+			{
+				logger.log( MLevel.WARNING,
+					    "A ConnectionTester '" + connectionTester +
+					    "' is explicitly set, but also a nondefault connectionIsValidTimeout (" + connectionIsValidTimeout +
+					    "). Unfortunately connectionIsValidTimeout is not supported by ConnectionTesters, and will be ignored. " +
+					    "If you are using com.mchange.v2.c3p0.impl.DefaultConnectionTester, you may " +
+					    "set config or system property com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout instead. " +
+					    "Alternatively, just switch to simple isValid(...) testing by setting connectionTesterClassName to null" );
+			}
+			this.connectionTestPath = new ConnectionTesterConnectionTestPath( rp, connectionTester, scache, testQuery, c3p0PooledConnections );
+		    }
                 }
 
                 public Object acquireResource() throws Exception
