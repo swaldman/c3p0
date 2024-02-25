@@ -94,4 +94,7 @@ public abstract class AbstractConnectionTester implements UnifiedConnectionTeste
 
     public int statusOnException(Connection c, Throwable t, String preferredTestQuery)
     { return statusOnException( c, t, preferredTestQuery, null); }
+
+    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    public int hashCode() { return this.getClass().getName().hashCode(); }
 }

@@ -64,4 +64,7 @@ public abstract class AbstractConnectionCustomizer implements ConnectionCustomiz
 
     public void onCheckIn( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {}
+
+    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    public int hashCode() { return this.getClass().getName().hashCode(); }
 }

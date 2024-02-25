@@ -64,14 +64,24 @@ public interface ConnectionTester extends Serializable
     public int statusOnException(Connection c, Throwable t);
 
     /**
-     * Multiple testers that are of the same
-     * class and use the same criteria for determining fatality
-     * should test as equals().
+     * Define an equals(...) method so that multiple instances
+     * of your ConnectionTester can be canoncalized and shared.
+     *
+     * Often something like...
+     * <code><pre>
+     *    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+     * </pre><code>
      */
     public boolean equals( Object o );
 
     /**
      * keep consistent with equals()
+     *
+     * Often something like...
+     * <code><pre>
+     *     public int hashCode() { return this.getClass().getName().hashCode(); }
+     * </pre><code>
+     *
      */
     public int hashCode();
 }

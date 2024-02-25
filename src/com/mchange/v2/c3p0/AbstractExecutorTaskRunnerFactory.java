@@ -257,4 +257,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             return sb.toString();
         }
     }
+
+    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    public int hashCode() { return this.getClass().getName().hashCode(); }
 }

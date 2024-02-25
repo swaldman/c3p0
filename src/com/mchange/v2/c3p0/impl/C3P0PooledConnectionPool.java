@@ -302,7 +302,7 @@ public final class C3P0PooledConnectionPool
 				if (logger.isLoggable(MLevel.WARNING))
 				    logger.log( MLevel.WARNING,
 						"Although no ConnectionTester is set, preferredTestQuery (or automaticTestTable) is also set, which can only be supported by a ConnectionTester. " +
-						"Reverting to use of ConnectionTester com.mchange.v2.c3p0.impl.DefaultConnectionTester instead." );
+						"Reverting to use of ConnectionTester com.mchange.v2.c3p0.impl.DefaultConnectionTester." );
 				this.connectionTestPath = new ConnectionTesterConnectionTestPath( rp, C3P0Registry.getConnectionTester(DefaultConnectionTester.class.getName()), scache, testQuery, c3p0PooledConnections );
 			    }
 			    else

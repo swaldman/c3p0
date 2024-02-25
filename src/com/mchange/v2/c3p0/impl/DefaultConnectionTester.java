@@ -52,7 +52,6 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
     private final static String PROP_KEY             = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
     private final static String IS_VALID_TIMEOUT_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
 
-
     final static MLogger logger = MLog.getLogger( DefaultConnectionTester.class );
 
     final static int    IS_VALID_TIMEOUT; // see static initializer
@@ -386,8 +385,6 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 
     private static String queryInfo(String query)
     { return (query == null ? "[using Connection.isValid(...) if supported, or else traditional default query]" : "[query=" + query + "]"); }
-
-
 
     public boolean equals( Object o )
     { return ( o != null && o.getClass() == DefaultConnectionTester.class ); }

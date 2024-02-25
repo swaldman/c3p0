@@ -46,4 +46,7 @@ public final class DefaultTaskRunnerFactory implements TaskRunnerFactory
 
         return outHolder[0];
     }
+
+    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    public int hashCode() { return this.getClass().getName().hashCode(); }
 }
