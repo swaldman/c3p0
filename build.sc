@@ -315,6 +315,13 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
         )
       )
     }
+    // just to give ourselves the command `$ mill -i test.scalamod.console`
+    object scalamod extends ScalaModule {
+      override def moduleDeps = Seq(c3p0.test)
+      override def scalaVersion = "3.3.1"
+      override def runClasspath = T{ c3p0.test.runClasspath() }
+      override def forkArgs = T { c3p0.test.forkArgs() }
+    }
   }
 
   override def pomSettings = T {
