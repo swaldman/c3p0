@@ -82,7 +82,6 @@ public final class C3P0PooledConnectionPool
     final GooGooStatementCache scache;
 
     final boolean c3p0PooledConnections;
-    final boolean effectiveStatementCache; //configured for caching and using c3p0 pooled Connections
 
     final int checkoutTimeout;
     final int connectionIsValidTimeout;
@@ -264,7 +263,15 @@ public final class C3P0PooledConnectionPool
     {
         try
         {
-            if (maxStatements > 0 && maxStatementsPerConnection > 0)
+            this.c3p0PooledConnections = (cpds instanceof WrapperConnectionPoolDataSource);
+
+            if (!c3p0PooledConnections)
+            {
+                if (logger.isLoggable(MLevel.WARNING) && (maxStatements > 0 || maxStatementsPerConnection > 0))
+                    logger.log(MLevel.WARNING, "Statement caching is configured, but cannot be supported, because the provided ConnectionPoolDataSource is not a c3p0 implementation. Initializing with no statement cache.");
+                this.scache = null;
+            }
+            else if (maxStatements > 0 && maxStatementsPerConnection > 0)
                 this.scache = new DoubleMaxStatementCache( taskRunner, deferredStatementDestroyer, maxStatements, maxStatementsPerConnection );
             else if (maxStatementsPerConnection > 0)
                 this.scache = new PerConnectionMaxOnlyStatementCache( taskRunner, deferredStatementDestroyer, maxStatementsPerConnection );
@@ -281,9 +288,6 @@ public final class C3P0PooledConnectionPool
 
             this.sharedTaskRunner = taskRunner;
 	    this.deferredStatementDestroyer = deferredStatementDestroyer;
-
-            this.c3p0PooledConnections = (cpds instanceof WrapperConnectionPoolDataSource);
-            this.effectiveStatementCache = c3p0PooledConnections && (scache != null);
 
 	    this.inUseLockFetcher = (c3p0PooledConnections ? C3P0_POOLED_CONNECION_NESTED_LOCK_LOCK_FETCHER : RESOURCE_ITSELF_IN_USE_LOCK_FETCHER);
 
@@ -734,16 +738,16 @@ public final class C3P0PooledConnectionPool
 
     private void waitMarkPhysicalConnectionInUse(Connection physicalConnection) throws InterruptedException
     {
-        if (effectiveStatementCache)
+        if (scache != null)
             scache.waitMarkConnectionInUse(physicalConnection);
     }
 
     private boolean tryMarkPhysicalConnectionInUse(Connection physicalConnection)
-    { return (effectiveStatementCache ? scache.tryMarkConnectionInUse(physicalConnection) : true); }
+    { return (scache != null ? scache.tryMarkConnectionInUse(physicalConnection) : true); }
 
     private void unmarkPhysicalConnectionInUse(Connection physicalConnection)
     {
-        if (effectiveStatementCache)
+        if (scache != null)
             scache.unmarkConnectionInUse(physicalConnection);
     }
 
@@ -769,7 +773,7 @@ public final class C3P0PooledConnectionPool
 
     private Boolean physicalConnectionInUse(Connection physicalConnection) throws InterruptedException
     {
-        if (physicalConnection != null && effectiveStatementCache)
+        if (physicalConnection != null && scache != null)
             return scache.inUse(physicalConnection);
 	else
 	    return null;
@@ -777,7 +781,7 @@ public final class C3P0PooledConnectionPool
 
     private Boolean pooledConnectionInUse(PooledConnection pc) throws InterruptedException
     {
-        if (pc != null && effectiveStatementCache)
+        if (pc != null && scache != null)
             return scache.inUse(((AbstractC3P0PooledConnection) pc).getPhysicalConnection());
 	else
 	    return null;
@@ -796,7 +800,7 @@ public final class C3P0PooledConnectionPool
 			out = rp.checkoutResource( checkoutTimeout );
 			if (out instanceof AbstractC3P0PooledConnection)
 			    {
-				// cast should succeed, because effectiveStatementCache implies c3p0 pooled Connections
+				// cast should succeed, because scache != null implies c3p0 pooled Connections
 				AbstractC3P0PooledConnection acpc = (AbstractC3P0PooledConnection) out;
 				Connection physicalConnection = acpc.getPhysicalConnection();
 				success = tryMarkPhysicalConnectionInUse(physicalConnection);
@@ -815,11 +819,11 @@ public final class C3P0PooledConnectionPool
 
     private void unmarkConnectionInUseAndCheckin(PooledConnection pcon) throws ResourcePoolException
     {
-        if (effectiveStatementCache)
+        if (scache != null)
         {
             try
             {
-                // cast should generally succeed, because effectiveStatementCache implies c3p0 pooled Connections
+                // cast should generally succeed, because scache != null implies c3p0 pooled Connections
                 // but clients can try to check-in whatever they want, so there are potential failures here
                 AbstractC3P0PooledConnection acpc = (AbstractC3P0PooledConnection) pcon;
                 Connection physicalConnection = acpc.getPhysicalConnection();
