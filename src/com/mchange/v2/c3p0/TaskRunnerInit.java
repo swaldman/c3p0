@@ -2,6 +2,13 @@ package com.mchange.v2.c3p0;
 
 import java.util.*;
 
+/**
+ *  All fields will always be supplied from configuration and calling code,
+ *  the "if supported" stuff is just a reminder that TaskRunner implementations
+ *  need not and may not support the provided config.
+ *
+ *  (It's a fine idea to log a note, if some config will be ignored!)
+ */
 public final class TaskRunnerInit
 {
     public final int num_threads_if_supported;

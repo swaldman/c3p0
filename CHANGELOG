@@ -1,3 +1,8 @@
+	-- Define connectionIsValidTimeout as an ordinary bean-style config parameter.
+  	   Previously users had to set a universal property (in c3p0.properties or System
+	   properties) to set this timeout.
+	-- Use simplified isValid(...) based timeout by default, use traditional
+	   ConnectionTester logic only when users specify or force a ConnectionTester
 c3p0-0.10.0-pre4
 	-- Define (in a separate, Java 21, project) a loom virtual-threads based
 	   TaskRunnerFactory, VirtualThreadPerTaskExecutorTaskRunnerFactory.

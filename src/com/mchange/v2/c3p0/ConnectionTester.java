@@ -68,9 +68,9 @@ public interface ConnectionTester extends Serializable
      * of your ConnectionTester can be canoncalized and shared.
      *
      * Often something like...
-     * <code><pre>
+     * <pre><code>
      *    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
-     * </pre><code>
+     * </code></pre>
      */
     public boolean equals( Object o );
 
@@ -78,9 +78,9 @@ public interface ConnectionTester extends Serializable
      * keep consistent with equals()
      *
      * Often something like...
-     * <code><pre>
+     * <pre><code>
      *     public int hashCode() { return this.getClass().getName().hashCode(); }
-     * </pre><code>
+     * </code></pre>
      *
      */
     public int hashCode();
