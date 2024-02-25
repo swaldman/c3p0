@@ -67,10 +67,7 @@ public final class AlwaysFailConnectionTester implements QueryConnectionTester
 	return CONNECTION_IS_INVALID; 
     }
 
-    public boolean equals( Object o )
-    { return (o instanceof AlwaysFailConnectionTester); }
-
-    public int hashCode()
-    { return 1; }
+    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    public int hashCode() { return this.getClass().getName().hashCode(); }
 }
 
