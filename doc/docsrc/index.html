@@ -2153,15 +2153,16 @@ c3p0 {
 	    <a href="#breakAfterAcquireFailure">breakAfterAcquireFailure</a><br/>
 	    <a href="#checkoutTimeout">checkoutTimeout</a><br/>
 	    <a href="#connectionCustomizerClassName">connectionCustomizerClassName</a><br/>
+	    <a href="#connectionIsValidTimeout">connectionIsValidTimeout</a><br/>
 	    <a href="#connectionTesterClassName">connectionTesterClassName</a><br/>
 	    <a href="#contextClassLoaderSource">contextClassLoaderSource</a><br/>
 	    <a href="#dataSourceName">dataSourceName</a><br/>
 	    <a href="#debugUnreturnedConnectionStackTraces">debugUnreturnedConnectionStackTraces</a><br/>
 	    <a href="#driverClass">driverClass</a><br/>
 	    <a href="#extensions">extensions</a><br/>
-	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	  </td>
 	  <td>
+	    <a href="#factoryClassLocation">factoryClassLocation</a><br/>
 	    <a href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a><br/>
 	    <a href="#forceSynchronousCheckins">forceSynchronousCheckins</a><br/>
 	    <a href="#forceUseNamedDriverClass">forceUseNamedDriverClass</a><br/>
@@ -2176,9 +2177,9 @@ c3p0 {
 	    <a href="#maxStatements">maxStatements</a><br/>
 	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
 	    <a href="#minPoolSize">minPoolSize</a><br/>
-	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	  </td>
 	  <td>
+	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
 	    <a href="#overrideDefaultPassword">overrideDefaultPassword</a><br/>
 	    <a href="#password">password</a><br/>
@@ -2239,11 +2240,17 @@ c3p0 {
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
 	    If provided, c3p0 will create an empty table of the specified name, and use queries against that table to
-	    test the Connection. If <tt>automaticTestTable</tt> is provided, c3p0 will generate its own test query, therefore
+	    test the Connection. [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]<br/><br/>
+
+	    <b><i>This parameter can be useful only rarely, when working with very old JDBC drivers that do not support Java 6 <tt>Connection.isValid(int timeout)</tt>.</i></b>
+	    When using recent JDBC drivers, please leave this parameter, <tt>preferredTestQuery</tt>, and <tt>connectionTesterClassName</tt>
+	    at their default values of <tt>null</tt>, which will allow the more modern and efficient <tt>isValid(...)</tt> to be used for <tt>Connection</tt> tests.<br/><br/>
+	    
+	    If <tt>automaticTestTable</tt> is provided, c3p0 will generate its own test query, therefore
 	    any <tt>preferredTestQuery</tt> set will be ignored. You should not work with the named table after c3p0 creates
 	    it; it should be strictly for c3p0's use in testing your Connection. (If you define your own ConnectionTester, it
 	    must implement the <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>
-	    interface for this parameter to be useful.) [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
+	    interface for this parameter to be useful.) 
 	  </div>
 	</dd>
 	<dt><a name="breakAfterAcquireFailure" />breakAfterAcquireFailure</dt>
@@ -2277,16 +2284,31 @@ c3p0 {
 	    are set in the ConnectionCustomizer's onAcquire() method, these will override the Connection default values.
 	  </div>
 	</dd>
+	<dt><a name="connectionIsValidTimeout" />connectionIsValidTimeout</dt>
+	<dd>
+	  <div class="default">Default: 0</div>
+	  <div class="propdesc">
+	    Seconds, length of time during which the default <tt>Connection</tt> test &mdash; a call to the <tt>Connection.isValid(int timeout)</tt> method &mdash;
+	    will wait for a response before giving up and returning <tt>false</tt>. [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]<br/><br/>
+	    <i><b>Note:</b> This parameter does not apply if you override the default <tt>Connection</tt>
+	    test by supply a non-null value for <tt>connectionTesterClassName</tt>. This parameter is
+	    equivalent to <a href="#configuring_dctivt">setting <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout</tt></a>
+	    under prior versions' default <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester</tt>, which you can (but very rarely should) revert
+	    to by explicitly setting <tt>connectionTesterClassName</tt>.</i>
+	  </div>
+	</dd>
 	<dt><a name="connectionTesterClassName" />connectionTesterClassName</dt>
 	<dd>
-	  <div class="default">Default: com.mchange.v2.c3p0.impl.DefaultConnectionTester</div>
+	  <div class="default">Default: null</div>
 	  <div class="propdesc">
-	    The fully qualified class-name of an implememtation of the <a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html"><tt>ConnectionTester</tt></a>
+	    If not null (this should almost always be null!), the fully qualified class-name of an implememtation of the <a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html"><tt>ConnectionTester</tt></a>
 	    interface, or <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html"><tt>QueryConnectionTester</tt></a> if you would like instances
-	    to have access to a user-configured <tt>preferredTestQuery</tt>. This can be used to customize how c3p0 DataSources test Connections, but with
-	    the introduction of <tt>automaticTestTable</tt> and <tt>preferredTestQuery</tt> configuration parameters, "rolling your own" should be overkill
-	    for most users.
-	    [See <a href="#configuring_connection_testing">"Configuring Connection Testing"]</a>
+	    to have access to a user-configured <tt>preferredTestQuery</tt> or <tt>automaticTestTable</tt>. [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]<br/><br/>
+
+	    <b><i>This parameter is primarily useful for supporting
+            ancient JDBC drivers that do not offer the <tt>Connection.isValid(int timeout)</tt> method introduced with Java 6.</i></b> Connection-testing used to
+	    be complicated, but now it is standardized and simplified. If you are using an ancient driver, you can set this this to the old-school <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester</tt>.
+	    Or you can just set <tt>preferredTestQuery</tt> or <tt>automaticTestTable</tt>, which will conjure that ghost if <tt>connectionTesterClassName</tt> is left as null. And, of course, you are free to roll your own.
 	  </div>
 	</dd>
 	<dt><a name="contextClassLoaderSource" />contextClassLoaderSource</dt>
@@ -2609,14 +2631,14 @@ c3p0 {
 	    Defines the query that will be executed for all connection tests, if the default ConnectionTester (or some
 	    other implementation of <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>,
 	    or better yet <a href="apidocs/com/mchange/v2/c3p0/FullQueryConnectionTester.html">FullQueryConnectionTester</a>)
-	    is being used. Defining a <tt>preferredTestQuery</tt>
-	    that will execute quickly in your database may dramatically speed up Connection tests. (If no <tt>preferredTestQuery</tt>
-	    is set, the default ConnectionTester executes a <tt>getTables()</tt> call on the Connection's DatabaseMetaData.
-	    Depending on your database, this may execute more slowly than a "normal" database query.)
-	    <b>NOTE: The table against
-        which your <tt>preferredTestQuery</tt> will be run must exist in the database schema <i>prior</i> to your initialization
-        of your DataSource. If your application defines its own schema, try <tt>automaticTestTable</tt> instead.</b>
-        [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
+	    is being used. [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]<br/><br/>
+
+	    <b><i>This is rarely useful, and should be left as null except when using very old (pre Java 6) or broken JDBC drivers.</i></b>
+	    More recent drivers define a <tt>Connection.isValid(int timeout)</tt> method for efficient Connection tests, which will be
+	    used unless this parameter, <tt>automaticTestTable</tt>, and/or <tt>connectionTesterClassName</tt> are set to nondefault values.
+	    When working with very old JDBC drivers (or drivers who <tt>Connection.isValid(...)</tt> method is poorly implemented),
+	    defining a <tt>preferredTestQuery</tt>
+	    that will execute quickly in your database may dramatically speed up Connection tests.
 	  </div>
 	</dd>
 	<dt><a name="privilegeSpawnedThreads" />privilegeSpawnedThreads</dt>
