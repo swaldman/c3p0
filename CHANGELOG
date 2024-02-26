@@ -1,3 +1,5 @@
+c3p0-0.10.0-pre5
+	-- Lots of documenting, condensing, clean-up, etc.
 	-- Define connectionIsValidTimeout as an ordinary bean-style config parameter.
   	   Previously users had to set a universal property (in c3p0.properties or System
 	   properties) to set this timeout.
@@ -31,6 +33,7 @@ c3p0-0.10.0-pre4
 	   (Here and in mchange-commons-java.)
 	   See https://github.com/swaldman/c3p0/issues/133
 	   Thanks Bernhard E. Reiter!
+	-- Update to mchange-commons-java 0.3.0
 c3p0-0.10.0-pre3
 	-- Have build fail if we try to build with an unexpected JVM version.
 	   We want to use a consistent JVM version (currently 11) and target version (currently 7)

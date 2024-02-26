@@ -20,7 +20,7 @@ object Dependency {
 object c3p0 extends RootModule with JavaModule with PublishModule {
   val organization = "com.mchange"
   override def artifactName = T{"c3p0"}
-  override def publishVersion = T{"0.10.0-pre5-SNAPSHOT"}
+  override def publishVersion = T{"0.10.0-pre5"}
 
   // we are currently building in Java 11, but releasing Java 7 compatible class files
   // for users of smaller JDBC subsets
