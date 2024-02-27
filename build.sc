@@ -8,6 +8,10 @@ import mill.util.Jvm
 
 import scala.annotation.tailrec
 
+/*
+ * This build supports the environment variable SOURCE_DATE_EPOCH for deterministic builds.
+ */
+
 object Dependency {
   // mill-build/build.sc also has a mchange-commons-java dependency. Best to keep them in sync
   val MchangeCommonsJavaVersion = "0.3.0"
