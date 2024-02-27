@@ -36,6 +36,14 @@ $ mill publishLocal
 
 For now (v0.10.x), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
+To build the documentation
+
+```plaintext
+$ mill doc.docroot
+```
+
+You can then open in your browser `out/doc/docroot.dest/index.html`
+
 ### License
 
 c3p0 is licensed under [LGPL v.2.1](LICENSE-LGPL) or [EPL v.1.0](LICENSE-EPL), at your option.
