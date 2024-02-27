@@ -1,0 +1,44 @@
+RELEASE NOTES, c3p0-0.10.0
+==========================
+
+This is a pretty major c3p0 release. (It should be. It's the first in... a while.)
+
+Some highlights:
+
+* Pluggable threading / thread pool, including support for delegating threading
+  to existing Executors and Java 21 loom virtual threads
+
+* Much simplified Connection testing by default, and simpler configuration of JDBC 6+
+  timeout for Connection.isValid(...)
+
+* c3p0 now sports a modern, automated mill build, which will render it much
+  more appealing to incrementally maintain than its very manual 2002-era ant build
+
+* c3p0 includes richer support for JDBC 4.3, including support for begin and end
+  request methods
+
+* Many, many small improvements and bug fixes.
+
+Thanks to...
+
+    Thomas Beckmann
+    Joel Caplin
+    chinhodado
+    Mathilde Ffrench
+    Githib ghost
+    François JACQUES
+    koszta5
+    Hakan
+    Jörg Hohwiller
+    marcatl
+    Rodrigo Merino
+    MichaelMih
+    Leona Nezvalova
+    Bernhard E. Reiter
+    Michele Rossi
+    Bernhard M. Wiedemann
+    Matteo Mazza
+    Fernanda Meheust
+
+and everyone else I may have forgotten!
+
