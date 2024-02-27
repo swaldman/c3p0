@@ -47,7 +47,7 @@ You can then open in your browser `out/doc/docroot.dest/index.html`
 ### License
 
 c3p0 is licensed under [LGPL v.2.1](LICENSE-LGPL) or [EPL v.1.0](LICENSE-EPL), at your option. You may also
-opt to license c3p0 under any later version of LGPL than v.2.1.
+opt to license c3p0 under any version of LGPL higher than v.2.1.
 
 ---
 
