@@ -6,8 +6,8 @@ import javax.sql.*;
 
 public class ConnectionEventSupport
 {
-    PooledConnection source;
-    HashSet          mlisteners = new HashSet();
+    private PooledConnection source;
+    private HashSet          mlisteners = new HashSet();
 
     public ConnectionEventSupport(PooledConnection source)
     { this.source = source; }
