@@ -3,14 +3,20 @@ package com.mchange.v2.c3p0.impl;
 import java.lang.reflect.*;
 import java.util.*;
 import com.mchange.v2.c3p0.ConnectionTester;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.log.MLog;
+import com.mchange.v2.log.MLogger;
+import com.mchange.v2.log.MLevel;
 
 // all public static methods should have the name of a c3p0 config property and
 // return its default value
 public final class C3P0Defaults
 {
+    private final static MLogger logger = MLog.getLogger( C3P0Defaults.class );
+
     private final static int MAX_STATEMENTS                             = 0;
     private final static int MAX_STATEMENTS_PER_CONNECTION              = 0;
-    private final static int INITIAL_POOL_SIZE                          = 3;  
+    private final static int INITIAL_POOL_SIZE                          = 3;
     private final static int MIN_POOL_SIZE                              = 3;
     private final static int MAX_POOL_SIZE                              = 15;
     private final static int IDLE_CONNECTION_TEST_PERIOD                = 0;  //idle connections never tested
@@ -68,7 +74,7 @@ public final class C3P0Defaults
 	for (int i = 0, len = methods.length; i < len; ++i)
 	    {
 		Method m = methods[i];
-		if (Modifier.isStatic( m.getModifiers() ) && m.getParameterTypes().length == 0)
+		if (Modifier.isStatic( m.getModifiers() ) && Modifier.isPublic( m.getModifiers() ) && m.getParameterTypes().length == 0)
 		    s.add( m.getName() );
 	    }
 	KNOWN_PROPERTIES = Collections.unmodifiableSet( s );
@@ -121,8 +127,44 @@ public final class C3P0Defaults
     public static int checkoutTimeout()
     { return CHECKOUT_TIMEOUT; }
 
-    public static int connectionIsValidTimeout()
-    { return CONNECTION_IS_VALID_TIMEOUT; }
+    // special case
+    private final static String LEGACY_IS_VALID_TIMEOUT_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
+    private static boolean _connectionIsValidTimeoutSet     = false; // MT: protected by class' lock
+    private static int _connectionIsValidTimeout            = -1;    // MT: protected by class' lock
+    private static int _initializeConnectionIsValidTimeout()
+    {
+	int out = -1;
+	boolean set = false;
+	String legacyTimeoutSetting = C3P0Config.getMultiPropertiesConfig().getProperty( LEGACY_IS_VALID_TIMEOUT_KEY );
+	try
+	{
+	    if (legacyTimeoutSetting != null )
+	    {
+		out = Integer.parseInt( legacyTimeoutSetting );
+		set = true;
+		if ( logger.isLoggable(MLevel.WARNING) )
+		    logger.log(MLevel.WARNING,
+			       "Letting legacy property 'com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout' define a default 'connectionIsValidTimeout' of " +
+			       out + ". Consider eliminating this, and just setting 'connectionIsValid' directly in c3p0.properties or another config source.");
+	    }
+	}
+	catch( NumberFormatException e )
+	{
+	    if ( logger.isLoggable( MLevel.WARNING ) )
+		logger.log( MLevel.WARNING, "Could not parse value set for '" + LEGACY_IS_VALID_TIMEOUT_KEY + "' ['" + legacyTimeoutSetting + "'] into int.", e );
+	}
+	if (!set) out = CONNECTION_IS_VALID_TIMEOUT;
+	return out;
+    }
+    public static synchronized int connectionIsValidTimeout()
+    {
+	if (!_connectionIsValidTimeoutSet)
+	{
+	    _connectionIsValidTimeout = _initializeConnectionIsValidTimeout();
+	    _connectionIsValidTimeoutSet = true;
+	}
+	return _connectionIsValidTimeout;
+    }
 
     public static int statementCacheNumDeferredCloseThreads()
     { return STATEMENT_CACHE_NUM_DEFERRED_CLOSE_THREADS; }
