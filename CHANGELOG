@@ -1,3 +1,8 @@
+        -- Lots of documentation work.
+        -- Pick up com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout as default
+	   value of new connectionIsValidTimeout property, so that users upgrading from previous
+	   version still capture the setting from the old config, even as their ConnectionTester
+	   now falls back to null.
 c3p0-0.10.0-pre5
 	-- Lots of documenting, condensing, clean-up, etc.
 	-- Define connectionIsValidTimeout as an ordinary bean-style config parameter.
