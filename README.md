@@ -44,6 +44,12 @@ $ mill doc.docroot
 
 You can then open in your browser `out/doc/docroot.dest/index.html`
 
+### Building c3p0-loom
+
+Because c3p0 currently builds under Java 11, but c3p0-loom requires Java 21, c3p0 loom is a
+[separate project](https://github.com/swaldman/c3p0-loom). It is a parallel mill project.
+The instructions above apply (except `c3p0-loom` does not have independent documentation to build).
+
 ### License
 
 c3p0 is licensed under [LGPL v.2.1](LICENSE-LGPL) or [EPL v.1.0](LICENSE-EPL), at your option. You may also
