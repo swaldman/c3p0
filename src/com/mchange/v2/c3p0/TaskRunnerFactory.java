@@ -4,6 +4,14 @@ import java.util.Timer;
 import javax.sql.ConnectionPoolDataSource;
 import com.mchange.v2.async.*;
 
+/**
+ * A TaskRunnerFactory should be an immutable class with a public, no-arg constructor, and implement equals and hashCode methods to help support canonicalization.
+ *
+ * The <code>createTaskRunner</code> method will receive values for all supportable
+ * configuration. It is up to the implementation to decide and document what config it can or cannot support.
+ *
+ * Implementations may find it convenient to capture configuration information as a {@link TaskRunnerInit}.
+ */
 public interface TaskRunnerFactory
 {
     public ThreadPoolReportingAsynchronousRunner createTaskRunner(

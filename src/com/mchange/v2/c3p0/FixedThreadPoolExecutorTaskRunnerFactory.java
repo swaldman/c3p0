@@ -7,6 +7,10 @@ import java.util.concurrent.ThreadFactory;
 import javax.sql.ConnectionPoolDataSource;
 import com.mchange.v2.async.ThreadPoolReportingAsynchronousRunner;
 
+/**
+ *  This implementation supports all relevant config, including <code>numHelperThreads</code>, <code>maxAdministrativeTaskTime</code>,
+ *  <code>contextClassLoaderSource</code>, and <code>privilegeSpawnedThreads</code>.
+ */
 public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExecutorTaskRunnerFactory
 {
     // for lazy initialization, called only on first-use

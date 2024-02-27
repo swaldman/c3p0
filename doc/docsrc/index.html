@@ -92,6 +92,9 @@
         font-weight: bold;
         text-decoration: underline;
       }
+      div.boxed.gray {
+	background-color: #EEEEEE;
+      }
       div.deprecated {
          display: none;
          padding-top: 0;
@@ -286,6 +289,7 @@
 	  <a href="http://www.gnu.org/licenses/lgpl-2.1.html">Lesser GNU Public License, v.2.1 (LGPL)</a> or
 	  the <a href="http://www.eclipse.org/legal/epl-v10.html">Eclipse Public License, v.1.0 (EPL)</a>,
 	  at your option. You should have received copies of both licenses with this distribution.
+	  You may also opt to license this software under a more recent version of LGPL than v.2.1.
       </i></p>
       <ul class="pointerlist">
 	<li>API docs for c3p0 are <a href="apidocs/index.html">here</a>.</li>
@@ -298,7 +302,15 @@
 	<li>Follow <a href="https://twitter.com/c3p0_jdbc">@c3p0_jdbc</a> on Twitter.</li>
 	<li>This may not be the most recent version of c3p0. See the current <a href="https://github.com/swaldman/c3p0/blob/master/src/dist-static/CHANGELOG">CHANGELOG</a>.</li>
       </ul>
-      <p><b>Note:</b> Coordinates of this version on the Maven central repository:  <tt>[groupId: <b>com.mchange</b>, artifactId: <b>c3p0</b>, version: <b>@c3p0.version@]</b></tt></p>
+      <div class="boxed">
+	<h4>Maven coordinates</h4>
+	<p>
+	  You'll find this version on the Maven central repository <tt>[groupId:&nbsp;<b>com.mchange</b>,&nbsp;artifactId:&nbsp;<b>c3p0</b>,&nbsp;version:&nbsp;<b>@c3p0.version@]</b></tt>
+	</p>
+	<p>
+	  For <a href="#configuring_threading">support of asynchrony via Java 21 "loom" virtual threads</a>, use instead <tt>[groupId:&nbsp;<b>com.mchange</b>,&nbsp;artifactId:&nbsp;<b>c3p0-loom</b>,&nbsp;version:&nbsp;<b>@c3p0.version@</b>]</tt>
+	</p>
+      </div>
     </div>
     <hr/>
     <h2><a name="contents">Contents</a></h2>
@@ -367,15 +379,19 @@
       <li><a href="#tomcat-specific">Appendix D: Configuring c3p0 pooled DataSources for Apache Tomcat</a></li>
       <li><a href="#jboss-specific">Appendix E: JBoss-specific notes</a></li>
       <li><a href="#oracle-specific">Appendix F: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a></li>
+      <li><a href="#legacy_configuring_connection_testing">Appendix G: Legacy, configuring Connection testing with a ConnectionTester</a></li>
     </ol>
       (See also the API Documentation <a href="apidocs/index.html">here</a>)
     <hr/>
     <h2><a name="quickstart">Quickstart</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
-	c3p0 was designed to be butt-simple to use. Just put
-	the files <tt>lib/c3p0-@c3p0.version@.jar</tt> and <tt>lib/mchange-commons-java-@mchange-commons-java.version@.jar</tt> in your application's
-	effective <tt>CLASSPATH</tt>, then make a DataSource like this:
+	c3p0 was designed to be butt-simple to use.
+      </p>
+      <p>
+        Just bring Maven dependency <tt>com.mchange:c3p0:@c3p0.version@</tt> into your application's
+	effective <tt>CLASSPATH</tt> (which should bring along its one transitive dependency, <tt>mchange-commons-java</tt>).
+        Then make a DataSource like this:
       </p>
       <div class="example">
 import com.mchange.v2.c3p0.*;
@@ -417,8 +433,8 @@ cpds.close();
       <p>
 	c3p0 is an easy-to-use library for making traditional JDBC drivers
 	"enterprise-ready" by augmenting them with functionality defined by
-	the jdbc3 spec and the optional extensions to jdbc2. As of version 0.9.5,
-	c3p0 fully supports the jdbc4 spec.
+	the jdbc3 spec and the optional extensions to jdbc2.
+	c3p0 now also fully supports the jdbc4.
       </p>
       <p>
 	In particular,
@@ -477,10 +493,17 @@ cpds.close();
     <h2><a name="installation">Installation</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
-	Place the files <tt>lib/c3p0-@c3p0.version@.jar</tt> and
-	<tt>lib/mchange-commons-java-@mchange-commons-java.version@.jar</tt>
+        There is no installation beyond accessing <a href="https://repo1.maven.org/maven2/com/mchange/c3p0/">managed Maven dependency</a> <b><tt>com.mchange:c3p0:@c3p0.version@</tt></b>.
+      </p>
+      <p>
+	If you wish to make use of Java 21 ("loom") virtual threading, <a href="https://repo1.maven.org/maven2/com/mchange/c3p0-loom/">use</a> <b><tt>com.mchange:c3p0:@c3p0.version@</tt></b> instead.
+      </p>
+      <p>
+        If you want to install c3p0 by hand, just
+	place the files <tt>c3p0-@c3p0.version@.jar</tt> and
+	<tt>mchange-commons-java-@mchange-commons-java.version@.jar</tt>
 	somewhere in your CLASSPATH (or any other place where your application's
-	classloader will find it). That's it!
+	classloader will find it). For Java 21 "loom" support, also include the jar <tt>c3p0-loom-@c3p0.version@.jar</tt>.
       </p>
     </div>
     <h2><a name="using_c3p0">Using c3p0</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
@@ -544,7 +567,7 @@ cpds.setMaxPoolSize(20);
 ...
 </div>
       <p>
-	The default values of any c3p0 DataSource property are determined by configuration you supply, or
+	The default values of any c3p0 DataSource property are determined by configuration you supply (e.g. <tt>c3p0.properties</tt>), or
 	else revert to hard-coded defaults [see <a href="#configuration_properties">configuration properties</a>].
 	c3p0 supports <a href="#named_configurations">named configurations</a> so that you can
 	configure multiple DataSources.
@@ -695,7 +718,7 @@ else
 	</i>
       </p>
       <p>
-        As well as Connection pool realted statistics, you can retrieve status information about each
+        As well as Connection pool related statistics, you can retrieve status information about each
         DataSource's Thread pool.
       	Please see <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt>
       	for a complete list of available operations.</a>
@@ -718,14 +741,14 @@ else
 	<p>
 	  The first method will hand you the Set of all live c3p0
 	  <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a>. If you are sure
-	  your application only makes one <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a>,
+	  your application only makes only one <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources/a>,
 	  or you can distinguish between the DataSources by their configuration properties (inspected via "getters"), the
 	  first method may be sufficient. Because this will not always be the case, c3p0
 	  <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a> have a special property called
 	  <tt>dataSourceName</tt>. You can set the <tt>dataSourceName</tt> property directly when you construct your
 	  DataSource, or dataSourceName can be set like any other property in a named or the default config.
 	  Otherwise, <tt>dataSourceName</tt> will default to either 1) the name of your DataSource's configuration, if
-	  you constructed it with a <a href="#named_configurations">named configuration</a>; or 2) a unique (but unpredicatble)
+	  you constructed it with a <a href="#named_configurations">named configuration</a>; or 2) a unique (but unpredictable)
 	  name if you are using the default configuration.
 	</p>
 	<p>
@@ -795,13 +818,6 @@ static void cleanup(DataSource ds) throws SQLException
 	so they may be managed by
 	<a href="http://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html">Java 7+ try-with-resources</a> blocks.
       </p>
-      <p>
-	Unreferenced instances of <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html"><tt>PooledDataSource</tt></a>
-	that are not <tt>close()</tt>ed by clients
-	<tt>close()</tt> themselves prior to garbage collection in their <tt>finalize()</tt> methods.
-	As always, finalization should be considered
-	a backstop and not a prompt or sure approach to resource cleanup.
-      </p>
       <h3>
 	<a name="build_your_own">Advanced: Building your own PoolBackedDataSource</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -833,7 +849,7 @@ static void cleanup(DataSource ds) throws SQLException
       </h3>
       <div class="boxed">
 	<b>
-	  Note: As of c3p0-0.9.5, c3p0 supports the standard JDBC4 <tt>unwrap()</tt> methods
+	  Note: c3p0 version 0.9.5 and above supports the standard JDBC4 <tt>unwrap()</tt> methods
 	  for looking through proxies. Note that if you use the <tt>unwrap()</tt> methods, c3p0
 	  can not clean up any <tt>Statement</tt> or <tt>ResultSet</tt> objects you may generate
 	  from raw Connections or Statements. Users must take care to clean up these objects directly.
@@ -878,18 +894,13 @@ Method m = CLOB.class.getMethod("createTemporary", new Class[]{Connection.class,
 Object[] args = new Object[] {C3P0ProxyConnection.RAW_CONNECTION, Boolean.valueOf( true ), new Integer( 10 )};
 CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       </div>
-      <p>
-	<i>C3P0 includes special support for some Oracle-specific methods.
-	  See <a href="#oracle-specific">Appendix F</a>.
-	</i>
-      </p>
       <h2><a name="configuration">Configuration</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
       <h3>
 	<a name="programmatic_configuration"></a><a name="configuration_introduction">Introduction</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
       </h3>
       <p>
-	While c3p0 does not <i>require</i> very much configuration, it is very tweakable. Most of the interesting
+	While c3p0 does not <i>require</i> very much configuration, it is very, very tweakable. Most of the interesting
 	knobs and dials are represented as JavaBean properties. Following JavaBean conventions, we note that
 	if an Object has a property of type <tt>T</tt> called <tt>foo</tt>, it will have methods that look
 	like...
@@ -1017,98 +1028,47 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
       </h3>
       <p>
-	c3p0 can be configured to test the Connections that it pools in a variety of ways, to
-	minimize the likelihood that your application will see broken or "stale" Connections.
-	Pooled Connections can go bad for a variety of reasons -- some JDBC drivers intentionally
-	"time-out" long-lasting database Connections; back-end databases or networks sometimes go down
-	"stranding" pooled Connections; and Connections can simply become corrupted over time and use due
-	to resource leaks, driver bugs, or other causes.
+	By default, c3p0 does no Connection testing at all. Usually you will want some Connection testing.
+	In the modern world, most users need concern themselves with a very few, very simple Connection-testing related
+	configuration parameters.
       </p>
+      <div class="boxed gray">
+	<i>If you are not of the modern world &mdash; if you are using a Java 5 or older JDBC driver &mdash;
+	then you may have to revert to c3p0's <a href="#legacy_configuring_connection_testing">more complicated legacy config</a>, including parameters like
+	<a class="cfg_param" href="#automaticTestTable">automaticTestTable</a>, <a class="cfg_param" href="#connectionTesterClassName">connectionTesterClassName</a>,
+	and <a class="cfg_param" href="#preferredTestQuery">preferredTestQuery</a>. We </i>[shiver]<i> won't talks about that stuff here.
+	<a href="#legacy_configuring_connection_testing">Click the link</a>, if you dare.</i>
+      </div>
       <p>
 	c3p0 provides users a great deal of flexibility in testing Connections, via the following
 	configuration parameters:
       </p>
       <ul>
-	<li><a class="cfg_param" href="#automaticTestTable">automaticTestTable</a></li>
-	<li><a class="cfg_param" href="#connectionTesterClassName">connectionTesterClassName</a></li>
+	<li><a class="cfg_param" href="#connectionIsValidTimeout">connectionIsValidTimeout</a></li>
 	<li><a class="cfg_param" href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a></li>
-	<li><a class="cfg_param" href="#preferredTestQuery">preferredTestQuery</a></li>
 	<li><a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a></li>
 	<li><a class="cfg_param" href="#testConnectionOnCheckout">testConnectionOnCheckout</a></li>
       </ul>
+	<tt>idleConnectionTestPeriod</tt>, <tt>testConnectionOnCheckout</tt>, and <tt>testConnectionOnCheckin</tt> control <u>when</u> Connections will be tested.
+	<tt>connectionIsValidTimeout</tt> affects <u>how</u> they will be tested.
+      </ul>
       <p>
-	<tt>idleConnectionTestPeriod</tt>, <tt>testConnectionOnCheckout</tt>, and
-	<tt>testConnectionOnCheckin</tt> control <u>when</u> Connections will be tested.
-	<tt>automaticTestTable</tt>, <tt>connectionTesterClassName</tt>, and <tt>preferredTestQuery</tt> control <u>how</u> they will be tested.
+	The most reliable time to test Connections is on check-out. But this is also means clients experience a
+	(usually very modest!) performance hit from the test.
       </p>
       <p>
-	When configuring Connection testing, first try to minimize the cost of each test. If you are using a JDBC driver
-	that you are certain supports the new(ish) jdbc4 API &mdash; and if you are using c3p0-0.9.5 or higher! &mdash; let your driver handle this for you.
-	jdbc4 Connections include a method called
-	<tt>isValid()</tt> that should be implemented as a fast, reliable Connection test. By default, c3p0 will use that
-	method if it is present.
-      </p>
-
-      <p>
-	However, if your driver does not support this new-ish API, c3p0's default behavior is to test Connections
-	by calling the <tt>getTables()</tt> method on a Connection's associated <tt>DatabaseMetaData</tt>
-	object. This has the advantage of being very robust and working with any database, regardless of the database schema.
-	However, a call to <tt>DatabaseMetaData.getTables()</tt> is often much slower than a simple database query,
-	and using this test may significantly impair your pool's performance.
+	<b><i>Most application should just set <tt>testConnectionOnCheckout</tt> to <tt>true</tt> and be done with it!</i></b>
       </p>
       <p>
-	The simplest way to speed up Connection testing under a JDBC 3 driver (or a pre-0.9.5 version of c3p0)
-	is to define a test query with the <tt>preferredTestQuery</tt>
-	parameter. Be careful, however. Setting <tt>preferredTestQuery</tt> will lead to errors as Connection tests fail
-	if the query target table does not exist in your database <i>prior to initialization of your DataSource</i>.
-	Depending on your database and JDBC driver, a table-independent query like <tt>SELECT 1</tt> may (or may not) be
-	sufficient to verify the Connection.
-	If a table-independent query is not sufficient, instead of <tt>preferredTestQuery</tt>, you can set
-	the parameter <tt>automaticTestTable</tt>. Using the name
-	you provide, c3p0 will create an empty table, and make a simple query against it to test the database.
-      </p>
-      <p>
-	The most reliable time to test Connections is on check-out. But this is also the most costly choice
-	from a client-performance perspective. Most applications should work quite reliably using a combination of
+	However, if you really wish to minimize client latency, most applications should work reliably using a combination of
 	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionOnCheckin</tt>. Both the idle test and the check-in
 	test are performed asynchronously, which can lead to better performance, both perceived and actual.
       </p>
       <p>
 	For some applications, high performance is more important than the risk of an occasional database exception.
 	In its default configuration, c3p0 does no Connection testing at all. Setting a fairly long
-	<tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is an excellent, high-performance
+	<tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is another high-performance
 	approach.
-      </p>
-      <p>
-	It is possible to customize how c3p0's <tt>DefaultConnectionTester</tt> tests when no <tt>preferredTestQuery</tt>
-	or <tt>automaticTestTable</tt> are available. Please see <a href="#configuring_dctivt">Configuring DefaultConnectionTester.isValidTimeout</a> and
-	<a href="#configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a>.
-      </p>
-      <p>
-	Advanced users may define any kind of Connection testing they wish, by implementing a
-	<a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> and supplying the
-	fully qualified name of the class as <tt>connectionTesterClassName</tt>. If you'd like your custom ConnectionTesters
-	to honor and support the <tt>preferredTestQuery</tt> and <tt>automaticTestTable</tt> parameters, implement
-	<a href="apidocs/com/mchange/v2/c3p0/UnifiedConnectionTester.html">UnifiedConnectionTester</a>, most conveniently by extending
-	<a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionTester.html">AbstractConnectionTester</a>. See the <a href="apidocs/index.html">api docs</a>
-	for more information.
-      </p>
-      <p>
-	If you know you want to use the jdbc4 <tt>Connection.isValid()</tt> method, but you want to set a timeout,
-	consider writing a trivial extension of <a href="apidocs/com/mchange/v2/c3p0/util/IsValidOnlyConnectionTester.html">IsValidConnectionTester</a>.
-      </p>
-      <div class="example">
-package com.mchange.v2.c3p0.example;
-
-import com.mchange.v2.c3p0.util.IsValidOnlyConnectionTester;
-
-public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTester
-{
-    protected int getIsValidTimeout() { return 30; }
-}
-      </div>
-      <p>
-	See? These really are trivial to write.
       </p>
       <div class="boxed">
 	<a name="simple_advice_on_connection_testing" />
@@ -1117,15 +1077,6 @@ public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTe
 	  If you don't know what to do, try this:
 	</p>
 	<ol type="1">
-	  <li>
-	    <p>
-	      If you know your driver supports the JDBC 4 <tt>Connection.isValid(...)</tt> method and you are using c3p0-0.9.5 or above, don't set a <tt>preferredTestQuery</tt>.
-	      If your driver does not support this method (or if you are not sure), try <tt><b>SELECT 1</b></tt> for your <tt>preferredTestQuery</tt>, if you are running MySQL or Postgres.
-	      For other databases, look for
-	      <a href="http://stackoverflow.com/questions/3668506/efficient-sql-test-query-or-validation-query-that-will-work-across-all-or-most">suggestions here</a>.
-	      Leave <tt>automatedTestTable</tt> undefined.
-	    </p>
-	  </li>
 	  <li>
 	    <p>
 	      Begin by setting <tt>testConnectionOnCheckout</tt> to <tt>true</tt> and get your application to run correctly and stably.
@@ -1163,7 +1114,7 @@ public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTe
 	  </li>
 	</ol>
 	<p>
-	  So, when should you stick with simple and reliable (Step 2 above), and when is it worth going for better performance (Step 3)?
+	  So, when should you stick with simple and reliable (Step 1 above), and when is it worth going for better performance (Step 2)?
 	  In general, it depends on how much work clients typically do with Connections once they check them out. If clients usually
 	  make complex queries and/or perform multiple operations, adding the extra cost of one fast test per checkout will not much affect
 	  performance. But if your application typically checks out a Connection and performs one simple query with it, throwing in an additional
@@ -1171,14 +1122,10 @@ public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTe
 	</p>
 	<p>
 	  That's nice in theory, but often people don't really have a good sense of how much work clients perform on average.
-	  The best thing to do is usually to try Step 3, see if it helps (however you measure performance), see if it hurts (is your application
+	  You can give Step 2 a try, see if it helps (however you measure performance), see if it hurts (is your application
 	  troubled by broken Connections? does it recover from database restarts well enough?), and then decide. You can always go back to
 	  simple, slow, and robust. Just set <tt>testConnectionOnCheckout</tt> to <tt>true</tt>, <tt>testConnectionOnCheckin</tt> to <tt>false</tt>,
 	  and set <tt>idleConnectionTestPeriod</tt> to <tt>0</tt>.
-	</p>
-	<p>
-	  <i>But do, always, be sure that your tests themselves are performant, either because your JDBC driver supports </i><tt>Connection.isValid(...)</tt><i> or because
-	  you have set an efficient</i> <tt>preferredTestQuery</tt> <i>!!!</i>
 	</p>
       </div>
       <h3>
@@ -1228,8 +1175,12 @@ public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTe
 	If <tt>statementCacheNumDeferredCloseThreads</tt> is greater than zero, the Statement pool will defer physically close()ing cached Statements until
 	its parent Connection is not in use by any client or internally (in e.g. a test) by the pool itself. For some JDBC drivers
 	(especially Oracle), attempts to close a Statement freeze if the parent Connection is in use. This parameter defaults to 0.
-	Set it to a positive value if you observe "APPARENT DEADLOCKS" realted to Connection close tasks. Almost always, that value should
-        be one: if you need more than one Thread dedicated solely to Statement destruction, you probably should set <tt>maxStatements</tt> and/or
+	Set it to a positive value if you observe "APPARENT DEADLOCKS" related to Connection close tasks. If you are using
+	<a href="#configuring_threading">custom threading</a> rather than c3p0's default Thread pool, look for other evidence of Connection close tasks freezing.
+      </p>
+      <p>
+	Almost always, the value of <tt>statementCacheNumDeferredCloseThreads</tt> should be either its default value of zero, or just one.
+	If you need more than one Thread dedicated solely to Statement destruction, you probably should set <tt>maxStatements</tt> and/or
 	<tt>maxStatementsPerConnection</tt> to higher values so you don't churn through cached Statements so quickly.
       </p>
       <h3>
@@ -1440,7 +1391,8 @@ public class VerboseConnectionCustomizer
       </p>
       <p>
         <b>Note:</b> If users take control over c3p0's threading by providing a non-default <tt>taskRunnerFactoryClassName</tt>,
-        these properties may or may not be honored.
+        these properties may or may not be honored. See the documentation or the implementation of your
+	<a href="apidocs/com/mchange/v2/c3p0/TaskRunnerFactory.html"><tt>TaskRunnerFactory</tt></a>.
       </p>
       <h3>
 	<a name="configuring_threading">Configuring threading</a>
@@ -1467,14 +1419,72 @@ public class VerboseConnectionCustomizer
         <tt>DataSource</tt> uses, by providing a non-default value for <tt>taskRunnerFactoryClassName</tt>.
         This should be the fully qualified class name of an immutable class with a public no-arg constructor,
         which implements the interface <a href="apidocs/com/mchange/v2/c3p0/TaskRunnerFactory.html"><tt>TaskRunnerFactory</tt></a>.
-        It becomes up to the implementor of this class whether and how <tt>numHelperThreads</tt> or <tt>maxAdministrativeTaskTime</tt>
-        are supported. <tt>contextClassLoaderSource</tt> and <tt>privilegeSpawnedThreads</tt> may not be supported unless
-        threads are spawned directly within the factory method of this class.
+        It becomes up to the implementor of this class whether and how <tt>numHelperThreads</tt>, <tt>maxAdministrativeTaskTime</tt>,
+	<tt>contextClassLoaderSource</tt>, and <tt>privilegeSpawnedThreads</tt>	
+        are supported.
       </p>
       <p>
-        Most users will want to leave <tt>taskRunnerFactoryClassName</tt> at c3p0's default, or use else published alternative implementations,
-        rather than roll your own. But of course you can roll your own!
+        Most users will want to leave <tt>taskRunnerFactoryClassName</tt> at c3p0's default, or use else published alternative implementations.
+	Out of the box c3p0 includes
       </p>
+      <ul>
+	<li><a href="apidocs/com/mchange/v2/c3p0/impl/DefaultTaskRunnerFactory.html"><tt>com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory</tt></a></li>
+	<li><a href="apidocs/com/mchange/v2/c3p0/FixedThreadPoolExecutorTaskRunnerFactory.html"><tt>com.mchange.v2.c3p0.FixedThreadPoolExecutorTaskRunnerFactory</tt></a></li>
+      </ul>
+      <p>
+	If you have brought in support for Java 21 "loom" virtual threads, you can also use
+      </p>
+      <ul>
+	<li><a href="https://github.com/swaldman/c3p0-loom/blob/main/src/com/mchange/v2/c3p0/loom/VirtualThreadPerTaskExecutorTaskRunnerFactory.java"><tt>com.mchange.v2.c3p0.loom.VirtualThreadPerTaskExecutorTaskRunnerFactory</tt></a></li>
+      </ul>
+      <p>
+        But of course you can roll your own! Implement the interface <a href="apidocs/com/mchange/v2/c3p0/TaskRunnerFactory.html"><tt>TaskRunnerFactory</tt></a>
+	with an immutable class with a public, no-arg constructor, put it in your application's <tt>CLASSPATH</tt>, and supply its fully qualified name as
+	<tt>taskRunnerFactoryClassName</tt>.
+      </p>
+      <p>
+	c3p0 includes special support for delegating threading to a <tt>java.util.concurrent.Executor</tt>. Your <tt>PooledDataSource</tt> may "own" the <tt>Executor</tt>,
+	so it will be shut down when your <tt>DataSource</tt> is closed, or may share (not own) it, in which case the lifecycle of the <tt>Executor</tt> will be independent of
+	the lifecycle of your <tt>DataSource</tt>. Just extend the abstract class <a href="apidocs/com/mchange/v2/c3p0/AbstractExecutorTaskRunnerFactory.html"><tt>AbstractExecutorTaskRunnerFactory</tt></a>.
+	A useful utility will be <a href="apidocs/com/mchange/v2/c3p0/TaskRunnerThreadFactory.html"><tt>TaskRunnerThreadFactory</tt></a>, an implementation of <tt>java.util.concurrent.ThreadFactory</tt> that
+	handles support of <a href="#contextClassLoaderSource">contextClassLoaderSource</a> and <a href="#privilegeSpawnedThreads">privilegeSpawnedThreads</a>.
+      </p>
+      <p>
+	<tt>AbstractExecutorTaskRunnerFactory</tt> defers its "findCreate" of its executor until it receives its first asynchronous request. You can safely stand-up a shared
+	<tt>Executor</tt> in your application initialization, then have your implementation of <tt>Executor findCreateExecutor( TaskRunnerInit init )</tt> look up it up after
+	application start. If you are using a shared executor, just be sure your override of <tt>boolean taskRunnerOwnsExecutor()</tt> returns <tt>false</tt>.
+      </p>
+      <p>
+	<a href="apidocs/com/mchange/v2/c3p0/FixedThreadPoolExecutorTaskRunnerFactory.html"><tt>com.mchange.v2.c3p0.FixedThreadPoolExecutorTaskRunnerFactory</tt></a> provides a
+	a decent example implementation of <a href="apidocs/com/mchange/v2/c3p0/AbstractExecutorTaskRunnerFactory.html"><tt>AbstractExecutorTaskRunnerFactory</tt></a>.
+	It provides its own <tt>Executor</tt>, rather than look up a shared pool.
+      </p>
+      <div class="example">
+public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExecutorTaskRunnerFactory
+{
+    // for lazy initialization, called only on first-use
+    protected Executor findCreateExecutor( TaskRunnerInit init )
+    {
+        ThreadFactory tf = new TaskRunnerThreadFactory( init.contextClassLoaderSourceIfSupported, init.privilege_spawned_threads_if_supported, init.threadLabelIfSupported, null );
+        return Executors.newFixedThreadPool( init.num_threads_if_supported, tf );
+    }
+
+    protected boolean taskRunnerOwnsExecutor() { return true; }
+
+    protected ThreadPoolReportingAsynchronousRunner createTaskRunner( TaskRunnerInit init, Timer timer )
+    { return new FixedThreadPoolExecutorAsynchronousRunner( init, timer ); }
+
+    protected final class FixedThreadPoolExecutorAsynchronousRunner extends AbstractExecutorAsynchronousRunner
+    {
+        protected FixedThreadPoolExecutorAsynchronousRunner( TaskRunnerInit init, Timer timer )
+        { super( init, timer ); }
+
+        public int getThreadCount() { return init.num_threads_if_supported; }
+        public int getIdleCount()   { return getThreadCount() - getActiveCount(); }
+    }
+}
+      </div>
+      <p>See also <a href="https://github.com/swaldman/c3p0-loom/blob/main/src/com/mchange/v2/c3p0/loom/VirtualThreadPerTaskExecutorTaskRunnerFactory.java"><tt>com.mchange.v2.c3p0.loom.VirtualThreadPerTaskExecutorTaskRunnerFactory</tt></a>.</p>
       <h3>
 	<a name="other_ds_configuration">Other DataSource Configuration</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -2286,15 +2296,15 @@ c3p0 {
 	</dd>
 	<dt><a name="connectionIsValidTimeout" />connectionIsValidTimeout</dt>
 	<dd>
-	  <div class="default">Default: 0</div>
+	  <div class="default">Default: 0, or the value of <a href="#configuring_dctivt"><tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout</tt></a> if set</div>
 	  <div class="propdesc">
 	    Seconds, length of time during which the default <tt>Connection</tt> test &mdash; a call to the <tt>Connection.isValid(int timeout)</tt> method &mdash;
 	    will wait for a response before giving up and returning <tt>false</tt>. [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]<br/><br/>
 	    <i><b>Note:</b> This parameter does not apply if you override the default <tt>Connection</tt>
 	    test by supply a non-null value for <tt>connectionTesterClassName</tt>. This parameter is
 	    equivalent to <a href="#configuring_dctivt">setting <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout</tt></a>
-	    under prior versions' default <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester</tt>, which you can (but very rarely should) revert
-	    to by explicitly setting <tt>connectionTesterClassName</tt>.</i>
+	    under prior versions' when the default ConnectionTester was in use. In order not to break old configs, if <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout</tt> is set,
+	    we'll pick it up as the default, but with a warning recommend transitioning from the legacy config.</i>
 	  </div>
 	</dd>
 	<dt><a name="connectionTesterClassName" />connectionTesterClassName</dt>
@@ -2846,11 +2856,19 @@ c3p0 {
 	  or provide any other String to set the VMID that will be used directly. The default is <tt>AUTO</tt>.
 	</p>
 
-	<h4><a name="configuring_dctivt">Configuring DefaultConnectionTester.isValidTimeout</a></h4>
+	<h4><a name="configuring_dctivt">Configuring legacy DefaultConnectionTester.isValidTimeout</a></h4>
+
+        <p>
+          <i>
+            <b>Note:</b> As of c3p0-0.10.0 and above, this is no longer relevant to most users, who should just use the ordinary config property <a href="#connectionIsValidTimeout"><tt>connectionIsValidTimeout</tt></a> instead.
+            It remains useful only for users who explicitly set a <tt>preferredTestQuery</tt> or <tt>automaticTestTable</tt>, or else who explcitly set <tt>connectionTesterClassName</tt>
+            to <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester</tt>.
+          </i>
+        </p>
 
 	<p>
-	  Under circumstances when the JDBC 4+ <tt>isValid(...)</tt> test will be used by c3p0's built in
-	  DefaultConnectionTester (see <a href="#configuring_dctqtr">below</a>), by default the test
+	  Under circumstances when the JDBC 4+ <tt>isValid(...)</tt> test will be used by c3p0's 
+	  <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester</tt> (see <a href="#configuring_dctqtr">below</a>), by default the test
 	  will never time out. If you would the test to timeout and fail, set the following key
 	</p>
 
@@ -2862,7 +2880,14 @@ c3p0 {
 	  to the desired timeout, in seconds.
 	</p>
 
-	<h4><a name="configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a></h4>
+	<h4><a name="configuring_dctqtr">Configuring legacy DefaultConnectionTester.QuerylessTestRunner</a></h4>
+        <p>
+          <i>
+            <b>Note:</b> As of c3p0-0.10.0 and above, this is no longer relevant to most users.
+            It remains has an effect only for users who explicitly set a <tt>preferredTestQuery</tt> or <tt>automaticTestTable</tt>, or else who explcitly set <tt>connectionTesterClassName</tt>
+            to <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester</tt>.
+          </i>
+        </p>
         <p>
 	  c3p0's built-in DefaultConnectionTester does the right and obvious thing when you've provided a <a href="#preferredTestQuery">preferredTestQuery</a>
 	  or <a href="#automaticTestTable">automaticTestTable</a> parameter. But when it has no user-determined query to run to test a Connection,
@@ -3439,6 +3464,196 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
 	for easier access to this functionality. Please see the
 	<a href="apidocs-oracle-thin/index.html">API docs for <tt>com.mchange.v2.c3p0.dbms.OracleUtils</tt></a>
 	for details.</s>
+      </p>
+    </div>
+    <h2>
+      <a name="legacy_configuring_connection_testing">Appendix G: Legacy, configuring Connection Testing with a ConnectionTester</a>
+      <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+    </h2>
+    <p>
+      <i>As of c3p0 0.10.0, c3p0's config property <tt>connectionTesterClassName</tt> defaults to <tt>null</tt>.
+      When this property is <tt>null</tt>, c3p0 just uses the Java 6+ <tt>Connection.isValid(int timeout)</tt>
+      method to test Connections.</i>
+    </p>
+    <p>
+      <i>But c3p0 is an old library, first published uner Java 1.3. Back in the day, we didn't have no stinking
+      standard <tt>Connection.isValid(int timeout)</tt> method, and had to roll our own Connection tests.
+      This Appendix documents that old but still supported style of Connection test management.
+      To make this section relevant again, just 1) set <tt>connectionTesterClassName</tt> to its old
+      default of <tt>com.mchange.v2.c3p0.DefaultConnectionTester</tt>; 2) set <tt>connectionTesterClassName</tt> to
+      the name of a custom <tt>ConnectionTester</tt> implementation with a public no-arg constructor; 3) set a
+      non-null <tt>preferredTestQuery</tt>; or 4) set a non-null <tt>automaticTestTable</tt>. If any <tt>connectionTesterClassName</tt>
+      is explicitly set, the provided <tt>ConnectionTester</tt> implementation will be used. If <tt>preferredTestQuery</tt> or
+      <tt>automaticTestTable</tt> are set, but no <tt>connectionTesterClassName</tt> is provided, an instance of
+      <tt>com.mchange.v2.c3p0.DefaultConnectionTester</tt> will be used to perform Connection tests.</i>
+    </p>
+    <p>
+      <i>If any of these conditions apply, the following section documents how Connection testing with a ConnectionTester
+      works in c3p0.</i>
+    </p>
+    <hr/>
+    <p>
+      c3p0 can be configured to test the Connections that it pools in a variety of ways, to
+      minimize the likelihood that your application will see broken or "stale" Connections.
+      Pooled Connections can go bad for a variety of reasons -- some JDBC drivers intentionally
+      "time-out" long-lasting database Connections; back-end databases or networks sometimes go down
+      "stranding" pooled Connections; and Connections can simply become corrupted over time and use due
+      to resource leaks, driver bugs, or other causes.
+    </p>
+    <p>
+      c3p0 provides users a great deal of flexibility in testing Connections, via the following
+      configuration parameters:
+    </p>
+    <ul>
+      <li><a class="cfg_param" href="#automaticTestTable">automaticTestTable</a></li>
+      <li><a class="cfg_param" href="#connectionTesterClassName">connectionTesterClassName</a></li>
+      <li><a class="cfg_param" href="#idleConnectionTestPeriod">idleConnectionTestPeriod</a></li>
+      <li><a class="cfg_param" href="#preferredTestQuery">preferredTestQuery</a></li>
+      <li><a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a></li>
+      <li><a class="cfg_param" href="#testConnectionOnCheckout">testConnectionOnCheckout</a></li>
+    </ul>
+    <p>
+      <tt>idleConnectionTestPeriod</tt>, <tt>testConnectionOnCheckout</tt>, and
+      <tt>testConnectionOnCheckin</tt> control <u>when</u> Connections will be tested.
+      <tt>automaticTestTable</tt>, <tt>connectionTesterClassName</tt>, and <tt>preferredTestQuery</tt> control <u>how</u> they will be tested.
+    </p>
+    <p>
+      When configuring Connection testing, first try to minimize the cost of each test. If you are using a JDBC driver
+      that you are certain supports the new(ish) jdbc4 API &mdash; and if you are using c3p0-0.9.5 or higher! &mdash; let your driver handle this for you.
+      jdbc4 Connections include a method called
+      <tt>isValid()</tt> that should be implemented as a fast, reliable Connection test. By default, c3p0 will use that
+      method if it is present.
+    </p>
+    <p>
+      However, if your driver does not support this new-ish API, c3p0's default behavior is to test Connections
+      by calling the <tt>getTables()</tt> method on a Connection's associated <tt>DatabaseMetaData</tt>
+      object. This has the advantage of being very robust and working with any database, regardless of the database schema.
+      However, a call to <tt>DatabaseMetaData.getTables()</tt> is often much slower than a simple database query,
+      and using this test may significantly impair your pool's performance.
+    </p>
+    <p>
+      The simplest way to speed up Connection testing under a JDBC 3 driver (or a pre-0.9.5 version of c3p0)
+      is to define a test query with the <tt>preferredTestQuery</tt>
+      parameter. Be careful, however. Setting <tt>preferredTestQuery</tt> will lead to errors as Connection tests fail
+      if the query target table does not exist in your database <i>prior to initialization of your DataSource</i>.
+      Depending on your database and JDBC driver, a table-independent query like <tt>SELECT 1</tt> may (or may not) be
+      sufficient to verify the Connection.
+      If a table-independent query is not sufficient, instead of <tt>preferredTestQuery</tt>, you can set
+      the parameter <tt>automaticTestTable</tt>. Using the name
+      you provide, c3p0 will create an empty table, and make a simple query against it to test the database.
+    </p>
+    <p>
+      The most reliable time to test Connections is on check-out. But this is also the most costly choice
+      from a client-performance perspective. Most applications should work quite reliably using a combination of
+      <tt>idleConnectionTestPeriod</tt> and <tt>testConnectionOnCheckin</tt>. Both the idle test and the check-in
+      test are performed asynchronously, which can lead to better performance, both perceived and actual.
+    </p>
+    <p>
+      For some applications, high performance is more important than the risk of an occasional database exception.
+      In its default configuration, c3p0 does no Connection testing at all. Setting a fairly long
+      <tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is an excellent, high-performance
+      approach.
+    </p>
+    <p>
+      It is possible to customize how c3p0's <tt>DefaultConnectionTester</tt> tests when no <tt>preferredTestQuery</tt>
+      or <tt>automaticTestTable</tt> are available. Please see <a href="#configuring_dctivt">Configuring DefaultConnectionTester.isValidTimeout</a> and
+      <a href="#configuring_dctqtr">Configuring DefaultConnectionTester.QuerylessTestRunner</a>.
+    </p>
+    <p>
+      Advanced users may define any kind of Connection testing they wish, by implementing a
+      <a href="apidocs/com/mchange/v2/c3p0/ConnectionTester.html">ConnectionTester</a> and supplying the
+      fully qualified name of the class as <tt>connectionTesterClassName</tt>. If you'd like your custom ConnectionTesters
+      to honor and support the <tt>preferredTestQuery</tt> and <tt>automaticTestTable</tt> parameters, implement
+      <a href="apidocs/com/mchange/v2/c3p0/UnifiedConnectionTester.html">UnifiedConnectionTester</a>, most conveniently by extending
+      <a href="apidocs/com/mchange/v2/c3p0/AbstractConnectionTester.html">AbstractConnectionTester</a>. See the <a href="apidocs/index.html">api docs</a>
+      for more information.
+    </p>
+    <p>
+      If you know you want to use the jdbc4 <tt>Connection.isValid()</tt> method, but you want to set a timeout,
+      consider writing a trivial extension of <a href="apidocs/com/mchange/v2/c3p0/util/IsValidOnlyConnectionTester.html">IsValidConnectionTester</a>.
+    </p>
+    <div class="example">
+package com.mchange.v2.c3p0.example;
+
+import com.mchange.v2.c3p0.util.IsValidOnlyConnectionTester;
+
+public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTester
+{
+  protected int getIsValidTimeout() { return 30; }
+}
+    </div>
+    <p>
+      See? These really are trivial to write.
+    </p>
+    <div class="boxed">
+      <a name="legacy_simple_advice_on_connection_testing" />
+      <h4>Simple advice on Connection testing</h4>
+      <p>
+        If you don't know what to do, try this:
+      </p>
+      <ol type="1">
+        <li>
+          <p>
+            If you know your driver supports the JDBC 4 <tt>Connection.isValid(...)</tt> method and you are using c3p0-0.9.5 or above, don't set a <tt>preferredTestQuery</tt>.
+            If your driver does not support this method (or if you are not sure), try <tt><b>SELECT 1</b></tt> for your <tt>preferredTestQuery</tt>, if you are running MySQL or Postgres.
+            For other databases, look for
+            <a href="http://stackoverflow.com/questions/3668506/efficient-sql-test-query-or-validation-query-that-will-work-across-all-or-most">suggestions here</a>.
+            Leave <tt>automatedTestTable</tt> undefined.
+          </p>
+        </li>
+        <li>
+          <p>
+            Begin by setting <tt>testConnectionOnCheckout</tt> to <tt>true</tt> and get your application to run correctly and stably.
+            If you are happy with your application's performance, <i>you can stop here!</i> This is the simplest, most reliable form of
+            Connection-testing, but it does have a client-visible performance cost.
+          </p>
+        </li>
+        <li>
+          <p>If you'd like to improve performance by eliminating Connection testing from clients' code path:</p>
+          <ol type="a">
+            <li><p>Set <tt>testConnectionOnCheckout</tt> to <tt>false</tt></p></li>
+            <li><p>Set <tt>testConnectionOnCheckin</tt> to <tt>true</tt></p></li>
+            <li>
+              <p>
+                Set <tt>idleConnectionTestPeriod</tt> to <tt>30</tt>, fire up you application and observe.
+                This is a pretty robust setting, all Connections will tested on check-in and every 30 seconds thereafter while in the pool.
+                Your application should experience broken or stale Connections only very rarely, and the pool should
+                recover from a database shutdown and restart quickly. But there is some overhead associated
+                with all that Connection testing.
+              </p>
+            </li>
+            <li>
+              <p>
+                If database restarts will be rare so quick recovery is not an
+                issue, consider reducing the frequency of tests by <tt>idleConnectionTestPeriod</tt> to, say, <tt>300</tt>,
+                and see whether clients are troubled by stale or broken Connections. If not, stick with <tt>300</tt>, or try an
+                even bigger number. Consider setting <tt>testConnectionOnCheckin</tt> back to false to avoid unnecessary tests
+                on checkin. Alternatively, if your application does encounter bad Connections, consider reducing <tt>idleConnectionTestPeriod</tt>
+                and set <tt>testConnectionOnCheckin</tt> back to <tt>true</tt>. There are no correct or incorrect values for these parameters:
+                you are trading off overhead for reliability in deciding how frequently to test. The exact numbers are not so critical.
+                It's usually easy to find configurations that perform well. It's rarely worth spending time in pursuit of "optimal" values here.
+              </p>
+            </li>
+          </ol>
+        </li>
+      </ol>
+      <p>
+        So, when should you stick with simple and reliable (Step 2 above), and when is it worth going for better performance (Step 3)?
+        In general, it depends on how much work clients typically do with Connections once they check them out. If clients usually
+        make complex queries and/or perform multiple operations, adding the extra cost of one fast test per checkout will not much affect
+        performance. But if your application typically checks out a Connection and performs one simple query with it, throwing in an additional
+        test can really slow things down.
+      </p>
+      <p>
+        That's nice in theory, but often people don't really have a good sense of how much work clients perform on average.
+        The best thing to do is usually to try Step 3, see if it helps (however you measure performance), see if it hurts (is your application
+        troubled by broken Connections? does it recover from database restarts well enough?), and then decide. You can always go back to
+        simple, slow, and robust. Just set <tt>testConnectionOnCheckout</tt> to <tt>true</tt>, <tt>testConnectionOnCheckin</tt> to <tt>false</tt>,
+        and set <tt>idleConnectionTestPeriod</tt> to <tt>0</tt>.
+      </p>
+      <p>
+        <i>But do, always, be sure that your tests themselves are performant, either because your JDBC driver supports </i><tt>Connection.isValid(...)</tt><i> or because
+        you have set an efficient</i> <tt>preferredTestQuery</tt> <i>!!!</i>
       </p>
     </div>
     <hr/>

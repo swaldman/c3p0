@@ -57,7 +57,17 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         return createTaskRunner(init, timer);
     }
 
-    // it's the informational methods near the end that concrete implementations want to consider overriding
+    /**
+     * This implementation includes uninformative stub implementations of
+     *
+     *   <pre><code>
+     *   public int getThreadCount()      { return -1; }
+     *   public int getIdleCount()        { return -1; }
+     *   public int getPendingTaskCount() { return -1; }
+     *   </code></pre>
+     *
+     * Consider overriding those if you can!
+     */
     protected abstract class AbstractExecutorAsynchronousRunner implements ThreadPoolReportingAsynchronousRunner
     {
         //MT: post-constructor final, internally thread-safe
