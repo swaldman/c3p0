@@ -24,7 +24,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
 
     //MT: protected by this' lock
-    ConnectionTester connectionTester = null;
+    ConnectionTester connectionTester;
     Map              userOverrides;
 
     public WrapperConnectionPoolDataSource(boolean autoregister)
@@ -32,6 +32,16 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	super( autoregister );
 
 	setUpPropertyListeners();
+
+	// set up initial value of connectionTester,
+        // if connectionTesterClassName is null,
+        // will initialize connectionTester to null
+        try { recreateConnectionTester( this.getConnectionTesterClassName() ); }
+	catch (Exception e)
+	    {
+		if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Failed to construct initial ConnectionTester of type " + this.getConnectionTesterClassName() + "; backing off to null and default isValid(...) test!", e );
+	    }
 
 	//set up initial value of userOverrides
 	try
