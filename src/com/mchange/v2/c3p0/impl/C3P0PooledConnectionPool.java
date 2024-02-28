@@ -46,6 +46,8 @@ public final class C3P0PooledConnectionPool
     final ConnectionTester     connectionTester;
     final GooGooStatementCache scache;
 
+    final Resurrectables resurrectables;
+
     final boolean c3p0PooledConnections;
 
     final int checkoutTimeout;
@@ -62,6 +64,28 @@ public final class C3P0PooledConnectionPool
     public int getStatementDestroyerNumConnectionsInUse()                           { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsInUse(); }
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatements()   { return scache == null ? -1 : scache.getStatementDestroyerNumConnectionsWithDeferredDestroyStatements(); }
     public int getStatementDestroyerNumDeferredDestroyStatements()                  { return scache == null ? -1 : scache.getStatementDestroyerNumDeferredDestroyStatements(); }
+
+    private static class Resurrectables
+    {
+        //MT: protected by this' lock
+        WeakHashMap candidates = new WeakHashMap();
+
+        public synchronized void markResurrectable( Object resc )
+        {
+            candidates.put( resc, this );
+            if (Debug.DEBUG && logger.isLoggable(MLevel.FINER))
+                logger.log(MLevel.FINER, "Marked broken resource resurrectable: " + resc);
+        }
+
+        // both checks and removes/clears pconn
+        public synchronized boolean checkResurrectable( Object resc )
+        {
+            boolean out = (candidates.remove( resc ) != null);
+            if (Debug.DEBUG && logger.isLoggable(MLevel.FINER) && out)
+                logger.log(MLevel.FINER, "Found and cleared resurrectable resource: " + resc);
+            return out;
+        }
+    }
 
     /**
      *  This "lock fetcher" crap is a lot of ado about very little.
@@ -215,6 +239,7 @@ public final class C3P0PooledConnectionPool
 			      boolean forceSynchronousCheckins,
 			      final boolean testConnectionOnCheckout,
 			      final boolean testConnectionOnCheckin,
+                              boolean attemptResurrectOnCheckin,
 			      int maxStatements,
 			      int maxStatementsPerConnection,
 			      /* boolean statementCacheDeferredClose,      */
@@ -244,6 +269,11 @@ public final class C3P0PooledConnectionPool
                 this.scache = new GlobalMaxOnlyStatementCache( taskRunner, deferredStatementDestroyer, maxStatements );
             else
                 this.scache = null;
+
+            if (attemptResurrectOnCheckin)
+                this.resurrectables = new Resurrectables();
+            else
+                this.resurrectables = null;
 
             this.connectionTester = connectionTester;
 
@@ -461,6 +491,7 @@ public final class C3P0PooledConnectionPool
                 public void refurbishResourceOnCheckin( Object resc ) throws Exception
                 {
 		    Connection proxyToClose = null; // can't close a proxy while we own parent PooledConnection's lock.
+                    boolean attemptResurrect = (resurrectables != null && resurrectables.checkResurrectable(resc));
 		    try
 		    {
 		      synchronized (inUseLockFetcher.getInUseLock(resc))
@@ -477,7 +508,7 @@ public final class C3P0PooledConnectionPool
 				connectionCustomizer.onCheckIn( physicalConnection, parentDataSourceIdentityToken );
 				SQLWarnings.logAndClearWarnings( physicalConnection );
 
-				if ( testConnectionOnCheckin )
+				if ( testConnectionOnCheckin || attemptResurrect)
 				{
 				    if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
 					finerLoggingTestPooledConnection( resc, "CHECKIN" );
@@ -508,7 +539,7 @@ public final class C3P0PooledConnectionPool
 				con = pc.getConnection();
 				SQLWarnings.logAndClearWarnings(con);
 
-				if ( testConnectionOnCheckin )
+				if ( testConnectionOnCheckin || attemptResurrect )
 				{
 				    if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
 					finerLoggingTestPooledConnection( resc, con, "CHECKIN" );
@@ -524,6 +555,9 @@ public final class C3P0PooledConnectionPool
 			    }
 			}
 		      }
+                      // if we haven't failed the test by throwing then...
+                      if (Debug.DEBUG && logger.isLoggable(MLevel.FINE) && attemptResurrect)
+                          logger.log(MLevel.FINE, "A resource that had previously experienced a Connection error has been successfully resurrected on checkin: " + resc);
 		    }
 		    finally
 		    {
@@ -807,7 +841,7 @@ public final class C3P0PooledConnectionPool
        rp.checkinResource(pcon);
     }
 
-    public void checkinPooledConnection(PooledConnection pcon) throws SQLException
+    private void checkinPooledConnection(PooledConnection pcon) throws SQLException
     {
         //System.err.println(this + " -- CHECKIN");
         try
@@ -983,7 +1017,10 @@ public final class C3P0PooledConnectionPool
                     throw new RuntimeException("connectionErrorOcccurred() should only be " +
                     "called for errors fatal to the Connection.");
                 case ConnectionTester.CONNECTION_IS_INVALID:
-                    rp.markBroken( pc );
+                    if (resurrectables == null)
+                        rp.markBroken( pc );
+                    else
+                        resurrectables.markResurrectable( pc );
                     break;
                 case ConnectionTester.DATABASE_IS_INVALID:
                     if (logger.isLoggable(MLevel.WARNING))

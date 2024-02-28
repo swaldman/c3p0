@@ -21,6 +21,7 @@ Some highlights:
 
 Config parameters added:
 ------------------------
+    attemptResurrectOnCheckin
     connectionIsValidTimeout
     taskRunnerFactoryClassName
 

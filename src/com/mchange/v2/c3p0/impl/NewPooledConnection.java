@@ -458,7 +458,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     synchronized boolean isStatementCaching()
     { return scache != null; }
 
-    //synchrnized internally to avoid holding locks during event multicast
+    //synchronized internally to avoid holding locks during event multicast
     SQLException handleThrowable( Throwable t )
     {
         boolean fire_cxn_error = false;
@@ -467,11 +467,12 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         {
             synchronized (this)
             {
-                if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
+                if (Debug.DEBUG && logger.isLoggable( MLevel.FINER ))
                     logger.log( MLevel.FINER, this + " handling a throwable.", t );
 
                 sqle = SqlUtils.toSQLException( t );
-                //logger.warning("handle throwable ct: " + connectionTester);
+
+                // logger.warning("handle throwable ct: " + connectionTester + " exc: " + t);
 
                 int status;
 		if (connectionTester == null)
@@ -480,6 +481,8 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                     status = ((FullQueryConnectionTester) connectionTester).statusOnException( physicalConnection, sqle, preferredTestQuery );
                 else
                     status = connectionTester.statusOnException( physicalConnection, sqle );
+
+                // logger.warning("status: " + status);
 
                 updateConnectionStatus( status ); 
                 if (status != ConnectionTester.CONNECTION_IS_OKAY)
@@ -522,7 +525,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                         fire_cxn_error = true;
                     else
                     {
-                        if ( logger.isLoggable( MLevel.FINE ) )
+                        if ( Debug.DEBUG && logger.isLoggable( MLevel.FINE ) )
                         {
                             logger.log(MLevel.FINE, "[c3p0] A PooledConnection that has already signalled a Connection error is still in use!");
                             logger.log(MLevel.FINE, "[c3p0] Another error has occurred [ " + t + " ] which will not be reported to listeners!", t);

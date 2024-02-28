@@ -123,6 +123,10 @@ public interface C3P0PooledDataSourceMBean
 
     public void setTestConnectionOnCheckin( boolean testConnectionOnCheckin ) throws NamingException;
 
+    public boolean isAttemptResurrectOnCheckin();
+    
+    public void setAttemptResurrectOnCheckin( boolean attemptResurrectOnCheckin ) throws NamingException;
+
     public String getPreferredTestQuery();
 
     public void setPreferredTestQuery( String preferredTestQuery ) throws NamingException;

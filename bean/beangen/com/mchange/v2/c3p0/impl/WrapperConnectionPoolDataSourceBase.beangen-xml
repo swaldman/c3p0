@@ -196,6 +196,13 @@
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
+       <type>boolean</type>
+       <name>attemptResurrectOnCheckin</name>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("attemptResurrectOnCheckin", C3P0Defaults.attemptResurrectOnCheckin())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
        <type>int</type>
        <name>statementCacheNumDeferredCloseThreads</name>
        <default-value>C3P0Config.initializeIntPropertyVar("statementCacheNumDeferredCloseThreads", C3P0Defaults.statementCacheNumDeferredCloseThreads())</default-value>

@@ -35,6 +35,7 @@ c3p0.acquireIncrement=10
 #c3p0.acquireRetryAttempts=60
 #c3p0.connectionTesterClassName=com.mchange.v2.c3p0.test.AlwaysFailConnectionTester
 c3p0.initialPoolSize=15
+#c3p0.attemptResurrectOnCheckin=true
 
 c3p0.jdbcUrl=@c3p0.jdbcUrl@
 c3p0.driverClass=@c3p0.driverClass@

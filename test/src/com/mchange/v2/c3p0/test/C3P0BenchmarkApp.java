@@ -558,6 +558,11 @@ public final class C3P0BenchmarkApp
 
 				    pstmt = con.prepareStatement( EMPTY_TABLE_CONDITIONAL_SELECT );
 
+                                    // if (Math.random() < 0.1)
+                                    //     pstmt = con.prepareStatement( "Syntax Error" );
+                                    // else
+                                    //     pstmt = con.prepareStatement( EMPTY_TABLE_CONDITIONAL_SELECT );
+
 // 				    if (Math.random() < 0.5)
 // 					stmt = pstmt;
 // 				    else if (stmt != null)

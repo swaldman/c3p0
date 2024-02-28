@@ -573,6 +573,18 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
+    public boolean isAttemptResurrectOnCheckin()
+    { return wcpds.isAttemptResurrectOnCheckin(); }
+
+    public void setAttemptResurrectOnCheckin( boolean attemptResurrectOnCheckin )
+    { 
+	if ( diff( wcpds.isAttemptResurrectOnCheckin(), attemptResurrectOnCheckin ) )
+	{
+	    wcpds.setAttemptResurrectOnCheckin( attemptResurrectOnCheckin ); 
+	    this.resetPoolManager( false );
+	}
+    }
+
     public String getPreferredTestQuery()
     { return wcpds.getPreferredTestQuery(); }
 

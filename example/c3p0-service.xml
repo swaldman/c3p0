@@ -38,7 +38,7 @@
       <!-- <attribute name="PreferredTestQuery"></attribute>                    -->
       <!-- <attribute name="TestConnectionOnCheckin">false</attribute>          -->
       <!-- <attribute name="TestConnectionOnCheckout">false</attribute>         -->
-
+      <!-- <attribute name="AttemptResurrectOnCheckin">false</attribute>          -->
 
       <depends>jboss:service=Naming</depends>
    </mbean>

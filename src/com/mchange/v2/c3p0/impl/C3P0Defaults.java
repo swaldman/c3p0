@@ -37,6 +37,7 @@ public final class C3P0Defaults
     private final static boolean BREAK_AFTER_ACQUIRE_FAILURE                 = false;
     private final static boolean TEST_CONNECTION_ON_CHECKOUT                 = false;
     private final static boolean TEST_CONNECTION_ON_CHECKIN                  = false;
+    private final static boolean ATTEMPT_RESURRECT_ON_CHECKIN                = false;
     private final static boolean AUTO_COMMIT_ON_CLOSE                        = false;
     private final static boolean FORCE_IGNORE_UNRESOLVED_TXNS                = false;
     private final static boolean DEBUG_UNRETURNED_CONNECTION_STACK_TRACES    = false;
@@ -204,6 +205,9 @@ public final class C3P0Defaults
 
     public static boolean testConnectionOnCheckin()
     { return TEST_CONNECTION_ON_CHECKIN; }
+
+    public static boolean attemptResurrectOnCheckin()
+    { return ATTEMPT_RESURRECT_ON_CHECKIN; }
 
     public static boolean autoCommitOnClose()
     { return AUTO_COMMIT_ON_CLOSE; }

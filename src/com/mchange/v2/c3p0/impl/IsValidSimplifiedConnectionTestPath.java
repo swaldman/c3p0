@@ -66,7 +66,7 @@ final class IsValidSimplifiedConnectionTestPath implements ConnectionTestPath
 	{
 	    // we might consider resetting the pool for entirely unexpected Exceptions.
 	    // It's arguable, but DefaultConnectionTester traditionally has not, we'll not upset
-	    // upgraders expectations at least for now
+	    // upgraders' expectations at least for now
 	    if ( logger.isLoggable( MLevel.FINER ) )
 		logger.log(MLevel.FINER, "An unexpected Exception occurred while testing a Connection.", e);
 	    throw e;

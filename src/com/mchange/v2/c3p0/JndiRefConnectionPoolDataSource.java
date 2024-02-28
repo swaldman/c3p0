@@ -87,6 +87,12 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setAcquireRetryDelay( int ard )
     { wcpds.setAcquireRetryDelay( ard ); }
 
+    public boolean isAttemptResurrectOnCheckin()
+    { return wcpds.isAttemptResurrectOnCheckin(); }
+
+    public void setAttemptResurrectOnCheckin( boolean attemptResurrectOnCheckin )
+    { wcpds.setAttemptResurrectOnCheckin( attemptResurrectOnCheckin ); }
+
     public boolean isAutoCommitOnClose()
     { return wcpds.isAutoCommitOnClose(); }
 
@@ -224,6 +230,7 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	referenceMaker.addReferenceProperty("acquireIncrement");
 	referenceMaker.addReferenceProperty("acquireRetryAttempts");
 	referenceMaker.addReferenceProperty("acquireRetryDelay");
+	referenceMaker.addReferenceProperty("attemptResurrectOnCheckin");
 	referenceMaker.addReferenceProperty("autoCommitOnClose");
 	referenceMaker.addReferenceProperty("automaticTestTable");
 	referenceMaker.addReferenceProperty("checkoutTimeout");

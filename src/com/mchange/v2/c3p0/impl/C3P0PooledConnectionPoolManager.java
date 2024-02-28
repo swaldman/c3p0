@@ -783,6 +783,18 @@ public final class C3P0PooledConnectionPoolManager
         }
     }
 
+    private boolean getAttemptResurrectOnCheckin(String userName)
+    {
+        try
+        { return getBoolean("attemptResurrectOnCheckin", userName ); }
+        catch (Exception e)
+        {
+            if ( logger.isLoggable( MLevel.FINE ) )
+                logger.log( MLevel.FINE, "Could not fetch boolean property", e);
+            return C3P0Defaults.attemptResurrectOnCheckin();
+        }
+    }
+
     private boolean getDebugUnreturnedConnectionStackTraces(String userName)
     {
         try
@@ -1001,6 +1013,7 @@ public final class C3P0PooledConnectionPoolManager
 								      this.getForceSynchronousCheckins( userName ),
 								      this.getTestConnectionOnCheckout( userName ),
 								      this.getTestConnectionOnCheckin( userName ),
+                                                                      this.getAttemptResurrectOnCheckin( userName ),
 								      this.getMaxStatements( userName ),
 								      this.getMaxStatementsPerConnection( userName ),
 								      this.getConnectionTester( userName ),

@@ -299,6 +299,15 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 	rebind();
     }
 
+    public boolean isAttemptResurrectOnCheckin()
+    { return combods.isAttemptResurrectOnCheckin(); }
+
+    public void setAttemptResurrectOnCheckin( boolean attemptResurrectOnCheckin ) throws NamingException
+    {
+	combods.setAttemptResurrectOnCheckin( attemptResurrectOnCheckin );
+	rebind();
+    }
+
     public String getPreferredTestQuery()
     { return combods.getPreferredTestQuery(); }
 
