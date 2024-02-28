@@ -19,6 +19,15 @@ Some highlights:
 
 * Many, many small improvements and bug fixes.
 
+Config parameters added:
+------------------------
+    connectionIsValidTimeout
+    taskRunnerFactoryClassName
+
+Deprecated config parameter removed:
+------------------------------------
+    usesTraditionalReflectiveProxies
+
 Thanks to...
 
     Andy at Privitar
