@@ -911,6 +911,19 @@ public final class C3P0PooledConnectionPoolManager
         }
     }
 
+    // we know by this point automaticTestTable is nonnull and nonempty
+    private boolean checkAutomaticTestTable( String automaticTestTable )
+    {
+        int len = automaticTestTable.length();
+
+        assert len > 0;
+
+        boolean out = Character.isJavaIdentifierStart(automaticTestTable.charAt(0));
+        for (int i = 1; i < len; ++i)
+            out = out && Character.isJavaIdentifierPart(automaticTestTable.charAt(i));
+        return out;
+    }
+
     // called only from sync'ed methods
     private C3P0PooledConnectionPool createPooledConnectionPool(DbAuth auth) throws SQLException
     {
@@ -918,20 +931,25 @@ public final class C3P0PooledConnectionPoolManager
         String automaticTestTable = getAutomaticTestTable( userName );
         String realTestQuery;
 
-        if (automaticTestTable != null)
+        if (automaticTestTable != null && automaticTestTable.length() > 0)
         {
-            realTestQuery = initializeAutomaticTestTable( automaticTestTable, auth );
-            if (this.getPreferredTestQuery( userName ) != null)
+            if (!checkAutomaticTestTable(automaticTestTable))
+                throw new SQLException("'"+automaticTestTable+"' is not a valid automaticTestTable name. For security reasons, please use a name that would be a valid Java identifier.");
+            else
             {
-                if ( logger.isLoggable( MLevel.WARNING ) )
+                realTestQuery = initializeAutomaticTestTable( automaticTestTable, auth );
+                if (this.getPreferredTestQuery( userName ) != null)
                 {
-                    logger.logp(MLevel.WARNING,
-                                    C3P0PooledConnectionPoolManager.class.getName(),
-                                    "createPooledConnectionPool",
-                                    "[c3p0] Both automaticTestTable and preferredTestQuery have been set! " +
-                                    "Using automaticTestTable, and ignoring preferredTestQuery. Real test query is ''{0}''.",
-                                    realTestQuery
-                    );
+                    if ( logger.isLoggable( MLevel.WARNING ) )
+                    {
+                        logger.logp(MLevel.WARNING,
+                                        C3P0PooledConnectionPoolManager.class.getName(),
+                                        "createPooledConnectionPool",
+                                        "[c3p0] Both automaticTestTable and preferredTestQuery have been set! " +
+                                        "Using automaticTestTable, and ignoring preferredTestQuery. Real test query is ''{0}''.",
+                                        realTestQuery
+                        );
+                    }
                 }
             }
         }
