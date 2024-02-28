@@ -95,6 +95,9 @@
       div.boxed.gray {
 	background-color: #EEEEEE;
       }
+      div.boxed.red {
+	  background-color: #FFDDDD;
+      }
       div.deprecated {
          display: none;
          padding-top: 0;
@@ -192,13 +195,11 @@
       img {
          border: 0;
       }
-      ol.contents ol {
+      ol.level2 > li {
+	 font-size: smaller;
          list-style-type: lower-roman;
       }
-      ol.contents ol li {
-	 font-size: smaller;
-      }
-      ol.contents > ul.box {
+      ol.level2 ul.box {
          list-style: circle;
       }
       ol.precedence {
@@ -299,7 +300,7 @@
       <ul class="pointerlist">
 	<li>Follow or fork <a href="https://github.com/swaldman/c3p0">c3p0 on GitHub</a>.</li>
 	<li>Follow <a href="https://tech.interfluidity.com/">tech.interfluidity.com</a>.</li>
-	<li>This may not be the most recent version of c3p0. See the current <a href="https://github.com/swaldman/c3p0/blob/0.10.x/CHANGELOG">CHANGELOG</a>.</li>
+	<li>This may not be the most recent version of c3p0.<br/>See the current <a href="https://github.com/swaldman/c3p0/blob/0.10.x/CHANGELOG">CHANGELOG</a>.</li>
       </ul>
       <div class="boxed">
 	<h4>Maven coordinates</h4>
@@ -321,16 +322,18 @@
       <li><a href="#installation">Installation</a></li>
       <li>
 	<a href="#using_c3p0">Using c3p0</a>
-	<ol class="contents">
+	<ol class="level2">
 	  <li><a href="#using_combopooleddatasource">Using ComboPooledDataSource</a></li>
-	  <li><a href="#using_datasources_factory">Using the DataSouces factory class</a></li>
-	  <ul class="box">
-	    <li><a href="#forceOverrideBox">Box: Overriding authentication information (from non-c3p0 DataSources)</a></li>
-	  </ul>
-	  <li><a href="#querying">Querying Pool Status</a></li>
-	  <ul class="box">
-	    <li><a href="#using_c3p0_registry_box">Box: Using C3P0Registry to find a reference to a DataSource</a></li>
-	  </ul>
+	  <li><a href="#using_datasources_factory">Using the DataSouces factory class</a>
+            <ul class="box">
+              <li><a href="#forceOverrideBox">Box: Overriding authentication information (from non-c3p0 DataSources)</a></li>
+            </ul>
+          </li>
+	  <li><a href="#querying">Querying Pool Status</a>
+            <ul class="box">
+              <li><a href="#using_c3p0_registry_box">Box: Using C3P0Registry to find a reference to a DataSource</a></li>
+            </ul>
+          </li>
 	  <li><a href="#cleaning">Cleaning Up Pool Resources</a></li>
 	  <li><a href="#build_your_own">Advanced: Building Your Own PoolBackedDataSource</a></li>
 	  <li><a href="#raw_connection_ops">Advanced: Raw Connection and Statement Operations</a></li>
@@ -338,14 +341,20 @@
       </li>
       <li>
 	<a href="#configuration">Configuration</a>
-	<ol class="contents">
-	  <li><a href="#configuration_introduction">Introduction</a></li>
+	<ol class="level2">
+	  <li>
+            <a href="#configuration_introduction">Introduction</a>
+            <ul class="box">
+              <li><a href="#configuration_security_box">Warning: c3p0 config trusts its configuration!</a></li>
+            </ul>
+          </li>            
 	  <li><a href="#basic_pool_configuration">Basic Pool Configuration</a></li>
 	  <li><a href="#managing_pool_size">Managing Pool Size and Connection Age</a></li>
-	  <li><a href="#configuring_connection_testing">Configuring Connection Testing</a></li>
-	  <ul class="box">
-	    <li><a href="#simple_advice_on_connection_testing">Box: Simple advice on Connection testing </a></li>
-	  </ul>
+	  <li><a href="#configuring_connection_testing">Configuring Connection Testing</a>
+	    <ul class="box">
+	      <li><a href="#simple_advice_on_connection_testing">Box: Simple advice on Connection testing </a></li>
+	    </ul>
+          </li>
 	  <li><a href="#configuring_statement_pooling">Configuring Statement Pooling</a></li>
 	  <li><a href="#configuring_recovery">Configuring Recovery From Database Outages</a></li>
 	  <li><a href="#connection_customizers">Managing Connection Lifecycles with Connection Customizers</a></li>
@@ -366,14 +375,15 @@
       <li><a href="#known_shortcomings">Known shortcomings</a></li>
       <li><a href="#feedback_and_support">Feedback and support</a></li>
       <li><a href="#configuration_properties">Appendix A: Configuration Properties</a></li>
-      <li><a href="#configuration_files">Appendix B: Configuation Files, etc.</a></li>
-	<ol class="contents">
+      <li><a href="#configuration_files">Appendix B: Configuation Files, etc.</a>
+	<ol class="level2">
 	  <li><a href="#c3p0_properties">Overriding c3p0 defaults with a c3p0.properties file</a></li>
 	  <li><a href="#c3p0_conf">Overriding c3p0 defaults with "HOCON" (typesafe-config) configuration files</a></li>
 	  <li><a href="#system_properties">Overriding c3p0 defaults with System properties</a></li>
 	  <li><a href="#c3p0-config.xml">Named and Per-User configuration: Overriding c3p0 defaults via c3p0-config.xml</a></li>
 	  <li><a href="#configuration_precedence">Precedence of Configuration Settings</a></li>
 	</ol>
+      </li>
       <li><a href="#hibernate-specific">Appendix C: Hibernate-specific notes</a></li>
       <li><a href="#tomcat-specific">Appendix D: Configuring c3p0 pooled DataSources for Apache Tomcat</a></li>
       <li><a href="#jboss-specific">Appendix E: JBoss-specific notes</a></li>
@@ -917,10 +927,43 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<li>via <a href="#c3p0_conf">HOCON (typesafe-config) files</a> (if and only if you bundle the typesafe-config library with your application)</li>
 	<li>via an <a href="#c3p0-config.xml">XML configuration file</a></li>
 	<li>via <a href="#system_properties">System properties</a></li></ul> Configuration files
-	are normally looked up under standard names (<tt>c3p0.properties</tt> or <tt>c3p0-config.xml</tt>)
-	at the top level of an application's classpath, but the XML configuration can be placed
-	anywhere in an application's file system or classpath, if the system property <a href="#locating_configuration_information"><tt>com.mchange.v2.c3p0.cfg.xml</tt></a> is set.
+	are normally looked up under standard names (<tt>c3p0.properties</tt> or <tt>c3p0-config.xml</tt> or <a href="#c3p0_conf">HOCON variations</a>)
+	at the top level of an application's classpath. The XML configuration may be placed
+	elsewhere in an application's file system or classpath, if the system property <a href="#locating_configuration_information"><tt>com.mchange.v2.c3p0.cfg.xml</tt></a> is set.
       </p>
+      <div class="boxed red">
+        <h4><a name="configuration_security_box">Warning: c3p0 trusts its configuration!</a></h4>
+        <p>
+          c3p0 trusts the information it discovers from any of the above sources.
+        </p>
+        <p>
+          The library presumes that any <tt>c3p0.properties</tt>, <tt>c3p0-config.xml</tt>, or <a href="#c3p0_conf">HOCON variations</a>
+          (<tt>application.{conf|properties|json}</tt>, <tt>reference.{conf|properties|json}</tt>, <tt>c3p0.{conf|properties|json}</tt>)
+          discovered in the <tt>CLASSPATH</tt> are safe and trustworthy. System properties, which can override most config, are also presumed secure.
+        </p>
+        <p>
+          In general, c3p0 requires the application <tt>CLASSPATH</tt> to be secure. If it is not, an adversary could interfere with internal c3p0
+          resources, not to mention class bytecode, and cause a wide variety of mischief.
+        </p>
+        <p>
+          A reviewer has noted that an adversary that controls c3p0 configuration properties could perform SQL injection attacks via legacy configuration
+          parameters <a class="cfg_param" href="#automaticTestTable">automaticTestTable</a> and <a class="cfg_param" href="#preferredTestQuery">preferredTestQuery</a>.
+        </p>
+        <p>
+          c3p0 now adds a guard to reject dangerous values of <tt>automaticTestTable</tt>, but there is no suitable guard for <tt>preferredTestQuery</tt>.
+          Creative and unusual values of <tt>preferredTestQuery</tt>, including calls to stored procedures, are sometimes desirable.
+        </p>
+        <p>
+          An adversary that can 1) add classes to the application <tt>CLASSPATH</tt> and 2) redefine any of config parameters <a class="cfg_param" href="#connectionCustomizerClassName">connectionCustomizerClassName</a>,
+          <a href="#connectionTesterClassName">connectionTesterClassName</a>, or <a href="#taskRunnerFactoryClassName">taskRunnerFactoryClassName</a> can cause c3p0 to execute
+          whatever arbitrary code a malicious plug-in implementation might supply.
+        </p>
+        <p>
+          c3p0 trusts its configuration &mdash; in its <tt>CLASSPATH</tt>, its System properties, and in any XML file located at System property
+          <a href="#locating_configuration_information"><tt>com.mchange.v2.c3p0.cfg.xml</tt></a>.
+          If an adversary compromises and can alter that configuration, c3p0 will not be secure.
+        </p>
+      </div>
       <p>
 	DataSources are usually configured before they are used, either
 	during or immediately following their construction. c3p0 does
@@ -2772,12 +2815,12 @@ c3p0 {
       <p>
 	The following configuration properties affect the behavior of the c3p0 library as a whole. They
 	may be set as system properties, in a <a href="#c3p0_properties"><tt>c3p0.properties</tt></a> file,
-	or in a <a href="#c3p0_conf">HOCON (typesafe-config) file</a>.
+	or in a <a href="#c3p0_conf">HOCON (typesafe-config) file</a>, but not in XML config files.
       </p>
       <div class="other_properties_desc">
     <h4><a name="locating_configuration_information">Locating and Resolving Configuration Information</a></h4>
     <p>
-      Normally, c3p0's configuration information is placed in a either a c3p0-config.xml or c3p0.properties file
+      Normally, c3p0's configuration information is placed in a either a c3p0-config.xml, c3p0.properties, or a <a href="#c3p0_conf">HOCON file</a>
       at the top-level of an application's CLASSPATH. However, if you wish to place configuration information
       elsewhere, you may place c3p0 configuration information (in the <a href="#c3p0-config.xml">XML file format</a> only!) anywhere you'd like
       in the filesystem visible to your application. Just set the following property to the full, absolute path
