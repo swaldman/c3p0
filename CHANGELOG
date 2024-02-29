@@ -1,6 +1,9 @@
+	-- Lots of documentation work.
+	-- Implement attemptResurrectOnCheckin config parameter.
+	   See https://github.com/swaldman/c3p0/issues/47
+	   Thanks Bartosz Radaczyński and Igor Khromov!
 	-- Add guard to automaticTestTable preventing use of weird or potentially malicious table names.
 	   Thanks to Andy at Privitar
-	-- Lots of documentation work.
         -- Pick up com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout as default
 	   value of new connectionIsValidTimeout property, so that users upgrading from previous
 	   version still capture the setting from the old config, even as their ConnectionTester

@@ -1535,10 +1535,28 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
 	See <a href="#configuration_properties">Appendix A</a> for information about the following configuration properties:
       </p>
       <ul>
+	<li><a class="cfg_param" href="#attemptResurrectOnCheckin">attemptResurrectOnCheckin</a></li>
 	<li><a class="cfg_param" href="#checkoutTimeout">checkoutTimeout</a></li>
 	<li><a class="cfg_param" href="#factoryClassLocation">factoryClassLocation</a></li>
 	<li><a class="cfg_param" href="#forceSynchronousCheckins">forceSynchronousCheckins</a></li>
       </ul>
+      <p>
+        When Connections throw Exceptions in client sessions, c3p0 tests them, and if they fail, marks them
+        for destruction rather than return to the pool. If <tt>attemptResurrectOnCheckin</tt> is set to <tt>true</tt>,
+        however, the library tests them once again at client check-in, and if that test succeeds, they are retained
+        and reintegrated into the pool. This can prevent unnecessary churn through Connection, especially
+        under databases (like Postgres) whose Connections may seem broken inside of invalidated transactions, but become
+        functional again following a <tt>rollback()</tt> or failed attempt to <tt>commit()</tt>.
+      </p>
+      <p>
+      	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
+      	checked out and one cannot be supplied immediately.
+      </p>
+      <p>
+        <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
+      	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
+      	who do not have c3p0 locally installed.
+      </p>
       <p>
 	Ordinarily check-ins are performed asynchronously so that clients do not experience the overhead of
 	on-check-in Connection tests and/or operations specified in <tt>ConnectionCustomizer.onCheckIn(...)</tt>.
@@ -1551,12 +1569,6 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
 	this setting is likely to improve performance. However, if Connections <i>are</i> tested on check-in,
 	or custom work is performed, setting <tt>forceSynchronousCheckins</tt> will cause clients to experience
 	delays associated with that work when they call <tt>Connection.close()</tt>.
-      </p>
-      <p>
-      	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
-      	checked out and one cannot be supplied immediately. <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
-      	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
-      	who do not have c3p0 locally installed.
       </p>
       <h3>
 	<a name="jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a>
@@ -2200,6 +2212,7 @@ c3p0 {
 	    <a href="#acquireIncrement">acquireIncrement</a><br/>
 	    <a href="#acquireRetryAttempts">acquireRetryAttempts</a><br/>
 	    <a href="#acquireRetryDelay">acquireRetryDelay</a><br/>
+	    <a href="#attemptResurrectOnCheckin">attemptResurrectOnCheckin</a><br/>
 	    <a href="#autoCommitOnClose">autoCommitOnClose</a><br/>
 	    <a href="#automaticTestTable">automaticTestTable</a><br/>
 	    <a href="#breakAfterAcquireFailure">breakAfterAcquireFailure</a><br/>
@@ -2271,6 +2284,25 @@ c3p0 {
 	  <div class="propdesc">
 	    Milliseconds, time c3p0 will wait between acquire attempts.
 	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
+	  </div>
+	</dd>
+	<dt><a name="attemptResurrectOnCheckin" />attemptResurrectOnCheckin</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+            If <tt>attemptResurrectOnCheckin</tt> is <tt>true</tt>, c3p0 will perform an extra Connection test
+            at checkin on Connections it has determined may be broken, and reintegrate any Connections that pass the test.<br/><br/>
+            When a Connection (or its subsidiary resources) throws an Exception within a client session,
+            c3p0 silently retests the Connection to try to learn whether it was an application Exception
+            or a sign thet the Connection is invalid. If this Connection test fails, c3p0 marks the Connection
+            for exclusion from the pool. When the client checks in (calls <tt>close()</tt> on) the excluded
+            Connection, c3p0 closes the physical Connection and if necessary replaces it in the pool.<br/><br/>
+            Under some databases and circumstances, an Exception can break a session in ways that client applications
+            can recover from. For example, once an operation within a transaction has failed, some databases signal failure on any new
+            operations until a <tt>rollback()</tt> or <tt>commit()</tt> (which might fail, but still rehabilitate the session).
+            In these circumstances it can be wasteful, and for some application, disruptive to destroy and replace
+            Connections that have been restored to good health.
+	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
 	  </div>
 	</dd>
 	<dt><a name="autoCommitOnClose" />autoCommitOnClose</dt>
