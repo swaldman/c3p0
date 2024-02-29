@@ -2297,9 +2297,9 @@ c3p0 {
             or a sign thet the Connection is invalid. If this Connection test fails, c3p0 marks the Connection
             for exclusion from the pool. When the client checks in (calls <tt>close()</tt> on) the excluded
             Connection, c3p0 closes the physical Connection and if necessary replaces it in the pool.<br/><br/>
-            Under some databases and circumstances, an Exception can break a session in ways that client applications
+            Under some databases and circumstances, an <tt>Exception</tt> can break a session in ways that client applications
             can recover from. For example, once an operation within a transaction has failed, some databases signal failure on any new
-            operations until a <tt>rollback()</tt> or <tt>commit()</tt> (which might fail, but still rehabilitate the session).
+            operations, including Connection tests, until a <tt>rollback()</tt> or <tt>commit()</tt> (which might fail, but still rehabilitate the session).
             In these circumstances it can be wasteful, and for some application, disruptive to destroy and replace
             Connections that have been restored to good health.
 	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
