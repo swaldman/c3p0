@@ -307,6 +307,34 @@ public final class C3P0PooledConnectionPoolManager
             if (auth == null)
                 auth = C3P0ImplUtils.findAuth( cpds );
 
+            /*
+             * If we capture a perhaps-incomplete auth, we have to decide
+             * whether it is good (perhaps a credential is unnecessary?), or
+             * whether we should just revert to the cpds default auth, represented
+             * by C3P0ImplUtils.NULL_AUTH
+             *
+             * If both are null, we are already using NULL_AUTH, there's no point in testing.
+             */
+            if ( auth.getUser() == null ^ auth.getPassword() == null)
+            {
+                try
+                {
+                    if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
+                        logger.log( MLevel.FINE, "Introspected default authentication information may be incomplete. Testing." );
+                    cpds.getPooledConnection( auth.getUser(), auth.getPassword() ).close();
+                    if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
+                        logger.log( MLevel.FINE, "Introspected-but-perhaps-incomplete default authentication succeeded, will use as default auth." );
+                }
+                catch (Exception e)
+                {
+                    if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
+                        logger.log( MLevel.FINE, "Test of introspected default authentication failed with Exception.", e );
+                    if ( logger.isLoggable( MLevel.INFO ) )
+                        logger.log( MLevel.INFO, "Introspected default authentication appears to be invalid. Reverting to NULL_AUTH and (no-arg) DataSource.getConnection()." );
+                    auth = C3P0ImplUtils.NULL_AUTH;
+                }
+            }
+
             this.defaultAuth = auth;
 
             Map tmp = new HashMap();
@@ -381,7 +409,12 @@ public final class C3P0PooledConnectionPoolManager
             authsToPools.put( auth, out );
 
 	    if ( logger.isLoggable( MLevel.FINE ) )
-		logger.log( MLevel.FINE, "Created new pool for auth, username (masked): '" + auth.getMaskedUserString() + "'." );
+            {
+                if ( auth.equals(C3P0ImplUtils.NULL_AUTH) )
+                    logger.log( MLevel.FINE, "Created new pool for NULL_AUTH." );
+                else
+                    logger.log( MLevel.FINE, "Created new pool for auth, username (masked): '" + auth.getMaskedUserString() + "'." );
+            }
         }
         return out;
     }

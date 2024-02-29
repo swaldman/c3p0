@@ -1,3 +1,8 @@
+	-- Let C3P0PooledConnectionPool manager test introspected authentication that appears
+	   perhaps incomplete, and revert to NULL_AUTH (no-arg DataSource.getConnection()) if
+	   the test fails.
+	   See, should address, https://github.com/swaldman/c3p0/issues/159
+	   Thanks @sbaeumlisberger!
 c3p0-0.10.0-pre6
 	-- Lots of documentation work.
 	-- Implement attemptResurrectOnCheckin config parameter.
