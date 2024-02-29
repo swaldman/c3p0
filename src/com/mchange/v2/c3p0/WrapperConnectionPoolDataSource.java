@@ -15,17 +15,13 @@ import com.mchange.v2.c3p0.impl.*;
 import com.mchange.v2.log.*;
 import com.mchange.v1.db.sql.ConnectionUtils;
 
-
-// MT: Most methods are left unsynchronized, because getNestedDataSource() is synchronized, and for most methods, that's
-//     the only critical part. Previous oversynchronization led to hangs, when getting the Connection for one Thread happened
-//     to hang, blocking access to getPooledConnection() for all Threads.
+// MT: Keep in mind that inherited methods are synchronized
 public final class WrapperConnectionPoolDataSource extends WrapperConnectionPoolDataSourceBase implements ConnectionPoolDataSource
 {
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
 
     //MT: protected by this' lock
-    ConnectionTester connectionTester;
-    Map              userOverrides;
+    Map userOverrides;
 
     public WrapperConnectionPoolDataSource(boolean autoregister)
     {
@@ -33,19 +29,9 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 
 	setUpPropertyListeners();
 
-	// set up initial value of connectionTester,
-        // if connectionTesterClassName is null,
-        // will initialize connectionTester to null
-        try { recreateConnectionTester( this.getConnectionTesterClassName() ); }
-	catch (Exception e)
-	    {
-		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log( MLevel.WARNING, "Failed to construct initial ConnectionTester of type " + this.getConnectionTesterClassName() + "; backing off to null and default isValid(...) test!", e );
-	    }
-
 	//set up initial value of userOverrides
 	try
-	    { this.userOverrides = C3P0ImplUtils.parseUserOverridesAsString( this.getUserOverridesAsString() ); }
+	    { this.setUserOverrides( C3P0ImplUtils.parseUserOverridesAsString( this.getUserOverridesAsString() ) ); } // an unmodifiable map
 	catch (Exception e)
 	    {
 		if ( logger.isLoggable( MLevel.WARNING ) )
@@ -58,48 +44,35 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 
     private void setUpPropertyListeners()
     {
-	VetoableChangeListener setConnectionTesterListener = new VetoableChangeListener()
+	VetoableChangeListener userOverridesListener = new VetoableChangeListener()
 	    {
 		// always called within synchronized mutators of the parent class... needn't explicitly sync here
 		public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
 		{
 		    String propName = evt.getPropertyName();
-		    Object val = evt.getNewValue();
+		    Object value = evt.getNewValue();
 
-		    if ( "connectionTesterClassName".equals( propName ) )
+		    if ("userOverridesAsString".equals( propName ))
 			{
 			    try
-				{ recreateConnectionTester( (String) val ); }
-			    catch ( Exception e )
-				{
-				    //e.printStackTrace();
-				    if ( logger.isLoggable( MLevel.WARNING ) )
-					logger.log( MLevel.WARNING, "Failed to create ConnectionTester of class " + val, e );
-				    
-				    throw new PropertyVetoException("Could not instantiate connection tester class with name '" + val + "'.", evt);
-				}
-			}
-		    else if ("userOverridesAsString".equals( propName ))
-			{
-			    try
-				{ WrapperConnectionPoolDataSource.this.userOverrides = C3P0ImplUtils.parseUserOverridesAsString( (String) val ); }
+				{ setUserOverrides( C3P0ImplUtils.parseUserOverridesAsString( (String) value ) ); } // an unmodifiable map
 			    catch (Exception e)
 				{
 				    if ( logger.isLoggable( MLevel.WARNING ) )
-					logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. " + val, e );
-				    
-				    throw new PropertyVetoException("Failed to parse stringified userOverrides. " + val, evt);
+					logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. " + value, e );
+
+				    throw new PropertyVetoException("Failed to parse stringified userOverrides. " + value, evt);
 				}
 			}
 		}
 	    };
-	this.addVetoableChangeListener( setConnectionTesterListener );
+	this.addVetoableChangeListener( userOverridesListener );
     }
 
     public WrapperConnectionPoolDataSource( String configName )
     {
 	this();
-	
+
 	try
 	    {
 		if (configName != null)
@@ -138,7 +111,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
 				       "DataSource: " + getNestedDataSource());
             return new NewPooledConnection( conn, 
-                                            connectionTester,
+                                            C3P0Registry.getConnectionTester(this.getConnectionTesterClassName(this.getUser())),
 					    this.getConnectionIsValidTimeout( this.getUser() ),
                                             this.isAutoCommitOnClose( this.getUser() ), 
                                             this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
@@ -186,7 +159,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 		throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
 				       "DataSource: " + getNestedDataSource());
             return new NewPooledConnection( conn, 
-                                            connectionTester,
+                                            C3P0Registry.getConnectionTester( this.getConnectionTesterClassName( user ) ),
 					    this.getConnectionIsValidTimeout( user ),
                                             this.isAutoCommitOnClose( user ), 
                                             this.isForceIgnoreUnresolvedTransactions( user ),
@@ -212,7 +185,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	}
     }
 
-    private int getConnectionIsValidTimeout( String userName )
+    private synchronized int getConnectionIsValidTimeout( String userName )
     {
 	if ( userName == null )
 	    return this.getConnectionIsValidTimeout();
@@ -221,7 +194,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	return (override == null ? this.getConnectionIsValidTimeout() : override.intValue());
     }
 
-    private boolean isAutoCommitOnClose( String userName )
+    private synchronized boolean isAutoCommitOnClose( String userName )
     {
 	if ( userName == null )
 	    return this.isAutoCommitOnClose();
@@ -230,7 +203,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	return ( override == null ? this.isAutoCommitOnClose() : override.booleanValue() );
     }
 
-    private boolean isForceIgnoreUnresolvedTransactions( String userName )
+    private synchronized boolean isForceIgnoreUnresolvedTransactions( String userName )
     {
 	if ( userName == null )
 	    return this.isForceIgnoreUnresolvedTransactions();
@@ -239,13 +212,22 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	return ( override == null ? this.isForceIgnoreUnresolvedTransactions() : override.booleanValue() );
     }
 
-    private String getPreferredTestQuery( String userName )
+    private synchronized String getPreferredTestQuery( String userName )
     {
 	if ( userName == null )
 	    return this.getPreferredTestQuery();
 
 	String override = (String) C3P0ConfigUtils.extractUserOverride( "preferredTestQuery", userName, userOverrides );
 	return (override == null ? this.getPreferredTestQuery() : override);
+    }
+
+    private synchronized String getConnectionTesterClassName( String userName )
+    {
+	if ( userName == null )
+	    return this.getConnectionTesterClassName();
+
+	String override = (String) C3P0ConfigUtils.extractUserOverride( "connectionTesterClassName", userName, userOverrides );
+	return (override == null ? this.getConnectionTesterClassName() : override);
     }
 
     public PrintWriter getLogWriter()
@@ -293,8 +275,11 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    }
     }
 
-    public Map getUserOverrides()
+    public synchronized Map getUserOverrides()
     { return userOverrides; }
+
+    private synchronized void setUserOverrides(Map userOverrides)
+    { this.userOverrides = userOverrides; }
 
     public String toString()
     {
@@ -307,23 +292,11 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	return sb.toString();
     }
 
-    protected String extraToStringInfo()
+    protected synchronized String extraToStringInfo()
     {
 	if (userOverrides != null)
 	    return "; userOverrides: " + userOverrides.toString();
 	else
 	    return null;
-    }
-
-    //other code
-    private synchronized void recreateConnectionTester(String className) throws Exception
-    {
-	if (className != null)
-	    {
-		ConnectionTester ct = (ConnectionTester) Class.forName( className ).newInstance();
-		this.connectionTester = ct;
-	    }
-	else
-	    this.connectionTester = null;
     }
 }
