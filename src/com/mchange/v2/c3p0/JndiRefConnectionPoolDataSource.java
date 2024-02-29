@@ -129,17 +129,41 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setConnectionTesterClassName( String connectionTesterClassName ) throws PropertyVetoException
     { wcpds.setConnectionTesterClassName( connectionTesterClassName ); }
 
+    public String getConnectionCustomizerClassName()
+    { return wcpds.getConnectionCustomizerClassName(); }
+
+    public void setConnectionCustomizerClassName( String connectionCustomizerClassName ) throws PropertyVetoException
+    { wcpds.setConnectionCustomizerClassName( connectionCustomizerClassName ); }
+
     public String getTaskRunnerFactoryClassName()
     { return wcpds.getTaskRunnerFactoryClassName(); }
 
     public void setTaskRunnerFactoryClassName( String taskRunnerFactoryClassName ) throws PropertyVetoException
     { wcpds.setTaskRunnerFactoryClassName( taskRunnerFactoryClassName ); }
 
+    public String getContextClassLoaderSource()
+    { return wcpds.getContextClassLoaderSource(); }
+
+    public void setContextClassLoaderSource( String contextClassLoaderSource ) throws PropertyVetoException
+    { wcpds.setContextClassLoaderSource( contextClassLoaderSource ); }
+
+    public boolean isDebugUnreturnedConnectionStackTraces()
+    { return wcpds.isDebugUnreturnedConnectionStackTraces(); }
+
+    public void setDebugUnreturnedConnectionStackTraces( boolean debugUnreturnedConnectionStackTraces )
+    { wcpds.setDebugUnreturnedConnectionStackTraces( debugUnreturnedConnectionStackTraces ); }
+
     public boolean isForceIgnoreUnresolvedTransactions()
     { return wcpds.isForceIgnoreUnresolvedTransactions(); }
 
     public void setForceIgnoreUnresolvedTransactions( boolean forceIgnoreUnresolvedTransactions )
     { wcpds.setForceIgnoreUnresolvedTransactions( forceIgnoreUnresolvedTransactions ); }
+
+    public boolean isForceSynchronousCheckins()
+    { return wcpds.isForceSynchronousCheckins(); }
+
+    public void setForceSynchronousCheckins( boolean forceSynchronousCheckins )
+    { wcpds.setForceSynchronousCheckins( forceSynchronousCheckins ); }
 
     public String getIdentityToken()
     { return identityToken; }
@@ -165,6 +189,12 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setMaxIdleTime( int maxIdleTime )
     { wcpds.setMaxIdleTime( maxIdleTime ); }
 
+    public int getMaxIdleTimeExcessConnections()
+    { return wcpds.getMaxIdleTimeExcessConnections(); }
+
+    public void setMaxIdleTimeExcessConnections( int maxIdleTimeExcessConnections )
+    { wcpds.setMaxIdleTimeExcessConnections( maxIdleTimeExcessConnections ); }
+
     public int getMaxPoolSize()
     { return wcpds.getMaxPoolSize(); }
 
@@ -189,17 +219,47 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setMinPoolSize( int minPoolSize )
     { wcpds.setMinPoolSize( minPoolSize ); }
 
+    public int getMaxAdministrativeTaskTime()
+    { return wcpds.getMaxAdministrativeTaskTime(); }
+
+    public void setMaxAdministrativeTaskTime( int maxAdministrativeTaskTime )
+    { wcpds.setMaxAdministrativeTaskTime( maxAdministrativeTaskTime ); }
+
+    public int getMaxConnectionAge()
+    { return wcpds.getMaxConnectionAge(); }
+
+    public void setMaxConnectionAge( int maxConnectionAge )
+    { wcpds.setMaxConnectionAge( maxConnectionAge ); }
+
     public String getPreferredTestQuery()
     { return wcpds.getPreferredTestQuery(); }
 
     public void setPreferredTestQuery( String ptq )
     { wcpds.setPreferredTestQuery( ptq ); }
 
+    public String getUserOverridesAsString()
+    { return wcpds.getUserOverridesAsString(); }
+
+    public void setUserOverridesAsString( String userOverridesAsString ) throws PropertyVetoException
+    { wcpds.setUserOverridesAsString( userOverridesAsString ); }
+
     public int getPropertyCycle()
     { return wcpds.getPropertyCycle(); }
 
     public void setPropertyCycle( int propertyCycle )
     { wcpds.setPropertyCycle( propertyCycle ); }
+
+    public int getUnreturnedConnectionTimeout()
+    { return wcpds.getUnreturnedConnectionTimeout(); }
+
+    public void setUnreturnedConnectionTimeout( int unreturnedConnectionTimeout )
+    { wcpds.setUnreturnedConnectionTimeout( unreturnedConnectionTimeout ); }
+
+    public int getStatementCacheNumDeferredCloseThreads()
+    { return wcpds.getStatementCacheNumDeferredCloseThreads(); }
+
+    public void setStatementCacheNumDeferredCloseThreads( int statementCacheNumDeferredCloseThreads )
+    { wcpds.setStatementCacheNumDeferredCloseThreads( statementCacheNumDeferredCloseThreads ); }
 
     public boolean isTestConnectionOnCheckin()
     { return wcpds.isTestConnectionOnCheckin(); }
@@ -213,6 +273,12 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setTestConnectionOnCheckout( boolean testConnectionOnCheckout )
     { wcpds.setTestConnectionOnCheckout( testConnectionOnCheckout ); }
 
+    public boolean isPrivilegeSpawnedThreads()
+    { return wcpds.isPrivilegeSpawnedThreads(); }
+
+    public void setPrivilegeSpawnedThreads( boolean privilegeSpawnedThreads )
+    { wcpds.setPrivilegeSpawnedThreads( privilegeSpawnedThreads ); }
+
     public String getFactoryClassLocation()
     { return jrfds.getFactoryClassLocation(); }
 
@@ -224,6 +290,8 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 
     final static JavaBeanReferenceMaker referenceMaker = new JavaBeanReferenceMaker();
 
+    // i'm hesitant to include overrideDefaultUser and overrideDefaultPassword
+    // for security reasons
     static
     {
 	referenceMaker.setFactoryClassName( C3P0JavaBeanObjectFactory.class.getName() );
@@ -233,25 +301,39 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	referenceMaker.addReferenceProperty("attemptResurrectOnCheckin");
 	referenceMaker.addReferenceProperty("autoCommitOnClose");
 	referenceMaker.addReferenceProperty("automaticTestTable");
+	referenceMaker.addReferenceProperty("breakAfterAcquireFailure");
 	referenceMaker.addReferenceProperty("checkoutTimeout");
+	referenceMaker.addReferenceProperty("connectionIsValidTimeout");
+	referenceMaker.addReferenceProperty("connectionCustomizerClassName");
 	referenceMaker.addReferenceProperty("connectionTesterClassName");
+	referenceMaker.addReferenceProperty("contextClassLoaderSource");
+	referenceMaker.addReferenceProperty("debugUnreturnedConnectionStackTraces");
 	referenceMaker.addReferenceProperty("factoryClassLocation");
 	referenceMaker.addReferenceProperty("forceIgnoreUnresolvedTransactions");
+	referenceMaker.addReferenceProperty("forceSynchronousCheckins");
 	referenceMaker.addReferenceProperty("idleConnectionTestPeriod");
 	referenceMaker.addReferenceProperty("identityToken");
 	referenceMaker.addReferenceProperty("initialPoolSize");
 	referenceMaker.addReferenceProperty("jndiEnv");
 	referenceMaker.addReferenceProperty("jndiLookupCaching");
 	referenceMaker.addReferenceProperty("jndiName");
+	referenceMaker.addReferenceProperty("maxAdministrativeTaskTime");
+	referenceMaker.addReferenceProperty("maxConnectionAge");
 	referenceMaker.addReferenceProperty("maxIdleTime");
+	referenceMaker.addReferenceProperty("maxIdleTimeExcessConnections");
 	referenceMaker.addReferenceProperty("maxPoolSize");
 	referenceMaker.addReferenceProperty("maxStatements");
 	referenceMaker.addReferenceProperty("maxStatementsPerConnection");
 	referenceMaker.addReferenceProperty("minPoolSize");
 	referenceMaker.addReferenceProperty("preferredTestQuery");
+	referenceMaker.addReferenceProperty("privilegeSpawnedThreads");
 	referenceMaker.addReferenceProperty("propertyCycle");
+	referenceMaker.addReferenceProperty("statementCacheNumDeferredCloseThreads");
+	referenceMaker.addReferenceProperty("taskRunnerFactoryClassName");
 	referenceMaker.addReferenceProperty("testConnectionOnCheckin");
 	referenceMaker.addReferenceProperty("testConnectionOnCheckout");
+	referenceMaker.addReferenceProperty("unreturnedConnectionTimeout");
+	referenceMaker.addReferenceProperty("userOverridesAsString");
     }
 
     public Reference getReference() throws NamingException
