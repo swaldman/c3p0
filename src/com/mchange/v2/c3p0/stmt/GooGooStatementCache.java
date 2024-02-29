@@ -331,12 +331,12 @@ public abstract class GooGooStatementCache
             Set stmtSet = null;
             synchronized (this)
             {
-                Set cSet = cxnStmtMgr.statementSet( pcon ); 
+                HashSet cSet = cxnStmtMgr.statementSet( pcon );
 
                 if (cSet != null)
                 {
                     //the removeStatement(...) removes from cSet, so we can't be iterating over cSet directly
-                    stmtSet = new HashSet( cSet );
+                    stmtSet = (HashSet) cSet.clone();
                     //System.err.println("SIZE FOR CONNECTION SET: " + stmtSet.size());
 
                     for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
