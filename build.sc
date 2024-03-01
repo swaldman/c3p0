@@ -253,9 +253,11 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
       * by settings in these resources
       */
     def localResources : T[Seq[PathRef]] = T.sources { millSourcePath / "resources-local" }
+    def localResourcesRough : T[Seq[PathRef]] = T.sources { millSourcePath / "resources-local-rough" }
 
     override def runClasspath : T[Seq[PathRef]] = T{
       super.runClasspath() ++ localResources()
+      // super.runClasspath() ++ localResourcesRough()
     }
 
     override def ivyDeps = T{
@@ -272,6 +274,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
       //"-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" ::
       //"-verbose:class"
       //"-ea" ::
+      s"""-Djava.util.logging.config.file=${millSourcePath / "conf-logging" / "logging.properties"}""" ::
       Nil
     }
     def c3p0Benchmark = T {
