@@ -100,7 +100,9 @@ To give this effect, temporarily edit [`build.sc`](build.sc):
     }
 ```
 
-Comment out `super.runClasspath() ++ localResources()`, uncomment in `super.runClasspath() ++ localResourcesRough()`.
+* Comment out `super.runClasspath() ++ localResources()`
+* Uncomment in `super.runClasspath() ++ localResourcesRough()`.
+
 Then of course you can edit [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
 
 #### Test logging
