@@ -550,27 +550,35 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
                     desc = getDescription( name );
                     getter = pd.getReadMethod();
                     setter = pd.getWriteMethod();
-                    
+
                     if (FORCE_READ_ONLY_PROPS.contains(name))
                         setter = null;
 
-                    /*
-                     * Note that it's not a problem that these
-                     * getters and setters are not against this class
-                     * the MBeanAttributInfo just uses the method
-                     * names and attribute type to construct itself,
-                     * and does not hold the methods themselves for
-                     * future invocation.
-                     */
-
-                    try
+                    if (getter == null && setter == null)
                     {
-                        out.put( name, new MBeanAttributeInfo(name, desc, getter, setter) );
+                        if (logger.isLoggable(MLevel.INFO))
+                            logger.log(MLevel.INFO, "Skipping property '" + name + "', no getter found and either read-ony or no setter found.");
                     }
-                    catch (javax.management.IntrospectionException e)
+                    else
                     {
-                        if (logger.isLoggable( MLevel.WARNING ))
-                            logger.log( MLevel.WARNING, "IntrospectionException while setting up MBean attribute '" + name + "'", e);
+                        /*
+                         * Note that it's not a problem that these
+                         * getters and setters are not against this class
+                         * the MBeanAttributInfo just uses the method
+                         * names and attribute type to construct itself,
+                         * and does not hold the methods themselves for
+                         * future invocation.
+                         */
+
+                        try
+                        {
+                            out.put( name, new MBeanAttributeInfo(name, desc, getter, setter) );
+                        }
+                        catch (javax.management.IntrospectionException e)
+                        {
+                            if (logger.isLoggable( MLevel.WARNING ))
+                                logger.log( MLevel.WARNING, "IntrospectionException while setting up MBean attribute '" + name + "'", e);
+                        }
                     }
                 }
 
