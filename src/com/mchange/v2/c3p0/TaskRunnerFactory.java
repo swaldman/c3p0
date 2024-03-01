@@ -23,26 +23,4 @@ public interface TaskRunnerFactory
         ConnectionPoolDataSource cpds,
         Timer timer
     );
-
-    /**
-     * Define an equals(...) method so that multiple instances
-     * of your factory can be canoncalized and shared.
-     *
-     * Often something like...
-     * <pre><code>
-     *    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
-     * </code></pre>
-     */
-    public boolean equals( Object o );
-
-    /**
-     * keep consistent with equals()
-     *
-     * Often something like...
-     * <pre><code>
-     *     public int hashCode() { return this.getClass().getName().hashCode(); }
-     * </code></pre>
-     *
-     */
-    public int hashCode();
 }

@@ -63,26 +63,4 @@ public interface ConnectionCustomizer
      */
     public void onCheckIn( Connection c, String parentDataSourceIdentityToken )
 	throws Exception;
-
-    /**
-     * Define an equals(...) method so that multiple instances
-     * of your customizer can be canoncalized and shared.
-     *
-     * Often something like...
-     * <pre><code>
-     *    public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
-     * </code></pre>
-     */
-    public boolean equals( Object o );
-
-    /**
-     * keep consistent with equals()
-     *
-     * Often something like...
-     * <pre><code>
-     *     public int hashCode() { return this.getClass().getName().hashCode(); }
-     * </code></pre>
-     *
-     */
-    public int hashCode();
 }
