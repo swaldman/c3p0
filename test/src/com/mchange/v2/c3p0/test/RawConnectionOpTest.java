@@ -79,7 +79,9 @@ public final class RawConnectionOpTest
 		// cpds.setJdbcUrl( jdbc_url );
 		// cpds.setUser( username );
 		// cpds.setPassword( password );
-  		cpds.setMaxPoolSize( 10 );
+                cpds.setInitialPoolSize( 1 );
+  		cpds.setMinPoolSize( 1 );
+  		cpds.setMaxPoolSize( 1 );
 
 		C3P0ProxyConnection conn = (C3P0ProxyConnection) cpds.getConnection();
 		Method toStringMethod = Object.class.getMethod("toString", new Class[]{});
@@ -104,7 +106,7 @@ public final class RawConnectionOpTest
   			    {
   				check = (C3P0ProxyConnection) cpds.getConnection();
   				//System.err.println( TestUtils.samePhysicalConnection( conn, check ) );
-  				System.err.println( TestUtils.physicalConnectionIdentityHashCode( check ) == ihc.intValue() );
+  				System.err.println( (TestUtils.physicalConnectionIdentityHashCode( check ) == ihc.intValue()) + "    " + check.rawConnectionOperation(toStringMethod, C3P0ProxyConnection.RAW_CONNECTION, new Object[]{}) );
   			    }
   			finally
   			    { if (check != null) check.close(); }
@@ -118,7 +120,7 @@ public final class RawConnectionOpTest
 
     private static void usage()
     {
-	System.err.println("java " + RawConnectionOpTest.class.getName() + " \\");
+	System.err.println("java " + RawConnectionOpTest.class.getName() /* + " \\" */);
 	//System.err.println("\t<jdbc_driver_class> \\");
 	//System.err.println("\t<jdbc_url> [<username> <password>]");
 	System.exit(-1);

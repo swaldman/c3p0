@@ -44,6 +44,74 @@ $ mill doc.docroot
 
 You can then open in your browser `out/doc/docroot.dest/index.html`
 
+### Testing c3p0
+
+c3p0's testing is, um, embarrassingly informal. There is a junit test suite, but it covers a
+very small fraction of c3p0 functionality. To run that, it's just
+
+```plaintext
+$ mill test.test
+```
+
+Mostly c3p0 is tested by running a few test applications, varying config ad hoc to see how things work.
+[`buid.sc`](build.sc) contains a lot of test applications, but the most important are
+
+```plaintext
+$ mill test.c3p0Benchmark
+```
+
+This is c3p0 most basic, common, test-of-first-resort.
+It runs through and times a bunch of different c3p0 operations, and puts the library through pretty good exercise
+
+```plaintext
+$ mill test.c3p0Load
+```
+
+This one puts c3p0 under load of a 100 thread performing 1000 database operations each,
+then terminates.
+
+```plaintext
+$ mill test.c3p0PSLoad
+```
+
+This one puts c3p0 under load of a 100 thread performing database operations indefinitely.
+It uses `PreparedStatement` for its database operations, so is a good way of exercising the
+statement cache.
+
+#### Test configuration
+
+You can observe (most of) the config of your c3p0 `DataSource` when you test, because c3p0 logs it at `INFO`
+upon the first `Connection` checkout attempt. When testing, verify that you are working with the configuration
+you expect!
+
+Tests are configured by command-line arguments and by a `c3p0.properties` file.
+To play with different configurations, edit [`test/resources-local/c3p0.properties`](test/resources-local/c3p0.properties).
+Also check the `forkArgs()` method in [`build.sc`](build.sc)
+
+Sometimes you want to put the library through its paces with pathological configuration.
+A baseline pathological configuration is defined in [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
+
+To give this effect, temporarily edit [`build.sc`](build.sc):
+
+```scala
+    override def runClasspath : T[Seq[PathRef]] = T{
+      super.runClasspath() ++ localResources()
+      // super.runClasspath() ++ localResourcesRough()
+    }
+```
+
+Comment out `super.runClasspath() ++ localResources()`, uncomment in `super.runClasspath() ++ localResourcesRough()`.
+Then of course you can edit [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
+
+#### Test logging
+
+Often you will want to focus logging on a class or feature you are testing. By default, c3p0 tests
+are configured to use `java.util.logging.`, and be configured by the file [`test/conf-logging/logging.properties`](test/conf-logging/logging.properties).
+
+Of course you can change the config (in `c3p0.properties`) to use another logging library if you'd like,
+but you may need to modify the build to bring third-party logging libraries in, and configure those libraries
+in their own ways.
+
 ### Building c3p0-loom
 
 Because c3p0 currently builds under Java 11, but c3p0-loom requires Java 21, c3p0 loom is a
