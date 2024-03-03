@@ -274,6 +274,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
       //"-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" ::
       //"-verbose:class"
       //"-ea" ::
+      "-Djava.rmi.server.hostname=localhost" ::
       s"""-Djava.util.logging.config.file=${millSourcePath / "conf-logging" / "logging.properties"}""" ::
       Nil
     }

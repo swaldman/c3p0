@@ -18,6 +18,14 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 ### Building c3p0
 
+For now (v0.10.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
+In order to remind me to switch to Java 11, the build will fail with an Exception if it detects an unexpected version.
+You can comment this requirement out of `build.sc` if you like. It's the line that looks like
+
+```scala
+  require( sys.props("java.runtime.version").startsWith("11"), s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)" )
+```
+
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
 
 Install `mill`. Then, within this repository direcory, run
@@ -33,8 +41,6 @@ If you maintain a local ivy repository, You can customize `publishVersion` in [`
 ```plaintext
 $ mill publishLocal
 ```
-
-For now (v0.10.x), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 To build the documentation
 
