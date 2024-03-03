@@ -134,15 +134,6 @@ public final class C3P0PooledConnectionPool
 
     private static class LiveRequestBoundaryMarker implements RequestBoundaryMarker
     {
-	Method beginRequest;
-	Method endRequest;
-
-	LiveRequestBoundaryMarker(Method beginRequest, Method endRequest)
-	{
-	    this.beginRequest = beginRequest;
-	    this.endRequest   = endRequest;
-	}
-
 	public void attemptNotifyBeginRequest(PooledConnection pc)
 	{
 	    if (pc instanceof AbstractC3P0PooledConnection)
@@ -151,9 +142,13 @@ public final class C3P0PooledConnectionPool
 		Connection conn = acpc.getPhysicalConnection();
 		try
 		{
-		    beginRequest.invoke(conn);
+                    conn.beginRequest();
 		    logger.log(MLevel.FINEST, "beginRequest method called");
 		}
+                catch (AbstractMethodError ame)
+                {
+                    logger.log(MLevel.WARNING, "AbstractMethodError invoking beginRequest method for Connction, even though Connections were tested for the presence of this method previously.", ame);
+                }
 		catch (Exception ex)
 		{ logger.log(MLevel.WARNING, "Error invoking beginRequest method for connection", ex); }
 	    }
@@ -166,9 +161,13 @@ public final class C3P0PooledConnectionPool
 		Connection conn = acpc.getPhysicalConnection();
 		try
 		{
-		    endRequest.invoke(conn);
+                    conn.endRequest();
 		    logger.log(MLevel.FINEST, "endRequest method called");
 		}
+                catch (AbstractMethodError ame)
+                {
+                    logger.log(MLevel.WARNING, "AbstractMethodError invoking endRequest method for Connction, even though Connections were tested for the presence of this method previously.", ame);
+                }
 		catch (Exception ex)
 		{ logger.log(MLevel.WARNING, "Error invoking endRequest method for connection", ex); }
 	    }
@@ -194,7 +193,7 @@ public final class C3P0PooledConnectionPool
 		    Method endRequest = conn.getClass().getMethod("endRequest");
 		    if (!endRequest.isAccessible()) endRequest.setAccessible(true);
 		    logger.log(MLevel.FINEST, "Request boundary methods found");
-		    this.requestBoundaryMarker = new LiveRequestBoundaryMarker(beginRequest, endRequest);
+		    this.requestBoundaryMarker = new LiveRequestBoundaryMarker();
 		}
 		catch (NoSuchMethodException ex)
 		{
