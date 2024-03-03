@@ -257,7 +257,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
 
     override def runClasspath : T[Seq[PathRef]] = T{
       super.runClasspath() ++ localResources()
-      // super.runClasspath() ++ localResourcesRough()
+      //super.runClasspath() ++ localResourcesRough()
     }
 
     override def ivyDeps = T{
