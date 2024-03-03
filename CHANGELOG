@@ -1,3 +1,4 @@
+	-- Improve performance of begin/endRequest support
 	-- Implement c3p0-loom UninstrumentedVirtualThreadPerTaskTaskRunnerFactory
 	-- Change mind. Eliminate naggingly prescriptive equals/hashCode pseudorequirements
 	   from plugin interfaces, because our canonicalization strategy is by key, doesn' actually
@@ -5,7 +6,7 @@
 	-- Guard collection of MBeanAttributeInfo against items that would have no getter
 	   or setter to prevent ugly IntrospectionExceptions.
 	   See https://github.com/swaldman/c3p0/issues/128
-	   Thanks @philippscs
+	   Thanks @philippscs!
 	-- Let C3P0PooledConnectionPool manager test introspected authentication that appears
 	   perhaps incomplete, and revert to NULL_AUTH (no-arg DataSource.getConnection()) if
 	   the test fails.
