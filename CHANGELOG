@@ -1,3 +1,5 @@
+c3p0-0.10.0
+	-- A bit more testing
 c3p0-0.10.0-pre7
 	-- Improve performance of begin/endRequest support
 	-- Implement c3p0-loom UninstrumentedVirtualThreadPerTaskTaskRunnerFactory
