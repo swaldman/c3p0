@@ -65,7 +65,7 @@ $ mill test.test
 
 Mostly c3p0 is tested by running a few test applications, and varying config _ad hoc_ to see how things work.
 
-_If you think c3p0 could/should be tested more professionally and automatically, me too! I'd love a pull request!_
+_If you think c3p0 could/should be tested more professionally and automatically, me too! I'd love a pull request._
 
 [`buid.sc`](build.sc) contains a lot of test applications, but the most important are
 
