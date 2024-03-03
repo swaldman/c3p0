@@ -10,7 +10,9 @@ Please see the [documentation](http://www.mchange.com/projects/c3p0/) for more.
 
 From the current *development snapshot*, here is the latest [CHANGELOG](CHANGELOG).
 
-Please address comments and questions to the [library author](mailto:swaldman@mchange.com), although keep in mind he is an abysmal correspondent and basically an asshole. 
+Please address comments and questions to the [library author](mailto:swaldman@mchange.com).
+
+However, please keep in mind he is an abysmal correspondent and basically an asshole. 
 
 Despite that, your feedback is very much appreciated. Pull requests are gratefully accepted. You may also open issues.
 
@@ -19,7 +21,9 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 ### Building c3p0
 
 For now (v0.10.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
-In order to remind me to switch to Java 11, the build will fail with an Exception if it detects an unexpected version.
+
+_In order to remind me to switch to Java 11, the build will fail with an Exception if it detects an unexpected version._
+
 You can comment this requirement out of `build.sc` if you like. It's the line that looks like
 
 ```scala
@@ -59,7 +63,10 @@ very small fraction of c3p0 functionality. To run that, it's just
 $ mill test.test
 ```
 
-Mostly c3p0 is tested by running a few test applications, varying config ad hoc to see how things work.
+Mostly c3p0 is tested by running a few test applications, and varying config _ad hoc_ to see how things work.
+
+_If you think c3p0 could/should be tested more professionally and automatically, me too! I'd love a pull request!_
+
 [`buid.sc`](build.sc) contains a lot of test applications, but the most important are
 
 ```plaintext
@@ -123,7 +130,9 @@ in their own ways.
 ### Building c3p0-loom
 
 Because c3p0 currently builds under Java 11, but c3p0-loom requires Java 21, c3p0 loom is a
-[separate project](https://github.com/swaldman/c3p0-loom). It is a parallel mill project.
+[separate project](https://github.com/swaldman/c3p0-loom). 
+
+It is just a parallel mill project.
 The instructions above apply (except `c3p0-loom` does not have independent documentation to build).
 
 ### License
