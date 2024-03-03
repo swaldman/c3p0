@@ -300,7 +300,7 @@
       <ul class="pointerlist">
 	<li>Follow or fork <a href="https://github.com/swaldman/c3p0">c3p0 on GitHub</a>.</li>
 	<li>Follow <a href="https://tech.interfluidity.com/">tech.interfluidity.com</a>.</li>
-	<li>This may not be the most recent version of c3p0.<br/>See the current <a href="https://github.com/swaldman/c3p0/blob/0.10.x/CHANGELOG">CHANGELOG</a>.</li>
+	<li>This may not be the most recent version of c3p0. See the current <a href="https://github.com/swaldman/c3p0/blob/0.10.x/CHANGELOG">CHANGELOG</a>.</li>
       </ul>
       <div class="boxed">
 	<h4>Maven coordinates</h4>
@@ -1477,8 +1477,8 @@ public class VerboseConnectionCustomizer
 	If you have brought in support for Java 21 "loom" virtual threads, you can also use
       </p>
       <ul>
-	<li><a href="https://github.com/swaldman/c3p0-loom/blob/main/src/com/mchange/v2/c3p0/loom/VirtualThreadPerTaskExecutorTaskRunnerFactory.java"><tt>com.mchange.v2.c3p0.loom.VirtualThreadPerTaskExecutorTaskRunnerFactory</tt></a></li>
 	<li><a href="https://github.com/swaldman/c3p0-loom/blob/main/src/com/mchange/v2/c3p0/loom/UninstrumentedVirtualThreadPerTaskTaskRunnerFactory.java"><tt>com.mchange.v2.c3p0.loom.UninstrumentedVirtualThreadPerTaskTaskRunnerFactory</tt></a></li>
+	<li><a href="https://github.com/swaldman/c3p0-loom/blob/main/src/com/mchange/v2/c3p0/loom/VirtualThreadPerTaskExecutorTaskRunnerFactory.java"><tt>com.mchange.v2.c3p0.loom.VirtualThreadPerTaskExecutorTaskRunnerFactory</tt></a></li>
       </ul>
       <p>
         But of course you can roll your own! Implement the interface <a href="apidocs/com/mchange/v2/c3p0/TaskRunnerFactory.html"><tt>TaskRunnerFactory</tt></a>
@@ -1528,6 +1528,39 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
 }
       </div>
       <p>See also <a href="https://github.com/swaldman/c3p0-loom/blob/main/src/com/mchange/v2/c3p0/loom/VirtualThreadPerTaskExecutorTaskRunnerFactory.java"><tt>com.mchange.v2.c3p0.loom.VirtualThreadPerTaskExecutorTaskRunnerFactory</tt></a>.</p>
+      <div class="boxed">
+        <h4>Use of c3p0-loom's <tt>UninstrumentedVirtualThreadPerTaskTaskRunnerFactory</tt> can reduce monitor contention</h4>
+        <p>
+          c3p0's asynchrony is old-school, built around object monitors ("locks") and <tt>synchronized</tt> blocks, <tt>Object.wait()</tt> and <tt>Object.notifyAll</tt>.
+        </p>
+        <p>
+          c3p0 is extremely careful to ensure that Threads never block while holding a lock, that locking is reserved for fast in-memory applications. Nevertheless, under
+          very high concurrent load, Threads will occasionally block to await monitor release.
+        </p>
+        <p>
+          <b>For all the excitement about newer forms of lockless concurrency, every concurrency management scheme imposes overhead for managing shared access to mutable
+            state, and the actual time cost of lock contention under c3p0 is usually negligible when amortized over the total number of</b> <tt>contending_threads x client_requests</tt>.
+        </p>
+        <p>
+          Nevertheless.
+        </p>
+        <p>
+          By far the most contended lock under c3p0 is the <a href="apidocs/com/mchange/v2/resourcepool/BasicResourcePool.html"><tt>BasicResourcePool</tt></a>,
+          the actual Connection pool that tracks Connections, whether they're checked out, how long they've been idle, etc. The only way to reduce contention for
+          this resource is to balance your load over multiple pools.
+        </p>
+        <p>
+          The next most contended resource is the Thread pool. c3p0's default Thread pool,
+          <a href="https://www.mchange.com/projects/mchange-commons-java/apidocs/com/mchange/v2/async/ThreadPoolAsynchronousRunner.html"><tt>com.mchange.v2.async.ThreadPoolAsynchronousRunner</tt></a>,
+          provides very rich instrumentation (via <a href="#jmx_configuration_and_management">JMX</a>) and great information in your logs about deadlocks (usually due to database locking, pool exhaustion,
+          or <a href="#statementCacheNumDeferredCloseThreads">JDBC driver quirks</a>), including full stack traces of active threads and the list of pending tasks.
+        </p>
+        <p>
+          But management of all that does lead to a small amount of monitor contention in practice. If you don't need any of that, replacing the threadpool with
+          <a href="https://github.com/swaldman/c3p0-loom/blob/main/src/com/mchange/v2/c3p0/loom/UninstrumentedVirtualThreadPerTaskTaskRunnerFactory.java"><tt>com.mchange.v2.c3p0.loom.UninstrumentedVirtualThreadPerTaskTaskRunnerFactory</tt></a>
+          is an alternative that involves no locking or lock contention at all, beyond whatever happens in the infrastructure beneath Java 21 virtual threads.
+        </p>
+      </div>
       <h3>
 	<a name="other_ds_configuration">Other DataSource Configuration</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
