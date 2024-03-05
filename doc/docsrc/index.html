@@ -345,7 +345,7 @@
 	  <li>
             <a href="#configuration_introduction">Introduction</a>
             <ul class="box">
-              <li><a href="#configuration_security_box">Warning: c3p0 config trusts its configuration!</a></li>
+              <li><a href="#configuration_security_box">Warning: c3p0 config trusts its CLASSPATH and configuration!</a></li>
             </ul>
           </li>            
 	  <li><a href="#basic_pool_configuration">Basic Pool Configuration</a></li>
@@ -932,7 +932,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	elsewhere in an application's file system or classpath, if the system property <a href="#locating_configuration_information"><tt>com.mchange.v2.c3p0.cfg.xml</tt></a> is set.
       </p>
       <div class="boxed red">
-        <h4><a name="configuration_security_box">Warning: c3p0 trusts its configuration!</a></h4>
+        <h4><a name="configuration_security_box">Warning: c3p0 trusts its CLASSPATH and configuration!</a></h4>
         <p>
           c3p0 trusts the information it discovers from any of the above sources.
         </p>
