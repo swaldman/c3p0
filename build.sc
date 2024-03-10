@@ -79,6 +79,13 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   val Debug = true
   val Trace = 5
 
+  // Still very little evidence that there's any meaningful performance
+  // gain statically dropping Debug code. Better to keep the often-very-useful
+  // debug-level logging.
+  //
+  // val Debug = false
+  // val Trace = 0
+
   override def sources = T { super.sources() :+ PathRef( os.pwd / "src-proxy-interface" ) }
 
   override def ivyDeps = T{
