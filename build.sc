@@ -318,6 +318,9 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     def c3p0JavaBeanRef = T {
       this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")
     }
+    def c3p0DynamicPreparedStatement = T {
+      this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")
+    }
     override def pomSettings = T {
       PomSettings(
         description = "Tests of c3p0, a mature JDBC3+ Connection pooling library",
