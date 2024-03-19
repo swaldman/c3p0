@@ -1,5 +1,9 @@
 import $meta._
 
+// Since dependency mchange-commons-java is shared with the meta build,
+// we import it from a common definition
+import $file.`mill-build`.McjInfo
+
 import mill._
 import mill.api.{JarManifest,Result}
 import mill.scalalib._
@@ -10,13 +14,15 @@ import scala.annotation.tailrec
 
 /*
  * This build supports the environment variable SOURCE_DATE_EPOCH for deterministic builds.
+ * See https://reproducible-builds.org/docs/source-date-epoch/
  */
 
 object Dependency {
-  // mill-build/build.sc also has a mchange-commons-java dependency. Best to keep them in sync
-  val MchangeCommonsJavaVersion = "0.3.0"
-
-  val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
+  // Since dependency mchange-commons-java is shared with the meta build,
+  // we import it from a common definition
+  val MchangeCommonsJavaVersion = McjInfo.Version
+  val MchangeCommonsJava        = McjInfo.Ivy
+  
   val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
   val PgJdbc = ivy"org.postgresql:postgresql:42.6.0"
 }
