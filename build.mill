@@ -38,6 +38,7 @@ object `package` extends RootModule with JavaModule with PublishModule {
 
   require( sys.props("java.runtime.version").startsWith("11"), s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)" )
 
+  // see https://mill-build.org/mill/depth/sandboxing.html
   val BuildRoot = os.Path( sys.env("MILL_WORKSPACE_ROOT") )
 
   // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
@@ -260,6 +261,9 @@ object `package` extends RootModule with JavaModule with PublishModule {
 
     override def artifactName = T{"c3p0-test"}
     override def publishVersion = T{ build.publishVersion() }
+
+    // when you want to generate tests you can try under old JVMs
+    // override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
     /**
       * A place for resources we want seen by local (test) runs, but

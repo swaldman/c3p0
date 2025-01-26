@@ -3,7 +3,6 @@ package com.mchange.v2.c3p0.test.junit;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.logging.Logger;
 
 public class MockConnectionWithBoundaries implements Connection {
 
@@ -14,6 +13,7 @@ public class MockConnectionWithBoundaries implements Connection {
 
   public void beginRequest() throws SQLException {
     MockDriver.beginRequestCount.getAndIncrement();
+    System.err.println("MockConnectionWithBoundaries.beginRequest called.");
   }
 
   @Override
@@ -87,8 +87,8 @@ public class MockConnectionWithBoundaries implements Connection {
   }
 
   public void endRequest() throws SQLException {
-
     MockDriver.endRequestCount.getAndIncrement();
+    System.err.println("MockConnectionWithBoundaries.endRequest called.");
   }
 
   @Override
