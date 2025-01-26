@@ -1,8 +1,9 @@
+package build
+
 import $meta._
 
-// Since dependency mchange-commons-java is shared with the meta build,
-// we import it from a common definition
-import $file.`mill-build`.McjInfo
+// see mill-build/build.mill
+import millbuild.MillBuildCommonDependencies
 
 import mill._
 import mill.api.{JarManifest,Result}
@@ -18,14 +19,15 @@ import scala.annotation.tailrec
  */
 
 object Dependency {
-  val MchangeCommonsJavaVersion = McjInfo.Version
-  val MchangeCommonsJava        = McjInfo.Ivy
-  
+  val MchangeCommonsJavaVersion = MillBuildCommonDependencies.McjVersion
+  val MchangeCommonsJava        = ivy"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
+
   val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
   val PgJdbc = ivy"org.postgresql:postgresql:42.6.0"
 }
 
-object c3p0 extends RootModule with JavaModule with PublishModule {
+object `package` extends RootModule with JavaModule with PublishModule {
+
   val organization = "com.mchange"
   override def artifactName = T{"c3p0"}
   override def publishVersion = T{"0.10.2-SNAPSHOT"}
@@ -35,6 +37,8 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   val JvmCompatVersion = "7"
 
   require( sys.props("java.runtime.version").startsWith("11"), s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)" )
+
+  val BuildRoot = os.Path( sys.env("MILL_WORKSPACE_ROOT") )
 
   // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
   // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
@@ -76,7 +80,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   object bean extends Gen {}
 
   object proxy extends Gen {
-    override def sources = T { super.sources() :+ PathRef( os.pwd / "src-proxy-interface" ) }
+    override def sources = T { super.sources() :+ PathRef( BuildRoot / "src-proxy-interface" ) }
     override def mainClass = T { Some("com.mchange.v2.c3p0.codegen.JdbcProxyGenerator") }
   }
 
@@ -90,7 +94,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   // val Debug = false
   // val Trace = 0
 
-  override def sources = T { super.sources() :+ PathRef( os.pwd / "src-proxy-interface" ) }
+  override def sources = T { super.sources() :+ PathRef( BuildRoot / "src-proxy-interface" ) }
 
   override def ivyDeps = T{
     super.ivyDeps() ++ Agg(Dependency.MchangeCommonsJava)
@@ -108,7 +112,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   def makeDirContentsReadOnly( dir : os.Path ) = os.walk(dir).foreach( p => os.perms.set(p, readOnly(os.perms(p))) )
 
   def buildModTime : T[Long] = T.input {
-    val out = math.max( os.mtime( os.pwd / "build.sc" ), os.mtime( os.pwd / "mill-build" / "build.sc" ) )
+    val out = math.max( os.mtime( BuildRoot / "build.mill" ), os.mtime( BuildRoot / "mill-build" / "build.mill" ) )
     //println( s"buildModTime: $out" )
     out
   }
@@ -122,7 +126,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     }
   }
   def genDebugSources = T { // mill correctly caches these with no work on our part
-    com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${os.pwd}/src",s"--outputbase=${T.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
+    com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${BuildRoot}/src",s"--outputbase=${T.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
     PathRef(T.dest)
   }
   def genC3P0SubstitutionsSource = T.persistent {
@@ -158,7 +162,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     bean.runIf(
       T.task(
         Args(
-          (Seq(buildModTime(),recursiveDirModTime(os.pwd/"bean"/"beangen"),recursiveDirModTime(os.pwd/"bean"/"src")).max > recursiveDirModTime(beangenGeneratedSourceDir())).toString,
+          (Seq(buildModTime(),recursiveDirModTime(BuildRoot/"bean"/"beangen"),recursiveDirModTime(BuildRoot/"bean"/"src")).max > recursiveDirModTime(beangenGeneratedSourceDir())).toString,
           "bean/beangen/com/mchange/v2/c3p0/impl",
           (beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()
         )
@@ -172,7 +176,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     proxy.runIf(
       T.task(
         Args(
-          (math.max(buildModTime(),recursiveDirModTime(os.pwd/"proxy"/"src")) > recursiveDirModTime(proxygenGeneratedSourceDir())).toString,
+          (math.max(buildModTime(),recursiveDirModTime(BuildRoot/"proxy"/"src")) > recursiveDirModTime(proxygenGeneratedSourceDir())).toString,
           proxygenGeneratedSourceDir().toString
         )
       )
@@ -190,7 +194,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   }
 
   def allLicenses : T[Seq[PathRef]] = T {
-    (os.pwd / "LICENSE" :: os.pwd / "LICENSE-LGPL" :: os.pwd / "LICENSE-EPL" :: Nil).map( PathRef(_) )
+    (BuildRoot / "LICENSE" :: BuildRoot / "LICENSE-LGPL" :: BuildRoot / "LICENSE-EPL" :: Nil).map( PathRef(_) )
   }
 
   // is the same manifest good?
@@ -209,7 +213,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     def replacements : T[Map[String,String]] = T {
         import java.time.ZonedDateTime
         Map(
-          "@c3p0.version@" -> c3p0.publishVersion(),
+          "@c3p0.version@" -> build.publishVersion(),
           "@mchange-commons-java.version@" -> Dependency.MchangeCommonsJavaVersion,
           "@c3p0.copyright.year@" -> ZonedDateTime.now().getYear.toString
         );
@@ -226,7 +230,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     def docsrc : T[PathRef] = T.source { millSourcePath / "docsrc" }
 
     def docroot : T[PathRef] = T {
-      val javadocRoot = c3p0.docJar().path / os.up / "javadoc"
+      val javadocRoot = build.docJar().path / os.up / "javadoc"
       val replaceMap = replacements()
       val docsrcDir = docsrc().path
       val sourcePaths = os.walk(docsrcDir)
@@ -244,7 +248,7 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     }
 
     def stage : T[Unit] = T {
-      os.copy.over( from = docroot().path, to = StagingDir / ("c3p0-" + c3p0.publishVersion()) )
+      os.copy.over( from = docroot().path, to = StagingDir / ("c3p0-" + build.publishVersion()) )
     }
   }
 
@@ -252,10 +256,10 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
   // but I do want to publish them locally so I have them when working on related
   // libraries
   object test extends JavaModule with TestModule.Junit5 with PublishModule {
-    override def moduleDeps = Seq(c3p0)
+    override def moduleDeps = Seq(build)
 
     override def artifactName = T{"c3p0-test"}
-    override def publishVersion = T{ c3p0.publishVersion() }
+    override def publishVersion = T{ build.publishVersion() }
 
     /**
       * A place for resources we want seen by local (test) runs, but
@@ -339,10 +343,10 @@ object c3p0 extends RootModule with JavaModule with PublishModule {
     }
     // just to give ourselves the command `$ mill -i test.scalamod.console`
     object scalamod extends ScalaModule {
-      override def moduleDeps = Seq(c3p0.test)
-      override def scalaVersion = "3.3.1"
-      override def runClasspath = T{ c3p0.test.runClasspath() }
-      override def forkArgs = T { c3p0.test.forkArgs() }
+      override def moduleDeps = Seq(build.test)
+      override def scalaVersion = "3.3.4"
+      override def runClasspath = T{ build.test.runClasspath() }
+      override def forkArgs = T { build.test.forkArgs() }
     }
   }
 

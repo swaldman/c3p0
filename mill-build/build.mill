@@ -1,0 +1,32 @@
+package build
+
+import mill._, scalalib._
+
+// modified from https://mill-build.org/mill/extending/meta-build.html
+
+object `package` extends MillBuildRootModule {
+
+  val McjVersion = "0.3.1"
+
+  object Dependency {
+    val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:${McjVersion}"
+  }
+
+  override def ivyDeps = T{
+    super.ivyDeps() ++ Agg(Dependency.MchangeCommonsJava)
+  }
+
+  val MillBuildCommonDependenciesSource =
+    s"""|package millbuild
+        |
+        |object MillBuildCommonDependencies {
+        |  val McjVersion = "${McjVersion}"
+        |}
+        |""".stripMargin
+
+  def generatedSources = Task {
+    os.write( Task.dest / "MillBuildCommonDependencies.scala", MillBuildCommonDependenciesSource )
+    super.generatedSources() ++ Seq(PathRef(Task.dest))
+  }
+}
+
