@@ -316,7 +316,7 @@ public final class C3P0ImplUtils
      *  never intended to be called. we just want a compiler error if somehow we are building/code-generating 
      *  against an old version of JDBC, as happened somehow with the c3p0-0.9.5-pre2 release
      */
-    public static void assertCompileTimePresenceOfJdbc4_Jdk17Api( NewProxyConnection npc ) throws SQLException
+    public static void assertCompileTimePresenceOfJdbc4_Jdk17Api( AbstractNewProxyConnection npc ) throws SQLException
     { npc.getNetworkTimeout(); }
 
     private C3P0ImplUtils()

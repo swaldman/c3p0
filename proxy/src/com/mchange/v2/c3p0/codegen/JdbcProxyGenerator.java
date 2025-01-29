@@ -73,10 +73,10 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         {
             super.generateExtraDeclarations( intfcl, genclass, iw );
             iw.println();
-            iw.println("NewProxyConnection proxyCon;");
+            iw.println("AbstractNewProxyConnection proxyCon;");
             iw.println();
             iw.print( CodegenUtils.fqcnLastElement( genclass ) );
-            iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + " inner, NewPooledConnection parentPooledConnection, NewProxyConnection proxyCon )");
+            iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + " inner, NewPooledConnection parentPooledConnection, AbstractNewProxyConnection proxyCon )");
             iw.println("{");
             iw.upIndent();
             iw.println("this( inner, parentPooledConnection );");
@@ -160,7 +160,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println();
             iw.println("Object creator;");
             iw.println("Object creatorProxy;");
-            iw.println("NewProxyConnection proxyConn;");
+            iw.println("AbstractNewProxyConnection proxyConn;");
             iw.println();
             iw.print( CodegenUtils.fqcnLastElement( genclass ) );
             iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + " inner, NewPooledConnection parentPooledConnection, Object c, Object cProxy )");
@@ -169,7 +169,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("this( inner, parentPooledConnection );");
             iw.println("this.creator      = c;");
             iw.println("this.creatorProxy = cProxy;");
-            iw.println("if (creatorProxy instanceof NewProxyConnection) this.proxyConn = (NewProxyConnection) cProxy;");
+            iw.println("if (creatorProxy instanceof AbstractNewProxyConnection) this.proxyConn = (AbstractNewProxyConnection) cProxy;");
             iw.downIndent();
             iw.println("}");
         }
@@ -369,7 +369,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             // end concurrent-access-debug only!
 
             iw.println("boolean is_cached;");
-            iw.println("NewProxyConnection creatorProxy;");
+            iw.println("AbstractNewProxyConnection creatorProxy;");
 	    iw.println();
 	    iw.println("// Although formally unnecessary, we sync access to myProxyResultSets on");
 	    iw.println("// that set's own lock, in case clients (illegally but not uncommonly) close()");
@@ -390,7 +390,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	    iw.println();
             iw.print( CodegenUtils.fqcnLastElement( genclass ) );
             iw.println("( " + CodegenUtils.simpleClassName( intfcl ) + 
-            " inner, NewPooledConnection parentPooledConnection, boolean cached, NewProxyConnection cProxy )");
+            " inner, NewPooledConnection parentPooledConnection, boolean cached, AbstractNewProxyConnection cProxy )");
             iw.println("{");
             iw.upIndent();
             iw.println("this( inner, parentPooledConnection );");
@@ -455,7 +455,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 //  iw.println("}");
 //  }
 
-    static final class NewProxyConnectionGenerator extends JdbcProxyGenerator
+    static final class AbstractNewProxyConnectionGenerator extends JdbcProxyGenerator
     {
         String getInnerTypeName()
         { return "Connection"; }
@@ -1216,7 +1216,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             DelegatorGenerator mdgen = new NewProxyMetaDataGenerator();
             DelegatorGenerator rsgen = new NewProxyResultSetGenerator();
             DelegatorGenerator stgen = new NewProxyAnyStatementGenerator();
-            DelegatorGenerator cngen = new NewProxyConnectionGenerator();
+            DelegatorGenerator cngen = new AbstractNewProxyConnectionGenerator();
 
 	    /*
 	     * Eliminating for c3p0-0.9.5
@@ -1232,7 +1232,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
 	    */
 
-            genclass( cngen, Connection.class, "com.mchange.v2.c3p0.impl.NewProxyConnection", srcroot );
+            genclass( cngen, Connection.class, "com.mchange.v2.c3p0.impl.AbstractNewProxyConnection", srcroot );
             genclass( stgen, Statement.class, "com.mchange.v2.c3p0.impl.NewProxyStatement", srcroot );
             //genclass( psgen, PreparedStatement.class, "com.mchange.v2.c3p0.impl.NewProxyPreparedStatement", srcroot );
             //genclass( psgen, CallableStatement.class, "com.mchange.v2.c3p0.impl.NewProxyCallableStatement", srcroot );
