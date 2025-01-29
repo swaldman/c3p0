@@ -16,8 +16,25 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
     private final static MLogger logger = MLog.getLogger( NewPooledConnection.class );
 
-    private final static SQLException NORMAL_CLOSE_PLACEHOLDER = new SQLException("This pooled Connection was explicitly close()ed by " +
-    "a client, not invalidated due to an error.");
+    private final static SQLException NORMAL_CLOSE_PLACEHOLDER =
+        new SQLException("This pooled Connection was explicitly close()ed by a client, not invalidated due to an error.");
+
+    private final static boolean SHARDING_KEY_KNOWN;
+
+    static
+    {
+        boolean tmp;
+        try
+        {
+            Class sk = Class.forName("java.sql.ShardingKey");
+            tmp = true;
+        }
+        catch (ClassNotFoundException cnfe)
+        {
+            tmp = false;
+        }
+        SHARDING_KEY_KNOWN = tmp;
+    }
 
     //MT: protected by class lock
     static Set holdabilityBugKeys = null;
@@ -175,7 +192,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
             //throw new SQLException("NOT IMPLEMENTED");
             if ( exposedProxy == null )
             {
-                exposedProxy = new AbstractNewProxyConnection( physicalConnection, this );
+                exposedProxy = ( SHARDING_KEY_KNOWN ? new NewProxyConnectionJdbc43Full( physicalConnection, this ) : new NewProxyConnectionNoShardingKey( physicalConnection, this ) );
 
 		// debug
 		//firstPull = new Exception("FIRST PULL");
