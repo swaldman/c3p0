@@ -129,7 +129,7 @@ public final class C3P0BenchmarkApp
 	try
 	    {
 		con = ds.getConnection();
-                System.err.println("Got connection: " + con);
+                // System.err.println("Got connection: " + con);
 		ps1 = con.prepareStatement(EMPTY_TABLE_CREATE);
 		ps2 = con.prepareStatement(N_ENTRY_TABLE_CREATE);
                 // System.err.println("Prepared schema create statements: " + ps1 + ", " + ps2);
