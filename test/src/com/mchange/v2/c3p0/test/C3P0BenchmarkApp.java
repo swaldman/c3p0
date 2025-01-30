@@ -129,12 +129,19 @@ public final class C3P0BenchmarkApp
 	try
 	    {
 		con = ds.getConnection();
+                System.err.println("Got connection: " + con);
 		ps1 = con.prepareStatement(EMPTY_TABLE_CREATE);
 		ps2 = con.prepareStatement(N_ENTRY_TABLE_CREATE);
-		ps3 = con.prepareStatement(N_ENTRY_TABLE_INSERT);
+                // System.err.println("Prepared schema create statements: " + ps1 + ", " + ps2);
 
 		ps1.executeUpdate();
 		ps2.executeUpdate();
+
+                // some databases (hsqldb) freak if we prepare a statement on a not-yet-extent table,
+                // so we now create the tables before preparing the insert statement
+                ps3 = con.prepareStatement(N_ENTRY_TABLE_INSERT);
+
+                // System.err.println("Created tables.");
 
   		for (int i = 0; i < NUM_ITERATIONS; ++i)
    		    {
