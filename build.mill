@@ -24,6 +24,7 @@ object Dependency {
 
   val JUnit = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
   val PgJdbc = ivy"org.postgresql:postgresql:42.6.0"
+  val Hsqldb = ivy"org.hsqldb:hsqldb:2.7.4"
 }
 
 object `package` extends RootModule with JavaModule with PublishModule {
@@ -86,7 +87,7 @@ object `package` extends RootModule with JavaModule with PublishModule {
   }
 
   val Debug = true
-  val Trace = 5
+  val Trace = 10     // 10 is TRACE_MAX, 5 for less tracing
 
   // Still very little evidence that there's any meaningful performance
   // gain statically dropping Debug code. Better to keep the often-very-useful
@@ -280,10 +281,19 @@ object `package` extends RootModule with JavaModule with PublishModule {
     }
 
     override def ivyDeps = T{
-      super.ivyDeps() ++ Agg(Dependency.JUnit,Dependency.PgJdbc)
+      super.ivyDeps() ++ Agg(
+        Dependency.JUnit,
+        Dependency.PgJdbc,
+        //Dependency.Hsqldb
+      )
     }
     override def forkArgs = T {
       "-Dc3p0.jdbcUrl=jdbc:postgresql://localhost:5432/c3p0" ::
+      //"-Dc3p0.jdbcUrl=jdbc:hsqldb:hsql://localhost/mydb;hsqldb.sqllog=3" :: // hsqldb
+      //"-Dc3p0.user=SA" ::                                                   // hsqldb
+      //"-Dc3p0.password=" ::                                                 // hsqldb
+      //"-Dc3p0.maxStatements=100" ::
+      //"-Dc3p0.maxStatementsPerConnection=5" ::
       //"-Dcom.sun.management.jmxremote.port=38383" ::
       //"-Dcom.sun.management.jmxremote.authenticate=false" ::
       //"-Dcom.sun.management.jmxremote.ssl=false" ::
