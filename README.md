@@ -20,7 +20,7 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 ### Building c3p0
 
-For now (v0.10.1), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
+For now (v0.10.2), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 _In order to remind me to switch to Java 11, the build will fail with an Exception if it detects an unexpected version._
 
@@ -58,7 +58,7 @@ You can then open in your browser `out/doc/docroot.dest/index.html`
 
 By default the tests expect to find a database at `jdbc:postgresql://localhost:5432/c3p0`.
 As you can see, I usually test against a local postgres database. You can change this in 
-the `forkArgs` function of [`build.sc`](build.sc).
+the `forkArgs` function of the `test` module, in [`build.mill`](build.mill).
 
 c3p0's testing is, um, embarrassingly informal. There is a junit test suite, but it covers a
 very small fraction of c3p0 functionality. To run that, it's just
@@ -71,7 +71,7 @@ Mostly c3p0 is tested by running a few test applications, and varying config _ad
 
 _If you think c3p0 could/should be tested more professionally and automatically, me too! I'd love a pull request._
 
-[`build.sc`](build.sc) contains a lot of test applications, but the most important are
+[`build.mill`](build.mill) contains a lot of test applications, but the most important are
 
 ```plaintext
 $ mill test.c3p0Benchmark

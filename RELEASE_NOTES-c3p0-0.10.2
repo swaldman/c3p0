@@ -1,0 +1,14 @@
+RELEASE NOTES, c3p0-0.10.2
+==========================
+
+This is a very minor c3p0 release. Substantively, it includes one fix of a rare freeze.
+The build has been upgraded for mill v0.12.x. There have been minor logging and testing changes.
+
+(The main motivation for publishing this release now is I'm to starting the 0.11.x prerelease
+series, but I want this very non-disruptive fix in 0.10.x.)
+
+Substantive fix:
+
+* Acquisition of a new PreparedStatement by the Statement cache could hang indefinitely
+  if the attempt to acquire provoked a non-Exception Throwable (i.e. an Error).
+  Many thanks to Totyo Totev!
