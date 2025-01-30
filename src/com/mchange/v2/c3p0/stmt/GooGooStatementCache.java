@@ -442,7 +442,7 @@ public abstract class GooGooStatementCache
 //          System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
 //          cxnStmtMgr.statementSet( pConn ).size());
             if (logger.isLoggable(MLevel.FINEST))
-                logger.finest("cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
+                logger.finest("assimilateNewCheckedOutStatement(...) -- cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
                                 cxnStmtMgr.statementSet( pConn ).size());
         }
 
@@ -708,7 +708,7 @@ public abstract class GooGooStatementCache
                 "A (not new) checking-out statement is not in deathmarch.");
         }
         
-        public boolean cullNext()
+        boolean cullNext()
         {
             assert Thread.holdsLock(GooGooStatementCache.this);
 
