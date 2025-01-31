@@ -24,10 +24,13 @@ For now (v0.10.2), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles
 
 _In order to remind me to switch to Java 11, the build will fail with an Exception if it detects an unexpected version._
 
-You can comment this requirement out of `build.sc` if you like. It's the line that looks like
+You can comment this requirement out of `build.mill` if you like. It's the bit that looks like
 
 ```scala
-  require( sys.props("java.runtime.version").startsWith("11"), s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)" )
+  require(
+    sys.props("java.runtime.version").startsWith("11"),
+    s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)"
+  )
 ```
 
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
@@ -40,7 +43,7 @@ $ mill jar
 
 You'll find the raw as library `out/jar.dest/out.jar`.
 
-If you maintain a local ivy repository, You can customize `publishVersion` in [`build.sc`](build.sc), then run
+If you maintain a local ivy repository, You can customize `publishVersion` in [`build.mill`](build.mill), then run
 
 ```plaintext
 $ mill publishLocal
@@ -103,12 +106,12 @@ you expect!
 
 Tests are configured by command-line arguments and by a `c3p0.properties` file.
 To play with different configurations, edit [`test/resources-local/c3p0.properties`](test/resources-local/c3p0.properties).
-Also check the `forkArgs()` method in [`build.sc`](build.sc)
+Also check the `forkArgs()` method in [`build.mill`](build.mill)
 
 Sometimes you want to put the library through its paces with pathological configuration.
 A baseline pathological configuration is defined in [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
 
-To give this effect, temporarily edit [`build.sc`](build.sc):
+To give this effect, temporarily edit [`build.mill`](build.mill):
 
 ```scala
     override def runClasspath : T[Seq[PathRef]] = T{
@@ -130,6 +133,37 @@ are configured to use `java.util.logging.`, and be configured by the file [`test
 Of course you can change the config (in `c3p0.properties`) to use another logging library if you'd like,
 but you may need to modify the build to bring third-party logging libraries in, and configure those libraries
 in their own ways.
+
+#### Testing under other JVM versions
+
+The build insists on a particular JVM version (currently Java 11), but you may want to try tests, with
+all the necessary dependencies and the same config, under other JVM versions. To support this,
+first, in the build's required JVM version, run
+
+```plaintext
+% mill test.printExternalCommandBase
+```
+
+That will print a long String, beginning with "java" and typically ending with a very long `CLASSPATH`.
+
+Now you can change your environment (usually reset the `JAVA_HOME` environment variable) so you run a different JVM version.
+
+Paste the long output mill printed for you onto a command line, and then append the fully qualified name of one of c3p0's
+test applications, usually one of...
+
+* `com.mchange.v2.c3p0.test.C3P0BenchmarkApp`
+* `com.mchange.v2.c3p0.test.LoadPoolBackedDataSource`
+* `com.mchange.v2.c3p0.test.PSLoadPoolBackedDataSource`
+* `com.mchange.v2.c3p0.test.StatsTest`
+* `com.mchange.v2.c3p0.test.ProxyWrappersTest`
+* `com.mchange.v2.c3p0.test.RawConnectionOpTest`
+* `com.mchange.v2.c3p0.test.InterruptedBatchTest`
+* `com.mchange.v2.c3p0.test.ConnectionDispersionTest`
+* `com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest`
+* `com.mchange.v2.c3p0.test.TestRefSerStuff`
+* `com.mchange.v2.c3p0.test.JavaBeanRefTest`
+* `com.mchange.v2.c3p0.test.DynamicPreparedStatementTest`
+
 
 ### Building c3p0-loom
 
