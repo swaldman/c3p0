@@ -266,11 +266,6 @@ object `package` extends RootModule with JavaModule with PublishModule {
     override def artifactName = T{"c3p0-test"}
     override def publishVersion = T{ build.publishVersion() }
 
-    // comment this in to publish the test jar (usually locally)
-    override def publishArtifacts = T {
-      super.publishArtifacts().copy( payload = Seq.empty )
-    }
-
     // when you want to generate tests you can try under old JVMs
     override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
