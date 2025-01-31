@@ -37,7 +37,10 @@ object `package` extends RootModule with JavaModule with PublishModule {
   // for users of smaller JDBC subsets
   val JvmCompatVersion = "7"
 
-  require( sys.props("java.runtime.version").startsWith("11"), s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)" )
+  require(
+    sys.props("java.runtime.version").startsWith("11"),
+    s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)"
+  )
 
   // see https://mill-build.org/mill/depth/sandboxing.html
   val BuildRoot = os.Path( sys.env("MILL_WORKSPACE_ROOT") )
@@ -264,7 +267,7 @@ object `package` extends RootModule with JavaModule with PublishModule {
     override def publishVersion = T{ build.publishVersion() }
 
     // when you want to generate tests you can try under old JVMs
-    // override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
+    override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
     /**
       * A place for resources we want seen by local (test) runs, but
@@ -278,6 +281,23 @@ object `package` extends RootModule with JavaModule with PublishModule {
     override def runClasspath : T[Seq[PathRef]] = T{
       super.runClasspath() ++ localResources()
       // super.runClasspath() ++ localResourcesRough()
+    }
+
+    def externalClassPath : T[String] = T {
+      val sep = java.io.File.pathSeparator
+      runClasspath().map( _.path ).mkString( sep )
+    }
+
+    def externalForkArgs : T[String] = T {
+      forkArgs().mkString(" ")
+    }
+
+    def externalCommandBase : T[String] = T[String] {
+       List("java",externalForkArgs(),"-cp",externalClassPath()).mkString(" ")
+    }
+
+    def printExternalCommandBase : T[Unit] = T {
+      println(externalCommandBase())
     }
 
     override def ivyDeps = T{
