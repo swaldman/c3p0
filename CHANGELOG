@@ -1,3 +1,4 @@
+c3p0-0.10.2
 	-- Prevent freeze due to re-waiting if a non-Exception Throwable occurs
 	   while acquiring a PreparedStatement to cache. Thanks Totyo Totev!
 c3p0-0.10.1
