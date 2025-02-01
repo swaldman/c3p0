@@ -1,3 +1,14 @@
+	-- Double check after termination of BasicResourcePool.awaitAvailable(...)
+	   that following notification/termination a resource (Connection) remains
+	   available. Many thanks to C3Stones and xtb359 on github for calling
+	   attention to this issue.
+	-- Prevent fragility under non-bootstrap / non-system CLASSLOADERs under
+	   Java 8, where references to java.sql.ShardingKey not available under Java 8
+	   provoke NoClassDefFoundError. Bifurcate Connection proxies, generate
+	   version without sharding key methods under JVMs where ShardingKey is unavailable,
+	   full JDBC 4.3 Connection API proxies where ShardingKey is present.
+	   Thanks to Force Rs on github for finding the issue and suggesting the
+	   solution!
 c3p0-0.10.2
 	-- Prevent freeze due to re-waiting if a non-Exception Throwable occurs
 	   while acquiring a PreparedStatement to cache. Thanks Totyo Totev!

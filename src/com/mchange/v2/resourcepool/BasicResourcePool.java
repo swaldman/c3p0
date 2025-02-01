@@ -546,8 +546,8 @@ class BasicResourcePool implements ResourcePool
         {
             ensureNotBroken();
 
-            int available = unused.size();
-            if (available == 0)
+            int available;
+            while ( (available  = unused.size()) == 0 )
             {
                 int msz = managed.size();
 
