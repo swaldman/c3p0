@@ -16,9 +16,26 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
     private final static MLogger logger = MLog.getLogger( NewPooledConnection.class );
 
-    private final static SQLException NORMAL_CLOSE_PLACEHOLDER = new SQLException("This pooled Connection was explicitly close()ed by " +
-    "a client, not invalidated due to an error.");
-    
+    private final static SQLException NORMAL_CLOSE_PLACEHOLDER =
+        new SQLException("This pooled Connection was explicitly close()ed by a client, not invalidated due to an error.");
+
+    private final static boolean SHARDING_KEY_KNOWN;
+
+    static
+    {
+        boolean tmp;
+        try
+        {
+            Class sk = Class.forName("java.sql.ShardingKey");
+            tmp = true;
+        }
+        catch (ClassNotFoundException cnfe)
+        {
+            tmp = false;
+        }
+        SHARDING_KEY_KNOWN = tmp;
+    }
+
     //MT: protected by class lock
     static Set holdabilityBugKeys = null;
 
@@ -51,23 +68,23 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     boolean              connection_error_signaled = false;
 
     //MT: thread-safe, volatile
-    volatile NewProxyConnection exposedProxy  = null;
-    volatile boolean isolation_lvl_nondefault = false; 
-    volatile boolean catalog_nondefault       = false; 
-    volatile boolean holdability_nondefault   = false; 
-    volatile boolean readOnly_nondefault      = false; 
-    volatile boolean typeMap_nondefault       = false; 
+    volatile AbstractNewProxyConnection exposedProxy = null;
+    volatile boolean isolation_lvl_nondefault        = false;
+    volatile boolean catalog_nondefault              = false;
+    volatile boolean holdability_nondefault          = false;
+    volatile boolean readOnly_nondefault             = false;
+    volatile boolean typeMap_nondefault              = false;
 
     // public API
-    public NewPooledConnection(Connection con, 
+    public NewPooledConnection(Connection con,
 			       ConnectionTester connectionTester,
 			       int connectionIsValidTimeout,
-			       boolean autoCommitOnClose, 
+			       boolean autoCommitOnClose,
 			       boolean forceIgnoreUnresolvedTransactions,
 			       String  preferredTestQuery,
 			       ConnectionCustomizer cc,
 			       String pdsIdt) throws SQLException
-    { 
+    {
         try
         {
             if (cc != null)
@@ -76,7 +93,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         catch (Exception e)
         { throw SqlUtils.toSQLException(e); }
 
-        this.physicalConnection                = con; 
+        this.physicalConnection                = con;
         this.connectionTester                  = connectionTester;
 	this.connectionIsValidTimeout          = connectionIsValidTimeout;
         this.autoCommitOnClose                 = autoCommitOnClose;
@@ -130,7 +147,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
             return ResultSet.CLOSE_CURSORS_AT_COMMIT;
         }
     }
-        
+
     private static String holdabilityBugKey(Connection con, Error err)
     { return con.getClass().getName() + '|' + err.getClass().getName(); }
 
@@ -175,7 +192,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
             //throw new SQLException("NOT IMPLEMENTED");
             if ( exposedProxy == null )
             {
-                exposedProxy = new NewProxyConnection( physicalConnection, this );
+                exposedProxy = ( SHARDING_KEY_KNOWN ? new NewProxyConnectionJdbc43Full( physicalConnection, this ) : new NewProxyConnectionNoShardingKey( physicalConnection, this ) );
 
 		// debug
 		//firstPull = new Exception("FIRST PULL");
@@ -207,10 +224,10 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     { return connection_status; }
 
     public synchronized void closeAll() throws SQLException
-    { 
+    {
         try
         {
-            closeAllCachedStatements(); 
+            closeAllCachedStatements();
         }
         catch ( Exception e )
         {
@@ -235,17 +252,17 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     { ces.printListeners(); }
 
     public void addStatementEventListener(StatementEventListener sel)
-    { 
+    {
 	if (logger.isLoggable( MLevel.INFO ))
-	    logger.info( "Per the JDBC4 spec, " + this.getClass().getName() + 
+	    logger.info( "Per the JDBC4 spec, " + this.getClass().getName() +
 			 " accepts StatementListeners, but for now there is no circumstance under which they are notified!"  );
 
-	ses.addStatementEventListener( sel );  
+	ses.addStatementEventListener( sel );
     }
 
     public void removeStatementEventListener(StatementEventListener sel)
-    { 
-	ses.removeStatementEventListener( sel );  
+    {
+	ses.removeStatementEventListener( sel );
     }
 
     public void printStatementListeners()
@@ -260,28 +277,28 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
     //api for NewProxyConnections
     void markNewTxnIsolation( int lvl ) //intentionally unsync'd -- isolation_lvl_nondefault is marked volatile
-    { 
-        this.isolation_lvl_nondefault = (lvl != dflt_txn_isolation); 
+    {
+        this.isolation_lvl_nondefault = (lvl != dflt_txn_isolation);
         //System.err.println("isolation_lvl_nondefault: " + isolation_lvl_nondefault);
     }
 
     void markNewCatalog( String catalog ) //intentionally unsync'd -- catalog_nondefault is marked volatile
-    { 
-        this.catalog_nondefault = ObjectUtils.eqOrBothNull(catalog, dflt_catalog); 
+    {
+        this.catalog_nondefault = ObjectUtils.eqOrBothNull(catalog, dflt_catalog);
     }
 
     void markNewHoldability( int holdability ) //intentionally unsync'd -- holdability_nondefault is marked volatile
-    { 
-        this.holdability_nondefault = (holdability != dflt_holdability); 
+    {
+        this.holdability_nondefault = (holdability != dflt_holdability);
     }
 
     void markNewReadOnly( boolean readOnly ) //intentionally unsync'd -- readOnly_nondefault is marked volatile
-    { 
-        this.readOnly_nondefault = (readOnly != dflt_readOnly); 
+    {
+        this.readOnly_nondefault = (readOnly != dflt_readOnly);
     }
 
     void markNewTypeMap( Map typeMap ) //intentionally unsync'd -- typeMap_nondefault is marked volatile
-    { 
+    {
         this.typeMap_nondefault = (typeMap != dflt_typeMap);
     }
 
@@ -289,7 +306,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     { return scache.checkoutStatement( physicalConnection, stmtProducingMethod, args ); }
 
     synchronized void checkinStatement( Statement stmt ) throws SQLException
-    { 
+    {
         cleanupStatementResultSets( stmt );
         scache.checkinStatement( stmt );
     }
@@ -300,7 +317,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     synchronized void markInactiveUncachedStatement( Statement stmt )
     {
         cleanupStatementResultSets( stmt );
-        uncachedActiveStatements.remove( stmt );  
+        uncachedActiveStatements.remove( stmt );
     }
 
     synchronized void markActiveResultSetForStatement( Statement stmt, ResultSet rs )
@@ -310,7 +327,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     }
 
     synchronized void markInactiveResultSetForStatement( Statement stmt, ResultSet rs )
-    { 
+    {
         Set rss = resultSets( stmt, false );
         if (rss == null)
         {
@@ -329,7 +346,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     }
 
     synchronized void markInactiveRawConnectionResultSet( ResultSet rs )
-    { 
+    {
         if ( ! rawConnectionResultSets.remove( rs ) )
             throw new InternalError("Marking a raw Connection ResultSet inactive that we did not know was opened!");
     }
@@ -341,7 +358,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     { metaDataResultSets.remove( rs ); }
 
     // internal synchronization to avoid sync'ed event multicasts
-    void markClosedProxyConnection( NewProxyConnection npc, boolean txn_known_resolved ) 
+    void markClosedProxyConnection( AbstractNewProxyConnection npc, boolean txn_known_resolved )
     {
 	//DEBUG
 	//new Exception("MARKING CLOSED").printStackTrace();
@@ -392,7 +409,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                     //e.printStackTrace();
                     if (Debug.DEBUG && logger.isLoggable( MLevel.FINE ))
                         logger.log(MLevel.FINE, "An exception occurred while resetting a closed Connection. Invalidating Connection.", e);
-		    
+
                     updateConnectionStatus( ConnectionTester.CONNECTION_IS_INVALID );
 
 		    trouble = e;
@@ -430,23 +447,23 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         if (isolation_lvl_nondefault)
         {
             physicalConnection.setTransactionIsolation( dflt_txn_isolation );
-            isolation_lvl_nondefault = false; 
+            isolation_lvl_nondefault = false;
             //System.err.println("reset txn isolation: " + dflt_txn_isolation);
         }
         if (catalog_nondefault)
         {
             physicalConnection.setCatalog( dflt_catalog );
-            catalog_nondefault = false; 
+            catalog_nondefault = false;
         }
         if (holdability_nondefault) //this cannot go to true if holdability is not supported, so we don't have to check.
         {
             physicalConnection.setHoldability( dflt_holdability );
-            holdability_nondefault = false; 
+            holdability_nondefault = false;
         }
         if (readOnly_nondefault)
         {
             physicalConnection.setReadOnly( dflt_readOnly );
-            readOnly_nondefault = false; 
+            readOnly_nondefault = false;
         }
         if (typeMap_nondefault)
         {
@@ -484,7 +501,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
                 // logger.warning("status: " + status);
 
-                updateConnectionStatus( status ); 
+                updateConnectionStatus( status );
                 if (status != ConnectionTester.CONNECTION_IS_OKAY)
                 {
                     if (Debug.DEBUG)
@@ -551,14 +568,14 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     private void fireConnectionClosed()
     {
 	assert (! Thread.holdsLock(this));
-	ces.fireConnectionClosed(); 
+	ces.fireConnectionClosed();
     }
 
 //  should NOT be called from sync'ed method
     private void fireConnectionErrorOccurred(SQLException error)
-    { 
+    {
 	assert (! Thread.holdsLock(this));
-	ces.fireConnectionErrorOccurred( error ); 
+	ces.fireConnectionErrorOccurred( error );
     }
 
 //  methods below must be called from sync'ed methods
@@ -601,9 +618,9 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 		    catch (Exception e)
 			{
 			    if (logger.isLoggable( MLevel.FINER ))
-				logger.log( MLevel.FINER, 
+				logger.log( MLevel.FINER,
 					    "Failed to reset the transaction state of  " + physicalConnection + "just prior to close(). " +
-					    "Only relevant at all if this was a Connection being forced close()ed midtransaction.", 
+					    "Only relevant at all if this was a Connection being forced close()ed midtransaction.",
 					    e );
 			}
 		}
@@ -616,7 +633,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                 if (logger.isLoggable( MLevel.FINER ))
                     logger.log( MLevel.FINER, "Failed to close physical Connection: " + physicalConnection, e );
 
-                closeExceptions.add(e); 
+                closeExceptions.add(e);
             }
 
             // update our state to bad status and closed, and log any exceptions
@@ -700,13 +717,13 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
                 try
                 { rs.close(); }
                 catch ( SQLException e )
-                { 
+                {
 		    closeExceptions.add(e);
 
 
 		    if ( logger.isLoggable( MLevel.FINER ) )
-			logger.log( MLevel.FINER, 
-				    "An Exception occurred while trying to cleanup the following ResultSet: " + rs, 
+			logger.log( MLevel.FINER,
+				    "An Exception occurred while trying to cleanup the following ResultSet: " + rs,
 				    e);
  		}
             }
@@ -722,12 +739,12 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
             try
             { stmt.close(); }
             catch ( SQLException e )
-            { 
-		closeExceptions.add(e); 
+            {
+		closeExceptions.add(e);
 
 		if ( logger.isLoggable( MLevel.FINER ) )
-		    logger.log( MLevel.FINER, 
-				"An Exception occurred while trying to cleanup the following uncached Statement: " + stmt, 
+		    logger.log( MLevel.FINER,
+				"An Exception occurred while trying to cleanup the following uncached Statement: " + stmt,
 				e);
 	    }
 
@@ -773,8 +790,8 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     }
 
     private Set resultSets( Statement stmt, boolean create )
-    { 
-        Set out = (Set) resultSetsForStatements.get( stmt ); 
+    {
+        Set out = (Set) resultSetsForStatements.get( stmt );
         if ( out == null && create )
         {
             out = new HashSet();
