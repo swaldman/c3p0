@@ -5,7 +5,7 @@ import com.mchange.v2.async.AsynchronousRunner;
 
 public final class PerConnectionMaxOnlyStatementCache extends GooGooStatementCache
 {
-    //MT: protected by this' lock
+    //MT: protected by parent's mainLock
     int max_statements_per_connection;
     DeathmarchConnectionStatementManager dcsm;
 
@@ -19,7 +19,7 @@ public final class PerConnectionMaxOnlyStatementCache extends GooGooStatementCac
     protected ConnectionStatementManager createConnectionStatementManager()
     { return (this.dcsm = new DeathmarchConnectionStatementManager()); }
 
-    //called by parent only with this' lock
+    //all below called by parent only with mainLock
     void addStatementToDeathmarches( Object pstmt, Connection physicalConnection )
     { dcsm.getDeathmarch( physicalConnection ).deathmarchStatement( pstmt ); }
 

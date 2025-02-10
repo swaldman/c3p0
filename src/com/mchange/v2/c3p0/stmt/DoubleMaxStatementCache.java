@@ -5,7 +5,7 @@ import com.mchange.v2.async.AsynchronousRunner;
 
 public final class DoubleMaxStatementCache extends GooGooStatementCache
 {
-    //MT: protected by this' lock
+    //MT: protected by parent's mainLock
     int max_statements;
     Deathmarch globalDeathmarch = new Deathmarch();
 
@@ -23,7 +23,7 @@ public final class DoubleMaxStatementCache extends GooGooStatementCache
     protected ConnectionStatementManager createConnectionStatementManager()
     { return (this.dcsm = new DeathmarchConnectionStatementManager()); }
 
-    //called by parent only with this' lock
+    //all methods below called by parent only with parent's mainLock
     void addStatementToDeathmarches( Object pstmt, Connection physicalConnection )
     {
 	globalDeathmarch.deathmarchStatement( pstmt );
