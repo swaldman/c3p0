@@ -192,7 +192,7 @@ public abstract class GooGooStatementCache
             LinkedList l = checkoutQueue( key );
             if (l == null || l.isEmpty()) //we need a new statement
             {
-                // we might wait() here... 
+                // we might conditionStatementPerhapsAcquired.await() here... 
                 // don't presume atomicity before and after!
                 out = acquireStatement( physicalConnection, stmtProducingMethod, args );
 
