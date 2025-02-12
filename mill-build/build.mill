@@ -6,7 +6,7 @@ import mill._, scalalib._
 
 object `package` extends MillBuildRootModule {
 
-  val McjVersion = "0.3.2-SNAPSHOT"
+  val McjVersion = "0.3.2"
 
   object Dependency {
     val MchangeCommonsJava = ivy"com.mchange:mchange-commons-java:${McjVersion}"
