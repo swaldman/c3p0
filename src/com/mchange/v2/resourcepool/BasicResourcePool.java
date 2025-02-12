@@ -1,6 +1,9 @@
 package com.mchange.v2.resourcepool;
 
 import java.util.*;
+import java.util.concurrent.locks.*;
+import java.util.concurrent.TimeUnit;
+
 import com.mchange.v2.async.*;
 import com.mchange.v2.log.*;
 import com.mchange.v2.lang.ThreadUtils;
@@ -14,6 +17,31 @@ class BasicResourcePool implements ResourcePool
     final static int AUTO_MAX_CULL_FREQUENCY = (15 * 60 * 1000); //15 mins
     final static int AUTO_MIN_CULL_FREQUENCY = (1 * 1000); //15 mins
 
+    /* loom-compilant wait/notify... */
+    final ReentrantLock lockMain = new ReentrantLock();
+
+    // it'd be nice to break this into finer grained conditions, but since
+    // we're translating from this' monitor, we'll start with this for now
+    final Condition conditionSomethingChanged = lockMain.newCondition();
+
+    void cscAwait() throws InterruptedException
+    { conditionSomethingChanged.await(); }
+
+    void cscAwait( long timeout ) throws InterruptedException
+    {
+        // this is annoying, but I can find no clear documentation that
+        // Condition.await(0, TimeUnit.XXX) is indefinite, so I'm being
+        // very explicit
+
+        if (timeout > 0)
+            conditionSomethingChanged.await( timeout, TimeUnit.MILLISECONDS );
+        else
+            conditionSomethingChanged.await();
+    }
+
+    void cscSignalAll()
+    { conditionSomethingChanged.signalAll(); }
+    /* end loom-compilant wait/notify... */
 
     //MT: unchanged post c'tor
     final Manager mgr;
@@ -97,96 +125,164 @@ class BasicResourcePool implements ResourcePool
     public long getUpTime()
     { return System.currentTimeMillis() - pool_start_time; }
 
-    public synchronized long getNumFailedCheckins()
-    { return failed_checkins; }
+    public long getNumFailedCheckins()
+    {
+        lockMain.lock();
+        try { return failed_checkins; }
+        finally { lockMain.unlock(); }
+    }
 
-    public synchronized long getNumFailedCheckouts()
-    { return failed_checkouts; }
+    public long getNumFailedCheckouts()
+    {
+        lockMain.lock();
+        try { return failed_checkouts; }
+        finally { lockMain.unlock(); }
+    }
 
-    public synchronized long getNumFailedIdleTests()
-    { return failed_idle_tests; }
+    public long getNumFailedIdleTests()
+    {
+        lockMain.lock();
+        try { return failed_idle_tests; }
+        finally { lockMain.unlock(); }
+    }
 
-    public synchronized Throwable getLastCheckinFailure()
-    { return lastCheckinFailure; }
+    public Throwable getLastCheckinFailure()
+    {
+        lockMain.lock();
+        try { return lastCheckinFailure; }
+        finally { lockMain.unlock(); }
+    }
 
     //must be called from a pre-existing sync'ed block
     private void setLastCheckinFailure(Throwable t)
     {
-        assert ( Thread.holdsLock(this));
+        assert ( lockMain.isHeldByCurrentThread());
 
         this.lastCheckinFailure = t;
         this.lastResourceTestFailure = t;
     }
 
-    public synchronized Throwable getLastCheckoutFailure()
-    { return lastCheckoutFailure; }
+    public Throwable getLastCheckoutFailure()
+    {
+        lockMain.lock();
+        try { return lastCheckoutFailure; }
+        finally { lockMain.unlock(); }
+    }
 
     //must be called from a pre-existing sync'ed block
     private void setLastCheckoutFailure(Throwable t)
     {
-        assert ( Thread.holdsLock(this));
+        assert ( lockMain.isHeldByCurrentThread());
 
         this.lastCheckoutFailure = t;
         this.lastResourceTestFailure = t;
     }
 
-    public synchronized Throwable getLastIdleCheckFailure()
-    { return lastIdleTestFailure; }
+    public Throwable getLastIdleCheckFailure()
+    {
+        lockMain.lock();
+        try { return lastIdleTestFailure; }
+        finally { lockMain.unlock(); }
+    }
 
     //must be called from a pre-existing sync'ed block
     private void setLastIdleCheckFailure(Throwable t)
     {
-        assert ( Thread.holdsLock(this));
+        assert ( lockMain.isHeldByCurrentThread());
 
         this.lastIdleTestFailure = t;
         this.lastResourceTestFailure = t;
     }
 
-    public synchronized Throwable getLastResourceTestFailure()
-    { return lastResourceTestFailure; }
-
-    public synchronized Throwable getLastAcquisitionFailure()
-    { return lastAcquisitionFailiure; }
-
-    // ought not be called while holding this' lock
-    private synchronized void setLastAcquisitionFailure( Throwable t )
-    { this.lastAcquisitionFailiure = t; }
-
-    public synchronized int getNumCheckoutWaiters()
-    { return acquireWaiters.size(); }
-
-    public synchronized int getNumPendingAcquireTasks()
-    { return pending_acquires; }
-
-    public synchronized int getNumPendingRemoveTasks()
-    { return pending_removes; }
-
-    public synchronized int getNumThreadsWaitingForResources()
-    { return acquireWaiters.size(); }
-
-    public synchronized String[] getThreadNamesWaitingForResources()
+    public Throwable getLastResourceTestFailure()
     {
-	int len = acquireWaiters.size();
-	String[] out = new String[len];
-	int i = 0;
-	for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
-	    out[i++] = ((Thread) ii.next()).getName();
-	Arrays.sort( out );
-	return out;
+        lockMain.lock();
+        try { return lastResourceTestFailure; }
+        finally { lockMain.unlock(); }
     }
 
-    public synchronized int getNumThreadsWaitingForAdministrativeTasks()
-    { return otherWaiters.size(); }
-
-    public synchronized String[] getThreadNamesWaitingForAdministrativeTasks()
+    public Throwable getLastAcquisitionFailure()
     {
-	int len = otherWaiters.size();
-	String[] out = new String[len];
-	int i = 0;
-	for (Iterator ii = otherWaiters.iterator(); ii.hasNext(); )
-	    out[i++] = ((Thread) ii.next()).getName();
-	Arrays.sort( out );
-	return out;
+        lockMain.lock();
+        try { return lastAcquisitionFailiure; }
+        finally { lockMain.unlock(); }
+    }
+
+    // ought not be called while already holding this' lock
+    private void setLastAcquisitionFailure( Throwable t )
+    {
+        lockMain.lock();
+        try { this.lastAcquisitionFailiure = t; }
+        finally { lockMain.unlock(); }
+    }
+
+    public int getNumCheckoutWaiters()
+    {
+        lockMain.lock();
+        try { return acquireWaiters.size(); }
+        finally { lockMain.unlock(); }
+    }
+
+    public int getNumPendingAcquireTasks()
+    {
+        lockMain.lock();
+        try { return pending_acquires; }
+        finally { lockMain.unlock(); }
+    }
+
+    public int getNumPendingRemoveTasks()
+    {
+        lockMain.lock();
+        try { return pending_removes; }
+        finally { lockMain.unlock(); }
+    }
+
+    public int getNumThreadsWaitingForResources()
+    {
+        lockMain.lock();
+        try { return acquireWaiters.size(); }
+        finally { lockMain.unlock(); }
+    }
+
+    public String[] getThreadNamesWaitingForResources()
+    {
+        lockMain.lock();
+        try
+        {
+           int len = acquireWaiters.size();
+           String[] out = new String[len];
+           int i = 0;
+           for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
+               out[i++] = ((Thread) ii.next()).getName();
+           Arrays.sort( out );
+           return out;
+        }
+        finally
+        { lockMain.unlock(); }
+    }
+
+    public int getNumThreadsWaitingForAdministrativeTasks()
+    {
+        lockMain.lock();
+        try { return otherWaiters.size(); }
+        finally { lockMain.unlock(); }
+    }
+
+    public String[] getThreadNamesWaitingForAdministrativeTasks()
+    {
+        lockMain.lock();
+        try
+        {
+            int len = otherWaiters.size();
+            String[] out = new String[len];
+            int i = 0;
+            for (Iterator ii = otherWaiters.iterator(); ii.hasNext(); )
+                out[i++] = ((Thread) ii.next()).getName();
+            Arrays.sort( out );
+            return out;
+        }
+        finally
+        { lockMain.unlock(); }
     }
 
     private void addToFormerResources( Object resc )
@@ -368,8 +464,12 @@ class BasicResourcePool implements ResourcePool
     public long getEffectiveExpirationEnforcementDelay()
     { return expiration_enforcement_delay; }
 
-    private synchronized boolean isBroken()
-    { return broken; }
+    private boolean isBroken()
+    {
+        lockMain.lock();
+        try { return broken; }
+        finally { lockMain.unlock(); }
+    }
 
     // no need to sync
     private boolean supportsEvents()
@@ -393,7 +493,7 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method, idempotent
     private void _recheckResizePool()
     {
-        assert Thread.holdsLock(this);
+        assert lockMain.isHeldByCurrentThread();
 
         if (! broken)
         {
@@ -414,26 +514,42 @@ class BasicResourcePool implements ResourcePool
         }
     }
 
-    private synchronized void incrementPendingAcquires()
+    private void incrementPendingAcquires()
     {
-        ++pending_acquires;
+        lockMain.lock();
+        try
+        {
+            ++pending_acquires;
 
-        if (logger.isLoggable(MLevel.FINEST))
-            logger.finest("incremented pending_acquires: " + pending_acquires);
-        //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
+            if (logger.isLoggable(MLevel.FINEST))
+                logger.finest("incremented pending_acquires: " + pending_acquires);
+            //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
+        }
+        finally
+        { lockMain.unlock(); }
     }
 
-    private synchronized void incrementPendingRemoves()
+    private void incrementPendingRemoves()
     {
-        ++pending_removes;
+        lockMain.lock();
+        try
+        {
+            ++pending_removes;
 
-        if (logger.isLoggable(MLevel.FINEST))
-            logger.finest("incremented pending_removes: " + pending_removes);
-        //new Exception("REMOVE SOURCE STACK TRACE").printStackTrace();
+            if (logger.isLoggable(MLevel.FINEST))
+                logger.finest("incremented pending_removes: " + pending_removes);
+            //new Exception("REMOVE SOURCE STACK TRACE").printStackTrace();
+        }
+        finally
+        { lockMain.unlock(); }
     }
 
-    private synchronized void decrementPendingAcquires()
-    { _decrementPendingAcquires(); }
+    private void decrementPendingAcquires()
+    {
+        lockMain.lock();
+        try { _decrementPendingAcquires(); }
+        finally { lockMain.unlock(); }
+    }
 
     private void _decrementPendingAcquires()
     {
@@ -444,23 +560,33 @@ class BasicResourcePool implements ResourcePool
         //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
     }
 
-    private synchronized void decrementPendingRemoves()
+    private void decrementPendingRemoves()
     {
-        --pending_removes;
+        lockMain.lock();
+        try
+        {
+            --pending_removes;
 
-        if (logger.isLoggable(MLevel.FINEST))
-            logger.finest("decremented pending_removes: " + pending_removes);
-        //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
+            if (logger.isLoggable(MLevel.FINEST))
+                logger.finest("decremented pending_removes: " + pending_removes);
+            //new Exception("ACQUIRE SOURCE STACK TRACE").printStackTrace();
+        }
+        finally
+        { lockMain.unlock(); }
     }
 
     // idempotent
-    private synchronized void recheckResizePool()
-    { _recheckResizePool(); }
+    private void recheckResizePool()
+    {
+        lockMain.lock();
+        try { _recheckResizePool(); }
+        finally { lockMain.unlock(); }
+    }
 
     // must be called from synchronized method
     private void expandPool(int count)
     {
-        assert Thread.holdsLock(this);
+        assert lockMain.isHeldByCurrentThread();
 
         for (int i = 0; i < count; ++i)
             taskRunner.postRunnable( new ScatteredAcquireTask() );
@@ -469,7 +595,7 @@ class BasicResourcePool implements ResourcePool
     // must be called from synchronized method
     private void shrinkPool(int count)
     {
-        assert Thread.holdsLock(this);
+        assert lockMain.isHeldByCurrentThread();
 
         for (int i = 0; i < count; ++i)
             taskRunner.postRunnable( new RemoveTask() );
@@ -493,7 +619,8 @@ class BasicResourcePool implements ResourcePool
 	    // lock, so we don't refurbish-on-checkout while holding.
 	    boolean refurb = attemptRefurbishResourceOnCheckout( resc );
 
-	    synchronized( this )
+            lockMain.lock();
+	    try
 	    {
 		if (!refurb)
 		{
@@ -525,6 +652,8 @@ class BasicResourcePool implements ResourcePool
 		    }
 		}
 	    }
+            finally
+            { lockMain.unlock(); }
 
 	    if (resc == null)
 		return checkoutResource( timeout );
@@ -539,9 +668,10 @@ class BasicResourcePool implements ResourcePool
 	}
     }
 
-    private synchronized Object prelimCheckoutResource( long timeout )
+    private Object prelimCheckoutResource( long timeout )
 	throws TimeoutException, ResourcePoolException, InterruptedException
     {
+        lockMain.lock();
         try
         {
             ensureNotBroken();
@@ -598,7 +728,7 @@ class BasicResourcePool implements ResourcePool
                 try
                 {
                     otherWaiters.add ( t );
-                    this.wait( timeout );
+                    cscAwait( timeout );
                     ensureNotBroken();
                 }
                 finally
@@ -665,6 +795,8 @@ class BasicResourcePool implements ResourcePool
 						"See logger com.mchange.v2.resourcepool.BasicResourcePool output at FINER/DEBUG for information on individual failures.",
 						e );
 	}
+        finally
+        { lockMain.unlock(); }
     }
 
     public void checkinResource( Object resc ) throws ResourcePoolException
@@ -672,7 +804,9 @@ class BasicResourcePool implements ResourcePool
 	try
 	{
 	    boolean unlocked_do_checkin_managed = false;
-	    synchronized ( this )
+
+            lockMain.lock();
+	    try
 	    {
 		//we permit straggling resources to be checked in
 		//without exception even if we are broken
@@ -689,6 +823,9 @@ class BasicResourcePool implements ResourcePool
 		else
 		    throw new ResourcePoolException("ResourcePool" + (broken ? " [BROKEN!]" : "") + ": Tried to check-in a foreign resource!");
 	    }
+            finally
+            { lockMain.unlock(); }
+
 	    if ( unlocked_do_checkin_managed ) doCheckinManaged( resc );
 	    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) syncTrace();
 	}
@@ -709,13 +846,18 @@ class BasicResourcePool implements ResourcePool
         try
         {
             Set checkedOutNotExcluded = null;
-	    synchronized ( this )
+
+            lockMain.lock();
+	    try
 	    {
 		checkedOutNotExcluded = new HashSet( managed.keySet() );
 		checkedOutNotExcluded.removeAll( unused );
 		for (Iterator ii = excluded.iterator(); ii.hasNext(); )
 		    doCheckinExcluded( ii.next() );
 	    }
+            finally
+            { lockMain.unlock(); }
+
 	    for (Iterator ii = checkedOutNotExcluded.iterator(); ii.hasNext(); )
 		doCheckinManaged( ii.next() );
         }
@@ -735,9 +877,9 @@ class BasicResourcePool implements ResourcePool
         }
     }
 
-    public synchronized int statusInPool( Object resc )
-    throws ResourcePoolException
+    public int statusInPool( Object resc ) throws ResourcePoolException
     {
+        lockMain.lock();
         try
         {
             if ( unused.contains( resc ) )
@@ -755,10 +897,13 @@ class BasicResourcePool implements ResourcePool
             this.unexpectedBreak();
             throw e;
         }
+        finally
+        { lockMain.unlock(); }
     }
 
-    public synchronized void markBroken(Object resc)
+    public void markBroken(Object resc)
     {
+        lockMain.lock();
         try
         {
             if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ))
@@ -774,6 +919,8 @@ class BasicResourcePool implements ResourcePool
                 logger.log( MLevel.SEVERE, "Apparent pool break.", e );
             this.unexpectedBreak();
         }
+        finally
+        { lockMain.unlock(); }
     }
 
     //min is immutable, no need to synchronize
@@ -784,9 +931,12 @@ class BasicResourcePool implements ResourcePool
     public int getMaxPoolSize()
     { return max; }
 
-    public synchronized int getPoolSize()
-    throws ResourcePoolException
-    { return managed.size(); }
+    public int getPoolSize() throws ResourcePoolException
+    {
+        lockMain.lock();
+        try { return managed.size(); }
+        finally { lockMain.unlock(); }
+    }
 
 //  //i don't think i like the async, no-guarantees approach
 //  public synchronized void requestResize( int req_sz )
@@ -802,20 +952,37 @@ class BasicResourcePool implements ResourcePool
 //  postRemoveTowards( req_sz );
 //  }
 
-    public synchronized int getAvailableCount()
-    { return unused.size(); }
-
-    public synchronized int getExcludedCount()
-    { return excluded.size(); }
-
-    public synchronized int getAwaitingCheckinCount()
-    { return managed.size() - unused.size() + excluded.size(); }
-
-    public synchronized int getAwaitingCheckinNotExcludedCount()
-    { return managed.size() - unused.size(); }
-
-    public synchronized void resetPool()
+    public int getAvailableCount()
     {
+        lockMain.lock();
+        try { return unused.size(); }
+        finally { lockMain.unlock(); }
+    }
+
+    public int getExcludedCount()
+    {
+        lockMain.lock();
+        try { return excluded.size(); }
+        finally { lockMain.unlock(); }
+    }
+
+    public int getAwaitingCheckinCount()
+    {
+        lockMain.lock();
+        try { return managed.size() - unused.size() + excluded.size(); }
+        finally { lockMain.unlock(); }
+    }
+
+    public int getAwaitingCheckinNotExcludedCount()
+    {
+        lockMain.lock();
+        try { return managed.size() - unused.size(); }
+        finally { lockMain.unlock(); }
+    }
+
+    public void resetPool()
+    {
+        lockMain.lock();
         try
         {
             for (Iterator ii = cloneOfManaged().keySet().iterator(); ii.hasNext();)
@@ -829,15 +996,22 @@ class BasicResourcePool implements ResourcePool
                 logger.log( MLevel.SEVERE, "Apparent pool break.", e );
             this.unexpectedBreak();
         }
+        finally
+        { lockMain.unlock(); }
     }
 
-    public synchronized void close()
-    throws ResourcePoolException
+    public void close() throws ResourcePoolException
     {
-        //we permit closes when we are already broken, so
-        //that resources that were checked out when the break
-        //occured can still be cleaned up
-        close( true );
+        lockMain.lock();
+        try
+        {
+            //we permit closes when we are already broken, so
+            //that resources that were checked out when the break
+            //occured can still be cleaned up
+            close( true );
+        }
+        finally
+        { lockMain.unlock(); }
     }
 
     public void finalize() throws Throwable
@@ -870,83 +1044,98 @@ class BasicResourcePool implements ResourcePool
             rpes.removeResourcePoolListener(rpl);
     }
 
-    private synchronized boolean isForceKillAcquiresPending()
-    { return force_kill_acquires; }
+    private boolean isForceKillAcquiresPending()
+    {
+        lockMain.lock();
+        try { return force_kill_acquires; }
+        finally { lockMain.unlock(); }
+    }
 
     // this is designed as a response to a determination that our resource source is down.
     // rather than declaring ourselves broken in this case (as we did previously), we
     // kill all pending acquisition attempts, but retry on new acqusition requests.
-    private synchronized void forceKillAcquires() throws InterruptedException
+    private void forceKillAcquires() throws InterruptedException
     {
-	if (logger.isLoggable(MLevel.WARNING))
-	    logger.log(MLevel.WARNING,
-		       "Having failed to acquire a resource, " +
-		       this +
-		       " is interrupting all Threads waiting on a resource to check out. " +
-		       "Will try again in response to new client requests.");
-
-        Thread t = Thread.currentThread();
-
+        lockMain.lock();
         try
         {
-            force_kill_acquires = true;
-            this.notifyAll(); //wake up any threads waiting on an acquire, and force them all to die.
-            while (acquireWaiters.size() > 0) //we want to let all the waiting acquires die before we unset force_kill_acquires
+            if (logger.isLoggable(MLevel.WARNING))
+                logger.log(MLevel.WARNING,
+                           "Having failed to acquire a resource, " +
+                           this +
+                           " is interrupting all Threads waiting on a resource to check out. " +
+                           "Will try again in response to new client requests.");
+
+            Thread t = Thread.currentThread();
+
+            try
             {
-                otherWaiters.add( t );
-                this.wait();
+                force_kill_acquires = true;
+                cscSignalAll(); //wake up any threads waiting on an acquire, and force them all to die.
+                while (acquireWaiters.size() > 0) //we want to let all the waiting acquires die before we unset force_kill_acquires
+                {
+                    otherWaiters.add( t );
+                    cscAwait();
+                }
+                force_kill_acquires = false;
             }
-            force_kill_acquires = false;
+            catch ( InterruptedException e )
+            {
+                // We were interrupted while trying to kill acquireWaiter Threads
+                // let's make a best-effort attempt to finish our work
+                for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
+                    ((Thread) ii.next()).interrupt();
+
+                // and let's log the issue
+                if (logger.isLoggable( MLevel.WARNING ))
+                    logger.log( MLevel.WARNING,
+                                "An interrupt left an attempt to gently clear threads waiting on resource acquisition potentially incomplete! " +
+                                "We have made a best attempt to finish that by interrupt()ing the waiting Threads." );
+
+                force_kill_acquires = false;
+
+                e.fillInStackTrace();
+                throw e;
+            }
+            catch ( Throwable ick )
+            {
+                // let's still make a best-effort attempt to finish our work
+                for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
+                    ((Thread) ii.next()).interrupt();
+
+                // and let's log the issue, with the throwable
+                if (logger.isLoggable( MLevel.SEVERE ))
+                    logger.log( MLevel.SEVERE,
+                                "An unexpected problem caused our attempt to gently clear threads waiting on resource acquisition to fail! " +
+                                "We have made a best attempt to finish that by interrupt()ing the waiting Threads.",
+                                ick );
+
+                force_kill_acquires = false;
+
+                // we still throw the unexpected throwable
+                if ( ick instanceof RuntimeException ) throw (RuntimeException) ick;
+                else if ( ick instanceof Error ) throw (Error) ick;
+                else throw new RuntimeException("Wrapped unexpected Throwable.", ick );
+            }
+            finally
+            { otherWaiters.remove( t ); }
         }
-	catch ( InterruptedException e )
-	{
-	    // We were interrupted while trying to kill acquireWaiter Threads
-	    // let's make a best-effort attempt to finish our work
-            for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
-                ((Thread) ii.next()).interrupt();
-
-	    // and let's log the issue
-	    if (logger.isLoggable( MLevel.WARNING ))
-		logger.log( MLevel.WARNING,
-			    "An interrupt left an attempt to gently clear threads waiting on resource acquisition potentially incomplete! " +
-			    "We have made a best attempt to finish that by interrupt()ing the waiting Threads." );
-	    
-	    force_kill_acquires = false;
-
-	    e.fillInStackTrace();
-	    throw e;
-	}
-	catch ( Throwable ick )
-	{
-	    // let's still make a best-effort attempt to finish our work
-            for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
-                ((Thread) ii.next()).interrupt();
-
-	    // and let's log the issue, with the throwable
-	    if (logger.isLoggable( MLevel.SEVERE ))
-		logger.log( MLevel.SEVERE,
-			    "An unexpected problem caused our attempt to gently clear threads waiting on resource acquisition to fail! " +
-			    "We have made a best attempt to finish that by interrupt()ing the waiting Threads.",
-			    ick );
-	    
-	    force_kill_acquires = false;
-
-	    // we still throw the unexpected throwable
-	    if ( ick instanceof RuntimeException ) throw (RuntimeException) ick;
-	    else if ( ick instanceof Error ) throw (Error) ick;
-	    else throw new RuntimeException("Wrapped unexpected Throwable.", ick );
-	}
         finally
-        { otherWaiters.remove( t ); }
+        { lockMain.lock(); }
     }
 
-    //same as close(), but we do not destroy checked out
-    //resources
-    private synchronized void unexpectedBreak()
+    //same as close(), but we do not destroy checked out resources
+    private void unexpectedBreak()
     {
-        if ( logger.isLoggable( MLevel.SEVERE ) )
-            logger.log( MLevel.SEVERE, this + " -- Unexpectedly broken!!!", new ResourcePoolException("Unexpected Break Stack Trace!") );
-        close( false );
+        lockMain.lock();
+        try
+        {
+            if ( logger.isLoggable( MLevel.SEVERE ) )
+                logger.log( MLevel.SEVERE, this + " -- Unexpectedly broken!!!", new ResourcePoolException("Unexpected Break Stack Trace!") );
+            close( false );
+        }
+        finally
+        { lockMain.unlock(); }
     }
 
     // no need to sync
@@ -1066,9 +1255,9 @@ class BasicResourcePool implements ResourcePool
         Runnable r = new DestroyResourceTask();
         if ( synchronous || broken ) //if we're broken, our taskRunner may be dead, so we destroy synchronously
         {
-            if ( logger.isLoggable(MLevel.FINEST) && !broken && Boolean.TRUE.equals( ThreadUtils.reflectiveHoldsLock( this ) ) )
+            if ( logger.isLoggable(MLevel.FINEST) && !broken && lockMain.isHeldByCurrentThread() )
                 logger.log( MLevel.FINEST,
-                                this + ": Destroyiong a resource on an active pool, synchronousy while holding pool's lock! " +
+                                this + ": Destroying a resource on an active pool, synchronousy while holding pool's lock! " +
                                 "(not a bug, but a potential bottleneck... is there a good reason for this?)",
                                 new Exception("DEBUG STACK TRACE: resource destruction while holding lock.") );
 
@@ -1107,14 +1296,16 @@ class BasicResourcePool implements ResourcePool
 
     private void doAcquire( int decrement_policy ) throws Exception
     {
-        assert !Thread.holdsLock( this );
+        assert !lockMain.isHeldByCurrentThread();
 
         Object resc = mgr.acquireResource(); //note we acquire the resource while we DO NOT hold the pool's lock!
 
         boolean destroy = false;
         int msz;
 
-        synchronized(this) //assimilate resc if we do need it
+        //assimilate resc if we do need it
+        lockMain.lock();
+        try
         {
 	    try
 		{
@@ -1133,6 +1324,8 @@ class BasicResourcePool implements ResourcePool
 			_decrementPendingAcquires();
 		}
         }
+        finally
+        { lockMain.unlock(); }
 
         if (destroy)
         {
@@ -1151,13 +1344,14 @@ class BasicResourcePool implements ResourcePool
 
     }
 
-    public synchronized void setPoolSize( int sz ) throws ResourcePoolException
+    public void setPoolSize( int sz ) throws ResourcePoolException
     {
+        lockMain.lock();
         try
         {
             setTargetPoolSize( sz );
             while ( managed.size() != sz )
-                this.wait();
+                cscAwait();
         }
         catch (Exception e)
         {
@@ -1166,26 +1360,34 @@ class BasicResourcePool implements ResourcePool
                 logger.log( MLevel.FINER, msg, e );
             throw ResourcePoolUtils.convertThrowable( msg, e );
         }
+        finally
+        { lockMain.unlock(); }
     }
 
-    public synchronized void setTargetPoolSize(int sz)
+    public void setTargetPoolSize(int sz)
     {
-        if (sz > max)
+        lockMain.lock();
+        try
         {
-            throw new IllegalArgumentException("Requested size [" + sz +
-                            "] is greater than max [" + max +
-            "].");
-        }
-        else if (sz < min)
-        {
-            throw new IllegalArgumentException("Requested size [" + sz +
-                            "] is less than min [" + min +
-            "].");
-        }
+            if (sz > max)
+            {
+                throw new IllegalArgumentException("Requested size [" + sz +
+                                "] is greater than max [" + max +
+                "].");
+            }
+            else if (sz < min)
+            {
+                throw new IllegalArgumentException("Requested size [" + sz +
+                                "] is less than min [" + min +
+                "].");
+            }
 
-        this.target_pool_size = sz;
+            this.target_pool_size = sz;
 
-        _recheckResizePool();
+            _recheckResizePool();
+        }
+        finally
+        { lockMain.unlock(); }
     }
 
 
@@ -1219,7 +1421,7 @@ class BasicResourcePool implements ResourcePool
     // must own this' lock
     private void markBrokenNoEnsureMinResources(Object resc)
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         try
         {
@@ -1237,7 +1439,7 @@ class BasicResourcePool implements ResourcePool
     // must own this' lock
     private void _markBroken( Object resc )
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         if ( unused.contains( resc ) )
             removeResource( resc );
@@ -1248,80 +1450,86 @@ class BasicResourcePool implements ResourcePool
     //DEBUG
     //Exception firstClose = null;
 
-    public synchronized void close( boolean close_checked_out_resources )
+    public void close( boolean close_checked_out_resources )
     {
-        if (! broken ) //ignore repeated calls to close
+        lockMain.lock();
+        try
         {
-            //DEBUG
-            //firstClose = new Exception("First close() -- debug stack trace [CRAIG]");
-            //firstClose.printStackTrace();
-
-            this.broken = true;
-            final Collection cleanupResources = ( close_checked_out_resources ? (Collection) cloneOfManaged().keySet() : (Collection) cloneOfUnused() );
-            if ( cullTask != null )
-                cullTask.cancel();
-            if (idleRefurbishTask != null)
-                idleRefurbishTask.cancel();
-
-	    for ( Iterator ii = cleanupResources.iterator(); ii.hasNext(); )
-		addToFormerResources( ii.next() );
-
-            managed.keySet().removeAll( cleanupResources );
-            unused.removeAll( cleanupResources );
-
-            // we destroy resources asynchronously, but with a dedicated one-off Thread, rather than
-            // our asynchronous runner, because our asynchrous runner may be shutting down. The
-            // destruction is asynchrounous because destroying a resource might require the resource's
-            // lock, and we already have the pool's lock. But client threads may well have the resource's
-            // lock while they try to check-in to the pool. The async destruction of resources avoids
-            // the possibility of deadlock.
-
-            Thread resourceDestroyer = new Thread("Resource Destroyer in BasicResourcePool.close()")
+            if (! broken ) //ignore repeated calls to close
             {
-                public void run()
-                {
-                    for (Iterator ii = cleanupResources.iterator(); ii.hasNext();)
-                    {
-                        try
-                        {
-                            Object resc = ii.next();
-                            //System.err.println("Destroying resource... " + resc);
+                //DEBUG
+                //firstClose = new Exception("First close() -- debug stack trace [CRAIG]");
+                //firstClose.printStackTrace();
 
-                            destroyResource( resc, true );
-                        }
-                        catch (Exception e)
+                this.broken = true;
+                final Collection cleanupResources = ( close_checked_out_resources ? (Collection) cloneOfManaged().keySet() : (Collection) cloneOfUnused() );
+                if ( cullTask != null )
+                    cullTask.cancel();
+                if (idleRefurbishTask != null)
+                    idleRefurbishTask.cancel();
+
+                for ( Iterator ii = cleanupResources.iterator(); ii.hasNext(); )
+                    addToFormerResources( ii.next() );
+
+                managed.keySet().removeAll( cleanupResources );
+                unused.removeAll( cleanupResources );
+
+                // we destroy resources asynchronously, but with a dedicated one-off Thread, rather than
+                // our asynchronous runner, because our asynchrous runner may be shutting down. The
+                // destruction is asynchrounous because destroying a resource might require the resource's
+                // lock, and we already have the pool's lock. But client threads may well have the resource's
+                // lock while they try to check-in to the pool. The async destruction of resources avoids
+                // the possibility of deadlock.
+
+                Thread resourceDestroyer = new Thread("Resource Destroyer in BasicResourcePool.close()")
+                {
+                    public void run()
+                    {
+                        for (Iterator ii = cleanupResources.iterator(); ii.hasNext();)
                         {
-                            if (Debug.DEBUG)
+                            try
                             {
-                                //e.printStackTrace();
-                                if ( logger.isLoggable( MLevel.FINE ) )
-                                    logger.log( MLevel.FINE, "BasicResourcePool -- A resource couldn't be cleaned up on close()", e );
+                                Object resc = ii.next();
+                                //System.err.println("Destroying resource... " + resc);
+
+                                destroyResource( resc, true );
+                            }
+                            catch (Exception e)
+                            {
+                                if (Debug.DEBUG)
+                                {
+                                    //e.printStackTrace();
+                                    if ( logger.isLoggable( MLevel.FINE ) )
+                                        logger.log( MLevel.FINE, "BasicResourcePool -- A resource couldn't be cleaned up on close()", e );
+                                }
                             }
                         }
                     }
-                }
-            };
-            resourceDestroyer.start();
+                };
+                resourceDestroyer.start();
 
-            for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
-                ((Thread) ii.next()).interrupt();
-            for (Iterator ii = otherWaiters.iterator(); ii.hasNext(); )
-                ((Thread) ii.next()).interrupt();
-            if (factory != null)
-                factory.markBroken( this );
+                for (Iterator ii = acquireWaiters.iterator(); ii.hasNext(); )
+                    ((Thread) ii.next()).interrupt();
+                for (Iterator ii = otherWaiters.iterator(); ii.hasNext(); )
+                    ((Thread) ii.next()).interrupt();
+                if (factory != null)
+                    factory.markBroken( this );
 
-            // System.err.println(this + " closed.");
+                // System.err.println(this + " closed.");
+            }
+            else
+            {
+                if ( logger.isLoggable( MLevel.WARNING ) )
+                    logger.warning(this + " -- close() called multiple times.");
+                //System.err.println(this + " -- close() called multiple times.");
+
+                //DEBUG
+                //firstClose.printStackTrace();
+                //new Exception("Repeat close() [CRAIG]").printStackTrace();
+            }
         }
-        else
-        {
-            if ( logger.isLoggable( MLevel.WARNING ) )
-                logger.warning(this + " -- close() called multiple times.");
-            //System.err.println(this + " -- close() called multiple times.");
-
-            //DEBUG
-            //firstClose.printStackTrace();
-            //new Exception("Repeat close() [CRAIG]").printStackTrace();
-        }
+        finally
+        { lockMain.unlock(); }
     }
 
     //debug only
@@ -1331,12 +1539,13 @@ class BasicResourcePool implements ResourcePool
     // the lock if synchronous checkins have been forced
     private void doCheckinManaged( final Object resc ) throws ResourcePoolException
     {
-        assert !Thread.holdsLock( this );
+        assert !lockMain.isHeldByCurrentThread();
 
         if ( Debug.DEBUG && this.statusInPool( resc ) == KNOWN_AND_AVAILABLE )
 	    throw new ResourcePoolException("Tried to check-in an already checked-in resource: " + resc);
 
-	synchronized ( this )
+        lockMain.lock();
+	try
 	{
           if (broken)
 	  {
@@ -1344,13 +1553,17 @@ class BasicResourcePool implements ResourcePool
 	      return;
 	  }
         }
+        finally
+        { lockMain.unlock(); }
 
 	class RefurbishCheckinResourceTask implements Runnable
 	{
 	    public void run()
 	    {
 		boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
-		synchronized( BasicResourcePool.this )
+
+                lockMain.lock();
+		try
                 {
 		    PunchCard card = (PunchCard) managed.get( resc );
 
@@ -1374,8 +1587,10 @@ class BasicResourcePool implements ResourcePool
                     }
 
 		    asyncFireResourceCheckedIn( resc, managed.size(), unused.size(), excluded.size() );
-		    BasicResourcePool.this.notifyAll();
+		    cscSignalAll();
 		}
+                finally
+                { lockMain.unlock(); }
 	    }
 	}
 
@@ -1386,7 +1601,7 @@ class BasicResourcePool implements ResourcePool
 
     private void doCheckinExcluded( Object resc )
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         excluded.remove(resc);
         destroyResource(resc);
@@ -1397,7 +1612,7 @@ class BasicResourcePool implements ResourcePool
      */
     private void awaitAvailable(long timeout) throws InterruptedException, TimeoutException, ResourcePoolException
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         if (force_kill_acquires)
             throw new ResourcePoolException("A ResourcePool cannot acquire a new resource -- the factory or source appears to be down.");
@@ -1437,7 +1652,7 @@ class BasicResourcePool implements ResourcePool
                 if (pending_acquires == 0 && managed.size() < max)
                     _recheckResizePool();
 
-                this.wait(remainingTimeout);
+                cscAwait(remainingTimeout);
 		remainingTimeout = Math.max(0, timeout - (System.currentTimeMillis() - start));
                 if (timeout > 0 && remainingTimeout == 0)
                     throw new TimeoutException("A client timed out while waiting to acquire a resource from " + this + " -- timeout at awaitAvailable()");
@@ -1450,19 +1665,19 @@ class BasicResourcePool implements ResourcePool
         {
             acquireWaiters.remove( t );
             if (acquireWaiters.size() == 0)
-                this.notifyAll();
+                cscSignalAll();
         }
     }
 
     private void assimilateResource( Object resc ) throws Exception
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         managed.put(resc, new PunchCard());
         unused.add(0, resc);
         //System.err.println("assimilate resource... unused: " + unused.size());
         asyncFireResourceAcquired( resc, managed.size(), unused.size(), excluded.size() );
-        this.notifyAll();
+        cscSignalAll();
         if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
         if (Debug.DEBUG && exampleResource == null)
             exampleResource = resc;
@@ -1471,11 +1686,12 @@ class BasicResourcePool implements ResourcePool
     // should NOT be called from synchronized method
     private void synchronousRemoveArbitraryResource()
     {
-        assert !Thread.holdsLock( this );
+        assert !lockMain.isHeldByCurrentThread();
 
         Object removeMe = null;
 
-        synchronized ( this )
+        lockMain.lock();
+        try
         {
             if (unused.size() > 0)
             {
@@ -1495,6 +1711,8 @@ class BasicResourcePool implements ResourcePool
                     excludeResource( checkedOut.iterator().next() );
             }
         }
+        finally
+        { lockMain.unlock(); }
 
         if (removeMe != null)
             destroyResource( removeMe, true );
@@ -1505,7 +1723,7 @@ class BasicResourcePool implements ResourcePool
 
     private void removeResource(Object resc, boolean synchronous)
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         PunchCard pc = (PunchCard) managed.remove(resc);
 
@@ -1543,7 +1761,7 @@ class BasicResourcePool implements ResourcePool
     //out resource from the pool
     private void excludeResource(Object resc)
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         managed.remove(resc);
         excluded.add(resc);
@@ -1556,7 +1774,7 @@ class BasicResourcePool implements ResourcePool
 
     private void removeTowards( int new_sz )
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         int num_to_remove = managed.size() - new_sz;
         int count = 0;
@@ -1571,7 +1789,7 @@ class BasicResourcePool implements ResourcePool
 
     private void cullExpired()
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         if ( logger.isLoggable( MLevel.FINER ) )
             logger.log( MLevel.FINER, "BEGIN check for expired resources.  [" + this + "]");
@@ -1601,7 +1819,7 @@ class BasicResourcePool implements ResourcePool
 
     private void checkIdleResources()
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         List u = cloneOfUnused();
         for ( Iterator ii = u.iterator(); ii.hasNext(); )
@@ -1616,7 +1834,7 @@ class BasicResourcePool implements ResourcePool
 
     private boolean shouldExpire( Object resc )
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         boolean expired = false;
 
@@ -1702,7 +1920,7 @@ class BasicResourcePool implements ResourcePool
 
     private boolean attemptRefurbishResourceOnCheckout( Object resc )
     {
-        assert !Thread.holdsLock( this );
+        assert !lockMain.isHeldByCurrentThread();
 
         try
         {
@@ -1718,18 +1936,23 @@ class BasicResourcePool implements ResourcePool
                 if (logger.isLoggable( MLevel.FINE ))
                     logger.log( MLevel.FINE, "A resource could not be refurbished for checkout. [" + resc + ']', e );
             }
-            synchronized (this)
+
+            lockMain.lock();
+            try
             {
                 ++failed_checkouts;
                 setLastCheckoutFailure(e);
             }
+            finally
+            { lockMain.unlock(); }
+
             return false;
         }
     }
 
     private boolean attemptRefurbishResourceOnCheckin( Object resc )
     {
-        assert !Thread.holdsLock( this );
+        assert !lockMain.isHeldByCurrentThread();
 
         try
         {
@@ -1745,29 +1968,38 @@ class BasicResourcePool implements ResourcePool
                 if (logger.isLoggable( MLevel.FINE ))
                     logger.log( MLevel.FINE, "A resource could not be refurbished on checkin. [" + resc + ']', e );
             }
-            synchronized (this)
+
+            lockMain.lock();
+            try
             {
                 ++failed_checkins;
                 setLastCheckinFailure(e);
             }
+            finally
+            { lockMain.unlock(); }
+
             return false;
         }
     }
 
     private void ensureNotBroken() throws ResourcePoolException
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         if (broken)
             throw new ResourcePoolException("Attempted to use a closed or broken resource pool");
     }
 
-    private synchronized void syncTrace()
-    { trace(); }
+    private void syncTrace()
+    {
+        lockMain.lock();
+        try { trace(); }
+        finally { lockMain.unlock(); }
+    }
 
     private void trace()
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         if ( logger.isLoggable( MLevel.FINEST ) )
         {
@@ -1782,21 +2014,21 @@ class BasicResourcePool implements ResourcePool
 
     private final HashMap cloneOfManaged()
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         return (HashMap) managed.clone();
     }
 
     private final LinkedList cloneOfUnused()
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         return (LinkedList) unused.clone();
     }
 
     private final HashSet cloneOfExcluded()
     {
-        assert Thread.holdsLock( this );
+        assert lockMain.isHeldByCurrentThread();
 
         return (HashSet) excluded.clone();
     }
@@ -1833,11 +2065,16 @@ class BasicResourcePool implements ResourcePool
             {
                 boolean fkap;
 		boolean bkn;
-		synchronized( BasicResourcePool.this )
+
+                lockMain.lock();
+		try
 		{
 		    fkap = BasicResourcePool.this.force_kill_acquires;
 		    bkn  = BasicResourcePool.this.broken;
 		}
+                finally
+                { lockMain.unlock(); }
+
                 if (!bkn && !fkap)
                 {
                     //we don't want this call to be sync'd
@@ -1982,8 +2219,10 @@ class BasicResourcePool implements ResourcePool
             {
                 if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable( MLevel.FINER ))
                     logger.log( MLevel.FINER, "Checking for expired resources - " + new Date() + " [" + BasicResourcePool.this + "]");
-                synchronized ( BasicResourcePool.this )
-                { cullExpired(); }
+
+                lockMain.lock();
+                try { cullExpired(); }
+                finally { lockMain.unlock(); }
             }
             catch ( ResourceClosedException e ) // one of our async threads died
             {
@@ -2009,8 +2248,10 @@ class BasicResourcePool implements ResourcePool
                 //System.err.println("c3p0-JENNIFER: refurbishing idle resources - " + new Date() + " [" + BasicResourcePool.this + "]");
                 if (Debug.DEBUG && Debug.TRACE >= Debug.TRACE_MED && logger.isLoggable(MLevel.FINER))
                     logger.log(MLevel.FINER, "Refurbishing idle resources - " + new Date() + " [" + BasicResourcePool.this + "]");
-                synchronized ( BasicResourcePool.this )
-                { checkIdleResources(); }
+
+                lockMain.lock();
+                try { checkIdleResources(); }
+                finally { lockMain.unlock(); }
             }
             catch ( ResourceClosedException e ) // one of our async threads died
             {
@@ -2039,7 +2280,7 @@ class BasicResourcePool implements ResourcePool
 
         public void run()
         {
-            assert !Thread.holdsLock( BasicResourcePool.this );
+            assert !lockMain.isHeldByCurrentThread();
 
             try
             {
@@ -2052,7 +2293,8 @@ class BasicResourcePool implements ResourcePool
                     if ( logger.isLoggable( MLevel.FINE ) )
                         logger.log( MLevel.FINE, "BasicResourcePool: An idle resource is broken and will be purged. [" + resc + ']', e);
 
-                    synchronized (BasicResourcePool.this)
+                    lockMain.lock();
+                    try
                     {
                         if ( managed.keySet().contains( resc ) ) //resc might have been culled as expired while we tested
                         {
@@ -2063,15 +2305,20 @@ class BasicResourcePool implements ResourcePool
                         ++failed_idle_tests;
                         setLastIdleCheckFailure(e);
                     }
+                    finally
+                    { lockMain.unlock(); }
                 }
             }
             finally
             {
-                synchronized (BasicResourcePool.this)
+                lockMain.lock();
+                try
                 {
                     idleCheckResources.remove( resc );
-                    BasicResourcePool.this.notifyAll();
+                    cscSignalAll();
                 }
+                finally
+                { lockMain.unlock(); }
             }
         }
     }
