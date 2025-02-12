@@ -1,3 +1,9 @@
+c3p0-0.11.1-pre1
+	-- Rewrite BasicResourcePool and GooGooStatementCache in terms of
+	   ReentrantLock and Condition.{await/signalAll} rather than native
+	   monitors and wait()/notifyAll(), because wait() pins loom
+	   virtual threads. Many thanks to alex-kormukhin for calling
+	   attention to this issue and proposing the fix!
 	-- Double check after termination of BasicResourcePool.awaitAvailable(...)
 	   that following notification/termination a resource (Connection) remains
 	   available. Many thanks to C3Stones and xtb359 on github for calling
