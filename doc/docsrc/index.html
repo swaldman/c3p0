@@ -646,7 +646,7 @@ ds_pooled = DataSources.pooledDataSource( ds_unpooled, "intergalactoApp", overri
       </div>
 
       <div class="boxed">
-	<a name="forceOverrideBox" />
+	<a name="forceOverrideBox"></a>
 	<h4>RARE: Forcing authentication information, regardless of (mis)configuration of the underlying (unpooled) DataSource</h4>
 	<p>
 	  You can wrap any DataSouce using <tt>DataSource.pooledDataSource( ... )</tt>, usually with no
@@ -733,7 +733,7 @@ else
       	for a complete list of available operations.</a>
       </p>
       <div class="boxed">
-	<a name="using_c3p0_registry_box" />
+	<a name="using_c3p0_registry_box"></a>
 	<h4>Using C3P0Registry to get a reference to a DataSource</h4>
 	<p>
 	  If it's inconvenient or impossible to get a reference to your DataSource via JNDI or some other means,
@@ -1001,23 +1001,23 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<li><a class="cfg_param" href="#minPoolSize">minPoolSize</a></li>
       </ul>
       <p>
-	<tt>initialPoolSize</tt>, <tt>minPoolSize</tt>, <tt>maxPoolSize</tt>
+	<b><tt>initialPoolSize</tt></b>, <b><tt>minPoolSize</tt></b>, <b><tt>maxPoolSize</tt></b>
 	define the number of Connections that will be pooled. Please ensure that
-	<tt>minPoolSize &lt;= maxPoolSize</tt>. Unreasonable values of <tt>initialPoolSize</tt> will
-	be ignored, and <tt>minPoolSize</tt> will be used instead.
+	<tt>minPoolSize &lt;= maxPoolSize</tt>. Unreasonable values of <b><tt>initialPoolSize</tt></b> will
+	be ignored, and <b><tt>minPoolSize</tt></b> will be used instead.
       </p>
       <p>
-	Within the range between <tt>minPoolSize</tt> and <tt>maxPoolSize</tt>, the number of Connections in
+	Within the range between <b><tt>minPoolSize</tt></b> and <b><tt>maxPoolSize</tt></b>, the number of Connections in
 	a pool varies according to usage patterns. The number of Connections increases whenever a Connection
-	is requested by a user, no Connections are available, and the pool has not yet reached <tt>maxPoolSize</tt>
+	is requested by a user, no Connections are available, and the pool has not yet reached <b><tt>maxPoolSize</tt></b>
 	in the number of Connections managed.
       </p>
       <p>
 	Since Connection acquisition is very slow, it is almost always useful to
 	increase the number of Connections eagerly, in batches, rather than forcing each client to wait for a new
-	Connection to provoke a single acquisition when the load is increasing. <tt>acquireIncrement</tt> determines
+	Connection to provoke a single acquisition when the load is increasing. <b><tt>acquireIncrement</tt></b> determines
 	how many Connections a c3p0 pool will attempt to acquire when the pool has run out of Connections. (Regardless
-	of <tt>acquireIncrement</tt>, the pool will never allow <tt>maxPoolSize</tt> to be exceeded.)
+	of <b><tt>acquireIncrement</tt></b>, the pool will never allow <b><tt>maxPoolSize</tt></b> to be exceeded.)
       </p>
       <p>
 	The number of Connections in a pool decreases whenever a pool tests a Connection and finds it to be broken (see
@@ -1039,31 +1039,31 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<li><a class="cfg_param" href="#maxIdleTimeExcessConnections">maxIdleTimeExcessConnections</a></li>
       </ul>
 	 <p>
-    By default, pools will never expire Connections. If you wish
+        By default, pools will never expire Connections. If you wish
 	Connections to be expired over time in order to maintain "freshness",
-	set <tt>maxIdleTime</tt> and/or <tt>maxConnectionAge</tt>. <tt>maxIdleTime</tt> defines how many seconds a
-	Connection should be permitted to go unused before being culled from the pool. <tt>maxConnectionAge</tt>
+	set <b><tt>maxIdleTime</tt></b> and/or <b><tt>maxConnectionAge</tt></b>. <b><tt>maxIdleTime</tt></b> defines how many seconds a
+	Connection should be permitted to go unused before being culled from the pool. <b><tt>maxConnectionAge</tt></b>
 	forces the pool to cull any Connections that were acquired from the database more than the set number of
 	seconds in the past.
       </p>
       <p>
-    <tt>maxIdleTimeExcessConnections</tt> is about minimizing the number of Connections held by c3p0 pools
+    <b><tt>maxIdleTimeExcessConnections</tt></b> is about minimizing the number of Connections held by c3p0 pools
     when the pool is not under load. By default, c3p0 pools grow under load, but only shrink if Connections
     fail a Connection test or are expired away via the parameters described above. Some users want their
     pools to quickly release unnecessary Connections after a spike in usage that forces a large pool size.
-    You can achieve this by setting <tt>maxIdleTimeExcessConnections</tt> to a value much shorter than
-    <tt>maxIdleTime</tt>, forcing Connections beyond your set minimum size to be released if they sit idle
+    You can achieve this by setting <b><tt>maxIdleTimeExcessConnections</tt></b> to a value much shorter than
+    <b><tt>maxIdleTime</tt></b>, forcing Connections beyond your set minimum size to be released if they sit idle
     for more than a short period of time.
       </p>
       <p>
     Some general advice about all of these timeout parameters: Slow down! The point of Connection pooling is to
     bear the cost of acquiring a Connection only once, and then to reuse the Connection many, many times.
     Most databases support Connections that remain open for hours at a time. There's no need to churn through
-    all your Connections every few seconds or minutes. Setting <tt>maxConnectionAge</tt> or <tt>maxIdleTime</tt> to 1800 (30 minutes)
+    all your Connections every few seconds or minutes. Setting <b><tt>maxConnectionAge</tt></b> or <b><tt>maxIdleTime</tt></b> to 1800 (30 minutes)
     is quite aggressive. For most databases, several hours may be more appropriate. You can ensure the reliability
     of your Connections by testing them, rather than by tossing them. (see
 	<a href="#configuring_connection_testing">Configuring Connection Testing</a>.) The only one of these parameters
-    that should generally be set to a few minutes or less is <tt>maxIdleTimeExcessConnections</tt>.
+    that should generally be set to a few minutes or less is <b><tt>maxIdleTimeExcessConnections</tt></b>.
       </p>
       <h3>
 	<a name="configuring_connection_testing">Configuring Connection Testing</a>
@@ -1091,29 +1091,29 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<li><a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a></li>
 	<li><a class="cfg_param" href="#testConnectionOnCheckout">testConnectionOnCheckout</a></li>
       </ul>
-	<tt>idleConnectionTestPeriod</tt>, <tt>testConnectionOnCheckout</tt>, and <tt>testConnectionOnCheckin</tt> control <u>when</u> Connections will be tested.
-	<tt>connectionIsValidTimeout</tt> affects <u>how</u> they will be tested.
+	<b><tt>idleConnectionTestPeriod</tt></b>, <b><tt>testConnectionOnCheckout</tt></b>, and <b><tt>testConnectionOnCheckin</tt></b> control <u>when</u> Connections will be tested.
+	<b><tt>connectionIsValidTimeout</tt></b> affects <u>how</u> they will be tested.
       </ul>
       <p>
 	The most reliable time to test Connections is on check-out. But this is also means clients experience a
 	(usually very modest!) performance hit from the test.
       </p>
       <p>
-	<b><i>Most application should just set <tt>testConnectionOnCheckout</tt> to <tt>true</tt> and be done with it!</i></b>
+	<b><i>Most applications should just set <b><tt>testConnectionOnCheckout</tt></b> to <tt>true</tt> and be done with it!</i></b>
       </p>
       <p>
 	However, if you really wish to minimize client latency, most applications should work reliably using a combination of
-	<tt>idleConnectionTestPeriod</tt> and <tt>testConnectionOnCheckin</tt>. Both the idle test and the check-in
+	<b><tt>idleConnectionTestPeriod</tt></b> and <b><tt>testConnectionOnCheckin</tt></b>. Both the idle test and the check-in
 	test are performed asynchronously, which can lead to better performance, both perceived and actual.
       </p>
       <p>
 	For some applications, high performance is more important than the risk of an occasional database exception.
 	In its default configuration, c3p0 does no Connection testing at all. Setting a fairly long
-	<tt>idleConnectionTestPeriod</tt>, and not testing on checkout and check-in at all is another high-performance
+	<b><tt>idleConnectionTestPeriod</tt></b>, and not testing on checkout and check-in at all is another high-performance
 	approach.
       </p>
       <div class="boxed">
-	<a name="simple_advice_on_connection_testing" />
+	<a name="simple_advice_on_connection_testing"></a>
 	<h4>Simple advice on Connection testing</h4>
 	<p>
 	  If you don't know what to do, try this:
@@ -1194,16 +1194,16 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	<li><a class="cfg_param" href="#statementCacheNumDeferredCloseThreads">statementCacheNumDeferredCloseThreads</a></li>
       </ul>
       <p>
-	<tt>maxStatements</tt> is JDBC's standard parameter for controlling statement pooling. <tt>maxStatements</tt> defines the
+	<b><tt>maxStatements</tt></b> is JDBC's standard parameter for controlling statement pooling. <b><tt>maxStatements</tt></b> defines the
 	total number <tt>PreparedStatements</tt> a DataSource will cache. The pool will destroy the least-recently-used PreparedStatement
 	when it hits this limit. This sounds simple, but it's actually a strange approach, because
 	cached statements conceptually belong to individual Connections; they are not global resources. To figure out a size
-	for <tt>maxStatements</tt> that does not "churn" cached statements, you need to consider the number of <i>frequently used</i>
+	for <b><tt>maxStatements</tt></b> that does not "churn" cached statements, you need to consider the number of <i>frequently used</i>
 	PreparedStatements in your application,	and multiply that by the number of Connections you expect in the pool (<tt>maxPoolSize</tt>
 	in a busy application).
       </p>
       <p>
-	<tt>maxStatementsPerConnection</tt> is a non-standard configuration parameter that makes a bit more
+	<b><tt>maxStatementsPerConnection</tt></b> is a non-standard configuration parameter that makes a bit more
 	sense conceptually. It defines how many statements each pooled Connection is allowed to own.
 	You can set this to a bit more than the number of <tt>PreparedStatements</tt> your application <i>frequently</i>
 	uses, to avoid churning.
@@ -1214,16 +1214,16 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	will be enabled, but only one limit will be enforced.
       </p>
       <p>
-	If <tt>statementCacheNumDeferredCloseThreads</tt> is greater than zero, the Statement pool will defer physically close()ing cached Statements until
+	If <b><tt>statementCacheNumDeferredCloseThreads</tt></b> is greater than zero, the Statement pool will defer physically close()ing cached Statements until
 	its parent Connection is not in use by any client or internally (in e.g. a test) by the pool itself. For some JDBC drivers
 	(especially Oracle), attempts to close a Statement freeze if the parent Connection is in use. This parameter defaults to 0.
 	Set it to a positive value if you observe "APPARENT DEADLOCKS" related to Connection close tasks. If you are using
 	<a href="#configuring_threading">custom threading</a> rather than c3p0's default Thread pool, look for other evidence of Connection close tasks freezing.
       </p>
       <p>
-	Almost always, the value of <tt>statementCacheNumDeferredCloseThreads</tt> should be either its default value of zero, or just one.
-	If you need more than one Thread dedicated solely to Statement destruction, you probably should set <tt>maxStatements</tt> and/or
-	<tt>maxStatementsPerConnection</tt> to higher values so you don't churn through cached Statements so quickly.
+	Almost always, the value of <b><tt>statementCacheNumDeferredCloseThreads</tt></b> should be either its default value of zero, or just one.
+	If you need more than one Thread dedicated solely to Statement destruction, you probably should set <b><tt>maxStatements</tt></b> and/or
+	<b><tt>maxStatementsPerConnection</tt></b> to higher values so you don't churn through cached Statements so quickly.
       </p>
       <div class="boxed">
 	<b>
@@ -1251,18 +1251,18 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
       </ul>
       <p>
 	When a c3p0 DataSource attempts and fails to acquire a Connection, it will retry up
-	to <tt>acquireRetryAttempts</tt> times, with a delay of <tt>acquireRetryDelay</tt>
+	to <b><tt>acquireRetryAttempts</tt></b> times, with a delay of <b><tt>acquireRetryDelay</tt></b>
 	between each attempt. If all attempts fail, any clients waiting for Connections from
 	the DataSource will see an Exception, indicating that a Connection could not be acquired.
 	Note that clients do not see any Exception until a full round of attempts fail, which
-	may be some time after the initial Connection attempt. If <tt>acquireRetryAttempts</tt>
+	may be some time after the initial Connection attempt. If <b><tt>acquireRetryAttempts</tt></b>
 	is set to a value less than 0, c3p0 will attempt to acquire new Connections indefinitely, and calls to
 	<tt>getConnection()</tt> may block indefinitely waiting for a successful acquisition.
       </p>
       <p>
 	Once a full round of acquisition attempts fails, there are two possible policies. By
 	default, the c3p0 DataSource will remain active, and will try again to acquire Connections
-	in response to future requests for Connections. If you set <tt>breakAfterAcquireFailure</tt>
+	in response to future requests for Connections. If you set <b><tt>breakAfterAcquireFailure</tt></b>
 	to <tt>true</tt>, the DataSource will consider itself broken after a failed round of
 	Connection attempts, and future client requests will fail immediately.
       </p>
@@ -1365,10 +1365,10 @@ public class VerboseConnectionCustomizer
 	<li><a class="cfg_param" href="#forceIgnoreUnresolvedTransactions">forceIgnoreUnresolvedTransactions</a></li>
       </ul>
       <p>
-	If you wish c3p0 to allow unresolved transactional work to commit on checkin, set <tt>autoCommitOnClose</tt>
+	If you wish c3p0 to allow unresolved transactional work to commit on checkin, set <b><tt>autoCommitOnClose</tt></b>
 	to true. If you wish c3p0 to leave transaction management to you, and neither commit nor rollback (nor modify
-	the state of Connection <tt>autoCommit</tt>), you may set <tt>forceIgnoreUnresolvedTransactions</tt> to true. Setting
-	<tt>forceIgnoreUnresolvedTransactions</tt> is strongly discouraged, because if clients are not careful to
+	the state of Connection <tt>autoCommit</tt>), you may set <b><tt>forceIgnoreUnresolvedTransactions</tt></b> to true. Setting
+	<b><tt>forceIgnoreUnresolvedTransactions</tt></b> is strongly discouraged, because if clients are not careful to
 	commit or rollback themselves prior to close(), or do not set Connection <tt>autoCommit</tt> consistently, bizarre
 	unreproduceable behavior and database lockups can occur.
       </p>
@@ -1394,7 +1394,7 @@ public class VerboseConnectionCustomizer
 	<li><a class="cfg_param" href="#unreturnedConnectionTimeout">unreturnedConnectionTimeout</a></li>
       </ul>
       <p>
-    <tt>unreturnedConnectionTimeout</tt> defines a limit (in seconds) to how long a Connection may remain checked out.
+    <b><tt>unreturnedConnectionTimeout</tt></b> defines a limit (in seconds) to how long a Connection may remain checked out.
     If set to a nozero value, unreturned, checked-out Connections that exceed this limit will be summarily destroyed,
     and then replaced in the pool.
     Obviously, you must take care to set this parameter to a value large enough that all intended operations
@@ -1404,10 +1404,10 @@ public class VerboseConnectionCustomizer
       </p>
       <p>
     Much better than working-around is fixing. If, <i>in addition to setting</i> <tt>unreturnedConnectionTimeout</tt>,
-    you set <tt>debugUnreturnedConnectionStackTraces</tt> to <tt>true</tt>,
+    you set <b><tt>debugUnreturnedConnectionStackTraces</tt></b> to <tt>true</tt>,
 	then a stack trace will be captured
     each time a Connection is checked-out. Whenever an unreturned Connection times out, that stack trace will be
-    printed, revealing where a Connection was checked out that was not checked in promptly. <tt>debugUnreturnedConnectionStackTraces</tt>
+    logged, revealing where a Connection was checked out that was not checked in promptly. <b><tt>debugUnreturnedConnectionStackTraces</tt></b>
     is intended to be used only for debugging, as capturing a stack trace can slow down Connection check-out.
       </p>
       <h3>
@@ -1430,12 +1430,12 @@ public class VerboseConnectionCustomizer
 	<li><a class="cfg_param" href="#privilegeSpawnedThreads">privilegeSpawnedThreads</a></li>
       </ul>
       <p>
-	<tt>contextClassLoaderSource</tt> should be set to one of <tt>caller</tt>, <tt>library</tt>, or <tt>none</tt>.
+	<b><tt>contextClassLoaderSource</tt></b> should be set to one of <tt>caller</tt>, <tt>library</tt>, or <tt>none</tt>.
 	The default (which yields the default behavior described above) is <tt>caller</tt>. Set this to <tt>library</tt>
 	to use c3p0's ClassLoader, so that no reference is maintained to a client that may need to be redeployed.
       </p>
       <p>
-	<tt>privilegeSpawnedThreads</tt> is a boolean, <tt>false</tt> by default.
+	<b><tt>privilegeSpawnedThreads</tt></b> is a boolean, <tt>false</tt> by default.
 	Set this to <tt>true</tt>
 	so that c3p0's Threads use the the c3p0 library's <tt>AccessControlContext</tt>, rather than an <tt>AccessControlContext</tt>
 	that may be associated with the client application and prevent its garbage collection.
@@ -1458,11 +1458,11 @@ public class VerboseConnectionCustomizer
 	<li><a class="cfg_param" href="#taskRunnerFactoryClassName">taskRunnerFactoryClassName</a></li>
       </ul>
       <p>
-      	<tt>numHelperThreads</tt> and <tt>maxAdministrativeTaskTime</tt> help to configure the behavior
+      	<b><tt>numHelperThreads</tt></b> and <b><tt>maxAdministrativeTaskTime</tt></b> help to configure the behavior
       	of DataSource thread pools. By default, each DataSource has only three associated helper threads.
       	If performance seems to drag under heavy load, or if you observe via JMX or direct inspection of
       	a <tt>PooledDataSource</tt>, that the number of "pending tasks" is usually greater than zero, try
-      	increasing <tt>numHelperThreads</tt>. <tt>maxAdministrativeTaskTime</tt> may be useful for users
+      	increasing <b><tt>numHelperThreads</tt></b>. <b><tt>maxAdministrativeTaskTime</tt></b> may be useful for users
       	experiencing tasks that hang indefinitely and "APPARENT DEADLOCK" messages. (See Appendix A for more.)
       </p>
       <p>
@@ -1470,12 +1470,12 @@ public class VerboseConnectionCustomizer
         <tt>DataSource</tt> uses, by providing a non-default value for <tt>taskRunnerFactoryClassName</tt>.
         This should be the fully qualified class name of an immutable class with a public no-arg constructor,
         which implements the interface <a href="apidocs/com/mchange/v2/c3p0/TaskRunnerFactory.html"><tt>TaskRunnerFactory</tt></a>.
-        It becomes up to the implementor of this class whether and how <tt>numHelperThreads</tt>, <tt>maxAdministrativeTaskTime</tt>,
-	<tt>contextClassLoaderSource</tt>, and <tt>privilegeSpawnedThreads</tt>	
+        It becomes up to the implementor of this class whether and how <b><tt>numHelperThreads</tt></b>, <b><tt>maxAdministrativeTaskTime</tt></b>,
+	<b><tt>contextClassLoaderSource</tt></b>, and <b><tt>privilegeSpawnedThreads</tt></b>
         are supported.
       </p>
       <p>
-        Most users will want to leave <tt>taskRunnerFactoryClassName</tt> at c3p0's default, or use else published alternative implementations.
+        Most users will want to leave <b><tt>taskRunnerFactoryClassName</tt></b> at c3p0's default, or use else published alternative implementations.
 	Out of the box c3p0 includes
       </p>
       <ul>
@@ -1492,7 +1492,7 @@ public class VerboseConnectionCustomizer
       <p>
         But of course you can roll your own! Implement the interface <a href="apidocs/com/mchange/v2/c3p0/TaskRunnerFactory.html"><tt>TaskRunnerFactory</tt></a>
 	with an immutable class with a public, no-arg constructor, put it in your application's <tt>CLASSPATH</tt>, and supply its fully qualified name as
-	<tt>taskRunnerFactoryClassName</tt>.
+	<b><tt>taskRunnerFactoryClassName</tt></b>.
       </p>
       <p>
 	c3p0 includes special support for delegating threading to a <tt>java.util.concurrent.Executor</tt>. Your <tt>PooledDataSource</tt> may "own" the <tt>Executor</tt>,
@@ -1579,6 +1579,7 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
       </p>
       <ul>
 	<li><a class="cfg_param" href="#attemptResurrectOnCheckin">attemptResurrectOnCheckin</a></li>
+	<li><a class="cfg_param" href="#cancelAutomaticallyClosedStatements">cancelAutomaticallyClosedStatements</a></li>
 	<li><a class="cfg_param" href="#checkoutTimeout">checkoutTimeout</a></li>
 	<li><a class="cfg_param" href="#factoryClassLocation">factoryClassLocation</a></li>
 	<li><a class="cfg_param" href="#forceSynchronousCheckins">forceSynchronousCheckins</a></li>
@@ -1586,18 +1587,34 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
       </ul>
       <p>
         When Connections throw Exceptions in client sessions, c3p0 tests them, and if they fail, marks them
-        for destruction rather than return to the pool. If <tt>attemptResurrectOnCheckin</tt> is set to <tt>true</tt>,
+        for destruction rather than return to the pool. If <b><tt>attemptResurrectOnCheckin</tt></b> is set to <tt>true</tt>,
         however, the library tests them once again at client check-in, and if that test succeeds, they are retained
         and reintegrated into the pool. This can prevent unnecessary churn through Connection, especially
         under databases (like Postgres) whose Connections may seem broken inside of invalidated transactions, but become
         functional again following a <tt>rollback()</tt> or failed attempt to <tt>commit()</tt>.
       </p>
       <p>
-      	<tt>checkoutTimeout</tt> limits how long a client will wait for a Connection, if all Connections are
+        c3p0 automatically calls <tt>close()</tt> on Statements when (i) a parent Connection is closed (returned to the pool)
+        while clients have failed to <tt>close()</tt> statements they have created or prepared and; (ii) when
+        <a href="#configuring_statement_pooling">statement pooling</a> is configured and the pool need to expire a cached statement
+        (that from a client's perspective may have been closed), in order to conform to limits set by
+        <tt>maxStatements</tt> and <tt>maxStatementsPerConnection</tt>.
+        Sometimes case (i) will occur because a Statement has gone haywire and does not complete. Clients may
+        eventually close the parent Connection, or an <tt>unreturnedConnectionTimeout</tt>
+        may force the close. In this case, under some jdbc drivers and DBMSes, it may be desirable for the <tt>cancel()</tt> method of Statement
+        to be called prior to the call to <tt>close()</tt>, to encourage the DBMS to kill the wayward query. This is the effect of setting
+        <b><tt>cancelAutomaticallyClosedStatements</tt></b> to <tt>true</tt>. This is a course-grained setting: Statements that c3p0 closes
+        may well not be in progress, because a client simply forgot to call <tt>close()</tt> or because the Statement cache is managing it.
+        Some drivers may well throw an Exception in this case, and not all drivers even support) <tt>cancel()</tt>. If <b><tt>cancelAutomaticallyClosedStatements</tt></b>
+        is set to <tt>true</tt>, c3p0 will make a "best-effort" attempt to <tt>cancel()</tt> the Statement prior to destroying it with <tt>close()</tt>, and will
+        catch and ignore any Exception that results from the attempted cancellation.
+      </p>
+      <p>
+      	<b><tt>checkoutTimeout</tt></b> limits how long a client will wait for a Connection, if all Connections are
       	checked out and one cannot be supplied immediately.
       </p>
       <p>
-        <tt>factoryClassLocation</tt> can be used to indicate where a URL from which c3p0 classes
+        <b><tt>factoryClassLocation</tt></b> can be used to indicate where a URL from which c3p0 classes
       	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
       	who do not have c3p0 locally installed.
       </p>
@@ -1605,17 +1622,17 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
 	Ordinarily check-ins are performed asynchronously so that clients do not experience the overhead of
 	on-check-in Connection tests and/or operations specified in <tt>ConnectionCustomizer.onCheckIn(...)</tt>.
 	However, asynchronous checkins add to Thread pool congestion. Under loads so large that it is
-	impractical to expand <tt>numHelperThreads</tt> to reduce congestion, <tt>forceSynchronousCheckins</tt>
-	will cause client Threads to perform the checkin operations, adding to the load of the Thread pool
+	impractical to expand <tt>numHelperThreads</tt> to reduce congestion, you can set <b><tt>forceSynchronousCheckins</tt></b>.
+	This cause client Threads to perform the checkin operations directly, reducing the load on the Thread pool
 	and precluding any delays in termination of checkin due to Thread pool congestion. As long as you
 	neither perform Connection tests on check-in (see <a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a>)
 	nor perform database operations or other slow work in <tt>ConnectionCustomizer.onCheckIn(...)</tt>,
 	this setting is likely to improve performance. However, if Connections <i>are</i> tested on check-in,
-	or custom work is performed, setting <tt>forceSynchronousCheckins</tt> will cause clients to experience
+	or custom work is performed, setting <b><tt>forceSynchronousCheckins</tt></b> will cause clients to experience
 	delays associated with that work when they call <tt>Connection.close()</tt>.
       </p>
       <p>
-        <tt>markSessionBoundaries</tt> can be used to disable c3p0's default behavior, which is to
+        <b><tt>markSessionBoundaries</tt></b> can be used to disable c3p0's default behavior, which is to
 	call the `beginRequest` method on checkout and `endRequest` method on check-in for drivers that support
 	the <a href="https://download.oracle.com/otn-pub/jcp/jdbc-4_3-mrel3-eval-spec/jdbc4.3-fr-spec.pdf">JDBC 4.3</a> methods.
 	These methods are hints to the JDBC driver, marking the beginning and end of a single client session.
@@ -1748,7 +1765,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
       </p>
       <dl class="log_properties">
 	<a name="log_properties_box"></a>
-	<dt><a name="com.mchange.v2.log.MLog" />com.mchange.v2.log.MLog</dt>
+	<dt><a name="com.mchange.v2.log.MLog"></a>com.mchange.v2.log.MLog</dt>
 	<dd>
 	  <div class="propdesc">
 	    Determines which library c3p0 will output log messages to. By default, if slf4j is available,
@@ -1774,7 +1791,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    define an order of preference among logging libraries.
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.log.MLog.useRedirectableLoggers" />com.mchange.v2.log.MLog.useRedirectableLoggers</dt>
+	<dt><a name="com.mchange.v2.log.MLog.useRedirectableLoggers"></a>com.mchange.v2.log.MLog.useRedirectableLoggers</dt>
 	<dd>
 	  <div class="propdesc">
 	    Using API in <a href="https://www.mchange.com/projects/mchange-commons-java/apidocs/com/mchange/v2/log/MLog.html"><tt>com.mchange.v2.log.MLog</tt></a>,
@@ -1785,7 +1802,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    is <tt>false</tt> by default.
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.log.jdk14logging.suppressStackWalk" />com.mchange.v2.log.jdk14logging.suppressStackWalk</dt>
+	<dt><a name="com.mchange.v2.log.jdk14logging.suppressStackWalk"></a>com.mchange.v2.log.jdk14logging.suppressStackWalk</dt>
 	<dd>
 	  <div class="propdesc">
 	    Under JDK standard logging, the logging library may inspect stack traces to determine the class
@@ -1796,7 +1813,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    more informative approach, explicitly set the property to false.
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.log.NameTransformer" />com.mchange.v2.log.NameTransformer</dt>
+	<dt><a name="com.mchange.v2.log.NameTransformer"></a>com.mchange.v2.log.NameTransformer</dt>
 	<dd>
 	  <div class="propdesc">
 	    By default, c3p0 uses very fine-grained logging, in general with one logger for each
@@ -1808,7 +1825,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	    <tt>com.mchange.v2.log.NameTransformer</tt> interface.
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL" />com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</dt>
+	<dt><a name="com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL"></a>com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</dt>
 	<dd>
 	  <div class="propdesc">
 	    If, whether by choice or by necessity, you are using c3p0's <tt>System.err</tt> fallback logger, you can
@@ -2272,6 +2289,7 @@ c3p0 {
 	    <a href="#autoCommitOnClose">autoCommitOnClose</a><br/>
 	    <a href="#automaticTestTable">automaticTestTable</a><br/>
 	    <a href="#breakAfterAcquireFailure">breakAfterAcquireFailure</a><br/>
+	    <a href="#cancelAutomaticallyClosedConnections">cancelAutomaticallyClosedConnections</a><br/>
 	    <a href="#checkoutTimeout">checkoutTimeout</a><br/>
 	    <a href="#connectionCustomizerClassName">connectionCustomizerClassName</a><br/>
 	    <a href="#connectionIsValidTimeout">connectionIsValidTimeout</a><br/>
@@ -2297,9 +2315,9 @@ c3p0 {
 	    <a href="#maxIdleTimeExcessConnections">maxIdleTimeExcessConnections</a><br/>
 	    <a href="#maxPoolSize">maxPoolSize</a><br/>
 	    <a href="#maxStatements">maxStatements</a><br/>
+	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
 	  </td>
 	  <td>
-	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a><br/>
 	    <a href="#minPoolSize">minPoolSize</a><br/>
 	    <a href="#numHelperThreads">numHelperThreads</a><br/>
 	    <a href="#overrideDefaultUser">overrideDefaultUser</a><br/>
@@ -2318,7 +2336,7 @@ c3p0 {
 	</tr>
       </table>
       <dl class="properties">
-	<dt><a name="acquireIncrement" />acquireIncrement</dt>
+	<dt><a name="acquireIncrement"></a>acquireIncrement</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	  <div class="propdesc">
@@ -2326,7 +2344,7 @@ c3p0 {
 	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="acquireRetryAttempts" />acquireRetryAttempts</dt>
+	<dt><a name="acquireRetryAttempts"></a>acquireRetryAttempts</dt>
 	<dd>
 	  <div class="default">Default: 30</div>
 	  <div class="propdesc">
@@ -2335,7 +2353,7 @@ c3p0 {
 	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
 	  </div>
 	</dd>
-	<dt><a name="acquireRetryDelay" />acquireRetryDelay</dt>
+	<dt><a name="acquireRetryDelay"></a>acquireRetryDelay</dt>
 	<dd>
 	  <div class="default">Default: 1000</div>
 	  <div class="propdesc">
@@ -2343,7 +2361,7 @@ c3p0 {
 	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
 	  </div>
 	</dd>
-	<dt><a name="attemptResurrectOnCheckin" />attemptResurrectOnCheckin</dt>
+	<dt><a name="attemptResurrectOnCheckin"></a>attemptResurrectOnCheckin</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2362,7 +2380,7 @@ c3p0 {
 	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="autoCommitOnClose" />autoCommitOnClose</dt>
+	<dt><a name="autoCommitOnClose"></a>autoCommitOnClose</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2376,7 +2394,7 @@ c3p0 {
 	    [See <a href="#configuring_unresolved">"Configuring Unresolved Transaction Handling"</a>]
 	  </div>
 	</dd>
-	<dt><a name="automaticTestTable" />automaticTestTable</dt>
+	<dt><a name="automaticTestTable"></a>automaticTestTable</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2394,7 +2412,7 @@ c3p0 {
 	    interface for this parameter to be useful.) 
 	  </div>
 	</dd>
-	<dt><a name="breakAfterAcquireFailure" />breakAfterAcquireFailure</dt>
+	<dt><a name="breakAfterAcquireFailure"></a>breakAfterAcquireFailure</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2406,7 +2424,18 @@ c3p0 {
 	    [See <a href="#configuring_recovery">"Configuring Recovery From Database Outages"</a>]
 	  </div>
 	</dd>
-	<dt><a name="checkoutTimeout" />checkoutTimeout</dt>
+	<dt><a name="cancelAutomaticallyClosedStatements"></a>cancelAutomaticallyClosedStatements</dt>
+	<dd>
+	  <div class="default">Default: false</div>
+	  <div class="propdesc">
+	    If true, whenever c3p0 will automatically call <tt>close()</tt> on a Statement  &mdash; because a client has forgotten to close the Statement,
+            because the Statement cache is expiring the Statement, or because an <tt>unreturnedConnectionTimeout</tt> has forced a Connection
+            to close while it still has open statements &mdash; c3p0 will make a best-effort attempt to call <tt>Statement.cancel()</tt> prior to calling <tt>close()</tt>.
+            If the call to <tt>cancel()</tt> fails, it will be ignored. The Statement will be closed regardless.
+	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
+	  </div>
+	</dd>
+	<dt><a name="checkoutTimeout"></a>checkoutTimeout</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2416,7 +2445,7 @@ c3p0 {
 	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="connectionCustomizerClassName" />connectionCustomizerClassName</dt>
+	<dt><a name="connectionCustomizerClassName"></a>connectionCustomizerClassName</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2426,7 +2455,7 @@ c3p0 {
 	    are set in the ConnectionCustomizer's onAcquire() method, these will override the Connection default values.
 	  </div>
 	</dd>
-	<dt><a name="connectionIsValidTimeout" />connectionIsValidTimeout</dt>
+	<dt><a name="connectionIsValidTimeout"></a>connectionIsValidTimeout</dt>
 	<dd>
 	  <div class="default">Default: 0, or the value of <a href="#configuring_dctivt"><tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout</tt></a> if set</div>
 	  <div class="propdesc">
@@ -2439,7 +2468,7 @@ c3p0 {
 	    we'll pick it up as the default, but with a warning recommend transitioning from the legacy config.</i>
 	  </div>
 	</dd>
-	<dt><a name="connectionTesterClassName" />connectionTesterClassName</dt>
+	<dt><a name="connectionTesterClassName"></a>connectionTesterClassName</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2453,7 +2482,7 @@ c3p0 {
 	    Or you can just set <tt>preferredTestQuery</tt> or <tt>automaticTestTable</tt>, which will conjure that ghost if <tt>connectionTesterClassName</tt> is left as null. And, of course, you are free to roll your own.
 	  </div>
 	</dd>
-	<dt><a name="contextClassLoaderSource" />contextClassLoaderSource</dt>
+	<dt><a name="contextClassLoaderSource"></a>contextClassLoaderSource</dt>
 	<dd>
 	  <div class="default">Default: caller</div>
 	  <div class="propdesc">
@@ -2470,7 +2499,7 @@ c3p0 {
 	    <div class="per-user">Does Not Support Per-User Overrides.</div>
 	  </div>
 	</dd>
-	<dt><a name="dataSourceName" />dataSourceName</dt>
+	<dt><a name="dataSourceName"></a>dataSourceName</dt>
 	<dd>
 	  <div class="default">Default: if configured with a <a href="#named_configurations">named config</a>, the config name, otherwise the pool's "identity token"</div>
 	  <div class="propdesc">
@@ -2484,7 +2513,7 @@ c3p0 {
 	       you will probably want to ensure that all pooled DataSources within your JVM do have unique names.
 	  </div>
 	</dd>
-	<dt><a name="debugUnreturnedConnectionStackTraces" />debugUnreturnedConnectionStackTraces</dt>
+	<dt><a name="debugUnreturnedConnectionStackTraces"></a>debugUnreturnedConnectionStackTraces</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2497,7 +2526,7 @@ c3p0 {
 		[See <a href="#configuring_to_debug_and_workaround_broken_clients">"Configuring to Debug and Workaround Broken Client Applications"</a>]
 	  </div>
 	</dd>
-	<dt><a name="driverClass" />driverClass</dt>
+	<dt><a name="driverClass"></a>driverClass</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2509,7 +2538,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="extensions" />extensions</dt>
+	<dt><a name="extensions"></a>extensions</dt>
 	<dd>
 	  <div class="default">Default: an empty <tt>java.util.Map</tt></div>
 	  <div class="propdesc">
@@ -2519,7 +2548,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="factoryClassLocation" />factoryClassLocation</dt>
+	<dt><a name="factoryClassLocation"></a>factoryClassLocation</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2530,7 +2559,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="forceIgnoreUnresolvedTransactions" />forceIgnoreUnresolvedTransactions</dt>
+	<dt><a name="forceIgnoreUnresolvedTransactions"></a>forceIgnoreUnresolvedTransactions</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2549,7 +2578,7 @@ c3p0 {
 	    [See <a href="#configuring_unresolved">"Configuring Unresolved Transaction Handling"</a>]
 	  </div>
 	</dd>
-	<dt><a name="forceSynchronousCheckins" />forceSynchronousCheckins</dt>
+	<dt><a name="forceSynchronousCheckins"></a>forceSynchronousCheckins</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2566,7 +2595,7 @@ c3p0 {
 	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="forceUseNamedDriverClass" />forceUseNamedDriverClass</dt>
+	<dt><a name="forceUseNamedDriverClass"></a>forceUseNamedDriverClass</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2609,7 +2638,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="markSessionBoundaries" />markSessionBoundaries</dt>
+	<dt><a name="markSessionBoundaries"></a>markSessionBoundaries</dt>
 	<dd>
 	  <div class="default">Default: always</div>
 	  <div class="propdesc">
@@ -2624,7 +2653,7 @@ c3p0 {
 	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a> are configured to their defaults of zero).
 	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
 	  </div>
-	<dt><a name="maxAdministrativeTaskTime" />maxAdministrativeTaskTime</dt>
+	<dt><a name="maxAdministrativeTaskTime"></a>maxAdministrativeTaskTime</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2649,7 +2678,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="maxConnectionAge" />maxConnectionAge</dt>
+	<dt><a name="maxConnectionAge"></a>maxConnectionAge</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2659,7 +2688,7 @@ c3p0 {
 	    no maximum absolute age is enforced. [See <a href="#managing_pool_size">Managing Pool Size and Connection Age</a>]
 	  </div>
 	</dd>
-	<dt><a name="maxIdleTime" />maxIdleTime</dt>
+	<dt><a name="maxIdleTime"></a>maxIdleTime</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2667,7 +2696,7 @@ c3p0 {
 	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="maxIdleTimeExcessConnections" />maxIdleTimeExcessConnections</dt>
+	<dt><a name="maxIdleTimeExcessConnections"></a>maxIdleTimeExcessConnections</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2687,7 +2716,7 @@ c3p0 {
 	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="maxStatements" />maxStatements</dt>
+	<dt><a name="maxStatements"></a>maxStatements</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2703,7 +2732,7 @@ c3p0 {
 	    [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
 	  </div>
 	</dd>
-	<dt><a name="maxStatementsPerConnection" />maxStatementsPerConnection</dt>
+	<dt><a name="maxStatementsPerConnection"></a>maxStatementsPerConnection</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2727,7 +2756,7 @@ c3p0 {
 	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="numHelperThreads" />numHelperThreads</dt>
+	<dt><a name="numHelperThreads"></a>numHelperThreads</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	  <div class="propdesc">
@@ -2738,7 +2767,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="overrideDefaultUser" />overrideDefaultUser</dt>
+	<dt><a name="overrideDefaultUser"></a>overrideDefaultUser</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2759,7 +2788,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="overrideDefaultPassword" />overrideDefaultPassword</dt>
+	<dt><a name="overrideDefaultPassword"></a>overrideDefaultPassword</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2771,7 +2800,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="password" />password</dt>
+	<dt><a name="password"></a>password</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2783,7 +2812,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="preferredTestQuery" />preferredTestQuery</dt>
+	<dt><a name="preferredTestQuery"></a>preferredTestQuery</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -2800,7 +2829,7 @@ c3p0 {
 	    that will execute quickly in your database may dramatically speed up Connection tests.
 	  </div>
 	</dd>
-	<dt><a name="privilegeSpawnedThreads" />privilegeSpawnedThreads</dt>
+	<dt><a name="privilegeSpawnedThreads"></a>privilegeSpawnedThreads</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2815,7 +2844,7 @@ c3p0 {
 	    <div class="per-user">Does Not Support Per-User Overrides.</div>
 	  </div>
 	</dd>
-	<dt><a name="propertyCycle" />propertyCycle</dt>
+	<dt><a name="propertyCycle"></a>propertyCycle</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2828,7 +2857,7 @@ c3p0 {
 		automatically chosen.]
 	  </div>
 	</dd>
-	<dt><a name="statementCacheNumDeferredCloseThreads" />statementCacheNumDeferredCloseThreads</dt>
+	<dt><a name="statementCacheNumDeferredCloseThreads"></a>statementCacheNumDeferredCloseThreads</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2845,7 +2874,7 @@ c3p0 {
 	    <div class="per-user">Does Not Support Per-User Overrides.</div>
 	  </div>
 	</dd>
-	<dt><a name="taskRunnerFactoryClassName" />taskRunnerFactoryClassName</dt>
+	<dt><a name="taskRunnerFactoryClassName"></a>taskRunnerFactoryClassName</dt>
 	<dd>
 	  <div class="default">Default: <tt>com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory</tt></div>
 	  <div class="propdesc">
@@ -2857,7 +2886,7 @@ c3p0 {
 	    <div class="per-user">Does Not Support Per-User Overrides.</div>
 	  </div>
 	</dd>
-	<dt><a name="testConnectionOnCheckin" />testConnectionOnCheckin</dt>
+	<dt><a name="testConnectionOnCheckin"></a>testConnectionOnCheckin</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2867,7 +2896,7 @@ c3p0 {
             [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
 	  </div>
 	</dd>
-	<dt><a name="testConnectionOnCheckout" />testConnectionOnCheckout</dt>
+	<dt><a name="testConnectionOnCheckout"></a>testConnectionOnCheckout</dt>
 	<dd>
 	  <div class="default">Default: false</div>
 	  <div class="propdesc">
@@ -2880,7 +2909,7 @@ c3p0 {
             [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
 	  </div>
 	</dd>
-	<dt><a name="unreturnedConnectionTimeout" />unreturnedConnectionTimeout</dt>
+	<dt><a name="unreturnedConnectionTimeout"></a>unreturnedConnectionTimeout</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2902,7 +2931,7 @@ c3p0 {
 	    where Connections are being checked-out that don't make it back into the pool!</i>
 	  </div>
 	</dd>
-	<dt><a name="user" />user</dt>
+	<dt><a name="user"></a>user</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -3735,7 +3764,7 @@ public final class IsValidOnlyConnectionTester30 extends IsValidOnlyConnectionTe
       See? These really are trivial to write.
     </p>
     <div class="boxed">
-      <a name="legacy_simple_advice_on_connection_testing" />
+      <a name="legacy_simple_advice_on_connection_testing"></a>
       <h4>Simple advice on Connection testing</h4>
       <p>
         If you don't know what to do, try this:

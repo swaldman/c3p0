@@ -125,6 +125,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 					    this.getConnectionIsValidTimeout( this.getUser() ),
                                             this.isAutoCommitOnClose( this.getUser() ), 
                                             this.isForceIgnoreUnresolvedTransactions( this.getUser() ),
+                                            this.isCancelAutomaticallyClosedStatements( this.getUser() ),
                                             this.getPreferredTestQuery( this.getUser() ),
                                             cc,
                                             pdsIdt); 
@@ -157,7 +158,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     //
     protected PooledConnection getPooledConnection(String user, String password, ConnectionCustomizer cc, String pdsIdt)
 	throws SQLException
-    { 
+    {
 	DataSource nds = getNestedDataSource();
 	if (nds == null)
 	    throw new SQLException( "No standard DataSource has been set beneath this wrapper! [ nestedDataSource == null ]");
@@ -168,14 +169,15 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    if (conn == null)
 		throw new SQLException("An (unpooled) DataSource returned null from its getConnection() method! " +
 				       "DataSource: " + getNestedDataSource());
-            return new NewPooledConnection( conn, 
+            return new NewPooledConnection( conn,
                                             C3P0Registry.getConnectionTester( this.getConnectionTesterClassName( user ) ),
 					    this.getConnectionIsValidTimeout( user ),
-                                            this.isAutoCommitOnClose( user ), 
+                                            this.isAutoCommitOnClose( user ),
                                             this.isForceIgnoreUnresolvedTransactions( user ),
+                                            this.isCancelAutomaticallyClosedStatements( user ),
                                             this.getPreferredTestQuery( user ),
                                             cc,
-                                            pdsIdt); 
+                                            pdsIdt );
 	}
 	catch (SQLException e)
 	{
@@ -220,6 +222,15 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 
 	Boolean override = C3P0ConfigUtils.extractBooleanUserOverride( "forceIgnoreUnresolvedTransactions", userName, userOverrides );
 	return ( override == null ? this.isForceIgnoreUnresolvedTransactions() : override.booleanValue() );
+    }
+
+    private synchronized boolean isCancelAutomaticallyClosedStatements( String userName )
+    {
+	if ( userName == null )
+	    return this.isCancelAutomaticallyClosedStatements();
+
+	Boolean override = C3P0ConfigUtils.extractBooleanUserOverride( "cancelAutomaticallyClosedStatements", userName, userOverrides );
+	return ( override == null ? this.isCancelAutomaticallyClosedStatements() : override.booleanValue() );
     }
 
     private synchronized String getPreferredTestQuery( String userName )

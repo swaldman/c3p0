@@ -315,6 +315,7 @@ object `package` extends RootModule with JavaModule with PublishModule {
       //"-Dc3p0.password=" ::                                                 // hsqldb
       //"-Dc3p0.maxStatements=100" ::
       //"-Dc3p0.maxStatementsPerConnection=5" ::
+      //"-Dc3p0.cancelAutomaticallyClosedStatements=true" ::
       //"-Dcom.sun.management.jmxremote.port=38383" ::
       //"-Dcom.sun.management.jmxremote.authenticate=false" ::
       //"-Dcom.sun.management.jmxremote.ssl=false" ::

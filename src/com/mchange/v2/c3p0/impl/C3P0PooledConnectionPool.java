@@ -378,6 +378,7 @@ public final class C3P0PooledConnectionPool
 			      int unreturnedConnectionTimeout, //seconds
 			      boolean debugUnreturnedConnectionStackTraces,
 			      boolean forceSynchronousCheckins,
+                              boolean cancelAutomaticallyClosedStatements,
 			      final boolean testConnectionOnCheckout,
 			      final boolean testConnectionOnCheckin,
                               boolean attemptResurrectOnCheckin,
@@ -404,11 +405,11 @@ public final class C3P0PooledConnectionPool
                 this.scache = null;
             }
             else if (maxStatements > 0 && maxStatementsPerConnection > 0)
-                this.scache = new DoubleMaxStatementCache( taskRunner, deferredStatementDestroyer, maxStatements, maxStatementsPerConnection );
+                this.scache = new DoubleMaxStatementCache( taskRunner, deferredStatementDestroyer, maxStatements, maxStatementsPerConnection, cancelAutomaticallyClosedStatements );
             else if (maxStatementsPerConnection > 0)
-                this.scache = new PerConnectionMaxOnlyStatementCache( taskRunner, deferredStatementDestroyer, maxStatementsPerConnection );
+                this.scache = new PerConnectionMaxOnlyStatementCache( taskRunner, deferredStatementDestroyer, maxStatementsPerConnection, cancelAutomaticallyClosedStatements );
             else if (maxStatements > 0)
-                this.scache = new GlobalMaxOnlyStatementCache( taskRunner, deferredStatementDestroyer, maxStatements );
+                this.scache = new GlobalMaxOnlyStatementCache( taskRunner, deferredStatementDestroyer, maxStatements, cancelAutomaticallyClosedStatements );
             else
                 this.scache = null;
 

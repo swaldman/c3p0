@@ -99,6 +99,12 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setAutoCommitOnClose( boolean autoCommitOnClose )
     { wcpds.setAutoCommitOnClose( autoCommitOnClose ); }
 
+    public boolean isCancelAutomaticallyClosedStatements()
+    { return wcpds.isCancelAutomaticallyClosedStatements(); }
+
+    public void setCancelAutomaticallyClosedStatements( boolean cancelAutomaticallyClosedStatements )
+    { wcpds.setCancelAutomaticallyClosedStatements( cancelAutomaticallyClosedStatements ); }
+
     public void setAutomaticTestTable( String att )
     { wcpds.setAutomaticTestTable( att ); }
 
@@ -308,6 +314,7 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	referenceMaker.addReferenceProperty("autoCommitOnClose");
 	referenceMaker.addReferenceProperty("automaticTestTable");
 	referenceMaker.addReferenceProperty("breakAfterAcquireFailure");
+        referenceMaker.addReferenceProperty("cancelAutomaticallyClosedStatements");
 	referenceMaker.addReferenceProperty("checkoutTimeout");
 	referenceMaker.addReferenceProperty("connectionIsValidTimeout");
 	referenceMaker.addReferenceProperty("connectionCustomizerClassName");

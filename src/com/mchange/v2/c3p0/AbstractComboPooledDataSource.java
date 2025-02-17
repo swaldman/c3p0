@@ -345,6 +345,18 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
+    public boolean isCancelAutomaticallyClosedStatements()
+    { return wcpds.isCancelAutomaticallyClosedStatements(); }
+
+    public void setCancelAutomaticallyClosedStatements( boolean cancelAutomaticallyClosedStatements )
+    { 
+	if ( diff(wcpds.isCancelAutomaticallyClosedStatements(), cancelAutomaticallyClosedStatements) )
+	{
+	    wcpds.setCancelAutomaticallyClosedStatements( cancelAutomaticallyClosedStatements ); 
+	    this.resetPoolManager( false );
+	}
+    }
+
     public String getContextClassLoaderSource()
     { return wcpds.getContextClassLoaderSource(); }
 

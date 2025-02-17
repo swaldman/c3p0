@@ -167,6 +167,15 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 	rebind();
     }
 
+    public boolean isCancelAutomaticallyClosedStatements()
+    { return combods.isCancelAutomaticallyClosedStatements(); }
+
+    public void setCancelAutomaticallyClosedStatements( boolean cancelAutomaticallyClosedStatements ) throws NamingException
+    {
+	combods.setCancelAutomaticallyClosedStatements( cancelAutomaticallyClosedStatements );
+	rebind();
+    }
+
     public String getConnectionTesterClassName()
     { return combods.getConnectionTesterClassName(); }
 

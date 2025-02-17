@@ -28,6 +28,7 @@ public abstract class GooGooStatementCache
     final ReentrantLock mainLock = new ReentrantLock();
     final Condition     conditionStatementPerhapsAcquired = mainLock.newCondition();
 
+    final boolean cancelAutomaticallyClosedStatements;
 
     // Alternative culling algorithm minimizes hazard to drivers that can't have Statements closed beneath
     // active Connections. No longer necessary now that we've implemented deferred culling and not so good
@@ -75,14 +76,15 @@ public abstract class GooGooStatementCache
     final HashSet removalPending     = new HashSet();
     final Lock    removalPendingLock = new ReentrantLock(); 
 
-    public GooGooStatementCache(AsynchronousRunner blockingTaskAsyncRunner, AsynchronousRunner deferredStatementDestroyer)
-    { 
+    public GooGooStatementCache(AsynchronousRunner blockingTaskAsyncRunner, AsynchronousRunner deferredStatementDestroyer, boolean cancelAutomaticallyClosedStatements)
+    {
         this.blockingTaskAsyncRunner = blockingTaskAsyncRunner; 
         this.cxnStmtMgr = createConnectionStatementManager();
 	this.destructo = 
 	    deferredStatementDestroyer != null                                       ? 
 	    (StatementDestructionManager) new CautiousStatementDestructionManager( deferredStatementDestroyer )  : 
 	    (StatementDestructionManager) new IncautiousStatementDestructionManager( blockingTaskAsyncRunner );
+        this.cancelAutomaticallyClosedStatements = cancelAutomaticallyClosedStatements;
     }
 
     public int getNumStatements()
@@ -992,21 +994,45 @@ public abstract class GooGooStatementCache
 
 	/* non-public methods that needn't be called with any lock below */
 
+        void cancelClose( PreparedStatement pstmt )
+        {
+            try
+            {
+                if ( cancelAutomaticallyClosedStatements )
+                {
+                    boolean trace = Debug.DEBUG && logger.isLoggable( MLevel.FINEST );
+                    if (trace) logger.log( MLevel.FINEST, "Canceling cached statement prior to autoclose.");
+                    pstmt.cancel();
+                    if (trace) logger.log( MLevel.FINEST, "Canceled cached statement prior to autoclose." );
+                }
+            }
+            catch ( SQLException e )
+            {
+                if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
+                    logger.log( MLevel.FINER,
+                                "An Exception occurred while trying to cancel an unclosed Statement we are about to close. " +
+                                "(Because cancelAutomaticallyClosedStatements is set to true, we make one best-effort attempt to cancel. No action is necessary.)",
+                                e );
+            }
+            finally
+            { StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
+        }
+
 	final void uncheckedDestroyStatement( final Object pstmt )
 	{
 	    class UncheckedStatementCloseTask implements Runnable
 	    {
 		public void run()
-		{ StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
+		{ cancelClose( (PreparedStatement) pstmt ); }
 	    }
 
 	    Runnable r = new UncheckedStatementCloseTask();
-	    
+
 	    runner.postRunnable(r);
 	}
-	
+
 	final void synchronousDestroyStatement( final Object pstmt )
-	{ StatementUtils.attemptClose( (PreparedStatement) pstmt ); }
+	{ cancelClose( (PreparedStatement) pstmt ); }
 
 	/* end non-public methods that needn't be called with any lock */
 
