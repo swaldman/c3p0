@@ -1,3 +1,4 @@
+c3p0-0.11.1-pre2
 	-- Define new property cancelAutomaticallyClosedStatements, which, if true, ensures
 	   that Statement.cancel() will be called prior to Statement.close() when c3p0 automatically
 	   close()es statements because a client has neglected to, a Connection with open Statements
