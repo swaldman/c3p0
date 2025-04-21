@@ -32,7 +32,7 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 ### Building c3p0
 
-For now (v0.10.2), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
+For now (v0.11.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 _In order to remind me to switch to Java 11, the build will fail with an Exception if it detects an unexpected version._
 
