@@ -1,5 +1,17 @@
 # c3p0
 
+```plaintext
+ _____________________________________
+   .................................
+   ..(c3p0).........................
+   ............a.........fresh......
+   ....coat.......of........stucco..
+   .........over.......that.....old.
+   ...jdbc........driver............
+   .................................
+ -------------------------------------
+```
+
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
 support for caching and reuse of `PreparedStatement` objects.
 
