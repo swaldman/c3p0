@@ -1605,7 +1605,7 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
         to be called prior to the call to <tt>close()</tt>, to encourage the DBMS to kill the wayward query. This is the effect of setting
         <b><tt>cancelAutomaticallyClosedStatements</tt></b> to <tt>true</tt>. This is a course-grained setting: Statements that c3p0 closes
         may well not be in progress, because a client simply forgot to call <tt>close()</tt> or because the Statement cache is managing it.
-        Some drivers may well throw an Exception in this case, and not all drivers even support) <tt>cancel()</tt>. If <b><tt>cancelAutomaticallyClosedStatements</tt></b>
+        Some drivers may well throw an Exception in this case, and not all drivers even support <tt>cancel()</tt>. If <b><tt>cancelAutomaticallyClosedStatements</tt></b>
         is set to <tt>true</tt>, c3p0 will make a "best-effort" attempt to <tt>cancel()</tt> the Statement prior to destroying it with <tt>close()</tt>, and will
         catch and ignore any Exception that results from the attempted cancellation.
       </p>
