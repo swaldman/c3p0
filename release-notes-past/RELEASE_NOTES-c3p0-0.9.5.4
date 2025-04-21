@@ -1,0 +1,56 @@
+RELEASE NOTES, c3p0-0.9.5.4
+===========================
+
++ This minor bugfix release continues to address security issues associated
+  with parsing configuration in XML format. The solution provided in 0.9.5.3
+  was not sufficiently general to address all "XXE" attacks. For more on
+  those in general, see https://vsecurity.com//download/papers/XMLDTDEntityAttacks.pdf
+  
+  The current release includes implementing the suggestions offered here:
+  https://github.com/OWASP/CheatSheetSeries/blob/31c94f233c40af4237432008106f42a9c4bff05e/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.md
+
+  Because more than entity reference expansion is implicated, the configuration
+  key introduced in 0.9.5.3...
+  
+    com.mchange.v2.c3p0.cfg.xml.expandEntityReferences
+
+  is now deprecated. Instead, if you wish to restore prior versions' permissive
+  parsing of XML -- and if you strictly control your XML configuration and
+  understand the security issues enabled by permissive parsing, you can set
+
+    com.mchange.v2.c3p0.cfg.xml.usePermissiveParser=true
+
+  (The deprecated key introduced in 0.9.5.3 will continue to work, but will
+  provoke warnings.)
+
+  Many thanks to Aaron Massey (amassey) at HackerOne and zhutougg on GitHub
+  for calling attention to these issues.
+
++ The release also includes a change in how c3p0 handles the rare condition
+  in which
+
+    1. A round of attempts to acquire Connections fails
+    2. c3p0 attempts to wake and throw Exceptions to client threads waiting for
+       Connections to arrive, but a Thread interrupt or some unexpected Throwable
+       occurs before that process has completed.
+
+  Previously, a failure within "forceKillAcquires()" would leave the pool in a broken
+  state, so that after database recovery clients might still fail to acquire Connections.
+  Now c3p0 uses Thread.interrupt() to make a best-effort attempt to free the clients,
+  logs a warning, then resets the pool to a recoverable state.
+
+  This should be an extraordinarily rare occurrence, and c3p0 will emit warnings when
+  it does occur.
+  
+  If by some hard-to-understand cause, waiting client Threads become somehow impossible
+  to wake, despite use of notifyAll(), even after Thread.interrupt(), and even as new
+  Connections become available to satisfy them, then recovery after the incomplete wake
+  might lead to more aggressive tha intended (faster) pool growth (as Threads waiting
+  for new Connections are taken into account when c3p0 calculates its target_pool_size.
+  But it is very difficult to imagine any condition under which the semantics of the
+  JVM threading model are respected and yet wait()ing Threads remain stuck despite
+  notifyAll() and interrupt() calls.
+
+  Many thanks to Stefan Cordes (rscadrde on github), Vipin Nair (swvist on github), and
+  Łukasz Jąder (ljader on github) for their work on this issue.
+

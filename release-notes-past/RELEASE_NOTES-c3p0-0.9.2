@@ -1,0 +1,54 @@
+RELEASE NOTES, c3p0-0.9.2
+=========================
+
+Some highlights:
+
++ Some JDBC drivers freeze up if cached Statements are close()ed while their parent
+  Connections are in use. Previously users of these drivers (Oracle, JTDS) generally 
+  had to forego Statement caching to avoid deadlocks. C3P0's statement cache can now 
+  be set to cautiously close Statements only when the parent Connections are known
+  to be idle. If you experience "APPARENT DEADLOCKS" due to StatementCloseTasks, set
+
+      c3p0.statementCacheNumDeferredCloseThreads=1
+
+  and they should go away!
+
++ There are some other minor improvements and fixes: 
+
+    -- the more granular and efficient "scattered" Connection acquisition algorithm that 
+       was "experimental" in the previous release is enabled by default
+
+    -- unreturned Connections that are timed out (bad! bad!) are either rolled back (default)
+       or committed before close(), respecting your unresolved transaction configuration.
+       (see config parameter unresolvedConnectionTimeout in docs)
+
+    -- c3p0 is now actively maintained for deployment as a managed dependency on
+       Sonatype's central maven repository
+
+    -- You can use the dataSourceName config parameter to create stable patterns in
+       JMX mBeans, so that you can distinguish your DataSources and monitor then across
+       application restarts.
+
+    -- Miscellaneous fixes for bugs/deadlocks/resource-leaks, see CHANGELOG (and many thanks
+       to users who've helped track these issues down!)
+
++ You must now include two jar files (c3p0 and mchange-commons-java) in your CLASSPATH
+  rather than just one. Both can be found in the lib directory of the binary distribution.
+  (Please provide feedback; if this is very inconvenient I can bundle it all up into 
+  a unified jar.)
+
+Some structural changes:
+
++ Development of c3p0 and mchange-commons-java have migrated to github:
+
+     https://github.com/swaldman/c3p0
+     https://github.com/swaldman/mchange-commons-java
+
+   Note that c3p0 depends (heavily) on the mchange-commons library.
+
+I apologize very, very much for disappearing for a few of years. Your guess is as
+good as mine as to where I have been.
+
+As always, please give the library a very thorough beating. Your testing and feedback 
+are very much appreciated, to Steve Waldman <swaldman@mchange.com>, please.
+

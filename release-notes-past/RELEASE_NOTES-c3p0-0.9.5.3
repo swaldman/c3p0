@@ -1,0 +1,25 @@
+RELEASE NOTES, c3p0-0.9.5.3
+===========================
+
++ This minor bugfix release addresses a security issue:
+
+    CVE-2018-20433, https://nvd.nist.gov/vuln/detail/CVE-2018-20433
+    
+  The c3p0 parsed XML config files liberally, including resolving external
+  entity references. Incautious use of this feature could permit injection
+  of malicious config. Now c3p0 does not resolve external entity references
+  in its the XML config file.
+
+  HOWEVER, in the EXCEEDINGLY RARE CASE that your configuration depends on
+  the old behavior, if you have UNDERSTOOD the security concern, you may
+  restore external entity resolution with the following config parameter
+  (in c3p0.properties, as HOCON config, or as a System property):
+
+     com.mchange.v2.c3p0.cfg.xml.expandEntityReferences=true
+
+  Thanks to user zhutougg on GitHub for calling attention to and suggesting
+  a fix for this issue.
+
++ c3p0 now supports logging to log4j2. (Logging to the old, original log4j
+  library remains supported as well.) Thanks to user fireandfuel on GitHub
+  for implementing this feature! (In the mchange-commons-java library.)

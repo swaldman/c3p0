@@ -1,0 +1,40 @@
+RELEASE NOTES, c3p0-0.9.5.1
+===========================
+
++ Full JDBC4 support.
+
++ Support for logging the SLF4J / logback library
+
++ Support for configuration via HOCON / typesafe-config files
+
++ Support for dynamic configuration reloading (to support autorestarting appservers like playframework)
+
++ Support for predictable, reproducible JMX names (whose uniqueness users must ensure!) via config parmeter
+    com.mchange.v2.c3p0.management.ExcludeIdentityToken 
+
++ Configuration param 'forceUseNamedDriverClass' allows users to circumvent DriverManager resolution
+  of JDBC-url appropriate Driver classes and use the class specified in the 'driverClass' config param
+  unconditionally
+
++ Configuaration params 'privilegeSpawnedThreads' and 'contextClassLoaderSource' can be set to
+  help avoid memory leaks following multiple hot redeploys (references to ClassLoaders from stale deployments)
+  in some application servers (most prominently Tomcat).
+
++ Added support for easily deriving instrumented debug versions of ComboPooledDataSource, and implemented
+  two of those:
+     com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource and
+     com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource
+
++ Added support for a new configurataion parameter, forceSynchronousCheckins, which can offer significantly
+  improved performance when no Connection tests are performed on check-in and no difficult work is performed
+  in ConnectionCustomizer.onCheckIn(...)
+
++ Lots and lots of bug fixes, tweaks, etc.
+
+
+
+
+
+
+
+
