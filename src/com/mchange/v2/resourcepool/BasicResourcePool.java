@@ -1121,7 +1121,7 @@ class BasicResourcePool implements ResourcePool
             { otherWaiters.remove( t ); }
         }
         finally
-        { lockMain.lock(); }
+        { lockMain.unlock(); }
     }
 
     //same as close(), but we do not destroy checked out resources
