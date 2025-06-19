@@ -1,3 +1,5 @@
+        -- Expose utilities `overwriteJavaBeanProperties` and `overwriteC3P0PrefixedProperties`
+	   in the `DataSources` class, and refactor existing functions to use those.
 c3p0-0.11.1
 	-- in BasicResourcePool, forceKillAcquires() accidentally failed to surrender its lock,
 	   leading to deadlocks following a full round of acquisition failures. Many thanks

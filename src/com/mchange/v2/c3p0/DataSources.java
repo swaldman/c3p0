@@ -3,6 +3,7 @@ package com.mchange.v2.c3p0;
 import com.mchange.v2.log.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
+import java.beans.IntrospectionException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -117,28 +118,10 @@ public final class DataSources
 	    {
 		WrapperConnectionPoolDataSource wcpds = new WrapperConnectionPoolDataSource(configName);
 		wcpds.setNestedDataSource( unpooledDataSource );
-		if (overrideProps != null)
-		    BeansUtils.overwriteAccessiblePropertiesFromMap( overrideProps, 
-								     wcpds, 
-								     false,
-								     null,
-								     true,
-								     MLevel.WARNING,
-								     MLevel.WARNING,
-								     false);
-		
+		if (overrideProps != null) overwriteJavaBeanProperties( wcpds, overrideProps, true );
 		PoolBackedDataSource nascent_pbds = new PoolBackedDataSource(configName);
 		nascent_pbds.setConnectionPoolDataSource( wcpds );
-		if (overrideProps != null)
-		    BeansUtils.overwriteAccessiblePropertiesFromMap( overrideProps, 
-								     nascent_pbds, 
-								     false,
-								     null,
-								     true,
-								     MLevel.WARNING,
-								     MLevel.WARNING,
-								     false);
-
+		if (overrideProps != null) overwriteJavaBeanProperties( nascent_pbds, overrideProps, true );
 		return nascent_pbds;
 	    }
 // 	catch ( PropertyVetoException e )
@@ -157,16 +140,8 @@ public final class DataSources
  	    }
     }
 
-    /**
-     * <p>Creates a pooled version of an unpooled DataSource using configuration 
-     *    information supplied explicitly by a Java Properties object.</p>
-     *
-     *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
-     */
-    public static DataSource pooledDataSource( DataSource unpooledDataSource, Properties props ) throws SQLException
-    { 
-	//return pooledDataSource( unpooledDataSource, new PoolConfig( props ) ); 
-
+    private static Properties prefixedToPeeledProperties( Properties props )
+    {
 	Properties peeledProps = new Properties();
 	for (Enumeration e = props.propertyNames(); e.hasMoreElements(); )
 	    {
@@ -175,6 +150,18 @@ public final class DataSources
 		String peeledKey = (propKey.startsWith("c3p0.") ? propKey.substring(5) : propKey );
 		peeledProps.put( peeledKey, propVal );
 	    }
+        return peeledProps;
+    }
+
+    /**
+     * <p>Creates a pooled version of an unpooled DataSource using configuration 
+     *    information supplied explicitly by a Java Properties object.</p>
+     *
+     *  @return a DataSource that can be cast to a {@link PooledDataSource} if you are interested in pool statistics
+     */
+    public static DataSource pooledDataSource( DataSource unpooledDataSource, Properties props ) throws SQLException
+    {
+	Properties peeledProps = prefixedToPeeledProperties( props );
 	return pooledDataSource( unpooledDataSource, null, peeledProps );
     }
 
@@ -217,6 +204,32 @@ public final class DataSources
 	    }
 	if ( pooledDataSource instanceof PooledDataSource )
 	    ((PooledDataSource) pooledDataSource).close( force );
+    }
+
+    private static void _overwriteJavaBeanProperties( Object target, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException
+    {
+        BeansUtils.overwriteAccessiblePropertiesFromMap(
+            replacementProperties, // sourceMap
+            target    ,            // destination bean
+            false,                 // skip nulls
+            null,                  // props to ignore, null means none
+            coerce_strings,        // whether to coerce strings
+            MLevel.WARNING,        // null means log to default (WARNING) level if can't write
+            MLevel.WARNING,        // null means log to default (WARNING) level if can't coerce
+            false                  // don't die on failures, continue
+        );
+    }
+
+    public static void overwriteJavaBeanProperties( DataSource dataSource, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException
+    { _overwriteJavaBeanProperties( dataSource, replacementProperties, coerce_strings ); }
+
+    public static void overwriteJavaBeanProperties( ConnectionPoolDataSource cpds, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException
+    { _overwriteJavaBeanProperties( cpds, replacementProperties, coerce_strings ); }
+
+    public static void overwriteC3P0PrefixedProperties( DataSource dataSource, Properties prefixedProperties ) throws IntrospectionException
+    {
+        Properties peeledProperties = prefixedToPeeledProperties( prefixedProperties );
+        overwriteJavaBeanProperties( dataSource, peeledProperties, true );
     }
 
     private DataSources()
