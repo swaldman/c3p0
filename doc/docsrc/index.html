@@ -973,13 +973,42 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
 	If you obtain a DataSource by instantiating a
 	<a href="apidocs/com/mchange/v2/c3p0/ComboPooledDataSource.html"><tt>ComboPooledDataSource</tt></a>,
 	configure it by simply calling appropriate setter methods offered by that class
-	before attempting a call to <tt>getConnection()</tt>. See the example above.
+	before attempting a call to <tt>getConnection()</tt>. See the example <a href="#quickstart">above</a>.
       </p>
       <p>
 	If you obtain a DataSource by using factory methods of
 	the utility class <a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>com.mchange.v2.c3p0.DataSources</tt></a>,
 	and wish to use a non-default configuration, you can supply a Map of property names (beginning with lower-case letters)
 	to property values (either as Strings or "boxed" Java primitives like Integer or Boolean).
+      </p>
+      <p>
+        You can also set multiple configuration properties from a Map after your DataSource has been constructed.
+        Use <a href="apidocs/com/mchange/v2/c3p0/DataSources.html#overwriteJavaBeanProperties(javax.sql.DataSource,java.util.Map,boolean)"><tt>DataSources.overwriteJavaBeanProperties(...)</tt></a>.
+      </p>
+      </p>
+       After a DataSource has been constructed,
+       you can overwrite multiple configuration properties from a <tt>Properties</tt> object, containing <a href="#c3p0_properties">c3p0.properties</a>-like
+       c3p0-prefixed configuration properties. This is useful for allowing applications to take c3p0 configuration from nonstandard sources. So if an application has
+       properties-based configuration like
+      </p>
+      <div class="example">
+myapp.title=It's My App
+myapp.api.port=9245
+myapp.twistiness=severe
+mail.smtp.user=admin@myapp.com
+mail.smtp.password=big.secret.09
+c3p0.jdbcUrl=jdbc:postgresql://localhost:5432/myapp
+c3p0.user=myapp
+c3p0.password=please.dont.tell
+c3p0.maxPoolSize=20
+      </div>
+      <p>
+        You could load the properties object and call
+        <a href="apidocs/com/mchange/v2/c3p0/DataSources.html#overwriteC3P0PrefixedProperties(javax.sql.DataSource,java.util.Properties)"><tt>DataSources.overwriteC3P0PrefixedProperties(...)</tt></a>.
+      </p>
+      <p>
+        The properties not prefixed with <tt>c3p0.</tt> would be ignored, while properties <tt>jdbcUrl</tt>, <tt>user</tt>, <tt>password</tt>, and <tt>maxPoolSode</tt> would be
+        overwritten by this configuration.
       </p>
       <p>
 	All tweakable properties are documented for reference
