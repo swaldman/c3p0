@@ -1,0 +1,35 @@
+RELEASE NOTES, c3p0-0.11.2
+==========================
+
+This release exposes new API for setting configuration properties of
+c3p0 datasources in bulk.
+
+It's generalization of API that has always existed in
+
+   com.mchange.v2.c3p0.DataSources
+
+allowing property values to be overridden with Maps or with Properties
+objects (from which only config properties prefixed with "c3p0." are
+effectual).
+
+However, bulk property overrides were only available on DataSource construction.
+
+Now that DataSources class exposes new methods
+
+    public static void overwriteJavaBeanProperties( DataSource dataSource, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException
+    public static void overwriteJavaBeanProperties( ConnectionPoolDataSource cpds, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException
+    public static void overwriteC3P0PrefixedProperties( DataSource dataSource, Properties prefixedProperties ) throws IntrospectionException
+
+which allow overwriting bulk confif post construction.
+
+I've found this useful especially for allowing other application config files to
+also support c3p0 config. If your application has a properties-formatted config
+file, with overwriteC3P0PrefixedProperties(...), you can let users include c3p0
+properties in that file, and have those settings take precedence over the
+on-construction configuration.
+
+The build has changed to support Sonatype Central rather than "classic" but retiring
+Sonatype OSS publishing of the library.
+
+Thanks also to QwertyChouskie on GitHub for calling attention to a documentation error.
+
