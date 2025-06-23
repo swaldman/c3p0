@@ -32,7 +32,7 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
   val organization = "com.mchange"
   override def artifactName = T{"c3p0"}
 
-  override def publishVersion = T{"0.11.2-SNAPSHOT"}
+  override def publishVersion = T{"0.11.2"}
 
   override def sonatypeCentralShouldRelease: T[Boolean] = Task { false }
 
