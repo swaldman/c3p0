@@ -232,6 +232,12 @@ public final class DataSources
         overwriteJavaBeanProperties( dataSource, peeledProperties, true );
     }
 
+    public static void overwriteC3P0PrefixedProperties( ConnectionPoolDataSource cpds, Properties prefixedProperties ) throws IntrospectionException
+    {
+        Properties peeledProperties = prefixedToPeeledProperties( prefixedProperties );
+        overwriteJavaBeanProperties( cpds, peeledProperties, true );
+    }
+
     private DataSources()
     {}
 }

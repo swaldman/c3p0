@@ -19,8 +19,9 @@ Now that DataSources class exposes new methods
     public static void overwriteJavaBeanProperties( DataSource dataSource, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException
     public static void overwriteJavaBeanProperties( ConnectionPoolDataSource cpds, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException
     public static void overwriteC3P0PrefixedProperties( DataSource dataSource, Properties prefixedProperties ) throws IntrospectionException
+    public static void overwriteC3P0PrefixedProperties( ConnectionPoolDataSource cpds, Properties prefixedProperties ) throws IntrospectionException
 
-which allow overwriting bulk confif post construction.
+which allow overwriting bulk config post construction.
 
 I've found this useful especially for allowing other application config files to
 also support c3p0 config. If your application has a properties-formatted config
