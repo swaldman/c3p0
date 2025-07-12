@@ -40,9 +40,6 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // for users of smaller JDBC subsets
   val JvmCompatVersion = "7"
   
-  // see https://mill-build.org/mill/depth/sandboxing.html
-  //val BuildRoot = os.Path( sys.env("MILL_WORKSPACE_ROOT") )
-
   // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
   // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
   override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
@@ -246,7 +243,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       }
     }
 
-    def docsrc : Task[PathRef] = Task.Source { this.moduleDir / "docsrc" }
+    def docsrc : Task[PathRef] = Task.Source { moduleDir / "docsrc" }
 
     def docroot : Task[PathRef] = Task {
       val javadocRoot = build.docJar().path / os.up / "javadoc"
@@ -290,8 +287,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       * so that when we run tests from elsewhere, they are not polluted
       * by settings in these resources
       */
-    def localResources : Task[PathRef] = Task.Source { this.moduleDir / "resources-local" }
-    def localResourcesRough : Task[PathRef] = Task.Source { this.moduleDir / "resources-local-rough" }
+    def localResources : Task[PathRef] = Task.Source { moduleDir / "resources-local" }
+    def localResourcesRough : Task[PathRef] = Task.Source { moduleDir / "resources-local-rough" }
 
     override def runClasspath : Task.Simple[Seq[PathRef]] = Task {
       super.runClasspath() :+ localResources()
@@ -339,7 +336,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       //"-verbose:class"
       //"-ea" ::
       "-Djava.rmi.server.hostname=localhost" ::
-      s"""-Djava.util.logging.config.file=${this.moduleDir / "conf-logging" / "logging.properties"}""" ::
+      s"""-Djava.util.logging.config.file=${moduleDir / "conf-logging" / "logging.properties"}""" ::
       Nil
     }
     def c3p0Benchmark = Task {
