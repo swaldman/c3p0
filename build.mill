@@ -2,8 +2,6 @@
 //| mill-jvm-version: 11
 package build
 
-// import $meta._
-
 // see mill-build/build.mill
 import millbuild.MillBuildCommonDependencies
 
