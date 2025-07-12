@@ -292,6 +292,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
     override def runClasspath : Task.Simple[Seq[PathRef]] = Task {
       super.runClasspath() :+ localResources()
+      // super.runClasspath() :+ localResourcesRough()
     }
 
     def externalClassPath : Task[String] = Task {
