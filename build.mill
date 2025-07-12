@@ -1,15 +1,17 @@
+//| mill-version: 1.0.0
+//| mill-jvm-version: 11
 package build
 
-import $meta._
+// import $meta._
 
 // see mill-build/build.mill
 import millbuild.MillBuildCommonDependencies
 
 import mill._
-import mill.api.{JarManifest,Result}
+import mill.api.{BuildCtx,Result}
 import mill.scalalib._
 import mill.scalalib.publish._
-import mill.util.Jvm
+import mill.util.{JarManifest,Jvm}
 
 import scala.annotation.tailrec
 
@@ -20,40 +22,35 @@ import scala.annotation.tailrec
 
 object Dependency {
   val MchangeCommonsJavaVersion = MillBuildCommonDependencies.McjVersion
-  val MchangeCommonsJava        = ivy"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
+  val MchangeCommonsJava        = mvn"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
 
-  val JUnit  = ivy"org.junit.vintage:junit-vintage-engine:5.10.2"
-  val PgJdbc = ivy"org.postgresql:postgresql:42.6.0"
-  val Hsqldb = ivy"org.hsqldb:hsqldb:2.7.4"
+  val JUnit  = mvn"org.junit.vintage:junit-vintage-engine:5.10.2"
+  val PgJdbc = mvn"org.postgresql:postgresql:42.6.0"
+  val Hsqldb = mvn"org.hsqldb:hsqldb:2.7.4"
 }
 
-object `package` extends RootModule with JavaModule with SonatypeCentralPublishModule {
+object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   val organization = "com.mchange"
-  override def artifactName = T{"c3p0"}
+  override def artifactName = Task {"c3p0"}
 
-  override def publishVersion = T{"0.11.2"}
+  override def publishVersion = Task {"0.11.3-SNAPSHOT"}
 
-  override def sonatypeCentralShouldRelease: T[Boolean] = Task { false }
+  override def sonatypeCentralShouldRelease: Task.Simple[Boolean] = Task { false }
 
   // we are currently building in Java 11, but releasing Java 7 compatible class files
   // for users of smaller JDBC subsets
   val JvmCompatVersion = "7"
-
-  require(
-    sys.props("java.runtime.version").startsWith("11"),
-    s"Bad build JVM: ${sys.props("java.runtime.version")} -- We currently expect to build under Java 11. (We generate Java $JvmCompatVersion compatible source files.)"
-  )
-
+  
   // see https://mill-build.org/mill/depth/sandboxing.html
-  val BuildRoot = os.Path( sys.env("MILL_WORKSPACE_ROOT") )
+  //val BuildRoot = os.Path( sys.env("MILL_WORKSPACE_ROOT") )
 
   // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
   // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
   override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
   trait Gen extends JavaModule {
-    def runIf(conditionAndArgs: Task[Args]): Command[Unit] = T.command {
+    def runIf(conditionAndArgs: Task[Args]): Command[Unit] = Task.Command {
       val caa = conditionAndArgs().value
       val condition = caa.head
       // println(s"!!!!! $condition")
@@ -61,14 +58,14 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
       val truthyCondition = "true".equalsIgnoreCase(condition) || "t".equalsIgnoreCase(condition)
       if (truthyCondition) {
         try Result.Success(
-            Jvm.runSubprocess(
-              finalMainClass(),
-              runClasspath().map(_.path),
-              forkArgs(),
-              forkEnv(),
-              args,
-              workingDir = forkWorkingDir(),
-              useCpPassingJar = runUseArgsFile()
+            Jvm.callProcess(
+              mainClass = finalMainClass(),
+              classPath = runClasspath().map(_.path),
+              jvmArgs = forkArgs(),
+              env = forkEnv(),
+              mainArgs = args,
+//              workingDir = forkWorkingDir(),
+//              useCpPassingJar = runUseArgsFile()
             )
           )
         catch {
@@ -80,16 +77,21 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
         Result.Success( () )
       }
     }
-    override def ivyDeps = T{
-      super.ivyDeps() ++ Agg(Dependency.MchangeCommonsJava)
+    override def mvnDeps = Task {
+      super.mvnDeps() ++ Seq(Dependency.MchangeCommonsJava)
     }
-    override def forkArgs = T{Seq("-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog")}
+    override def forkArgs = Task {Seq("-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog")}
   }
+
   object bean extends Gen {}
 
   object proxy extends Gen {
-    override def sources = T { super.sources() :+ PathRef( BuildRoot / "src-proxy-interface" ) }
-    override def mainClass = T { Some("com.mchange.v2.c3p0.codegen.JdbcProxyGenerator") }
+    override def sources = Task {
+      BuildCtx.withFilesystemCheckerDisabled {
+        super.sources() :+ PathRef( BuildCtx.workspaceRoot / "src-proxy-interface" )
+      }
+    }
+    override def mainClass = Task { Some("com.mchange.v2.c3p0.codegen.JdbcProxyGenerator") }
   }
 
   val Debug = true
@@ -102,10 +104,14 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
   // val Debug = false
   // val Trace = 0
 
-  override def sources = T { super.sources() :+ PathRef( BuildRoot / "src-proxy-interface" ) }
+  override def sources = Task {
+    BuildCtx.withFilesystemCheckerDisabled {
+      super.sources() :+ PathRef( BuildCtx.workspaceRoot / "src-proxy-interface" )
+    }
+  }
 
-  override def ivyDeps = T{
-    super.ivyDeps() ++ Agg(Dependency.MchangeCommonsJava)
+  override def mvnDeps = Task {
+    super.mvnDeps() ++ Seq(Dependency.MchangeCommonsJava)
   }
 
   private val WritePermissions : os.PermSet = "-w--w--w-"
@@ -119,8 +125,8 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
   // etc which seems maybe too complicated.
   def makeDirContentsReadOnly( dir : os.Path ) = os.walk(dir).foreach( p => os.perms.set(p, readOnly(os.perms(p))) )
 
-  def buildModTime : T[Long] = T.input {
-    val out = math.max( os.mtime( BuildRoot / "build.mill" ), os.mtime( BuildRoot / "mill-build" / "build.mill" ) )
+  def buildModTime : Task[Long] = Task.Input {
+    val out = math.max( os.mtime( BuildCtx.workspaceRoot / "build.mill" ), os.mtime( BuildCtx.workspaceRoot / "mill-build" / "build.mill" ) )
     //println( s"buildModTime: $out" )
     out
   }
@@ -133,14 +139,14 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
       if (mtimes.size < 2) -1L else mtimes.max // if there's only one mtime, it's the empty target
     }
   }
-  def genDebugSources = T { // mill correctly caches these with no work on our part
-    com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${BuildRoot}/src",s"--outputbase=${T.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
-    PathRef(T.dest)
+  def genDebugSources = Task { // mill correctly caches these with no work on our part
+    com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${BuildCtx.workspaceRoot}/src",s"--outputbase=${Task.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
+    PathRef(Task.dest)
   }
-  def genC3P0SubstitutionsSource = T.persistent {
+  def genC3P0SubstitutionsSource = Task(persistent=true) {
     val version = publishVersion()
     val bmt = buildModTime()
-    val dmt = recursiveDirModTime( T.dest )
+    val dmt = recursiveDirModTime( Task.dest )
     if ( bmt > dmt ) {
       import java.time.Instant
       val timestamp = sys.env.get("SOURCE_DATE_EPOCH").map( sde => Instant.ofEpochSecond( sde.toLong ) ).getOrElse( Instant.now )
@@ -158,67 +164,74 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
             |    {}
             |}
             |""".stripMargin
-      val path = T.dest / "com" / "mchange" / "v2" / "c3p0" / "subst" / "C3P0Substitutions.java"
+      val path = Task.dest / "com" / "mchange" / "v2" / "c3p0" / "subst" / "C3P0Substitutions.java"
       System.err.println("Regenerating C3P0Substitutions.java")
       os.write.over( path, data = text, createFolders = true )
     }
-    PathRef(T.dest)
+    PathRef(Task.dest)
   }
-  def beangenGeneratedSourceDir = T.persistent { T.dest }
-  def beangen = T {
-    val realDest = beangenGeneratedSourceDir()
-    bean.runIf(
-      T.task(
-        Args(
-          (Seq(buildModTime(),recursiveDirModTime(BuildRoot/"bean"/"beangen"),recursiveDirModTime(BuildRoot/"bean"/"src")).max > recursiveDirModTime(beangenGeneratedSourceDir())).toString,
-          "bean/beangen/com/mchange/v2/c3p0/impl",
-          (beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()
+  def beangenGeneratedSourceDir = Task(persistent=true) { Task.dest }
+  def beangen = Task {
+    BuildCtx.withFilesystemCheckerDisabled {
+      val realDest = beangenGeneratedSourceDir()
+      bean.runIf(
+        Task.Anon(
+          Args(
+            (Seq(buildModTime(),recursiveDirModTime(BuildCtx.workspaceRoot/"bean"/"beangen"),recursiveDirModTime(BuildCtx.workspaceRoot/"bean"/"src")).max > recursiveDirModTime(beangenGeneratedSourceDir())).toString,
+            BuildCtx.workspaceRoot/"bean/beangen/com/mchange/v2/c3p0/impl",
+            (beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()
+          )
         )
-      )
-    )()
-    PathRef(realDest)
+      )()
+      PathRef(realDest)
+    }
   }
-  def proxygenGeneratedSourceDir = T.persistent { T.dest }
-  def proxygen = T {
-    val realDest = proxygenGeneratedSourceDir()
-    proxy.runIf(
-      T.task(
-        Args(
-          (math.max(buildModTime(),recursiveDirModTime(BuildRoot/"proxy"/"src")) > recursiveDirModTime(proxygenGeneratedSourceDir())).toString,
-          proxygenGeneratedSourceDir().toString
+  def proxygenGeneratedSourceDir = Task(persistent=true) { Task.dest }
+  def proxygen = Task {
+    BuildCtx.withFilesystemCheckerDisabled {
+      val realDest = proxygenGeneratedSourceDir()
+      proxy.runIf(
+        Task.Anon(
+          Args(
+            (math.max(buildModTime(),recursiveDirModTime(BuildCtx.workspaceRoot/"proxy"/"src")) > recursiveDirModTime(proxygenGeneratedSourceDir())).toString,
+            proxygenGeneratedSourceDir().toString
+          )
         )
-      )
-    )()
-    PathRef(realDest)
+      )()
+      PathRef(realDest)
+    }
   }
 
-  override def generatedSources = T {
-    super.generatedSources() ++ Agg(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
+  override def generatedSources = Task {
+    super.generatedSources() ++ Seq(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
   }
 
-  override def manifest = T {
+  override def manifest = Task {
     val mainTups = JarManifest.MillDefault.main + Tuple2("Automatic-Module-Name","com.mchange.v2.c3p0")
     JarManifest( main = mainTups )
   }
 
-  def allLicenses : T[Seq[PathRef]] = T {
-    (BuildRoot / "LICENSE" :: BuildRoot / "LICENSE-LGPL" :: BuildRoot / "LICENSE-EPL" :: Nil).map( PathRef(_) )
+  def allLicenses : Task[Seq[PathRef]] = Task {
+    (BuildCtx.workspaceRoot / "LICENSE" :: BuildCtx.workspaceRoot / "LICENSE-LGPL" :: BuildCtx.workspaceRoot / "LICENSE-EPL" :: Nil).map( PathRef(_) )
   }
 
   // is the same manifest good?
   // some users want licenses in the source jars... https://github.com/swaldman/c3p0/issues/167
-  def sourceJar: T[PathRef] = T {
+  def sourceJar: Task.Simple[PathRef] = Task {
+    val out = Task.dest / "source.jar"
     Jvm.createJar(
-      (allSources() ++ resources() ++ compileResources() ++ allLicenses()).map(_.path).filter(os.exists),
-      manifest()
+      jar = out,
+      inputPaths = (allSources() ++ resources() ++ compileResources() ++ allLicenses()).map(_.path).filter(os.exists),
+      manifest = manifest()
     )
+    PathRef(out)
   }
 
   object doc extends JavaModule
   {
     val StagingDir = os.Path("/Users/swaldman/development/gitproj/www.mchange.com/projects/c3p0-versions")
 
-    def replacements : T[Map[String,String]] = T {
+    def replacements : Task[Map[String,String]] = Task {
         import java.time.ZonedDateTime
         Map(
           "@c3p0.version@" -> build.publishVersion(),
@@ -230,19 +243,19 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
     @tailrec
     def replaceAll( replacements : List[(String,String)], template : String ) : String = {
       replacements match {
-      	case head :: tail => replaceAll(tail, template.replace(head._1, head._2))
+        case head :: tail => replaceAll(tail, template.replace(head._1, head._2))
         case Nil          => template
       }
     }
 
-    def docsrc : T[PathRef] = T.source { millSourcePath / "docsrc" }
+    def docsrc : Task[PathRef] = Task.Source { this.moduleDir / "docsrc" }
 
-    def docroot : T[PathRef] = T {
+    def docroot : Task[PathRef] = Task {
       val javadocRoot = build.docJar().path / os.up / "javadoc"
       val replaceMap = replacements()
       val docsrcDir = docsrc().path
       val sourcePaths = os.walk(docsrcDir)
-      def destPath( sourcePath : os.Path ) = T.dest / sourcePath.relativeTo(docsrcDir)
+      def destPath( sourcePath : os.Path ) = Task.dest / sourcePath.relativeTo(docsrcDir)
       sourcePaths.foreach { sp =>
         if (sp.toString.endsWith(".html")) {
           val replaced = replaceAll( replaceMap.toList, os.read(sp) )
@@ -251,23 +264,24 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
         else
           os.copy.over( from=sp, to=destPath(sp) )
       }
-      os.copy.over( from = javadocRoot, to = T.dest / "apidocs" )
-      PathRef(T.dest)
+      os.copy.over( from = javadocRoot, to = Task.dest / "apidocs" )
+      PathRef(Task.dest)
     }
 
-    def stage : T[Unit] = T {
+    def stage : Task[Unit] = Task {
       os.copy.over( from = docroot().path, to = StagingDir / ("c3p0-" + build.publishVersion()) )
     }
   }
 
+  /*
   // for now at least, I don't mean to publish tests as a public library,
   // but I do want to publish them locally so I have them when working on related
   // libraries
   object test extends JavaModule with TestModule.Junit5 with PublishModule {
     override def moduleDeps = Seq(build)
 
-    override def artifactName = T{"c3p0-test"}
-    override def publishVersion = T{ build.publishVersion() }
+    override def artifactName = Task {"c3p0-test"}
+    override def publishVersion = Task { build.publishVersion() }
 
     // when you want to generate tests you can try under old JVMs
     override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
@@ -278,39 +292,38 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
       * so that when we run tests from elsewhere, they are not polluted
       * by settings in these resources
       */
-    def localResources : T[Seq[PathRef]] = T.sources { millSourcePath / "resources-local" }
-    def localResourcesRough : T[Seq[PathRef]] = T.sources { millSourcePath / "resources-local-rough" }
+    def localResources : Task[PathRef] = Task.Source { this.moduleDir / "resources-local" }
+    def localResourcesRough : Task[PathRef] = Task.Source { this.moduleDir / "resources-local-rough" }
 
-    override def runClasspath : T[Seq[PathRef]] = T{
-      super.runClasspath() ++ localResources()
-      // super.runClasspath() ++ localResourcesRough()
+    override def runClasspath : Task[Seq[PathRef]] = Task {
+      super.runClasspath() :+ localResources()
     }
 
-    def externalClassPath : T[String] = T {
+    def externalClassPath : Task[String] = Task {
       val sep = java.io.File.pathSeparator
       runClasspath().map( _.path ).mkString( sep )
     }
 
-    def externalForkArgs : T[String] = T {
+    def externalForkArgs : Task[String] = Task {
       forkArgs().mkString(" ")
     }
 
-    def externalCommandBase : T[String] = T[String] {
+    def externalCommandBase : Task[String] = Task[String] {
        List("java",externalForkArgs(),"-cp",externalClassPath()).mkString(" ")
     }
 
-    def printExternalCommandBase : T[Unit] = T {
+    def printExternalCommandBase : Task[Unit] = Task {
       println(externalCommandBase())
     }
 
-    override def ivyDeps = T{
-      super.ivyDeps() ++ Agg(
+    override def mvnDeps = Task {
+      super.mvnDeps() ++ Seq(
         Dependency.JUnit,
         Dependency.PgJdbc,
         //Dependency.Hsqldb
       )
     }
-    override def forkArgs = T {
+    override def forkArgs = Task {
       "-Dc3p0.jdbcUrl=jdbc:postgresql://localhost:5432/c3p0" ::
       //"-Dc3p0.jdbcUrl=jdbc:hsqldb:hsql://localhost/mydb;hsqldb.sqllog=3" :: // hsqldb
       //"-Dc3p0.user=SA" ::                                                   // hsqldb
@@ -328,46 +341,46 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
       //"-verbose:class"
       //"-ea" ::
       "-Djava.rmi.server.hostname=localhost" ::
-      s"""-Djava.util.logging.config.file=${millSourcePath / "conf-logging" / "logging.properties"}""" ::
+      s"""-Djava.util.logging.config.file=${this.moduleDir / "conf-logging" / "logging.properties"}""" ::
       Nil
     }
-    def c3p0Benchmark = T {
+    def c3p0Benchmark = Task {
       this.runMain("com.mchange.v2.c3p0.test.C3P0BenchmarkApp")()
     }
-    def c3p0Stats = T {
+    def c3p0Stats = Task {
       this.runMain("com.mchange.v2.c3p0.test.StatsTest")()
     }
-    def c3p0Proxywrapper = T {
+    def c3p0Proxywrapper = Task {
       this.runMain("com.mchange.v2.c3p0.test.ProxyWrappersTest")()
     }
-    def c3p0RawConnectionOp = T {
+    def c3p0RawConnectionOp = Task {
       this.runMain("com.mchange.v2.c3p0.test.RawConnectionOpTest")()
     }
-    def c3p0Load = T {
+    def c3p0Load = Task {
       this.runMain("com.mchange.v2.c3p0.test.LoadPoolBackedDataSource")()
     }
-    def c3p0PSLoad = T {
+    def c3p0PSLoad = Task {
       this.runMain("com.mchange.v2.c3p0.test.PSLoadPoolBackedDataSource")()
     }
-    def c3p0InterruptedBatch = T {
+    def c3p0InterruptedBatch = Task {
       this.runMain("com.mchange.v2.c3p0.test.InterruptedBatchTest")()
     }
-    def c3p0Dispersion = T {
+    def c3p0Dispersion = Task {
       this.runMain("com.mchange.v2.c3p0.test.ConnectionDispersionTest")()
     }
-    def c3p0OneThreadRepeat = T {
+    def c3p0OneThreadRepeat = Task {
       this.runMain("com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest")()
     }
-    def c3p0RefSer = T {
+    def c3p0RefSer = Task {
       this.runMain("com.mchange.v2.c3p0.test.TestRefSerStuff")
     }
-    def c3p0JavaBeanRef = T {
+    def c3p0JavaBeanRef = Task {
       this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")
     }
-    def c3p0DynamicPreparedStatement = T {
+    def c3p0DynamicPreparedStatement = Task {
       this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")
     }
-    override def pomSettings = T {
+    override def pomSettings = Task {
       PomSettings(
         description = "Tests of c3p0, a mature JDBC3+ Connection pooling library",
         organization = organization,
@@ -379,16 +392,17 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
         )
       )
     }
+
     // just to give ourselves the command `$ mill -i test.scalamod.console`
     object scalamod extends ScalaModule {
       override def moduleDeps = Seq(build.test)
       override def scalaVersion = "3.3.4"
-      override def runClasspath = T{ build.test.runClasspath() }
-      override def forkArgs = T { build.test.forkArgs() }
+      override def runClasspath = Task { build.test.runClasspath() }
+      override def forkArgs = Task { build.test.forkArgs() }
     }
   }
-
-  override def pomSettings = T {
+  */
+  override def pomSettings = Task {
     PomSettings(
       description = "A mature JDBC3+ Connection pooling library",
       organization = organization,
@@ -401,8 +415,10 @@ object `package` extends RootModule with JavaModule with SonatypeCentralPublishM
     )
   }
 
+  /*
   // intended to publish development snapshots, not for stable releases
   val MchangeStaging = "/Users/swaldman/development/gitproj/www.mchange.com/repository"
 
   def publishMchange() = this.publishM2Local( MchangeStaging )
+  */
 }
