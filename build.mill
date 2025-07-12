@@ -273,11 +273,11 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     }
   }
 
-  /*
   // for now at least, I don't mean to publish tests as a public library,
   // but I do want to publish them locally so I have them when working on related
   // libraries
   object test extends JavaModule with TestModule.Junit5 with PublishModule {
+    
     override def moduleDeps = Seq(build)
 
     override def artifactName = Task {"c3p0-test"}
@@ -295,7 +295,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     def localResources : Task[PathRef] = Task.Source { this.moduleDir / "resources-local" }
     def localResourcesRough : Task[PathRef] = Task.Source { this.moduleDir / "resources-local-rough" }
 
-    override def runClasspath : Task[Seq[PathRef]] = Task {
+    override def runClasspath : Task.Simple[Seq[PathRef]] = Task {
       super.runClasspath() :+ localResources()
     }
 
@@ -371,13 +371,13 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     def c3p0OneThreadRepeat = Task {
       this.runMain("com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest")()
     }
-    def c3p0RefSer = Task {
+    def c3p0RefSer : Task.Simple[Unit] = Task {
       this.runMain("com.mchange.v2.c3p0.test.TestRefSerStuff")
     }
-    def c3p0JavaBeanRef = Task {
+    def c3p0JavaBeanRef : Task.Simple[Unit] = Task {
       this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")
     }
-    def c3p0DynamicPreparedStatement = Task {
+    def c3p0DynamicPreparedStatement : Task.Simple[Unit] = Task {
       this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")
     }
     override def pomSettings = Task {
@@ -401,7 +401,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       override def forkArgs = Task { build.test.forkArgs() }
     }
   }
-  */
+
   override def pomSettings = Task {
     PomSettings(
       description = "A mature JDBC3+ Connection pooling library",
