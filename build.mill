@@ -207,7 +207,9 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   }
 
   def allLicenses : Task[Seq[PathRef]] = Task {
-    (BuildCtx.workspaceRoot / "LICENSE" :: BuildCtx.workspaceRoot / "LICENSE-LGPL" :: BuildCtx.workspaceRoot / "LICENSE-EPL" :: Nil).map( PathRef(_) )
+    BuildCtx.withFilesystemCheckerDisabled {
+      (BuildCtx.workspaceRoot / "LICENSE" :: BuildCtx.workspaceRoot / "LICENSE-LGPL" :: BuildCtx.workspaceRoot / "LICENSE-EPL" :: Nil).map( PathRef(_) )
+    }
   }
 
   // is the same manifest good?
