@@ -45,6 +45,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
   trait Gen extends JavaModule {
+    // cpPassingJarPath handling is modified from https://github.com/com-lihaoyi/mill/blob/06170d57a211430b63c383d9e627ffe4088649d6/libs/javalib/src/mill/javalib/RunModule.scala
     def runIf(conditionAndArgs: Task[Args]): Command[Unit] = Task.Command {
       val caa = conditionAndArgs().value
       val condition = caa.head
@@ -59,8 +60,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
               jvmArgs = forkArgs(),
               env = forkEnv(),
               mainArgs = args,
-//              workingDir = forkWorkingDir(),
-//              useCpPassingJar = runUseArgsFile()
+              cwd = forkWorkingDir(),
+              cpPassingJarPath = if runUseArgsFile() then Some(os.temp(prefix = "run-", suffix = ".jar", deleteOnExit = false)) else None
             )
           )
         catch {
