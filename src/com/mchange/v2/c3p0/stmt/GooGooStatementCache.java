@@ -805,7 +805,7 @@ public abstract class GooGooStatementCache
             }
 	    else //strict LRU culling
 	    {
-                // find the first available statement, if any THAT IS NOT CHECKED OUT
+                // find the first available statement, if any, THAT IS NOT CHECKED OUT
                 for( Object mbCullMe : longsToStmts.values() )
                 {
                     if (!checkedOut.contains( mbCullMe ))
