@@ -21,7 +21,7 @@ public abstract class GooGooStatementCache
     private final static MLogger logger = MLog.getLogger( GooGooStatementCache.class );
 
     private final static int DESTROY_NEVER          = 0;
-    private final static int DESTROY_IF_CHECKED_IN  = 1 << 0; 
+    private final static int DESTROY_IF_CHECKED_IN  = 1 << 0;
     private final static int DESTROY_IF_CHECKED_OUT = 1 << 1;
     private final static int DESTROY_ALWAYS         = (DESTROY_IF_CHECKED_IN | DESTROY_IF_CHECKED_OUT);
 
@@ -37,11 +37,11 @@ public abstract class GooGooStatementCache
 
     /* MT: protected by mainLock */
 
-    // contains all statements in the cache, 
+    // contains all statements in the cache,
     // organized by connection
     ConnectionStatementManager cxnStmtMgr;
 
-    // contains all statements in the cache, 
+    // contains all statements in the cache,
     // bound to the keys that produced them
     HashMap stmtToKey      = new HashMap();
 
@@ -50,7 +50,7 @@ public abstract class GooGooStatementCache
     // for checkout
     HashMap keyToKeyRec    = new HashMap();
 
-    // contains all checked out statements -- in the cache, 
+    // contains all checked out statements -- in the cache,
     // but not currently available for checkout, nor for
     // culling in case of overflow
     HashSet checkedOut = new HashSet();
@@ -74,15 +74,15 @@ public abstract class GooGooStatementCache
     // ALL ACCESS SHOULD BE EXPLICITLY SYNCHRONIZED
     // ON removalPending's lock!
     final HashSet removalPending     = new HashSet();
-    final Lock    removalPendingLock = new ReentrantLock(); 
+    final Lock    removalPendingLock = new ReentrantLock();
 
     public GooGooStatementCache(AsynchronousRunner blockingTaskAsyncRunner, AsynchronousRunner deferredStatementDestroyer, boolean cancelAutomaticallyClosedStatements)
     {
-        this.blockingTaskAsyncRunner = blockingTaskAsyncRunner; 
+        this.blockingTaskAsyncRunner = blockingTaskAsyncRunner;
         this.cxnStmtMgr = createConnectionStatementManager();
-	this.destructo = 
-	    deferredStatementDestroyer != null                                       ? 
-	    (StatementDestructionManager) new CautiousStatementDestructionManager( deferredStatementDestroyer )  : 
+	this.destructo =
+	    deferredStatementDestroyer != null                                       ?
+	    (StatementDestructionManager) new CautiousStatementDestructionManager( deferredStatementDestroyer )  :
 	    (StatementDestructionManager) new IncautiousStatementDestructionManager( blockingTaskAsyncRunner );
         this.cancelAutomaticallyClosedStatements = cancelAutomaticallyClosedStatements;
     }
@@ -175,12 +175,12 @@ public abstract class GooGooStatementCache
 
     public int getStatementDestroyerNumConnectionsInUse()                           { return destructo.getNumConnectionsInUse(); }
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatements()   { return destructo.getNumConnectionsWithDeferredDestroyStatements(); }
-    public int getStatementDestroyerNumDeferredDestroyStatements()                  { return destructo.getNumDeferredDestroyStatements(); }  
+    public int getStatementDestroyerNumDeferredDestroyStatements()                  { return destructo.getNumDeferredDestroyStatements(); }
 
 
     abstract ConnectionStatementManager createConnectionStatementManager();
-    
-    public Object checkoutStatement( Connection physicalConnection, Method stmtProducingMethod, Object[] args )  
+
+    public Object checkoutStatement( Connection physicalConnection, Method stmtProducingMethod, Object[] args )
         throws SQLException, ResourceClosedException
     {
         mainLock.lock();
@@ -188,13 +188,13 @@ public abstract class GooGooStatementCache
         {
             Object out = null;
 
-            StatementCacheKey key = StatementCacheKey.find( physicalConnection, 
-                            stmtProducingMethod, 
+            StatementCacheKey key = StatementCacheKey.find( physicalConnection,
+                            stmtProducingMethod,
                             args );
             LinkedList l = checkoutQueue( key );
             if (l == null || l.isEmpty()) //we need a new statement
             {
-                // we might conditionStatementPerhapsAcquired.await() here... 
+                // we might conditionStatementPerhapsAcquired.await() here...
                 // don't presume atomicity before and after!
                 out = acquireStatement( physicalConnection, stmtProducingMethod, args );
 
@@ -214,7 +214,7 @@ public abstract class GooGooStatementCache
                 l.remove(0);
                 if (! checkedOut.add( out ))
                     throw new RuntimeException("Internal inconsistency: " +
-                                    "Checking out a statement marked " + 
+                                    "Checking out a statement marked " +
                     "as already checked out!");
                 removeStatementFromDeathmarches( out, physicalConnection );
             }
@@ -234,9 +234,9 @@ public abstract class GooGooStatementCache
             if (checkedOut == null) //we're closed
             {
                 if (logger.isLoggable(MLevel.FINE))
-                    logger.log( MLevel.FINE, 
+                    logger.log( MLevel.FINE,
                                 "A client attempted to work with a closed Statement cache, " + "" +
-                                "provoking a NullPointerException. c3p0 recovers, but this should be rare.", 
+                                "provoking a NullPointerException. c3p0 recovers, but this should be rare.",
                                 npe);
                 throw new ResourceClosedException( npe );
             }
@@ -366,7 +366,7 @@ public abstract class GooGooStatementCache
             {
                 if (logger.isLoggable(MLevel.FINEST))
                 {
-                    logger.log(MLevel.FINEST, "ENTER METHOD: closeAll( " + pcon + " )! -- num_connections: " + 
+                    logger.log(MLevel.FINEST, "ENTER METHOD: closeAll( " + pcon + " )! -- num_connections: " +
                                     cxnStmtMgr.getNumConnectionsWithCachedStatements());
                     //logger.log(MLevel.FINEST, "Set of statements for connection: " + cSet + (cSet != null ? "; size: " + cSet.size() : ""));
                 }
@@ -390,7 +390,7 @@ public abstract class GooGooStatementCache
                         Object stmt = ii.next();
                         // we remove without destroying, leaving the destruction
                         // until when we lose the pool's lock
-                        removeStatement( stmt, DESTROY_NEVER ); 
+                        removeStatement( stmt, DESTROY_NEVER );
                     }
                 }
             }
@@ -415,13 +415,13 @@ public abstract class GooGooStatementCache
 //      else
 //      {
 //      if (logger.isLoggable(MLevel.FINER))
-//      logger.log(MLevel.FINER, 
-//      this + ":  call to closeAll() when statment cache is already closed! [not harmful! debug only!]", 
+//      logger.log(MLevel.FINER,
+//      this + ":  call to closeAll() when statment cache is already closed! [not harmful! debug only!]",
 //      new Exception("DUPLICATE CLOSE DEBUG STACK TRACE."));
 //      }
     }
 
-    public void close() 
+    public void close()
 	throws SQLException
     {
         mainLock.lock();
@@ -476,15 +476,15 @@ public abstract class GooGooStatementCache
     final int countCachedStatements()
     { return stmtToKey.size(); }
 
-    private void assimilateNewCheckedOutStatement( StatementCacheKey key, 
-                    Connection pConn, 
+    private void assimilateNewCheckedOutStatement( StatementCacheKey key,
+                    Connection pConn,
                     Object ps )
     {
         stmtToKey.put( ps, key );
         HashSet ks = keySet( key );
         if (ks == null)
             keyToKeyRec.put( key, new KeyRec() );
-        else 
+        else
         {
             //System.err.println("-------> Multiply prepared statement! " + key.stmtText );
             if (logger.isLoggable(MLevel.INFO))
@@ -501,10 +501,10 @@ public abstract class GooGooStatementCache
 
         if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
         {
-//          System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
+//          System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " +
 //          cxnStmtMgr.statementSet( pConn ).size());
             if (logger.isLoggable(MLevel.FINEST))
-                logger.finest("assimilateNewCheckedOutStatement(...) -- cxnStmtMgr.statementSet( " + pConn + " ).size(): " + 
+                logger.finest("assimilateNewCheckedOutStatement(...) -- cxnStmtMgr.statementSet( " + pConn + " ).size(): " +
                                 cxnStmtMgr.statementSet( pConn ).size());
         }
 
@@ -550,7 +550,7 @@ public abstract class GooGooStatementCache
         {
             //new Exception("WARNING: removed a statement that apparently wasn't in a statement set!!!").printStackTrace();
             if (logger.isLoggable(MLevel.WARNING))
-                logger.log(MLevel.WARNING, 
+                logger.log(MLevel.WARNING,
                                 this + " removed a statement that apparently wasn't in a statement set!!!",
                                 new Exception("LOG STACK TRACE"));
         }
@@ -561,12 +561,12 @@ public abstract class GooGooStatementCache
         finally
         { removalPendingLock.unlock(); }
     }
-    
 
 
-    
-    private Object acquireStatement(final Connection pConn, 
-                    final Method stmtProducingMethod, 
+
+
+    private Object acquireStatement(final Connection pConn,
+                    final Method stmtProducingMethod,
                     final Object[] args )
     throws SQLException
     {
@@ -581,12 +581,12 @@ public abstract class GooGooStatementCache
                 {
                     try
                     {
-                        outHolder[0] = 
-                            stmtProducingMethod.invoke( pConn, 
-                                            args ); 
+                        outHolder[0] =
+                            stmtProducingMethod.invoke( pConn,
+                                            args );
                     }
                     catch ( InvocationTargetException e )
-                    { 
+                    {
                         Throwable targetException = e.getTargetException();
 			exceptionHolder[0] = targetException;
                     }
@@ -638,9 +638,9 @@ public abstract class GooGooStatementCache
     { return ((KeyRec) keyToKeyRec.get( key )); }
 
     private HashSet keySet( StatementCacheKey key )
-    { 
+    {
         KeyRec rec = keyRec( key );
-        return (rec == null ? null : rec.allStmts); 
+        return (rec == null ? null : rec.allStmts);
     }
 
     private boolean removeFromKeySet( StatementCacheKey key, Object pstmt )
@@ -654,7 +654,7 @@ public abstract class GooGooStatementCache
     }
 
     private LinkedList checkoutQueue( StatementCacheKey key )
-    { 
+    {
         KeyRec rec = keyRec( key );
         return ( rec == null ? null : rec.checkoutQueue );
     }
@@ -686,8 +686,8 @@ public abstract class GooGooStatementCache
     { return stmtToKey.keySet().contains( ps ); }
 
     private void refreshStatement( PreparedStatement ps ) throws Exception
-    { 
-	ps.clearParameters(); 
+    {
+	ps.clearParameters();
 	ps.clearBatch();
     }
 
@@ -696,8 +696,8 @@ public abstract class GooGooStatementCache
         //new Exception("printStats()").printStackTrace();
         int total_size = this.countCachedStatements();
         int checked_out_size = checkedOut.size();
-        int num_connections  = cxnStmtMgr.getNumConnectionsWithCachedStatements(); 
-        int num_keys = keyToKeyRec.size(); 
+        int num_connections  = cxnStmtMgr.getNumConnectionsWithCachedStatements();
+        int num_keys = keyToKeyRec.size();
         System.err.print(this.getClass().getName() + " stats -- ");
         System.err.print("total size: " + total_size);
         System.err.print("; checked out: " + checked_out_size);
@@ -709,8 +709,8 @@ public abstract class GooGooStatementCache
     {
         int total_size = this.countCachedStatements();
         int checked_out_size = checkedOut.size();
-        int num_connections  = cxnStmtMgr.getNumConnectionsWithCachedStatements(); 
-        int num_keys = keyToKeyRec.size(); 
+        int num_connections  = cxnStmtMgr.getNumConnectionsWithCachedStatements();
+        int num_keys = keyToKeyRec.size();
 
         StringBuffer sb = new StringBuffer(255);
         sb.append(this.getClass().getName());
@@ -721,7 +721,7 @@ public abstract class GooGooStatementCache
         sb.append(checked_out_size);
         sb.append("; num connections: ");
         sb.append(num_connections);
-	int in_use = destructo.countConnectionsInUse(); 
+	int in_use = destructo.countConnectionsInUse();
 	if (in_use >= 0)
 	    {
 		sb.append("; num connections in use: ");
@@ -741,7 +741,7 @@ public abstract class GooGooStatementCache
 
     protected class Deathmarch
     {
-        TreeMap longsToStmts = new TreeMap(); 
+        TreeMap longsToStmts = new TreeMap();
         HashMap stmtsToLongs = new HashMap();
 
         long last_long = -1;
@@ -778,14 +778,14 @@ public abstract class GooGooStatementCache
                 throw new RuntimeException("Internal inconsistency: " +
                 "A (not new) checking-out statement is not in deathmarch.");
         }
-        
+
         boolean cullNext()
         {
             assert mainLock.isHeldByCurrentThread();
 
             Object cullMeStmt = null;
             StatementCacheKey sck = null;
-            
+
             if (CULL_ONLY_FROM_UNUSED_CONNECTIONS) //alternative implementation -- cull only from unused Connections
             {
                 for (Iterator ii = longsToStmts.keySet().iterator(); cullMeStmt == null && ii.hasNext(); )
@@ -805,11 +805,16 @@ public abstract class GooGooStatementCache
             }
 	    else //strict LRU culling
 	    {
-                if ( !longsToStmts.isEmpty() )
-                 {
-                    Long l = (Long) longsToStmts.firstKey();
-                    cullMeStmt = longsToStmts.get( l );
-                 }
+                // find the first available statement, if any THAT IS NOT CHECKED OUT
+                for( Object mbCullMe : longsToStmts.values() )
+                {
+                    if (!checkedOut.contains( mbCullMe ))
+                    {
+                        cullMeStmt = mbCullMe;
+                        //System.err.println("Found statement to cull: " + cullMeStmt);
+                        break;
+                    }
+                }
 	    }
 
             if ( cullMeStmt == null ) // we didn't find a Statement we could cull
@@ -833,7 +838,7 @@ public abstract class GooGooStatementCache
                 return true;
             }
         }
-        
+
 
         /*
         public boolean cullNext()
@@ -846,14 +851,14 @@ public abstract class GooGooStatementCache
                 Object ps = longsToStmts.get( l );
                 if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
                 {
-//                  System.err.println("CULLING: " + 
+//                  System.err.println("CULLING: " +
 //                  ((StatementCacheKey) stmtToKey.get(ps)).stmtText);
                     if (logger.isLoggable(MLevel.FINEST))
                         logger.finest("CULLING: " + ((StatementCacheKey) stmtToKey.get(ps)).stmtText);
                 }
                 // we do not undeathmarch the statement ourselves, because removeStatement( ... )
                 // should remove from all deathmarches...
-                removeStatement( ps, DESTROY_ALWAYS ); 
+                removeStatement( ps, DESTROY_ALWAYS );
                 if (Debug.DEBUG && this.contains( ps ))
                     throw new RuntimeException("Inconsistency!!! Statement culled from deathmarch failed to be removed by removeStatement( ... )!");
                 return true;
@@ -921,7 +926,7 @@ public abstract class GooGooStatementCache
 
     // i want this as optimized as possible, so i'm adopting the philosophy that all
     // classes are abstract or final, to help enable compiler inlining...
-    protected static final class SimpleConnectionStatementManager extends ConnectionStatementManager 
+    protected static final class SimpleConnectionStatementManager extends ConnectionStatementManager
     {}
 
     protected final class DeathmarchConnectionStatementManager extends ConnectionStatementManager
@@ -1052,7 +1057,7 @@ public abstract class GooGooStatementCache
 	// return -1 if unknown
 	int countConnectionsInUse() { return -1; }
 
-	// under alternative implementation we don't cull Statements 
+	// under alternative implementation we don't cull Statements
 	// underneath of Connections in current use
 	boolean knownInUse(Connection pCon) { return false; }
 
@@ -1077,7 +1082,7 @@ public abstract class GooGooStatementCache
 	// (Oracle, this means you), trying to close() a Statement whose
 	// parent Connection is concurrently in use leads to problems.
 	// So, we just remove these Statements from the cache, and shove
-	// them into a "TO BE DESTROYED" list. Only when the parent 
+	// them into a "TO BE DESTROYED" list. Only when the parent
 	// Connection is no longer in use do we actually destroy the removed
 	// Statements.
 	HashMap connectionsToZombieStatementSets = new HashMap();
@@ -1097,9 +1102,9 @@ public abstract class GooGooStatementCache
         }
 
 	CautiousStatementDestructionManager(AsynchronousRunner deferredStatementDestroyer)
-	{   
+	{
 	    super( deferredStatementDestroyer );
-	    this.deferredStatementDestroyer = deferredStatementDestroyer; 
+	    this.deferredStatementDestroyer = deferredStatementDestroyer;
 	}
 
 	private String trace()
@@ -1137,9 +1142,9 @@ public abstract class GooGooStatementCache
 
                                         //System.err.println("*********************************************** => " + stmts);
 
-                                        logger.log(MLevel.FINE, 
-                                                   "A connection is waiting to be accepted by the Statement cache because " + 
-                                                   stmts.size() + 
+                                        logger.log(MLevel.FINE,
+                                                   "A connection is waiting to be accepted by the Statement cache because " +
+                                                   stmts.size() +
                                                    " cached Statements are still being destroyed.");
                                         //printAllStats();
                                     }
@@ -1152,7 +1157,7 @@ public abstract class GooGooStatementCache
             finally
             { csdmLock.unlock(); }
 	}
-	
+
 	boolean tryMarkConnectionInUse(Connection physicalConnection)
 	{
             csdmLock.lock();
@@ -1166,16 +1171,16 @@ public abstract class GooGooStatementCache
                                 int sz = stmts.size();
                                 if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
                                     {
-                                        logger.log(MLevel.FINE, 
-                                                   "A connection could not be accepted by the Statement cache because " + 
-                                                   sz + 
-                                                   " cached Statements are still being destroyed."); 
+                                        logger.log(MLevel.FINE,
+                                                   "A connection could not be accepted by the Statement cache because " +
+                                                   sz +
+                                                   " cached Statements are still being destroyed.");
                                     }
                                 return false;
                             }
                         else
                             {
-                                inUseConnections.add( physicalConnection ); 
+                                inUseConnections.add( physicalConnection );
                                 return true;
                             }
                     }
@@ -1191,7 +1196,7 @@ public abstract class GooGooStatementCache
             csdmLock.lock();
             try
             {
-                boolean unmarked = inUseConnections.remove( physicalConnection ); 
+                boolean unmarked = inUseConnections.remove( physicalConnection );
 
                 Set zombieStatements = (Set) connectionsToZombieStatementSets.get( physicalConnection );
 
@@ -1204,7 +1209,7 @@ public abstract class GooGooStatementCache
             finally
             { csdmLock.unlock(); }
 	}
-	
+
 	void deferredDestroyStatement(Object parentConnection, Object pstmt)
 	{
             csdmLock.lock();
@@ -1242,7 +1247,7 @@ public abstract class GooGooStatementCache
             finally { csdmLock.unlock(); }
         }
 
-	// under alternative implementation we don't cull Statements 
+	// under alternative implementation we don't cull Statements
 	// underneath of Connections in current use
 	boolean knownInUse(Connection pCon)
         {
@@ -1253,7 +1258,7 @@ public abstract class GooGooStatementCache
 
 	// we don't sync 'cuz we're just wrapping
 	// a sync'ed method
-	Boolean tvlInUse( Connection pCon ) 
+	Boolean tvlInUse( Connection pCon )
 	{ return Boolean.valueOf( knownInUse( pCon ) ); }
 
 	int getNumConnectionsInUse()
@@ -1289,15 +1294,15 @@ public abstract class GooGooStatementCache
             finally
             { csdmLock.unlock(); }
 	}
-	
+
 	private void trackedDestroyStatement( final Object parentConnection, final Object pstmt )
 	{
 	    //System.err.println("trackedDestroyStatement()");
-	    
+
 	    final class TrackedStatementCloseTask implements Runnable
 	    {
 		public void run()
-		{ 
+		{
 		    // debug
 		    //System.err.println("TrackedStatementCloseTask.run()");
 
@@ -1309,7 +1314,7 @@ public abstract class GooGooStatementCache
                         final Set stmts = (Set) connectionsToZombieStatementSets.get( parentConnection );
                         if ( stmts != null )
                             {
-                                StatementUtils.attemptClose( (PreparedStatement) pstmt ); 
+                                StatementUtils.attemptClose( (PreparedStatement) pstmt );
                                 //System.err.println( "Closed tracked statement: " + pstmt);
                                 boolean removed1 = stmts.remove( pstmt );
                                 assert removed1;
@@ -1331,9 +1336,9 @@ public abstract class GooGooStatementCache
 		    //printAllStats();
 		}
 	    }
-	    
+
 	    Runnable r = new TrackedStatementCloseTask();
-	    
+
 	    if (! closed)
 		{
 		    //blockingTaskAsyncRunner.postRunnable(r);
@@ -1351,7 +1356,7 @@ public abstract class GooGooStatementCache
 	private void destroyAllTrackedStatements( final Object parentConnection )
 	{
 	    //System.err.println("destroyAllTrackedStatements()");
-		    
+
 	    final class TrackedDestroyAllStatementsTask implements Runnable
 	    {
 		public void run()
@@ -1382,13 +1387,13 @@ public abstract class GooGooStatementCache
                     }
                     finally
                     { csdmLock.unlock(); }
-                    
+
 		    //printAllStats();
 		}
 	    }
-	    
+
 	    Runnable r = new TrackedDestroyAllStatementsTask();
-	    
+
 	    if (! closed)
 		{
 		    //blockingTaskAsyncRunner.postRunnable(r);
@@ -1402,12 +1407,11 @@ public abstract class GooGooStatementCache
 		}
 	}
 
-	private Set statementsUnderDestruction( Object parentConnection ) 
-	{ 
+	private Set statementsUnderDestruction( Object parentConnection )
+	{
 	    assert csdmLock.isHeldByCurrentThread();
 
-	    return (Set) connectionsToZombieStatementSets.get( parentConnection ); 
+	    return (Set) connectionsToZombieStatementSets.get( parentConnection );
 	}
     }
 }
-
