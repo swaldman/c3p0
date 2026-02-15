@@ -11,6 +11,8 @@ import com.mchange.v2.codegen.bean.*;
 import java.lang.reflect.Modifier;
 import com.mchange.v1.xml.DomParseUtils;
 
+import com.mchange.v2.io.IndentedWriter;
+
 public class BeangenDataSourceGenerator
 {
     private final static String BGX_SUFFIX     = ".beangen-xml";
@@ -76,7 +78,7 @@ public class BeangenDataSourceGenerator
 		gen.setGeneratorName( BeangenDataSourceGenerator.class.getName() );
 
 		// tightly coupled to the implementation of SimplePropertyBeanGenerator!
-		IndirectingSerializableExtension idse = new IndirectingSerializableExtension("com.mchange.v2.naming.ReferenceIndirector")
+		IndirectingSerializableExtension idse = new IndirectingSerializableExtension("com.mchange.v2.naming.ReferenceIndirector", "com.mchange.v2.c3p0.cfg.C3P0Config.getMultiPropertiesConfig()")
 		    {
 			protected void generateExtraSerInitializers(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 			    throws IOException
