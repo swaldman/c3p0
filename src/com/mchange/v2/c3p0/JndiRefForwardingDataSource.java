@@ -18,12 +18,33 @@ import javax.sql.DataSource;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.sql.SqlUtils;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.impl.JndiRefDataSourceBase;
 
 final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements DataSource
 {
     final static MLogger logger = MLog.getLogger( JndiRefForwardingDataSource.class );
+
+    static boolean jndiShouldResolveNonlocalNames()
+    { return Boolean.valueOf( C3P0Config.getMultiPropertiesConfig().getProperty( SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES ) ); }
+
+    static boolean jndiNameIsLocal( String name )
+    { return name.startsWith("java:"); }
+
+    static boolean jndiNameIsLocal( Name name )
+    {
+        // for now we don't know how to prove to ourselves that a javax.naming.Name is local
+        // we are open to suggestions!
+        return false;
+    }
+
+    static SQLException jndiCantResolveNonlocal( Object name )
+    { return new SQLException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we failed to prove '" + name + "' is local."); }
+
+    static PropertyVetoException jndiNonlocalPropertyVetoException( Object name, PropertyChangeEvent evt )
+    { return new PropertyVetoException("'" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we failed to prove '" + name + "' is local.", evt); }
 
     //MT: protected by this' lock in all cases
     transient DataSource cachedInner;
@@ -46,7 +67,21 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 		    Object val = evt.getNewValue();
 		    if ( "jndiName".equals( evt.getPropertyName() ) )
 			{
-			    if (! (val instanceof Name || val instanceof String) )
+                            boolean resolveNonlocal = jndiShouldResolveNonlocalNames();
+
+                            if (val instanceof Name)
+                            {
+                                Name nm = (Name) val;
+                                if (!resolveNonlocal && !jndiNameIsLocal(nm))
+                                    throw jndiNonlocalPropertyVetoException( nm, evt );
+                            }
+                            else if (val instanceof String)
+                            {
+                                String snm = (String) val;
+                                if (!resolveNonlocal && !jndiNameIsLocal(snm))
+                                    throw jndiNonlocalPropertyVetoException( snm, evt );
+                            }
+                            else
 				throw new PropertyVetoException("jndiName must be a String or a javax.naming.Name", evt);
 			}
 		}
@@ -64,6 +99,8 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     //MT: called only from inner(), effectively synchrtonized
     private DataSource dereference() throws SQLException
     {
+        boolean resolveNonlocal = jndiShouldResolveNonlocalNames();
+
 	Object jndiName = this.getJndiName();
 	Hashtable jndiEnv = this.getJndiEnv();
 	try
@@ -74,12 +111,24 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 		else
 		    ctx = new InitialContext();
 		if (jndiName instanceof String)
-		    return (DataSource) ctx.lookup( (String) jndiName );
+                {
+                    String snm = (String) jndiName;
+                    if (resolveNonlocal || jndiNameIsLocal(snm))
+                        return (DataSource) ctx.lookup( snm );
+                    else
+                        throw jndiCantResolveNonlocal( snm );
+                }
 		else if (jndiName instanceof Name)
-		    return (DataSource) ctx.lookup( (Name) jndiName );
+                {
+                    Name nm = (Name) jndiName;
+                    if (resolveNonlocal || jndiNameIsLocal(nm))
+                        return (DataSource) ctx.lookup( nm );
+                    else
+                        throw jndiCantResolveNonlocal( nm );
+                }
 		else
-		    throw new SQLException("Could not find ConnectionPoolDataSource with " +
-					   "JNDI name: " + jndiName);
+		    throw new SQLException("Could not find ConnectionPoolDataSource with putative " +
+					   "JNDI name, which is neither a String nor a javax.naming.Name: " + jndiName);
 	    }
 	catch( NamingException e )
 	    {
