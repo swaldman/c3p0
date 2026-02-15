@@ -1,4 +1,4 @@
-//| mill-version: 1.0.0
+//| mill-version: 1.0.6
 //| mill-jvm-version: 11
 package build
 
@@ -370,14 +370,14 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     def c3p0OneThreadRepeat = Task {
       this.runMain("com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest")()
     }
-    def c3p0RefSer : Task.Simple[Unit] = Task {
-      this.runMain("com.mchange.v2.c3p0.test.TestRefSerStuff")
+    def c3p0RefSer = Task {
+      this.runMain("com.mchange.v2.c3p0.test.TestRefSerStuff")()
     }
-    def c3p0JavaBeanRef : Task.Simple[Unit] = Task {
-      this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")
+    def c3p0JavaBeanRef = Task {
+      this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")()
     }
-    def c3p0DynamicPreparedStatement : Task.Simple[Unit] = Task {
-      this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")
+    def c3p0DynamicPreparedStatement = Task {
+      this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")()
     }
     override def pomSettings = Task {
       PomSettings(
