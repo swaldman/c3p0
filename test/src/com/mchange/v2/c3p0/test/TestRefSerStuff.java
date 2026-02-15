@@ -11,6 +11,7 @@ import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.c3p0.DriverManagerDataSource;
 import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;
 import com.mchange.v2.c3p0.PoolBackedDataSource;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 
 public final class TestRefSerStuff
 {
@@ -100,7 +101,8 @@ public final class TestRefSerStuff
 	DataSource afterRef = (DataSource) ReferenceableUtils.referenceToObject( ref, 
 										 null, 
 										 null, 
-										 null );
+										 null,
+                                                                                 C3P0Config.getMultiPropertiesConfig() );
 //  		    System.err.println("afterRef data source: " + afterRef);
 	doSomething( afterRef );
 	System.err.println("\tafter ref: " + toString(afterRef));
@@ -115,6 +117,8 @@ public final class TestRefSerStuff
             return;                    
         }
 
+        System.err.println("Starting TestRefSerStuff.");
+        
         /*
 	String jdbcUrl = null;
 	String username = null;
