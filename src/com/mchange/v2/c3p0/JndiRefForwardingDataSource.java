@@ -18,6 +18,7 @@ import javax.sql.DataSource;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
@@ -28,17 +29,7 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     final static MLogger logger = MLog.getLogger( JndiRefForwardingDataSource.class );
 
     static boolean jndiShouldResolveNonlocalNames()
-    { return Boolean.valueOf( C3P0Config.getMultiPropertiesConfig().getProperty( SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES ) ); }
-
-    static boolean jndiNameIsLocal( String name )
-    { return name.startsWith("java:"); }
-
-    static boolean jndiNameIsLocal( Name name )
-    {
-        // for now we don't know how to prove to ourselves that a javax.naming.Name is local
-        // we are open to suggestions!
-        return false;
-    }
+    { return ReferenceableUtils.permitNonlocalJndiNames( C3P0Config.getMultiPropertiesConfig() ); }
 
     static SQLException jndiCantResolveNonlocal( Object name )
     { return new SQLException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we failed to prove '" + name + "' is local."); }
@@ -64,26 +55,12 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 	    {
 		public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
 		{
-		    Object val = evt.getNewValue();
+		    Object value = evt.getNewValue();
 		    if ( "jndiName".equals( evt.getPropertyName() ) )
-			{
-                            boolean resolveNonlocal = jndiShouldResolveNonlocalNames();
-
-                            if (val instanceof Name)
-                            {
-                                Name nm = (Name) val;
-                                if (!resolveNonlocal && !jndiNameIsLocal(nm))
-                                    throw jndiNonlocalPropertyVetoException( nm, evt );
-                            }
-                            else if (val instanceof String)
-                            {
-                                String snm = (String) val;
-                                if (!resolveNonlocal && !jndiNameIsLocal(snm))
-                                    throw jndiNonlocalPropertyVetoException( snm, evt );
-                            }
-                            else
-				throw new PropertyVetoException("jndiName must be a String or a javax.naming.Name", evt);
-			}
+                    {
+                        if ( !ReferenceableUtils.nameLocalityIsAcceptable( value, C3P0Config.getMultiPropertiesConfig() ) )
+                            throw jndiNonlocalPropertyVetoException( value, evt );
+                    }
 		}
 	    };
 	this.addVetoableChangeListener( l );
@@ -99,9 +76,11 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     //MT: called only from inner(), effectively synchrtonized
     private DataSource dereference() throws SQLException
     {
-        boolean resolveNonlocal = jndiShouldResolveNonlocalNames();
-
 	Object jndiName = this.getJndiName();
+
+        if ( !ReferenceableUtils.nameLocalityIsAcceptable( jndiName, C3P0Config.getMultiPropertiesConfig() ) )
+            throw jndiCantResolveNonlocal( jndiName );
+
 	Hashtable jndiEnv = this.getJndiEnv();
 	try
 	    {
@@ -113,18 +92,12 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 		if (jndiName instanceof String)
                 {
                     String snm = (String) jndiName;
-                    if (resolveNonlocal || jndiNameIsLocal(snm))
-                        return (DataSource) ctx.lookup( snm );
-                    else
-                        throw jndiCantResolveNonlocal( snm );
+                    return (DataSource) ctx.lookup( snm );
                 }
 		else if (jndiName instanceof Name)
                 {
                     Name nm = (Name) jndiName;
-                    if (resolveNonlocal || jndiNameIsLocal(nm))
-                        return (DataSource) ctx.lookup( nm );
-                    else
-                        throw jndiCantResolveNonlocal( nm );
+                    return (DataSource) ctx.lookup( nm );
                 }
 		else
 		    throw new SQLException("Could not find ConnectionPoolDataSource with putative " +
