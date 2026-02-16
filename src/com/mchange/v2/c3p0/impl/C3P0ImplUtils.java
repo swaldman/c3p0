@@ -324,27 +324,32 @@ public final class C3P0ImplUtils
 
     public static Map parseUserOverridesAsString( String userOverridesAsString ) throws IOException, MalformedCsvException
     {
-        String[] nextUserHolder = new String[1];
-        BufferedReader br = new BufferedReader(new StringReader(userOverridesAsString));
-        String line = FastCsvUtils.csvReadLine(br);
-        if ( line == null )
-            return Collections.EMPTY_MAP;
-        else
+        if ( userOverridesAsString != null )
         {
-            Map out = new HashMap();
-            String[] items = FastCsvUtils.csvSplitLine(line);
-            if (items.length != 1)
-                throw new IOException("Cannot parse userOverridesAsString, one element line naming the user should come before other data:\r\n" + userOverridesAsString);
-            String username = items[0];
-            do
+            String[] nextUserHolder = new String[1];
+            BufferedReader br = new BufferedReader(new StringReader(userOverridesAsString));
+            String line = FastCsvUtils.csvReadLine(br);
+            if ( line == null )
+                return Collections.EMPTY_MAP;
+            else
             {
-                Map overrides = parseSingleUserMap(userOverridesAsString, br, nextUserHolder);
-                out.put(username, overrides);
-                username = nextUserHolder[0];
+                Map out = new HashMap();
+                String[] items = FastCsvUtils.csvSplitLine(line);
+                if (items.length != 1)
+                    throw new IOException("Cannot parse userOverridesAsString, one element line naming the user should come before other data:\r\n" + userOverridesAsString);
+                String username = items[0];
+                do
+                {
+                    Map overrides = parseSingleUserMap(userOverridesAsString, br, nextUserHolder);
+                    out.put(username, overrides);
+                    username = nextUserHolder[0];
+                }
+                while (username != null);
+                return Collections.unmodifiableMap(out);
             }
-            while (username != null);
-            return Collections.unmodifiableMap(out);
         }
+        else
+            return Collections.EMPTY_MAP;
     }
 
     public static void runWithContextClassLoaderAndPrivileges( final String contextClassLoaderSource, final boolean privilege_spawned_threads, final Runnable runnable )
