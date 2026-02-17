@@ -34,7 +34,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   override def publishVersion = Task {"0.12.0-SNAPSHOT"}
 
-  override def sonatypeCentralShouldRelease: Task.Simple[Boolean] = Task { false }
+  override def sonatypeCentralShouldRelease: T[Boolean] = Task { false }
 
   // we are currently building in Java 11, but releasing Java 7 compatible class files
   // for users of smaller JDBC subsets
@@ -121,7 +121,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // etc which seems maybe too complicated.
   def makeDirContentsReadOnly( dir : os.Path ) = os.walk(dir).foreach( p => os.perms.set(p, readOnly(os.perms(p))) )
 
-  def buildModTime : Task[Long] = Task.Input {
+  def buildModTime : T[Long] = Task.Input {
     val out = math.max( os.mtime( BuildCtx.workspaceRoot / "build.mill" ), os.mtime( BuildCtx.workspaceRoot / "mill-build" / "build.mill" ) )
     //println( s"buildModTime: $out" )
     out
@@ -166,8 +166,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     }
     PathRef(Task.dest)
   }
-  def beangenGeneratedSourceDir = Task(persistent=true) { Task.dest }
-  def beangen = Task {
+  def beangenGeneratedSourceDir : T[os.Path] = Task(persistent=true) { Task.dest }
+  def beangen : T[PathRef] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
       val realDest = beangenGeneratedSourceDir()
       bean.runIf(
@@ -182,8 +182,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       PathRef(realDest)
     }
   }
-  def proxygenGeneratedSourceDir = Task(persistent=true) { Task.dest }
-  def proxygen = Task {
+  def proxygenGeneratedSourceDir : T[os.Path] = Task(persistent=true) { Task.dest }
+  def proxygen : T[PathRef] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
       val realDest = proxygenGeneratedSourceDir()
       proxy.runIf(
@@ -207,7 +207,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     JarManifest( main = mainTups )
   }
 
-  def allLicenses : Task[Seq[PathRef]] = Task {
+  def allLicenses : T[Seq[PathRef]] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
       (BuildCtx.workspaceRoot / "LICENSE" :: BuildCtx.workspaceRoot / "LICENSE-LGPL" :: BuildCtx.workspaceRoot / "LICENSE-EPL" :: Nil).map( PathRef(_) )
     }
@@ -215,7 +215,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   // is the same manifest good?
   // some users want licenses in the source jars... https://github.com/swaldman/c3p0/issues/167
-  def sourceJar: Task.Simple[PathRef] = Task {
+  def sourceJar: T[PathRef] = Task {
     val out = Task.dest / "source.jar"
     Jvm.createJar(
       jar = out,
@@ -229,7 +229,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   {
     val StagingDir = os.Path("/Users/swaldman/development/gitproj/www.mchange.com/projects/c3p0-versions")
 
-    def replacements : Task[Map[String,String]] = Task {
+    def replacements : T[Map[String,String]] = Task {
         import java.time.ZonedDateTime
         Map(
           "@c3p0.version@" -> build.publishVersion(),
@@ -246,10 +246,10 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       }
     }
 
-    def docsrc : Task[PathRef] = Task.Source { moduleDir / "docsrc" }
+    def docsrc : T[PathRef] = Task.Source { moduleDir / "docsrc" }
 
-    def docroot : Task[PathRef] = Task {
-      val javadocRoot = build.docJar().path / os.up / "javadoc"
+    def docroot : T[PathRef] = Task {
+      val javadocRoot = build.javadocGenerated().path // build.docJar().path / os.up / "javadoc"
       val replaceMap = replacements()
       val docsrcDir = docsrc().path
       val sourcePaths = os.walk(docsrcDir)
@@ -266,7 +266,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       PathRef(Task.dest)
     }
 
-    def stage : Task[Unit] = Task {
+    def stage : T[Unit] = Task {
       os.copy.over( from = docroot().path, to = StagingDir / ("c3p0-" + build.publishVersion()) )
     }
   }
@@ -290,28 +290,28 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       * so that when we run tests from elsewhere, they are not polluted
       * by settings in these resources
       */
-    def localResources : Task[PathRef] = Task.Source { moduleDir / "resources-local" }
-    def localResourcesRough : Task[PathRef] = Task.Source { moduleDir / "resources-local-rough" }
+    def localResources : T[PathRef] = Task.Source { moduleDir / "resources-local" }
+    def localResourcesRough : T[PathRef] = Task.Source { moduleDir / "resources-local-rough" }
 
-    override def runClasspath : Task.Simple[Seq[PathRef]] = Task {
+    override def runClasspath : T[Seq[PathRef]] = Task {
       super.runClasspath() :+ localResources()
       // super.runClasspath() :+ localResourcesRough()
     }
 
-    def externalClassPath : Task[String] = Task {
+    def externalClassPath : T[String] = Task {
       val sep = java.io.File.pathSeparator
       runClasspath().map( _.path ).mkString( sep )
     }
 
-    def externalForkArgs : Task[String] = Task {
+    def externalForkArgs : T[String] = Task {
       forkArgs().mkString(" ")
     }
 
-    def externalCommandBase : Task[String] = Task[String] {
+    def externalCommandBase : T[String] = Task[String] {
        List("java",externalForkArgs(),"-cp",externalClassPath()).mkString(" ")
     }
 
-    def printExternalCommandBase : Task[Unit] = Task {
+    def printExternalCommandBase : T[Unit] = Task {
       println(externalCommandBase())
     }
 
