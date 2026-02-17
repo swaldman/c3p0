@@ -189,6 +189,9 @@
          border-bottom-color: black;
          border-bottom-style: solid;
       }
+      h2.security-note {
+	 background-color: #FFAAAA;
+      }
       h3 {
          margin-right: -2em;
       }
@@ -313,6 +316,25 @@
       </div>
     </div>
     <hr/>
+    <h2 class="security-note"><a name="security-note">Security Note</a><span class="toplink"></span></h2>
+    <div class="sectiontext">
+      <p>
+	To its author's profound shame, c3p0 and its supporting libraries were <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">used</a> for about a decade as a
+        "<a href="https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69">deserialization gadget</a>".
+        If an attacker is able to replace and maliciously recraft a <tt>javax.naming.Reference</tt> or Java-serialized
+        object that an application will decode, c3p0's libraries could be misused to expand that access into
+        execution of arbitrary malicious code. c3p0-0.12.0 (along with its dependency mchange-commons-java-0.4.0), include mitigations
+        that lock down the functionality misused as gadget chains.
+      </p>
+      <p>
+        Beginning with v0.12.0, c3p0 is now locked-down by default to prevent these misuses. Although it remains possible to resurrect and make use of the dangerous
+        functionality (see <a href="#configuring_security">Configuring Security</a> below), few contemporary applications
+        should do so.
+      </p>
+      <p>
+        Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about this issue.
+      </p>
+    </div>
     <h2><a name="contents">Contents</a></h2>
     <ol class="contents">
       <li><a href="#contents">Contents</a></li>
@@ -365,6 +387,7 @@
 	  <li><a href="#other_ds_configuration">Other DataSource Configuration</a></li>
 	  <li><a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a></li>
 	  <li><a href="#configuring_logging">Configuring Logging</a></li>
+	  <li><a href="#configuring_security">Configuring Security</a></li>
 	  <li><a href="#named_configurations">Named configurations</a></li>
 	  <li><a href="#per-user_configurations">Per-user configurations</a></li>
 	  <li><a href="#user_extensions_to_configurations">User extensions to configuration</a></li>
@@ -1872,6 +1895,85 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	      <li><tt>ALL</tt></li>
 	    </ul>
 	    This property defaults to <tt>INFO</tt>.
+	  </div>
+	</dd>
+      </dl>
+      <h3>
+	<a name="configuring_security">Configuring Security</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+	c3p0 is an old library, originally released in 2002. In those days, people were very excited about
+        the fact that JVM applications could download code on the fly and incorporate it into running applications.
+        Obviously, that is a practice with security, um, implications. But in the early days of Java, inspired by
+        browser-bound Java applets and their "sandboxing", the imagined security model was that code would be
+        annotated with the location from which it was downloaded and would be signed. The JVM would enforce constraints
+        on running code based on its provenance.
+      </p>
+      <p>
+        That is all a retrofuture now. Its relics remain mostly useless in the JVM, especially the venerable and now
+        deprecated <tt>java.lang.SecurityManager</tt>. The tools that still remain in the JVM to download and execute
+        code into live applications (e.g. <tt>java.net.URLClassLoader</tt>) continue to function, but under most circumstances,
+        that code can do what it wishes. Responsibility for preventing execution of malicious remote code now lies
+        with application deployers and library developers.
+      </p>
+      <p>
+        c3p0's main dependency, <a href="https://github.com/swaldman/mchange-commons-java">mchange-commons-java</a>
+        includes an independent implementation of <tt>javax.naming.Reference</tt> resolution, including support for
+        remote <tt>factoryClassLocation</tt> from which the code for referenced objects could be downloaded via <tt>URLClassLoader</tt>.
+        This functionality continues to exist, but it is now disabled by default.
+      </p>
+      <p>
+        Two other potentially dangerous
+        JNDI capabilities &mdash; JNDI-lookups against potentially remote name services and support JNDI contexts configured by
+        a deserialized environment &mdash; are also disabled by default.
+      </p>
+      <p>
+        Objects looked up via JNDI get reconstituted by a
+        <tt>javax.naming.spi.ObjectFactory</tt> instance, which gets constructed via Java reflection. <tt>c3p0</tt>
+        now requires and sets a whitelist of allowable <tt>ObjectFactory</tt> fully-qualified classname.
+      </p>
+      <p>
+        The following properties can be configured as System properties, in <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>, or
+        in <a href="#c3p0_conf">HOCON</a> configuration files. The <tt>boolean</tt> properties are <i>false biased</i>.
+        Their values are <tt>false</tt> by default, if the properties do not appear in config or as System properties.
+        Any values provided other than <tt>true</tt> get interpreted as <tt>false</tt>. If any of these properties are set as <tt>false</tt>
+        in System properties, that will override any potentially conflicting configuration elsewhere.
+      </p>
+      <p>
+        <i>Most applications should not change this configuration from its restrictive defaults.</i>
+      </p>
+      <dl class="log_properties">
+	<a name="security_properties_box"></a>
+	<dt><a name="com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation"></a>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</dt>
+	<dd>
+	  <div class="propdesc">
+            <tt>false</tt> by default. If reset to <tt>true</tt>, lookups of <tt>javax.naming.Reference</tt> that download remote
+            code will be permitted.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.permitNonlocalJndiNames"></a>com.mchange.v2.naming.permitNonlocalJndiNames</dt>
+	<dd>
+	  <div class="propdesc">
+            <tt>false</tt> by default. If reset to <tt>true</tt>, utilities like <tt>JndiRefForwardingDataSource</tt> will be permitted
+            to look up resources from remote name services. Otherwise JNDI lookups are restricted to the local <tt>java:</tt> namespace.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment"></a>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</dt>
+	<dd>
+	  <div class="propdesc">
+            <tt>false</tt> by default. If reset to <tt>true</tt>, objects serialized as JNDI references may also include a serialized "environment",
+            that is, a serialized mapping of key-value pairs that configure the lookup. That in turn can configure several dangerous parameters, including
+            <tt>java.naming.factory.initial</tt>, which specifies a class that will be reflexively instantiated to handle the lookup, and <tt>java.naming.provider.url</tt>
+            which may specify the URL an unsafe or malicious name service.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.objectFactoryWhitelist"></a>com.mchange.v2.naming.objectFactoryWhitelist</dt>
+	<dd>
+	  <div class="propdesc">
+            By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory,com.mchange.v2.naming.JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
+            classes c3p0 uses when constructing its own references.
+            In general, it's comma separated list of fully qualified class name expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
 	  </div>
 	</dd>
       </dl>

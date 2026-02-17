@@ -1,3 +1,27 @@
+	-- Disable by default reflective instantiation of javax.naming.spi.ObjectFactory instances
+	   unless their classname is included on a whitelist. Define properties-style config parameter
+	   com.mchange.v2.naming.objectFactoryWhitelist where the comma-separated whitelist can be provided.
+	   By default this parameter contains the two ObjectFactory classes c3p0 includes in references it
+	   creates.
+	-- Change the format of userOverridesAsString, which is just a String representation of
+	   Map<String,Map<String,String>>. Use a CSV-inspired format, and the mchange-commons-java
+	   fastcsv utility, rather than dangerous Java Object serialization of the Map of Maps.
+	-- Disable by default support for resolving references serialized with their own InitialContext
+	   custom environment. Define properties-style config parameter
+	   com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment, defaulting to false,
+	   to manage this dangerous functionality.
+	-- Disable by default JNDI lookups of nonlocal names (conservatively, names we cannot prove to be local).
+	   For now only String names beginning with "java:" are considered provably local.
+	   Define properties-style config parameter com.mchange.v2.naming.permitNonlocalJndiNames, defaulting
+	   to false, to manage this dangerous functionality.
+	-- Disable by default support for loading of javax.naming.spi.ObjectFactory from remote locations
+	   via Reference.factoryClassLocation. Define properties-style config parameter
+	   com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation, defaulting to
+	   false, to manage this dangerous functionality.
+        -- Fix rare issue in Statement caching (GooGooStatementCache), make sure any Statement
+	   we remove is checked into the cache in order to ensure we don't see internal inconsistencies
+	   when Statements we mean to cull fail to be removed by removeStatement(...) because they
+	   are checked out. Thanks to vimalesh on GitHub for calling attention to this issue.
 c3p0-0.11.2
         -- Expose utilities `overwriteJavaBeanProperties` and `overwriteC3P0PrefixedProperties`
 	   in the `DataSources` class, and refactor existing functions to use those.
