@@ -1911,17 +1911,17 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         on running code based on its provenance.
       </p>
       <p>
-        That is all a retrofuture now. Its relics remain mostly useless in the JVM, especially the venerable and now
-        deprecated <tt>java.lang.SecurityManager</tt>. The tools that still remain in the JVM to download and execute
-        code into live applications (e.g. <tt>java.net.URLClassLoader</tt>) continue to function, but under most circumstances,
-        that code can do what it wishes. Responsibility for preventing execution of malicious remote code now lies
-        with application deployers and library developers.
+        That is a retrofuture now. All that's left of it are certain relics, especially the venerable and now
+        deprecated <tt>java.lang.SecurityManager</tt>. Tools still remain in the JVM to download and execute
+        code into live applications (e.g. <tt>java.net.URLClassLoader</tt>), but under most circumstances,
+        that code can then do what it wishes. Responsibility for preventing execution of malicious remote code now lies
+        with application deployers and library developers, rather than with security barriers enforced by the JVM.
       </p>
       <p>
         c3p0's main dependency, <a href="https://github.com/swaldman/mchange-commons-java">mchange-commons-java</a>
-        includes an independent implementation of <tt>javax.naming.Reference</tt> resolution, including support for
+        contains an independent implementation of <tt>javax.naming.Reference</tt> resolution, including support for
         remote <tt>factoryClassLocation</tt> from which the code for referenced objects could be downloaded via <tt>URLClassLoader</tt>.
-        This functionality continues to exist, but it is now disabled by default.
+        This functionality continues to exist. But as of the c3p0-0.12.0, it is now disabled by default.
       </p>
       <p>
         Two other potentially dangerous
