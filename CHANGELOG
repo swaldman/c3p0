@@ -10,8 +10,9 @@
 	   custom environment. Define properties-style config parameter
 	   com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment, defaulting to false,
 	   to manage this dangerous functionality.
-	-- Disable by default JNDI lookups of nonlocal names (conservatively, names we cannot prove to be local).
-	   For now only String names beginning with "java:" are considered provably local.
+	-- Disable by default JNDI lookups of nonlocal names (conservatively, names that do not seem to be local).
+	   For now only String names beginning with "java:" or Name objects whose first component starts with
+	   "java:" are considered to be local.
 	   Define properties-style config parameter com.mchange.v2.naming.permitNonlocalJndiNames, defaulting
 	   to false, to manage this dangerous functionality.
 	-- Disable by default support for loading of javax.naming.spi.ObjectFactory from remote locations

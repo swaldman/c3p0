@@ -1956,7 +1956,9 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<dd>
 	  <div class="propdesc">
             <tt>false</tt> by default. If reset to <tt>true</tt>, utilities like <tt>JndiRefForwardingDataSource</tt> will be permitted
-            to look up resources from remote name services. Otherwise JNDI lookups are restricted to the local <tt>java:</tt> namespace.
+            to make lookups that are suspected of being to remote name services. When false, JNDI lookups are restricted to names beginning
+            with "<tt>java:</tt>" JNDI is too malleable to make strong guarantees about this: Any name can be interpreted any way, depending
+            on how JNDI is configured. But under most common configurations <tt>java:</tt> prefixed names should be to local resources.
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment"></a>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</dt>
