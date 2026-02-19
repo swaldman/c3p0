@@ -18,24 +18,18 @@ import javax.sql.DataSource;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
-import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
 import com.mchange.v2.c3p0.impl.JndiRefDataSourceBase;
 
 final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements DataSource
 {
     final static MLogger logger = MLog.getLogger( JndiRefForwardingDataSource.class );
 
-    static boolean jndiShouldResolveNonlocalNames()
-    { return ReferenceableUtils.permitNonlocalJndiNames( C3P0Config.getMultiPropertiesConfig() ); }
-
-    static SQLException jndiCantResolveNonlocal( Object name )
-    { return new SQLException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we failed to prove '" + name + "' is local."); }
-
     static PropertyVetoException jndiNonlocalPropertyVetoException( Object name, PropertyChangeEvent evt )
-    { return new PropertyVetoException("'" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we failed to prove '" + name + "' is local.", evt); }
+    { return new PropertyVetoException("'" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local.", evt); }
 
     //MT: protected by this' lock in all cases
     transient DataSource cachedInner;
@@ -58,7 +52,7 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 		    Object value = evt.getNewValue();
 		    if ( "jndiName".equals( evt.getPropertyName() ) )
                     {
-                        if ( !ReferenceableUtils.nameLocalityIsAcceptable( value, C3P0Config.getMultiPropertiesConfig() ) )
+                        if ( !C3P0ImplUtils.jndiCanResolvePotentiallyNonlocalName(value) )
                             throw jndiNonlocalPropertyVetoException( value, evt );
                     }
 		}
@@ -78,8 +72,8 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     {
 	Object jndiName = this.getJndiName();
 
-        if ( !ReferenceableUtils.nameLocalityIsAcceptable( jndiName, C3P0Config.getMultiPropertiesConfig() ) )
-            throw jndiCantResolveNonlocal( jndiName );
+        if ( !C3P0ImplUtils.jndiCanResolvePotentiallyNonlocalName(jndiName) )
+            throw C3P0ImplUtils.jndiCantResolveNonlocalSQLException( jndiName );
 
 	Hashtable jndiEnv = this.getJndiEnv();
 	try

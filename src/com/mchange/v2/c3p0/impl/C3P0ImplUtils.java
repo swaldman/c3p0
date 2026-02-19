@@ -13,6 +13,7 @@ import com.mchange.v2.c3p0.cfg.*;
 
 import com.mchange.v2.csv.*;
 
+import javax.naming.NamingException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import com.mchange.lang.ByteUtils;
@@ -25,6 +26,8 @@ import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
 import com.mchange.v2.log.jdk14logging.ForwardingLogger;
+import com.mchange.v2.naming.ReferenceableUtils;
+import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.uid.UidUtils;
@@ -415,6 +418,15 @@ public final class C3P0ImplUtils
      */
     public static void assertCompileTimePresenceOfJdbc4_Jdk17Api( AbstractNewProxyConnection npc ) throws SQLException
     { npc.getNetworkTimeout(); }
+
+    public static boolean jndiCanResolvePotentiallyNonlocalName(Object jndiName)
+    { return ReferenceableUtils.nameLocalityIsAcceptable( jndiName, C3P0Config.getMultiPropertiesConfig() ); }
+
+    public static SQLException jndiCantResolveNonlocalSQLException( Object name )
+    { return new SQLException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
+
+    public static NamingException jndiCantResolveNonlocalNamingException( Object name )
+    { return new NamingException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
 
     private C3P0ImplUtils()
     {}
