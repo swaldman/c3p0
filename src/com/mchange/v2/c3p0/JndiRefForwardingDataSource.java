@@ -28,9 +28,6 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 {
     final static MLogger logger = MLog.getLogger( JndiRefForwardingDataSource.class );
 
-    static PropertyVetoException jndiNonlocalPropertyVetoException( Object name, PropertyChangeEvent evt )
-    { return new PropertyVetoException("'" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local.", evt); }
-
     //MT: protected by this' lock in all cases
     transient DataSource cachedInner;
 
@@ -52,8 +49,9 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 		    Object value = evt.getNewValue();
 		    if ( "jndiName".equals( evt.getPropertyName() ) )
                     {
-                        if ( !C3P0ImplUtils.jndiCanResolvePotentiallyNonlocalName(value) )
-                            throw jndiNonlocalPropertyVetoException( value, evt );
+                        try { C3P0ImplUtils.jndiAssertNameIsAcceptable(value); }
+                        catch ( NamingException ne )
+                        { throw new PropertyVetoException(ne.getMessage(), evt); }
                     }
 		}
 	    };
@@ -71,13 +69,12 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     private DataSource dereference() throws SQLException
     {
 	Object jndiName = this.getJndiName();
-
-        if ( !C3P0ImplUtils.jndiCanResolvePotentiallyNonlocalName(jndiName) )
-            throw C3P0ImplUtils.jndiCantResolveNonlocalSQLException( jndiName );
-
 	Hashtable jndiEnv = this.getJndiEnv();
+
 	try
 	    {
+                C3P0ImplUtils.jndiAssertNameIsAcceptable(jndiName);
+
 		InitialContext ctx;
 		if (jndiEnv != null)
 		    ctx = new InitialContext( jndiEnv );
@@ -102,7 +99,7 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 		//e.printStackTrace();
 		if ( logger.isLoggable( MLevel.WARNING ) )
 		    logger.log( MLevel.WARNING, "An Exception occurred while trying to look up a target DataSource via JNDI!", e );
-		throw SqlUtils.toSQLException( e ); 
+		throw SqlUtils.toSQLException( e );
 	    }
     }
 

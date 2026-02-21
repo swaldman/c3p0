@@ -55,8 +55,7 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     // Jndi Setup Names
     public void setJndiName(String jndiName) throws NamingException
     {
-        if ( !C3P0ImplUtils.jndiCanResolvePotentiallyNonlocalName(jndiName) )
-            throw C3P0ImplUtils.jndiCantResolveNonlocalNamingException( jndiName );
+        C3P0ImplUtils.jndiAssertNameIsAcceptable( jndiName );
 
 	String unbindName = this.jndiName;
 	this.jndiName = jndiName;

@@ -419,14 +419,17 @@ public final class C3P0ImplUtils
     public static void assertCompileTimePresenceOfJdbc4_Jdk17Api( AbstractNewProxyConnection npc ) throws SQLException
     { npc.getNetworkTimeout(); }
 
-    public static boolean jndiCanResolvePotentiallyNonlocalName(Object jndiName)
-    { return ReferenceableUtils.nameLocalityIsAcceptable( jndiName, C3P0Config.getMultiPropertiesConfig() ); }
+    /**
+     * Call to guard setting and use of JNDI names. Will throw a NamingException if the name is unsupported
+     */
+    public static void jndiAssertNameIsAcceptable(Object jndiName) throws NamingException
+    { ReferenceableUtils.assertAcceptableName( jndiName, C3P0Config.getMultiPropertiesConfig() ); }
 
-    public static SQLException jndiCantResolveNonlocalSQLException( Object name )
-    { return new SQLException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
+    //public static SQLException jndiCantResolveNonlocalSQLException( Object name )
+    //{ return new SQLException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
 
-    public static NamingException jndiCantResolveNonlocalNamingException( Object name )
-    { return new NamingException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
+    //public static NamingException jndiCantResolveNonlocalNamingException( Object name )
+    //{ return new NamingException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
 
     private C3P0ImplUtils()
     {}
