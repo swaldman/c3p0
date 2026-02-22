@@ -12,6 +12,12 @@
  -------------------------------------
 ```
 
+> [!WARNING]
+> c3p0 and its dependencies have been used as [deserialization gadgets](https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69).
+> Please see [the docs](https://www.mchange.com/projects/c3p0/#security-note) for more information.
+> The vulnerabilities that enable this are addressed as of c3p0-0.12.0.
+> Please update your applications!
+
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
 support for caching and reuse of `PreparedStatement` objects.
 
@@ -29,12 +35,6 @@ However, please keep in mind he is an abysmal correspondent and basically an ass
 Despite that, your feedback is very much appreciated. Pull requests are gratefully accepted. You may also open issues.
 
 Thank you for your interest in c3p0. I do hope that you find it useful!
-
-> [!WARNING]
-> c3p0 and its dependencies have been used as [deserialization gadgets](https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69).
-> Please see [the docs](https://www.mchange.com/projects/c3p0/#security-note) for more information.
-> The vulnerabilities that enable this are addressed as of c3p0-0.12.0.
-> Please update your applications!
 
 ### Building c3p0
 
