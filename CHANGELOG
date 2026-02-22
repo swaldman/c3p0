@@ -1,3 +1,10 @@
+	-- Replace com.mchange.v2.naming.permitNonlocalJndiNames with more configurable
+	   com.mchange.v2.naming.nameGuardClassName. By default, it is null, and the same
+	   "apparently local" restriction previously enforced by com.mchange.v2.naming.permitNonlocalJndiNames
+	   is enforced. But users can supply custom com.mchange.v2.naming.NameGuard instances
+	   to control what names are permissible, and four implementations of NameGuard are
+	   provided. (See the main docs.)
+	-- Documentation updates.
 	-- Disable by default reflective instantiation of javax.naming.spi.ObjectFactory instances
 	   unless their classname is included on a whitelist. Define properties-style config parameter
 	   com.mchange.v2.naming.objectFactoryWhitelist where the comma-separated whitelist can be provided.

@@ -323,17 +323,30 @@
         "<a href="https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69">deserialization gadget</a>".
         If an attacker is able to replace and maliciously recraft a <tt>javax.naming.Reference</tt> or Java-serialized
         object that an application will decode, c3p0's libraries could be misused to expand that access into
-        execution of arbitrary malicious code. c3p0-0.12.0 (along with its dependency mchange-commons-java-0.4.0), include mitigations
+        execution of arbitrary malicious code.
+      </p>
+      <p>
+        c3p0-0.12.0 (along with its dependency mchange-commons-java-0.4.0), includes mitigations
         that lock down the functionality misused as gadget chains.
       </p>
       <p>
-        Beginning with v0.12.0, c3p0 is now locked-down by default to prevent these misuses. Although it remains possible to resurrect and make use of the dangerous
-        functionality (see <a href="#configuring_security">Configuring Security</a> below), few contemporary applications
+        Although it remains possible to resurrect and make use of the dangerous
+        functionality, few contemporary applications
         should do so.
+      </p>
+      <p>
+        Most installations will not, but if you experience breaking changes in c3p0-0.12.0,
+        you may need to customize security configuration
+        for your deployment.  (See <a href="#configuring_security">Configuring Security</a> below.)
       </p>
       <p>
         Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about this issue.
       </p>
+      <hr>
+      <p>
+        <i>See also <a href="#configuration_security_box">Warning: c3p0 trusts its CLASSPATH and configuration!</a></i>
+      </p>
+      
     </div>
     <h2><a name="contents">Contents</a></h2>
     <ol class="contents">
@@ -977,8 +990,12 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
           Creative and unusual values of <tt>preferredTestQuery</tt>, including calls to stored procedures, are sometimes desirable.
         </p>
         <p>
-          An adversary that can 1) add classes to the application <tt>CLASSPATH</tt> and 2) redefine any of config parameters <a class="cfg_param" href="#connectionCustomizerClassName">connectionCustomizerClassName</a>,
-          <a href="#connectionTesterClassName">connectionTesterClassName</a>, or <a href="#taskRunnerFactoryClassName">taskRunnerFactoryClassName</a> can cause c3p0 to execute
+          An adversary that can 1) add classes to the application <tt>CLASSPATH</tt> and 2) redefine any of config parameters
+          <a class="cfg_param" href="#connectionCustomizerClassName">connectionCustomizerClassName</a>,
+          <a class="cfg_param" href="#connectionTesterClassName">connectionTesterClassName</a>,
+          <a class="cfg_param" href="#taskRunnerFactoryClassName">taskRunnerFactoryClassName</a>, or
+          <a class="cfg_param" href="#com.mchange.v2.naming.nameGuardClassName">com.mchange.v2.naming.nameGuardClassName</a>
+          can cause c3p0 to execute
           whatever arbitrary code a malicious plug-in implementation might supply.
         </p>
         <p>
@@ -1669,6 +1686,9 @@ public final class FixedThreadPoolExecutorTaskRunnerFactory extends AbstractExec
         <b><tt>factoryClassLocation</tt></b> can be used to indicate where a URL from which c3p0 classes
       	can be downloaded, if c3p0 DataSources will be retrieved as References from a JNDI DataSource by clients
       	who do not have c3p0 locally installed.
+        <i>Note: As of c3p0-0.12.0, remote classloading is now disabled by default.</i> See
+        <a href="#configuring_security">Configuring Security</a> and
+        <a href="#com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation">com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</a>.
       </p>
       <p>
 	Ordinarily check-ins are performed asynchronously so that clients do not experience the overhead of
@@ -1925,13 +1945,20 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
       </p>
       <p>
         Two other potentially dangerous
-        JNDI capabilities &mdash; JNDI-lookups against potentially remote name services and support JNDI contexts configured by
+        JNDI capabilities &mdash; JNDI-lookups against apparently remote name services and support of JNDI contexts configured by
         a deserialized environment &mdash; are also disabled by default.
       </p>
       <p>
         Objects looked up via JNDI get reconstituted by a
         <tt>javax.naming.spi.ObjectFactory</tt> instance, which gets constructed via Java reflection. <tt>c3p0</tt>
         now requires and sets a whitelist of allowable <tt>ObjectFactory</tt> fully-qualified classname.
+      </p>
+      <p>
+        For information on the vulnerabilities against which these changes defend, see e.g.
+        <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">here</a> and <a href="https://raw.githubusercontent.com/mbechler/marshalsec/master/marshalsec.pdf">here</a>.
+        Other vulnerabilities documented in those resources, like the Java-serialization-based <tt>userOverridesAsString</tt>
+        parameter, are eliminated, but in ways that require no new configuration. (For example, <tt>userOverridesAsString</tt> is now stored
+        as CSV, rather than in a Java-serialization-based format.)
       </p>
       <p>
         The following properties can be configured as System properties, in <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>, or
@@ -1941,7 +1968,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         in System properties, that will override any potentially conflicting configuration elsewhere.
       </p>
       <p>
-        <i>Most applications should not change this configuration from its restrictive defaults.</i>
+        <b><i>Most applications should not change these properties from their restrictive defaults!</i></b>
       </p>
       <dl class="log_properties">
 	<a name="security_properties_box"></a>
@@ -1949,16 +1976,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<dd>
 	  <div class="propdesc">
             <tt>false</tt> by default. If reset to <tt>true</tt>, lookups of <tt>javax.naming.Reference</tt> that download remote
-            code will be permitted.
-	  </div>
-	</dd>
-	<dt><a name="com.mchange.v2.naming.permitNonlocalJndiNames"></a>com.mchange.v2.naming.permitNonlocalJndiNames</dt>
-	<dd>
-	  <div class="propdesc">
-            <tt>false</tt> by default. If reset to <tt>true</tt>, utilities like <tt>JndiRefForwardingDataSource</tt> will be permitted
-            to make lookups that are suspected of being to remote name services. When false, JNDI lookups are restricted to names beginning
-            with "<tt>java:</tt>" JNDI is too malleable to make strong guarantees about this: Any name can be interpreted any way, depending
-            on how JNDI is configured. But under most common configurations <tt>java:</tt> prefixed names should be to local resources.
+            code will be permitted. This is very dangerous.
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment"></a>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</dt>
@@ -1976,6 +1994,44 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
             By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory,com.mchange.v2.naming.JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
             classes c3p0 uses when constructing its own references.
             In general, it's comma separated list of fully qualified class name expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
+            <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
+            will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
+            value and the library config value should be very rare. Such differences might result if System properties are changed at runtime, after c3p0 config has been read
+            and cached.)</i>
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.nameGuardClassName"></a>com.mchange.v2.naming.nameGuardClassName</dt>
+	<dd>
+	  <div class="propdesc">
+            <tt>null</tt> by default. If left as <tt>null</tt>, the default behavior is to restrict to apparently local names,
+            names beginning with <tt>java:</tt> if Strings, or whose first component is nonempty and begins with <tt>java:</tt>,
+            if a <tt>javax.naming.Name</tt>. If this property is reset, it should be reset to the fully qualified class name of an implementation
+            of <a href="https://github.com/swaldman/mchange-commons-java/blob/master/src/main/java/com/mchange/v2/naming/NameGuard.java"><tt>com.mchange.v2.naming.NameGuard</tt></a>,
+            which defines what JNDI names this library will consider acceptable. These implementations must include a public no-arg constructor
+            for reflective instantiation. You can define your own implementations of <tt>NameGuard</tt>, but four implementations are already provided:
+            <ul>
+              <li>
+                <p style="margin-top: 0.3em; margin-bottom: 0.3em"><tt>com.mchange.v2.naming.ApparentlyLocalNameGuard</tt> &mdash; implements the default behavior,
+                accepts names beginning with <tt>java:</tt> if Strings, or whose first component is nonempty
+                and begins with <tt>java:</tt>, if a <tt>javax.naming.Name</tt>.</p>
+              </li>
+              <li>
+                <p style="margin-top: 0.3em; margin-bottom: 0.3em"><tt>com.mchange.v2.naming.FirstComponentIsJavaIdentifierNameGuard</tt> &mdash; accepts names
+                whose first component, or whose substring prior
+                to first '/', would be a valid Java identifier. This allows names like <tt>jdbc/myDataSource</tt> for applications that place these names at the top-level
+                rather than in the recommended <tt>java:comp/env</tt> context. Names that would likely be remote, for example <tt>ldap://my.server/myName</tt>, remain forbidden,
+                as <tt>ldap:</tt> is not a valid Java identifier.</p>
+              </li>
+              <li>
+                <p style="margin-top: 0.3em; margin-bottom: 0.3em"><tt>com.mchange.v2.naming.ApparentlyLocalOrFirstComponentIsJavaIdentifierNameGuard</tt> &mdash;
+                accepts names that would be accepted by EITHER of the prior two
+                <tt>NameGuard</tt> implementations.</p>
+              </li>
+              <li>
+                <p style="margin-top: 0.3em; margin-bottom: 0.3em"><tt>com.mchange.v2.naming.AnyNameNameGuard</tt> &mdash; all names are accepted, effectively
+                disabling name-based security restrictions. Please use only with great care.</p>
+              </li>
+            </ul>
 	  </div>
 	</dd>
       </dl>
@@ -2688,7 +2744,9 @@ c3p0 {
 	    DataSources that will be bound by JNDI and use that API's Referenceable interface
             to store themselves may specify a URL from which the class capable of dereferencing
             a them may be loaded. If (as is usually the case) the c3p0 libraries will be locally
-            available to the JNDI service, leave this set as null.
+            available to the JNDI service, leave this set as null. <b>Note: As of c3p0-0.12.0, remote classloading is now disabled by default.</b> See
+            <a href="#configuring_security">Configuring Security</a> and
+            <a href="#com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation">com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</a>.
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
@@ -3131,6 +3189,17 @@ c3p0 {
 	  <li>com.mchange.v2.log.NameTransformer</li>
 	  <li>com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</li>
 	</ul>
+	<h4>Security-related properties</h4>
+	<p>
+	  The following properties help lock c3p0 down and prevent misuse of its libraries. Please see <a href="#configuring_security">Configuring Security</a>
+	  above for specific information.
+	</p>
+	<ul class="other_props_list">
+	  <li>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</li>
+	  <li>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</li>
+	  <li>com.mchange.v2.naming.objectFactoryWhitelist</li>
+	  <li>com.mchange.v2.naming.nameGuardClassName</li>
+	</ul>
 	<h4>Configuring JMX</h4>
 	<p>
 	  The following properties affect c3p0's JMX management interface. Plese see
@@ -3264,9 +3333,8 @@ c3p0 {
 	  via a <a href="#c3p0_conf">Typesafe "HOCON" file</a>,
 	  via an <a href="#c3p0-config.xml">XML configuration file</a>, or
 	  via <a href="#system_properties">System properties</a>.
-	  Any which way
-	  works (the the XML configuration is most powerful, though, as it supports multiple named configurations and
-	  per-user overrides. Choose whatever works best for you.
+	  Any which way is fine.
+	  Choose whatever works best for you.
 	</p>
 	<h3>
 	  <a name="c3p0_properties">Overriding c3p0 defaults via <tt>c3p0.properties</tt></a>
