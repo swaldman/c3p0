@@ -7,6 +7,7 @@ import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.beans.BeansUtils;
 import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 
 public final class MarshallUnmarshallDataSourcesJUnitTestCase extends C3P0JUnitTestCaseBase
 {
@@ -94,12 +95,11 @@ public final class MarshallUnmarshallDataSourcesJUnitTestCase extends C3P0JUnitT
 
     private void compareReferences( Reference ref1, Reference ref2 ) throws Exception
     {
-	ComboPooledDataSource cpds1 = (ComboPooledDataSource) ReferenceableUtils.referenceToObject( ref1, null, null, null );
-	ComboPooledDataSource cpds2 = (ComboPooledDataSource) ReferenceableUtils.referenceToObject( ref2, null, null, null );
+	ComboPooledDataSource cpds1 = (ComboPooledDataSource) ReferenceableUtils.referenceToObject( ref1, null, null, null, C3P0Config.getMultiPropertiesConfig() );
+	ComboPooledDataSource cpds2 = (ComboPooledDataSource) ReferenceableUtils.referenceToObject( ref2, null, null, null, C3P0Config.getMultiPropertiesConfig() );
 	assertTrue( "Marshalled and unmarshalled DataSources references point to the equivalent DataSources",
 		    //		    BeansUtils.equalsByAccessiblePropertiesVerbose( cpds1, cpds2, EXCLUDE_PROPS ) );
 		    BeansUtils.equalsByAccessibleProperties( cpds1, cpds2, EXCLUDE_PROPS ) );
-		
     }
 
     private void sideBySidePrintReferences( Reference ref1, Reference ref2 ) throws Exception
@@ -114,7 +114,7 @@ public final class MarshallUnmarshallDataSourcesJUnitTestCase extends C3P0JUnitT
 	{
 	    RefAddr ra1 = (i < sz1) ? ref1.get( i ) : null;
 	    RefAddr ra2 = (i < sz2) ? ref2.get( i ) : null;
-	    
+
 	    String s1 = ra1 == null ? "XXXXX" : ra1.getContent().toString() + " [" + ra1.getType() + "]";
 	    String s2 = ra2 == null ? "XXXXX" : ra2.getContent().toString() + " [" + ra2.getType() + "]";
 	    System.err.println( "\t" + s1 + "      " + s2 + "      " + (s1 != null && s1.equals(s2)) );
@@ -127,7 +127,7 @@ public final class MarshallUnmarshallDataSourcesJUnitTestCase extends C3P0JUnitT
 	    {
         cpds.setIdentityToken("scoop"); //simulate a never-before-seen data source, so it's a new registration on deserialization
 		Reference ref = cpds.getReference();
-		ComboPooledDataSource unpickled = (ComboPooledDataSource) ReferenceableUtils.referenceToObject( ref, null, null, null );
+		ComboPooledDataSource unpickled = (ComboPooledDataSource) ReferenceableUtils.referenceToObject( ref, null, null, null, C3P0Config.getMultiPropertiesConfig() );
 		assertTrue( "Marshalled and unmarshalled DataSources should have the same properties!", 
 			    BeansUtils.equalsByAccessibleProperties( cpds, unpickled, EXCLUDE_PROPS ) );
 	    }
