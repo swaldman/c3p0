@@ -1,0 +1,37 @@
+RELEASE NOTES, c3p0-0.12.0
+==========================
+
+THIS IS A CRITICAL SECURITY RELEASE.
+
+Please update immediately.
+
+Unbeknownst to, and to the great shame of, the library author, c3p0 has been abused for
+roughly a decade as a "deserialization gadget". Attackers who succeed at placing maliciously
+crafted Java-serialized objects or javax.naming.Reference instances in places where applications
+will unmarshall or dereference them have been able to misuse functionality in c3p0 and its
+main dependency, mchange-commons-java, to download and execute malicious code.
+
+For more information on the exploits, see for example
+
+* https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/
+* https://raw.githubusercontent.com/mbechler/marshalsec/master/marshalsec.pdf
+
+c3p0-0.12.0 addresses these issues. The library author believes these attacks
+are now effectively mitigated, unless installations affirmatively configure
+the library to support the dangerous behavior. (Very few installations should
+do so.)
+
+Please see https://www.mchange.com/projects/c3p0/#configuring_security for
+full details.
+
+Many thanks to David Pollak of Spice Labs for a very detailed report about this issue.
+
+---
+
+The library also addresses a rare inconsistency in the statement cache where
+Statements intended to be removed from the cache were not, because they were
+checked out.
+
+Thanks to vimalesh on GitHub for reporting that issue.
+
+
