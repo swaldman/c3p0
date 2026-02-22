@@ -319,14 +319,14 @@
     <h2 class="security-note"><a name="security-note">Security Note</a><span class="toplink"></span></h2>
     <div class="sectiontext">
       <p>
-	To its author's profound shame, c3p0 and its supporting libraries were <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">used</a> for about a decade as a
+	To its author's profound shame, c3p0, along with its supporting libraries, was <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">used</a> for about a decade as a
         "<a href="https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69">deserialization gadget</a>".
         If an attacker is able to replace and maliciously recraft a <tt>javax.naming.Reference</tt> or Java-serialized
         object that an application will decode, c3p0's libraries could be misused to expand that access into
         execution of arbitrary malicious code.
       </p>
       <p>
-        c3p0-0.12.0 (along with its dependency mchange-commons-java-0.4.0), includes mitigations
+        c3p0-0.12.0, along with its dependency mchange-commons-java-0.4.0, includes mitigations
         that lock down the functionality misused as gadget chains.
       </p>
       <p>
