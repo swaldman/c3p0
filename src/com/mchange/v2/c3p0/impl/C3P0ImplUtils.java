@@ -1,5 +1,6 @@
 package com.mchange.v2.c3p0.impl;
 
+import java.io.*;
 import java.beans.*;
 import java.util.*;
 import java.lang.reflect.*;
@@ -10,7 +11,9 @@ import java.security.PrivilegedAction;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.cfg.*;
 
-import java.io.IOException;
+import com.mchange.v2.csv.*;
+
+import javax.naming.NamingException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import com.mchange.lang.ByteUtils;
@@ -23,6 +26,8 @@ import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
 import com.mchange.v2.log.jdk14logging.ForwardingLogger;
+import com.mchange.v2.naming.ReferenceableUtils;
+import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.uid.UidUtils;
@@ -231,6 +236,12 @@ public final class C3P0ImplUtils
 	    }
     }
 
+    /*
+    // Java Serialization-based userOverridesAsString format creates an unnecessary attack surface for
+    // placing malicious objects in the serialized format and provoking deserialization.
+    //
+    // We'll transition to a simpler, less dangerous format. 
+
     private final static String HASM_HEADER = "HexAsciiSerializedMap";
 
     public static String createUserOverridesAsString( Map userOverrides ) throws IOException
@@ -253,6 +264,95 @@ public final class C3P0ImplUtils
 	    }
 	else
 	    return Collections.EMPTY_MAP;
+    }
+    */
+
+    // we serialize user overrides to "ragged CSV".
+    // CSV lines containing only a single element are interpreted as the user for whom we are overriding config
+    // lines following containing two elements are the config param overrides for that user.
+    public static String createUserOverridesAsString( Map userOverrides ) throws IOException, MalformedCsvException
+    {
+        Writer w = new StringWriter();
+        for (Object o : userOverrides.keySet())
+        {
+            // we don't check the type. We're treating this as basically an assertion, in our old-school, loosely typed Java
+            // we'll let the user see a ClassCastException if something has been messed with
+            String user = (String) o;
+            w.append(FastCsvUtils.generateQuotedCsvItem(user));
+            w.append("\r\n");
+            Map userProps = (Map) userOverrides.get(user);
+            String[] propNamePropValAsString = new String[2];
+            for (Object pn : userProps.keySet())
+            {
+                propNamePropValAsString[0] = (String) pn;
+                propNamePropValAsString[1] = (String) userProps.get(pn);
+                w.append(FastCsvUtils.generateCsvLineQuotedUnterminated(propNamePropValAsString));
+                w.append("\r\n");
+            }
+        }
+        return w.toString();
+    }
+
+    private static Map parseSingleUserMap(String userOverridesAsString, BufferedReader br, String[] nextUserHolder) throws IOException, MalformedCsvException
+    {
+        Map out = new HashMap();
+        nextUserHolder[0] = null;
+        String line = FastCsvUtils.csvReadLine(br);
+        if (line == null)
+        {
+            nextUserHolder[0] = null;
+            return Collections.EMPTY_MAP;
+        }
+        else
+        {
+            do
+            {
+                String[] items = FastCsvUtils.csvSplitLine( line );
+                switch ( items.length )
+                {
+                case 2: // this is an expected property override line
+                    out.put(items[0],items[1]);
+                    break;
+                case 1: // this is the next user name
+                    nextUserHolder[0] = items[0];
+                    break;
+                default:
+                    throw new IOException("Unexpected CSV line in userOverridesAsString ('" + line + "'). All line should have 1 or 2 items:\r\n" + userOverridesAsString);
+                }
+            }
+            while (nextUserHolder[0] == null && (line = FastCsvUtils.csvReadLine(br)) != null); // either EOL or discovery of next user terminates
+            return Collections.unmodifiableMap(out);
+        }
+    }
+
+    public static Map parseUserOverridesAsString( String userOverridesAsString ) throws IOException, MalformedCsvException
+    {
+        if ( userOverridesAsString != null )
+        {
+            String[] nextUserHolder = new String[1];
+            BufferedReader br = new BufferedReader(new StringReader(userOverridesAsString));
+            String line = FastCsvUtils.csvReadLine(br);
+            if ( line == null )
+                return Collections.EMPTY_MAP;
+            else
+            {
+                Map out = new HashMap();
+                String[] items = FastCsvUtils.csvSplitLine(line);
+                if (items.length != 1)
+                    throw new IOException("Cannot parse userOverridesAsString, one element line naming the user should come before other data:\r\n" + userOverridesAsString);
+                String username = items[0];
+                do
+                {
+                    Map overrides = parseSingleUserMap(userOverridesAsString, br, nextUserHolder);
+                    out.put(username, overrides);
+                    username = nextUserHolder[0];
+                }
+                while (username != null);
+                return Collections.unmodifiableMap(out);
+            }
+        }
+        else
+            return Collections.EMPTY_MAP;
     }
 
     public static void runWithContextClassLoaderAndPrivileges( final String contextClassLoaderSource, final boolean privilege_spawned_threads, final Runnable runnable )
@@ -318,6 +418,18 @@ public final class C3P0ImplUtils
      */
     public static void assertCompileTimePresenceOfJdbc4_Jdk17Api( AbstractNewProxyConnection npc ) throws SQLException
     { npc.getNetworkTimeout(); }
+
+    /**
+     * Call to guard setting and use of JNDI names. Will throw a NamingException if the name is unsupported
+     */
+    public static void jndiAssertNameIsAcceptable(Object jndiName) throws NamingException
+    { ReferenceableUtils.assertAcceptableName( jndiName, C3P0Config.getMultiPropertiesConfig() ); }
+
+    //public static SQLException jndiCantResolveNonlocalSQLException( Object name )
+    //{ return new SQLException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
+
+    //public static NamingException jndiCantResolveNonlocalNamingException( Object name )
+    //{ return new NamingException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
 
     private C3P0ImplUtils()
     {}

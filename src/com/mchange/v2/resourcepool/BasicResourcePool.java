@@ -85,8 +85,8 @@ class BasicResourcePool implements ResourcePool
 
     int target_pool_size;
 
-    /*  keys are all valid, managed resources, value is a PunchCard */
-    HashMap  managed = new HashMap();
+    /*  keys are all valid, managed resources */
+    HashMap<Object, PunchCard> managed = new HashMap<>();
 
     /* all valid, managed resources currently available for checkout */
     LinkedList unused = new LinkedList();
@@ -636,7 +636,7 @@ class BasicResourcePool implements ResourcePool
 		    asyncFireResourceCheckedOut( resc, managed.size(), unused.size(), excluded.size() );
 		    if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX) trace();
 
-		    PunchCard card = (PunchCard) managed.get( resc );
+		    PunchCard card = managed.get( resc );
 		    if (card == null) //the resource has been removed!
 		    {
 			if (Debug.DEBUG && logger.isLoggable( MLevel.FINER ))
@@ -1565,7 +1565,7 @@ class BasicResourcePool implements ResourcePool
                 lockMain.lock();
 		try
                 {
-		    PunchCard card = (PunchCard) managed.get( resc );
+		    PunchCard card = managed.get( resc );
 
 		    if ( resc_okay && card != null) //we have to check that the resource is still in the pool
                     {
@@ -1725,7 +1725,7 @@ class BasicResourcePool implements ResourcePool
     {
         assert lockMain.isHeldByCurrentThread();
 
-        PunchCard pc = (PunchCard) managed.remove(resc);
+        PunchCard pc = managed.remove(resc);
 
 	boolean checked_out = false;
         if (pc != null)
@@ -1838,7 +1838,7 @@ class BasicResourcePool implements ResourcePool
 
         boolean expired = false;
 
-        PunchCard pc = (PunchCard) managed.get( resc );
+        PunchCard pc = managed.get( resc );
 
         // the resource has already been removed
         // we return true, because removing twice does no harm

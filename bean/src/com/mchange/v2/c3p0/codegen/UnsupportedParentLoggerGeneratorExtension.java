@@ -4,7 +4,7 @@ import java.util.*;
 import com.mchange.v2.codegen.*;
 import com.mchange.v2.codegen.bean.*;
 import java.io.IOException;
-import com.mchange.v2.codegen.IndentedWriter;
+import com.mchange.v2.io.IndentedWriter;
 
 public class UnsupportedParentLoggerGeneratorExtension implements GeneratorExtension
 {

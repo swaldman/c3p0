@@ -22,6 +22,7 @@ public final class BulkOverwriteJUnitTestCase extends C3P0JUnitTestCaseBase
         assertEquals( "Bulk overwrite of maxPoolSize should take effect", cpds.getMaxPoolSize(), 27 );
         assertEquals( "Bulk overwrite of debugUnreturnedConnectionStackTraces should take effect", cpds.isDebugUnreturnedConnectionStackTraces(), true );
 
+        System.err.println("A stack trace of a failure to overwrite debugUnreturnedConnectionStackTraces is expected!");
         m.put("debugUnreturnedConnectionStackTraces", "false");
         DataSources.overwriteJavaBeanProperties( cpds, m, false );
         assertEquals( "Bulk overwrite of debugUnreturnedConnectionStackTraces with String but without coercion should not take effect", cpds.isDebugUnreturnedConnectionStackTraces(), true );
