@@ -4,6 +4,7 @@ import javax.naming.*;
 import com.mchange.v2.naming.*;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.c3p0.impl.*;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 
 public final class JavaBeanRefTest
 {

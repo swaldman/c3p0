@@ -1,0 +1,12 @@
+RELEASE NOTES, c3p0-0.11.1
+==========================
+
+This is a quick, bug-fix release.
+
+In c3p0-0.11.0, forceKillAcquires() accidentally failed to surrender its lock,
+leading to deadlocks in applications following a full round of acquisition failures.
+
+Many thanks to @pwielgolaski on github for tracking down the issue, and to
+@michalgutkowski on github for providing a pull request with the fix.
+
+Thanks also to @driseley on github for providing a reproduction of the issue.

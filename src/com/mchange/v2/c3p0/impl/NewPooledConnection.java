@@ -45,6 +45,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     final int                    connectionIsValidTimeout;
     final boolean                autoCommitOnClose;
     final boolean                forceIgnoreUnresolvedTransactions;
+    final boolean                cancelAutomaticallyClosedStatements;
     final String                 preferredTestQuery;
     final boolean                supports_setHoldability;
     final boolean                supports_setReadOnly;
@@ -81,6 +82,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 			       int connectionIsValidTimeout,
 			       boolean autoCommitOnClose,
 			       boolean forceIgnoreUnresolvedTransactions,
+                               boolean cancelAutomaticallyClosedStatements,
 			       String  preferredTestQuery,
 			       ConnectionCustomizer cc,
 			       String pdsIdt) throws SQLException
@@ -93,22 +95,23 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         catch (Exception e)
         { throw SqlUtils.toSQLException(e); }
 
-        this.physicalConnection                = con;
-        this.connectionTester                  = connectionTester;
-	this.connectionIsValidTimeout          = connectionIsValidTimeout;
-        this.autoCommitOnClose                 = autoCommitOnClose;
-        this.forceIgnoreUnresolvedTransactions = forceIgnoreUnresolvedTransactions;
-        this.preferredTestQuery                = preferredTestQuery;
-        this.supports_setHoldability           = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ int.class });
-        this.supports_setReadOnly              = C3P0ImplUtils.supportsMethod(con, "setReadOnly", new Class[]{ boolean.class });
-        this.supports_setTypeMap               = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
-        this.dflt_txn_isolation                = con.getTransactionIsolation();
-        this.dflt_catalog                      = con.getCatalog();
-        this.dflt_holdability                  = (supports_setHoldability ? carefulCheckHoldability(con) : ResultSet.CLOSE_CURSORS_AT_COMMIT);
-        this.dflt_readOnly                     = (supports_setReadOnly ? carefulCheckReadOnly(con) : false);
-        this.dflt_typeMap                      = (supports_setTypeMap && (carefulCheckTypeMap(con) == null) ? null : Collections.EMPTY_MAP);
-        this.ces                               = new ConnectionEventSupport(this);
-        this.ses                               = new StatementEventSupport(this);
+        this.physicalConnection                  = con;
+        this.connectionTester                    = connectionTester;
+	this.connectionIsValidTimeout            = connectionIsValidTimeout;
+        this.autoCommitOnClose                   = autoCommitOnClose;
+        this.forceIgnoreUnresolvedTransactions   = forceIgnoreUnresolvedTransactions;
+        this.cancelAutomaticallyClosedStatements = cancelAutomaticallyClosedStatements;
+        this.preferredTestQuery                  = preferredTestQuery;
+        this.supports_setHoldability             = C3P0ImplUtils.supportsMethod(con, "setHoldability", new Class[]{ int.class });
+        this.supports_setReadOnly                = C3P0ImplUtils.supportsMethod(con, "setReadOnly", new Class[]{ boolean.class });
+        this.supports_setTypeMap                 = C3P0ImplUtils.supportsMethod(con, "setTypeMap", new Class[]{ Map.class });
+        this.dflt_txn_isolation                  = con.getTransactionIsolation();
+        this.dflt_catalog                        = con.getCatalog();
+        this.dflt_holdability                    = (supports_setHoldability ? carefulCheckHoldability(con) : ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        this.dflt_readOnly                       = (supports_setReadOnly ? carefulCheckReadOnly(con) : false);
+        this.dflt_typeMap                        = (supports_setTypeMap && (carefulCheckTypeMap(con) == null) ? null : Collections.EMPTY_MAP);
+        this.ces                                 = new ConnectionEventSupport(this);
+        this.ses                                 = new StatementEventSupport(this);
     }
 
     private static int carefulCheckHoldability(Connection con)
@@ -736,17 +739,39 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         for ( Iterator ii = uncachedActiveStatements.iterator(); ii.hasNext(); )
         {
             Statement stmt = (Statement) ii.next();
+
             try
-            { stmt.close(); }
+            {
+                if ( this.cancelAutomaticallyClosedStatements )
+                {
+                    boolean trace = Debug.DEBUG && logger.isLoggable( MLevel.FINEST );
+                    if (trace) logger.log( MLevel.FINEST, "Canceling cached statement prior to autoclose.");
+                    stmt.cancel();
+                    if (trace) logger.log( MLevel.FINEST, "Canceled cached statement prior to autoclose." );
+                }
+            }
             catch ( SQLException e )
             {
-		closeExceptions.add(e);
+                if ( Debug.DEBUG && logger.isLoggable( MLevel.FINER ) )
+                    logger.log( MLevel.FINER,
+                                "An Exception occurred while trying to cancel an unclosed Statement we are cleaning up. " +
+                                "(Because cancelAutomaticallyClosedStatements is set to true, we make one best-effort attempt to cancel. No action is necessary.)",
+                                e );
+            }
+            finally
+            {    
+                try
+                { stmt.close(); }
+                catch ( SQLException e )
+                {
+                    closeExceptions.add(e);
 
-		if ( logger.isLoggable( MLevel.FINER ) )
-		    logger.log( MLevel.FINER,
-				"An Exception occurred while trying to cleanup the following uncached Statement: " + stmt,
-				e);
-	    }
+                    if ( logger.isLoggable( MLevel.FINER ) )
+                        logger.log( MLevel.FINER,
+                                    "An Exception occurred while trying to cleanup the following uncached Statement: " + stmt,
+                                    e);
+                }
+            }
 
             ii.remove();
         }

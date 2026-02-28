@@ -18,7 +18,10 @@ import javax.sql.DataSource;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.sql.SqlUtils;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
 import com.mchange.v2.c3p0.impl.JndiRefDataSourceBase;
 
 final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements DataSource
@@ -43,12 +46,13 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 	    {
 		public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
 		{
-		    Object val = evt.getNewValue();
+		    Object value = evt.getNewValue();
 		    if ( "jndiName".equals( evt.getPropertyName() ) )
-			{
-			    if (! (val instanceof Name || val instanceof String) )
-				throw new PropertyVetoException("jndiName must be a String or a javax.naming.Name", evt);
-			}
+                    {
+                        try { C3P0ImplUtils.jndiAssertNameIsAcceptable(value); }
+                        catch ( NamingException ne )
+                        { throw new PropertyVetoException(ne.getMessage(), evt); }
+                    }
 		}
 	    };
 	this.addVetoableChangeListener( l );
@@ -66,27 +70,36 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     {
 	Object jndiName = this.getJndiName();
 	Hashtable jndiEnv = this.getJndiEnv();
+
 	try
 	    {
+                C3P0ImplUtils.jndiAssertNameIsAcceptable(jndiName);
+
 		InitialContext ctx;
 		if (jndiEnv != null)
 		    ctx = new InitialContext( jndiEnv );
 		else
 		    ctx = new InitialContext();
 		if (jndiName instanceof String)
-		    return (DataSource) ctx.lookup( (String) jndiName );
+                {
+                    String snm = (String) jndiName;
+                    return (DataSource) ctx.lookup( snm );
+                }
 		else if (jndiName instanceof Name)
-		    return (DataSource) ctx.lookup( (Name) jndiName );
+                {
+                    Name nm = (Name) jndiName;
+                    return (DataSource) ctx.lookup( nm );
+                }
 		else
-		    throw new SQLException("Could not find ConnectionPoolDataSource with " +
-					   "JNDI name: " + jndiName);
+		    throw new SQLException("Could not find ConnectionPoolDataSource with putative " +
+					   "JNDI name, which is neither a String nor a javax.naming.Name: " + jndiName);
 	    }
 	catch( NamingException e )
 	    {
 		//e.printStackTrace();
 		if ( logger.isLoggable( MLevel.WARNING ) )
 		    logger.log( MLevel.WARNING, "An Exception occurred while trying to look up a target DataSource via JNDI!", e );
-		throw SqlUtils.toSQLException( e ); 
+		throw SqlUtils.toSQLException( e );
 	    }
     }
 

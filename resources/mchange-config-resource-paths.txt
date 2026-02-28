@@ -6,6 +6,7 @@
 
 /mchange-commons.properties
 /mchange-log.properties
+/c3p0-default.properties
 /c3p0.properties
 hocon:/reference,/application,/c3p0,/
 /

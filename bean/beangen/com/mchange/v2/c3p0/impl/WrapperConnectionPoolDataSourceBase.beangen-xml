@@ -262,6 +262,13 @@
        <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
     </property>
     <property>
+       <type>boolean</type>
+       <name>cancelAutomaticallyClosedStatements</name>
+       <default-value>C3P0Config.initializeBooleanPropertyVar("cancelAutomaticallyClosedStatements", C3P0Defaults.cancelAutomaticallyClosedStatements())</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+    <property>
        <type>String</type>
        <name>overrideDefaultUser</name>
        <default-value>C3P0Config.initializeStringPropertyVar("overrideDefaultUser", C3P0Defaults.overrideDefaultUser())</default-value>

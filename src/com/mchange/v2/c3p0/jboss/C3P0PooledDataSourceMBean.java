@@ -75,6 +75,9 @@ public interface C3P0PooledDataSourceMBean
     public boolean isAutoCommitOnClose();
     public void setAutoCommitOnClose( boolean autoCommitOnClose ) throws NamingException;
 
+    public boolean isCancelAutomaticallyClosedStatements();
+    public void setCancelAutomaticallyClosedStatements( boolean cancelAutomaticallyClosedStatements ) throws NamingException;
+
     public String getConnectionTesterClassName();
     public void setConnectionTesterClassName( String connectionTesterClassName ) throws PropertyVetoException, NamingException;
 

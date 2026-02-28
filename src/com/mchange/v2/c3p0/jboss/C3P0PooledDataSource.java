@@ -13,6 +13,7 @@ import javax.naming.Name;
 import javax.naming.Context;
 import javax.naming.NameAlreadyBoundException;
 import javax.naming.NamingException;
+import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
 
 public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 {
@@ -54,6 +55,8 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     // Jndi Setup Names
     public void setJndiName(String jndiName) throws NamingException
     {
+        C3P0ImplUtils.jndiAssertNameIsAcceptable( jndiName );
+
 	String unbindName = this.jndiName;
 	this.jndiName = jndiName;
 	rebind( unbindName );
@@ -161,6 +164,15 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
     public void setAutoCommitOnClose( boolean autoCommitOnClose ) throws NamingException
     {
 	combods.setAutoCommitOnClose( autoCommitOnClose );
+	rebind();
+    }
+
+    public boolean isCancelAutomaticallyClosedStatements()
+    { return combods.isCancelAutomaticallyClosedStatements(); }
+
+    public void setCancelAutomaticallyClosedStatements( boolean cancelAutomaticallyClosedStatements ) throws NamingException
+    {
+	combods.setCancelAutomaticallyClosedStatements( cancelAutomaticallyClosedStatements );
 	rebind();
     }
 

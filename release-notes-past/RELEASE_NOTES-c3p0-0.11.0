@@ -1,0 +1,45 @@
+RELEASE NOTES, c3p0-0.11.0
+==========================
+
+The main new feature of c3p0-0.11.0 is fuller support of Java 21+ "loom" virtual
+threads. While as of c3p0-0.10.x, c3p0 itself supported relying on virtual threads
+for its internals, c3p0 continued to manage client threads with Java's native
+wait()/notify() mechanism, which "pins" virtual threads.
+
+Elements relying on wait()/notify() have been rewritten in terms of
+java.util.concurrent.locks.ReentrantLock and its Condition mechanism.
+
+Many thanks to Alex Kormukhin for pointing this out and suggesting the fix.
+
+Other improvements include
+
+  * a long-requested ability to have cancel() called on statements
+    automatically closed;
+    
+  * a double-check to prevent rare occurrences of NullPointerException on Connection checkout.
+
+  * use jdbc-version sensitive proxies to prevent NoClassDefFoundErrors when proxies compiled
+    against newer JDBC versions try to reference e.g. java.sql.ShardingKey
+
+
+Config parameters added:
+------------------------
+    cancelAutomaticallyClosedStatements
+
+
+Deprecated config parameter removed:
+------------------------------------
+    [none]
+
+
+Thanks to...
+
+    Andreas Dangel
+    Alex Kormukhin
+    C3Stones on github
+    Force Rs on github
+    Luis Paolini
+    xtb359 on github
+
+and everyone else I may have forgotten!
+

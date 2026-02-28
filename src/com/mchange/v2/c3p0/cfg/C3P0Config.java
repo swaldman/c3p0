@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import com.mchange.v1.lang.BooleanUtils;
 import com.mchange.v2.c3p0.C3P0Registry;
+import com.mchange.v2.csv.MalformedCsvException;
 
 //all internal maps should be HashMaps (the implementation presumes HashMaps)
 
@@ -439,7 +440,7 @@ public final class C3P0Config
 	return (out.isEmpty() ? null : out );
     }
 
-    public static String getUserOverridesAsString(String configName) throws IOException
+    public static String getUserOverridesAsString(String configName) throws IOException, MalformedCsvException
     {
 	Map userOverrides = getUserOverrides( configName );
 	if (userOverrides == null)

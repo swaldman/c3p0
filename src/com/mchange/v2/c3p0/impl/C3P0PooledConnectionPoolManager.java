@@ -745,6 +745,18 @@ public final class C3P0PooledConnectionPoolManager
         }
     }
 
+    private boolean getCancelAutomaticallyClosedStatements(String userName)
+    {
+        try
+        { return getBoolean("cancelAutomaticallyClosedStatements", userName ); }
+        catch (Exception e)
+        {
+            if ( logger.isLoggable( MLevel.FINE ) )
+                logger.log( MLevel.FINE, "Could not fetch boolean property cancelAutomaticallyClosedStatements", e);
+            return C3P0Defaults.cancelAutomaticallyClosedStatements();
+        }
+    }
+
     private int getCheckoutTimeout(String userName)
     {
         try
@@ -1056,6 +1068,7 @@ public final class C3P0PooledConnectionPoolManager
 								      this.getUnreturnedConnectionTimeout( userName ),
 								      this.getDebugUnreturnedConnectionStackTraces( userName ),
 								      this.getForceSynchronousCheckins( userName ),
+                                                                      this.getCancelAutomaticallyClosedStatements( userName ),
 								      this.getTestConnectionOnCheckout( userName ),
 								      this.getTestConnectionOnCheckin( userName ),
                                                                       this.getAttemptResurrectOnCheckin( userName ),

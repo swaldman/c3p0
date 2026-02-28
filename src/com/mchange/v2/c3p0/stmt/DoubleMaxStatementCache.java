@@ -12,9 +12,15 @@ public final class DoubleMaxStatementCache extends GooGooStatementCache
     int max_statements_per_connection;
     DeathmarchConnectionStatementManager dcsm;
 
-    public DoubleMaxStatementCache(AsynchronousRunner blockingTaskAsyncRunner, AsynchronousRunner deferredStatementDestroyer, int max_statements, int max_statements_per_connection)
+    public DoubleMaxStatementCache(
+      AsynchronousRunner blockingTaskAsyncRunner,
+      AsynchronousRunner deferredStatementDestroyer,
+      int max_statements,
+      int max_statements_per_connection,
+      boolean cancelAutomaticallyClosedStatements
+    )
     {
-	super( blockingTaskAsyncRunner, deferredStatementDestroyer );
+	super( blockingTaskAsyncRunner, deferredStatementDestroyer, cancelAutomaticallyClosedStatements );
 	this.max_statements = max_statements;
 	this.max_statements_per_connection = max_statements_per_connection;
     }

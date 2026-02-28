@@ -7,11 +7,12 @@ public final class GlobalMaxOnlyStatementCache extends GooGooStatementCache
 {
     //MT: protected by parent's mainLock
     int max_statements;
+
     Deathmarch globalDeathmarch = new Deathmarch();
 
-    public GlobalMaxOnlyStatementCache(AsynchronousRunner blockingTaskAsyncRunner, AsynchronousRunner deferredStatementDestroyer, int max_statements)
+    public GlobalMaxOnlyStatementCache(AsynchronousRunner blockingTaskAsyncRunner, AsynchronousRunner deferredStatementDestroyer, int max_statements, boolean cancelAutomaticallyClosedStatements )
     {
-	super( blockingTaskAsyncRunner, deferredStatementDestroyer );
+	super( blockingTaskAsyncRunner, deferredStatementDestroyer, cancelAutomaticallyClosedStatements );
 	this.max_statements = max_statements;
     }
 

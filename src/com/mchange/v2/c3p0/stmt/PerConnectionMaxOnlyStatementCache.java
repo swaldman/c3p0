@@ -9,9 +9,14 @@ public final class PerConnectionMaxOnlyStatementCache extends GooGooStatementCac
     int max_statements_per_connection;
     DeathmarchConnectionStatementManager dcsm;
 
-    public PerConnectionMaxOnlyStatementCache(AsynchronousRunner blockingTaskAsyncRunner, AsynchronousRunner deferredStatementDestroyer, int max_statements_per_connection)
+    public PerConnectionMaxOnlyStatementCache (
+       AsynchronousRunner blockingTaskAsyncRunner,
+       AsynchronousRunner deferredStatementDestroyer,
+       int max_statements_per_connection,
+       boolean cancelAutomaticallyClosedStatements
+    )
     {
-	super( blockingTaskAsyncRunner, deferredStatementDestroyer );
+	super( blockingTaskAsyncRunner, deferredStatementDestroyer, cancelAutomaticallyClosedStatements );
 	this.max_statements_per_connection = max_statements_per_connection;
     }
 
