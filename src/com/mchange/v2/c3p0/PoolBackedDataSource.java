@@ -4,6 +4,16 @@ import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;
 
 public final class PoolBackedDataSource extends AbstractPoolBackedDataSource implements PooledDataSource
 {
+    public static String securelyStringify(PoolBackedDataSource dmds) throws Exception
+    { return AbstractPoolBackedDataSource.securelyStringify(dmds); }
+
+    public static PoolBackedDataSource constructSecurelyStringified( String stringified ) throws Exception
+    {
+        PoolBackedDataSource out = (PoolBackedDataSource) AbstractPoolBackedDataSource.constructSecurelyStringified( stringified, new PoolBackedDataSource(false) );
+        C3P0Registry.reregister( out );
+        return out;
+    }
+
     public PoolBackedDataSource( boolean autoregister )
     { super( autoregister ); }
 

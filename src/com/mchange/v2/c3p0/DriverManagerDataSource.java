@@ -21,6 +21,16 @@ import com.mchange.v2.c3p0.impl.DriverManagerDataSourceBase;
 
 public final class DriverManagerDataSource extends DriverManagerDataSourceBase implements DataSource
 {
+    public static String securelyStringify(DriverManagerDataSource dmds) throws Exception
+    { return DriverManagerDataSourceBase.securelyStringify(dmds); }
+
+    public static DriverManagerDataSource constructSecurelyStringified( String stringified ) throws Exception
+    {
+        DriverManagerDataSource out = (DriverManagerDataSource) DriverManagerDataSourceBase.constructSecurelyStringified( stringified, new DriverManagerDataSource(false) );
+        C3P0Registry.reregister( out );
+        return out;
+    }
+
     final static MLogger logger;
 
     static

@@ -2,10 +2,13 @@ package com.mchange.v2.c3p0.test;
 
 import java.sql.*;
 import javax.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import com.mchange.v2.c3p0.*;
 import com.mchange.v1.db.sql.*;
 import javax.naming.Reference;
 import javax.naming.Referenceable;
+import com.mchange.v2.beans.BeansUtils;
 import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.c3p0.DriverManagerDataSource;
@@ -65,7 +68,7 @@ public final class TestRefSerStuff
 	    {
 		con = ds.getConnection();
 		stmt = con.createStatement();
-		int i = stmt.executeUpdate("INSERT INTO TRSS_TABLE VALUES ('" + 
+		int i = stmt.executeUpdate("INSERT INTO TRSS_TABLE VALUES ('" +
 					   System.currentTimeMillis() + "')");
 		if (i != 1)
 		    throw new SQLException("Insert failed somehow strange!");
@@ -93,32 +96,43 @@ public final class TestRefSerStuff
 	doSomething( checkMe );
 	System.err.println("\tcreated:   " + toString(checkMe));
 	DataSource afterSer = (DataSource) SerializableUtils.testSerializeDeserialize( checkMe );
-	doSomething( afterSer );
+        List ignoreProps = new ArrayList();
+        ignoreProps.add("connection");
+        ignoreProps.add("propertyChangeListeners");
+        ignoreProps.add("upTimeMillisDefaultUser");
+        ignoreProps.add("vetoableChangeListeners");
+        boolean serTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterSer, ignoreProps);
 	System.err.println("\tafter ser: " + toString(afterSer));
+        if (!serTestOutcome)
+            throw new Exception("Serialization failed to yield an equivalent datasource.");
+	doSomething( afterSer );
 	Reference ref = ((Referenceable) checkMe).getReference();
 //  		    System.err.println("ref: " + ref);
 //  		    System.err.println("Factory Class: " + ref.getFactoryClassName());
-	DataSource afterRef = (DataSource) ReferenceableUtils.referenceToObject( ref, 
-										 null, 
-										 null, 
+	DataSource afterRef = (DataSource) ReferenceableUtils.referenceToObject( ref,
+										 null,
+										 null,
 										 null,
                                                                                  C3P0Config.getMultiPropertiesConfig() );
+        boolean refTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterRef, ignoreProps);
 //  		    System.err.println("afterRef data source: " + afterRef);
-	doSomething( afterRef );
 	System.err.println("\tafter ref: " + toString(afterRef));
+        if (!refTestOutcome)
+            throw new Exception("De-Reference-ing failed to yield an equivalent datasource.");
+	doSomething( afterRef );
     }
 
     public static void main( String[] argv )
     {
         if (argv.length > 0)
         {
-            System.err.println( TestRefSerStuff.class.getName() + 
+            System.err.println( TestRefSerStuff.class.getName() +
                                 " now requires no args. Please set everything in standard c3p0 config files.");
-            return;                    
+            return;
         }
 
         System.err.println("Starting TestRefSerStuff.");
-        
+
         /*
 	String jdbcUrl = null;
 	String username = null;
@@ -137,11 +151,11 @@ public final class TestRefSerStuff
 	    }
 	else
 	    usage();
-	
+
 	if (! jdbcUrl.startsWith("jdbc:") )
 	    usage();
 	*/
-	
+
 	try
 	    {
 		DriverManagerDataSource dmds = new DriverManagerDataSource();
@@ -155,15 +169,15 @@ public final class TestRefSerStuff
 
 		System.err.println("DriverManagerDataSource:");
 		doTest( dmds );
-		
+
 		WrapperConnectionPoolDataSource wcpds = new WrapperConnectionPoolDataSource();
 		wcpds.setNestedDataSource( dmds );
 		PoolBackedDataSource pbds = new PoolBackedDataSource();
 		pbds.setConnectionPoolDataSource( wcpds );
-		
+
 		System.err.println("PoolBackedDataSource:");
 		doTest( pbds );
-        
+
 		ComboPooledDataSource cpds = new ComboPooledDataSource();
 		doTest( cpds );
 	    }

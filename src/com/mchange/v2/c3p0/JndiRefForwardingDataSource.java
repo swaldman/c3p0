@@ -26,6 +26,16 @@ import com.mchange.v2.c3p0.impl.JndiRefDataSourceBase;
 
 final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements DataSource
 {
+    public static String securelyStringify(JndiRefForwardingDataSource dmds) throws Exception
+    { return JndiRefDataSourceBase.securelyStringify(dmds); }
+
+    public static JndiRefForwardingDataSource constructSecurelyStringified( String stringified ) throws Exception
+    {
+        JndiRefForwardingDataSource out = (JndiRefForwardingDataSource) JndiRefDataSourceBase.constructSecurelyStringified( stringified, new JndiRefForwardingDataSource(false) );
+        C3P0Registry.reregister( out );
+        return out;
+    }
+
     final static MLogger logger = MLog.getLogger( JndiRefForwardingDataSource.class );
 
     //MT: protected by this' lock in all cases

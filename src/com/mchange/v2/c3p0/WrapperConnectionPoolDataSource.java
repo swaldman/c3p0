@@ -20,6 +20,17 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 {
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
 
+    public static String securelyStringify(DriverManagerDataSource dmds) throws Exception
+    { return WrapperConnectionPoolDataSource.securelyStringify(dmds); }
+
+    public static WrapperConnectionPoolDataSource constructSecurelyStringified( String stringified ) throws Exception
+    {
+        WrapperConnectionPoolDataSource out = (WrapperConnectionPoolDataSource) WrapperConnectionPoolDataSourceBase.constructSecurelyStringified( stringified, new WrapperConnectionPoolDataSource(false) );
+        out.setUserOverrides( C3P0ImplUtils.parseUserOverridesAsString( out.getUserOverridesAsString() ) );// an unmodifiable map
+        C3P0Registry.reregister( out );
+        return out;
+    }
+
     //MT: protected by this' lock
     Map userOverrides;
 

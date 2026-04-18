@@ -13,6 +13,8 @@ import com.mchange.v1.xml.DomParseUtils;
 
 import com.mchange.v2.io.IndentedWriter;
 
+import com.mchange.v2.naming.CsvSecurelyStringifiableBeangenGeneratorExtension;
+
 public class BeangenDataSourceGenerator
 {
     private final static String BGX_SUFFIX     = ".beangen-xml";
@@ -105,10 +107,15 @@ public class BeangenDataSourceGenerator
 
 		PropertyReferenceableExtension prex = new PropertyReferenceableExtension();
 		prex.setUseExplicitReferenceProperties( true );
-		// we use the string version to creating dependencies between the bean generator and c3p0 classes
+		// we use the string version to avoid creating dependencies between the bean generator and c3p0 classes
 		//prex.setFactoryClassName( C3P0JavaBeanObjectFactory.class.getName() );
 		prex.setFactoryClassName( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
+                prex.setPropertiesConfigExpression( "com.mchange.v2.c3p0.cfg.C3P0Config.getMultiPropertiesConfig()" );
 		gen.addExtension( prex );
+
+                CsvSecurelyStringifiableBeangenGeneratorExtension cssbge = new CsvSecurelyStringifiableBeangenGeneratorExtension();
+                cssbge.setBaseClass(true);
+                gen.addExtension( cssbge );
 
 		BooleanInitIdentityTokenConstructortorGeneratorExtension biitcge = new BooleanInitIdentityTokenConstructortorGeneratorExtension();
 		gen.addExtension( biitcge );

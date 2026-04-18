@@ -23,6 +23,7 @@ import com.mchange.v2.log.MLogger;
 import com.mchange.v2.naming.JavaBeanReferenceMaker;
 import com.mchange.v2.naming.JavaBeanObjectFactory;
 import com.mchange.v2.naming.ReferenceMaker;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 
 public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvable implements ConnectionPoolDataSource, Serializable, Referenceable
 {
@@ -351,7 +352,7 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     }
 
     public Reference getReference() throws NamingException
-    { return referenceMaker.createReference( this ); }
+    { return referenceMaker.createReference( this, C3P0Config.getMultiPropertiesConfig() ); }
 
     //implementation of javax.sql.ConnectionPoolDataSource
     public PooledConnection getPooledConnection()

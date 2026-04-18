@@ -39,7 +39,8 @@ val testPublishLocalCommand = Seq(
 )
 
 println("Publishing main library to Sonatype.")
-os.call(sonatypePublishCommand, env=Map("MILL_SONATYPE_USERNAME"->sonatypeUsername, "MILL_SONATYPE_PASSWORD"->sonatypePassword, "MILL_PGP_PASSPHRASE" -> new String(gpgPassphrase)))
+//os.call(sonatypePublishCommand, env=Map("MILL_SONATYPE_USERNAME"->sonatypeUsername, "MILL_SONATYPE_PASSWORD"->sonatypePassword, "MILL_PGP_PASSPHRASE" -> new String(gpgPassphrase)))
+println("PUBLICATION TO SONATYPE IS CURRENTLY BROKEN IN THIS SCRIPT. For now, publish all modules without releasing, then drop the test module on Sonatype central.")
 
 println("Publishing test library to local ivy repository.")
 os.call(testPublishLocalCommand)
