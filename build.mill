@@ -284,6 +284,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     // when you want to generate tests you can try under old JVMs
     override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
+    def testParallelism = false
+
     /**
       * A place for resources we want seen by local (test) runs, but
       * should not be published (even locally) into the c3p0-test jar,

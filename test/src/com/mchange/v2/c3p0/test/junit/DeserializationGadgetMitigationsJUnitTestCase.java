@@ -275,6 +275,8 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
         WrapperConnectionPoolDataSource wcpds = new WrapperConnectionPoolDataSource();
         try
         {
+            System.err.println("A stack trace of a failure to parse userOverridesAsString is expected!");
+
             // Three-element CSV lines are invalid for userOverrides
             wcpds.setUserOverridesAsString( "\"a\",\"b\",\"c\"\r\n" );
             fail( "Invalid userOverridesAsString should throw PropertyVetoException" );
