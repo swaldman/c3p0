@@ -339,6 +339,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       //"-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" ::
       //"-verbose:class"
       //"-ea" ::
+      //"-XX:MaxJavaStackTraceDepth=0" ::
       "-Djava.rmi.server.hostname=localhost" ::
       s"""-Djava.util.logging.config.file=${moduleDir / "conf-logging" / "logging.properties"}""" ::
       Nil

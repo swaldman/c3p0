@@ -20,8 +20,8 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 {
     final static MLogger logger = MLog.getLogger( WrapperConnectionPoolDataSource.class );
 
-    public static String securelyStringify(DriverManagerDataSource dmds) throws Exception
-    { return WrapperConnectionPoolDataSource.securelyStringify(dmds); }
+    public static String securelyStringify(WrapperConnectionPoolDataSource wcpds) throws Exception
+    { return WrapperConnectionPoolDataSourceBase.securelyStringify(wcpds); }
 
     public static WrapperConnectionPoolDataSource constructSecurelyStringified( String stringified ) throws Exception
     {

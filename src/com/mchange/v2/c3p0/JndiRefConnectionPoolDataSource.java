@@ -349,6 +349,8 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	referenceMaker.addReferenceProperty("testConnectionOnCheckout");
 	referenceMaker.addReferenceProperty("unreturnedConnectionTimeout");
 	referenceMaker.addReferenceProperty("userOverridesAsString");
+
+        referenceMaker.setReferencePropertyOverrider( com.mchange.v2.c3p0.impl.C3P0JavaBeanReferencePropertyOverrider.INSTANCE );
     }
 
     public Reference getReference() throws NamingException

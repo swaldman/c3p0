@@ -101,20 +101,20 @@ public final class TestRefSerStuff
         ignoreProps.add("propertyChangeListeners");
         ignoreProps.add("upTimeMillisDefaultUser");
         ignoreProps.add("vetoableChangeListeners");
-        boolean serTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterSer, ignoreProps);
+        boolean serTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterSer, ignoreProps, true );
 	System.err.println("\tafter ser: " + toString(afterSer));
         if (!serTestOutcome)
             throw new Exception("Serialization failed to yield an equivalent datasource.");
 	doSomething( afterSer );
 	Reference ref = ((Referenceable) checkMe).getReference();
-//  		    System.err.println("ref: " + ref);
-//  		    System.err.println("Factory Class: " + ref.getFactoryClassName());
+        //System.err.println("ref: " + ref);
+        //System.err.println("Factory Class: " + ref.getFactoryClassName());
 	DataSource afterRef = (DataSource) ReferenceableUtils.referenceToObject( ref,
 										 null,
 										 null,
 										 null,
                                                                                  C3P0Config.getMultiPropertiesConfig() );
-        boolean refTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterRef, ignoreProps);
+        boolean refTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterRef, ignoreProps, true );
 //  		    System.err.println("afterRef data source: " + afterRef);
 	System.err.println("\tafter ref: " + toString(afterRef));
         if (!refTestOutcome)
@@ -179,6 +179,7 @@ public final class TestRefSerStuff
 		doTest( pbds );
 
 		ComboPooledDataSource cpds = new ComboPooledDataSource();
+                //cpds.setMaxPoolSize(63);
 		doTest( cpds );
 	    }
 	catch ( Exception e )

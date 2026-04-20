@@ -111,10 +111,13 @@ public class BeangenDataSourceGenerator
 		//prex.setFactoryClassName( C3P0JavaBeanObjectFactory.class.getName() );
 		prex.setFactoryClassName( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
                 prex.setPropertiesConfigExpression( "com.mchange.v2.c3p0.cfg.C3P0Config.getMultiPropertiesConfig()" );
+                prex.setReferencePropertyOverriderExpression( "com.mchange.v2.c3p0.impl.C3P0JavaBeanReferencePropertyOverrider.INSTANCE" );
 		gen.addExtension( prex );
 
                 CsvSecurelyStringifiableBeangenGeneratorExtension cssbge = new CsvSecurelyStringifiableBeangenGeneratorExtension();
                 cssbge.setBaseClass(true);
+                cssbge.setEncodeOverrideFunction("extensions","C3P0ImplUtils.stringifyExtensions");   // for PoolBackedDataSourceBase only
+                cssbge.setDecodeOverrideFunction("extensions","C3P0ImplUtils.unstringifyExtensions"); // for PoolBackedDataSourceBase only
                 gen.addExtension( cssbge );
 
 		BooleanInitIdentityTokenConstructortorGeneratorExtension biitcge = new BooleanInitIdentityTokenConstructortorGeneratorExtension();

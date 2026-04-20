@@ -355,6 +355,34 @@ public final class C3P0ImplUtils
             return Collections.EMPTY_MAP;
     }
 
+    public static String stringifyExtensions(Map extensions) throws IOException, MalformedCsvException
+    {
+        Writer w = new StringWriter();
+        String[] extensionKeyVal = new String[2];
+        for (Object ext : extensions.keySet())
+            {
+                extensionKeyVal[0] = (String) ext;
+                extensionKeyVal[1] = (String) extensions.get(ext);
+                w.append(FastCsvUtils.generateCsvLineQuotedUnterminated(extensionKeyVal));
+                w.append("\r\n");
+            }
+        return w.toString();
+    }
+
+    public static Map unstringifyExtensions(String stringified) throws IOException, MalformedCsvException
+    {
+        Map out = new HashMap();
+        BufferedReader br = new BufferedReader(new StringReader(stringified));
+        String line;
+        while ((line = br.readLine()) != null)
+        {
+            String[] items = FastCsvUtils.csvSplitLine( line );
+            out.put(items[0],items[1]);
+        }
+        return Collections.unmodifiableMap(out);
+    }
+
+
     public static void runWithContextClassLoaderAndPrivileges( final String contextClassLoaderSource, final boolean privilege_spawned_threads, final Runnable runnable )
     {
 	class ContextClassLoaderPoolsInitThread extends Thread

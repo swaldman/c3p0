@@ -4,12 +4,19 @@ import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.Set;
 import com.mchange.v2.c3p0.C3P0Registry;
+import com.mchange.v2.c3p0.cfg.C3P0CurrentConfigFinder;
 import com.mchange.v2.naming.JavaBeanObjectFactory;
 
 public class C3P0JavaBeanObjectFactory extends JavaBeanObjectFactory
 {
     private final static Class[]  CTOR_ARG_TYPES = new Class[] { boolean.class };
     private final static Object[] CTOR_ARGS      = new Object[] { Boolean.FALSE };
+
+    public C3P0JavaBeanObjectFactory()
+    {
+        this.setReferencePropertyOverrider(C3P0JavaBeanReferencePropertyOverrider.INSTANCE);
+        this.setConfigFinder(C3P0CurrentConfigFinder.INSTANCE);
+    }
 
     protected Object createBlankInstance(Class beanClass) throws Exception
     {
