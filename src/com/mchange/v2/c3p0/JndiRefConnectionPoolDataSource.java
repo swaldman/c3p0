@@ -21,7 +21,6 @@ import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
 import com.mchange.v2.naming.JavaBeanReferenceMaker;
-import com.mchange.v2.naming.JavaBeanObjectFactory;
 import com.mchange.v2.naming.ReferenceMaker;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 

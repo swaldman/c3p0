@@ -1993,8 +1993,8 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<dt><a name="com.mchange.v2.naming.objectFactoryWhitelist"></a>com.mchange.v2.naming.objectFactoryWhitelist</dt>
 	<dd>
 	  <div class="propdesc">
-            By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory,com.mchange.v2.naming.JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
-            classes c3p0 uses when constructing its own references.
+            By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
+            c3p0 uses when constructing its own references.
             In general, it's comma separated list of fully qualified class name expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
             <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
             will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
