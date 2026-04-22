@@ -94,7 +94,7 @@ public final class TestRefSerStuff
     static void doTest(DataSource checkMe) throws Exception
     {
 	doSomething( checkMe );
-	System.err.println("\tcreated:   " + toString(checkMe));
+	System.err.println("created:\n" + toString(checkMe));
 	DataSource afterSer = (DataSource) SerializableUtils.testSerializeDeserialize( checkMe );
         List ignoreProps = new ArrayList();
         ignoreProps.add("connection");
@@ -102,7 +102,7 @@ public final class TestRefSerStuff
         ignoreProps.add("upTimeMillisDefaultUser");
         ignoreProps.add("vetoableChangeListeners");
         boolean serTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterSer, ignoreProps, true );
-	System.err.println("\tafter ser: " + toString(afterSer));
+	System.err.println("after ser:\n" + toString(afterSer));
         if (!serTestOutcome)
             throw new Exception("Serialization failed to yield an equivalent datasource.");
 	doSomething( afterSer );
@@ -116,7 +116,7 @@ public final class TestRefSerStuff
                                                                                  C3P0Config.getMultiPropertiesConfig() );
         boolean refTestOutcome = BeansUtils.equalsByAccessiblePropertiesVerbose( checkMe, afterRef, ignoreProps, true );
 //  		    System.err.println("afterRef data source: " + afterRef);
-	System.err.println("\tafter ref: " + toString(afterRef));
+	System.err.println("after ref:\n" + toString(afterRef));
         if (!refTestOutcome)
             throw new Exception("De-Reference-ing failed to yield an equivalent datasource.");
 	doSomething( afterRef );
