@@ -15,7 +15,7 @@
 > [!WARNING]
 > c3p0 and its dependencies have been used as [deserialization gadgets](https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69).
 > Please see [the docs](https://www.mchange.com/projects/c3p0/#security-note) for more information.
-> The vulnerabilities that enable this are addressed as of c3p0-0.12.0.
+> The vulnerabilities that enable this are addressed as of c3p0-0.13.0.
 > Please update your applications!
 
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
@@ -38,7 +38,7 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 ### Building c3p0
 
-For now (v0.12.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
+For now (v0.13.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
 
