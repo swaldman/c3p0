@@ -1014,8 +1014,17 @@ public final class C3P0PooledConnectionPool
         try
 	    {
 		pcon.removeConnectionEventListener( cl );
+
+                // be sure to call this prior to re-check in,
+                // otherwise DBMSs might try to clean up resources from
+                // an already re-used Connection.
+                //
+                // thanks to Krrish (ota0912 on github)
+                markEndRequest( pcon );
+
+                // mark connection no longer in use and recheck-in
+                // after the DBMS may have cleaned up subsidiary resources
 		scacheUnmarkConnectionInUseAndCheckin( pcon );
-		markEndRequest( pcon );
 	    }
         catch (ResourcePoolException e)
         { throw SqlUtils.toSQLException(e); }

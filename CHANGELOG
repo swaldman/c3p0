@@ -1,3 +1,5 @@
+	-- Ensure sessions are marked as endRequest() is called prior to check-in, to eliminate
+	   race between DBMS cleanup and checkout by a new client. Thanks Krrish (ota0912 on github).
         -- Take generic JavaBeanObjectFactory out of the whitelist of object factories,
 	   com.mchange.v2.naming.objectFactoryWhitelist, mchange-commons-java ReferenceableUtils
 	   is willing to dereference. Only C3P0JavaBeanObjectFactory should be used.
