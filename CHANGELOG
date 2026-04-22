@@ -1,3 +1,33 @@
+        -- Take generic JavaBeanObjectFactory out of the whitelist of object factories,
+	   com.mchange.v2.naming.objectFactoryWhitelist, mchange-commons-java ReferenceableUtils
+	   is willing to dereference. Only C3P0JavaBeanObjectFactory should be used.
+	-- Modify C3P0JavaBeanObjectFactory to use C3P0JavaBeanReferencePropertyOverrider. 
+	-- Modify the JavaBeanReferenceMaker employed by c3p0 beans to use C3P0JavaBeanReferencePropertyOverrider
+	-- Define C3P0JavaBeanReferencePropertyOverrider, supporting the serialization and deserialization
+	   of user-defined config key value pairs (the 'extensions' property)
+	-- Add support for extensions, in the form of JavaBeanReferencePropertyOverrider, that
+	   allow javax.naming.Referenceable JavaBeans that include non-String, non-coerceable-to-string,
+	   non-SecurelyStringifiable properties to use some custom serialization to a Reference.
+	   Add support both the JavaBeanReferenceMaker and JavaBeanObjectFactory for supporting
+	   such extensions.
+	-- Replace with a CSV format internal use of Java serialization by JavaBeanObjectFactory
+	   and JavaBeanReferenceMaker when tracking reference properties. [in mchange-commons-java]
+	-- Eliminate support for decoding BinaryRefAddrs via Java (de)serialization in
+	   JavaBeanObjectFactory. The capability still exists, but one must explicitly
+	   extend JavaBeanObjectFactory in order to support it. No existing classes in
+	   c3p0 or mchange-commons-java now use Java serialization to unpickle objects
+	   from References.
+	-- Add support for SecurelySerializable to c3p0's code-generated bean superclasses,
+	   and to the concrete derived beans as well.
+	-- Define CsvSecurelyStringifiableBeangenGeneratorExtension to enable code-generated Java beans
+	   that support the new SecurelyStringifiable alternative serialization  [in mchange-commons-java]
+	-- When generating references with JavaBeanReferenceMaker, gate use of Java-serialization
+	   to define properties behind a new false-biased configuration parameter,
+	   com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr. (This should almost
+	   never be reset to true.) [in mchange-commons-java]
+	-- Define in com.mchange.v2.naming a SecurelyStringifiable mechanism, intended
+	   to replace the use of dangerous Java serialization in the construction of
+	   references [in mchange-commons-java]
 c3p0-0.12.0
 	-- Replace com.mchange.v2.naming.permitNonlocalJndiNames with more configurable
 	   com.mchange.v2.naming.nameGuardClassName. By default, it is null, and the same

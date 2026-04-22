@@ -1974,13 +1974,6 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
       </p>
       <dl class="log_properties">
 	<a name="security_properties_box"></a>
-	<dt><a name="com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation"></a>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</dt>
-	<dd>
-	  <div class="propdesc">
-            <tt>false</tt> by default. If reset to <tt>true</tt>, lookups of <tt>javax.naming.Reference</tt> that download remote
-            code will be permitted. This is very dangerous.
-	  </div>
-	</dd>
 	<dt><a name="com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment"></a>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</dt>
 	<dd>
 	  <div class="propdesc">
@@ -1990,16 +1983,27 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
             which may specify the URL an unsafe or malicious name service.
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.naming.objectFactoryWhitelist"></a>com.mchange.v2.naming.objectFactoryWhitelist</dt>
+	<dt><a name="com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr"></a>com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr</dt>
 	<dd>
 	  <div class="propdesc">
-            By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
-            c3p0 uses when constructing its own references.
-            In general, it's comma separated list of fully qualified class name expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
-            <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
-            will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
-            value and the library config value should be very rare. Such differences might result if System properties are changed at runtime, after c3p0 config has been read
-            and cached.)</i>
+            <tt>false</tt> by default. If reset to <tt>true</tt>, when <tt>javax.naming.Reference</tt> instances are constructed, if they contain
+            properties that cannot otherwise be represented or serialized, Java serialization may be used to store the value of these properties.
+            <b><tt>c3p0</tt> no longer uses or relies upon this capablility.</b> Only users building custom extensions with unusual references
+            would ever have use for this capability, and they should avoid it given how dangerous a vector for malware Java deserialization
+            has proven to be.<br><br>If you do wish to construct <tt>Reference</tt> instances containing Serialized objects, keep in mind that c3p0's
+            (and mchange-commons-java's) ObjectFactory instances no longer <i>deserialize</i> these properties by default. You'd need to
+            <ol>
+              <li>Subclass <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt> or <tt>com.mchange.v2.naming.JavaBeanObjectFactory</tt></li>
+              <li>
+                Override <tt>protected void handleDeserializeBinaryRefAddressContent(String propertyName, Map out, byte[] content) throws ClassNotFoundException, IOException</tt>
+                with a call to <tt>dangerousDeserializeBinaryRefAddressContent(propertyName, out, content)</tt>, skipping the default implementation,
+                which is to fail with a warning.
+              </li>
+              <li>
+                Make sure your setting for <a href="#com.mchange.v2.naming.objectFactoryWhitelist"><tt>com.mchange.v2.naming.objectFactoryWhitelist</tt></a>
+                includes the fully-qualified-name of your new <tt>ObjectFactory</tt> implementation. If you will be referencing/derefencing c3p0 DataSources,
+                your whitelist must also include <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>.
+              </li>    
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.nameGuardClassName"></a>com.mchange.v2.naming.nameGuardClassName</dt>
@@ -2034,6 +2038,25 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
                 disabling name-based security restrictions. Please use only with great care.</p>
               </li>
             </ul>
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.objectFactoryWhitelist"></a>com.mchange.v2.naming.objectFactoryWhitelist</dt>
+	<dd>
+	  <div class="propdesc">
+            By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
+            c3p0 uses when constructing its own references.
+            In general, it's comma separated list of fully qualified class name expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
+            <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
+            will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
+            value and the library config value should be very rare. Such differences might result if System properties are changed at runtime, after c3p0 config has been read
+            and cached.)</i>
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation"></a>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</dt>
+	<dd>
+	  <div class="propdesc">
+            <tt>false</tt> by default. If reset to <tt>true</tt>, lookups of <tt>javax.naming.Reference</tt> that download remote
+            code will be permitted. This is very dangerous.
 	  </div>
 	</dd>
       </dl>
