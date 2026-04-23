@@ -19,6 +19,7 @@
 >
 > c3p0-0.13.0 eliminates from c3p0's `CLASSPATH`
 > the `javax.naming.Reference` &rarr; Java serialization pipeline that makes possible the mischief.
+>
 > Please update your applications!
 
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
