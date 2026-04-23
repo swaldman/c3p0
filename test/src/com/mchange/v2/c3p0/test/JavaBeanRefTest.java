@@ -18,12 +18,17 @@ public final class JavaBeanRefTest
                 Map nonDefaultExtensions = new HashMap();
                 nonDefaultExtensions.put("weirdKey","weirdValue");
                 cpds.setExtensions( nonDefaultExtensions );
+                Properties props = new Properties();
+                props.setProperty("poop","scoop");
+                props.setProperty("noop","doop");
+                cpds.setProperties(props);
 		Reference ref = cpds.getReference();
 		// ComboPooledDataSource cpdsJBOF = (ComboPooledDataSource) (new JavaBeanObjectFactory()).getObjectInstance( ref, null, null, null ); // no longer supported
 		ComboPooledDataSource cpdsCJBOF = (ComboPooledDataSource) (new C3P0JavaBeanObjectFactory()).getObjectInstance( ref, null, null, null );
 		System.err.println( "cpds:\n"      + cpds.toString(true) );
 		// System.err.println( "cpdsJBOF: "  + cpdsJBOF.toString(true) );
 		System.err.println( "cpdsCJBOF:\n" + cpdsCJBOF.toString(true) );
+                System.err.println( "cpdsCJBOF toString(true) equality? " + cpds.toString(true).equals(cpdsCJBOF.toString(true)) );
 	    }
 	catch (Exception e)
 	    { e.printStackTrace(); }
