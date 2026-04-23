@@ -374,7 +374,7 @@ public final class C3P0ImplUtils
         Map out = new HashMap();
         BufferedReader br = new BufferedReader(new StringReader(stringified));
         String line;
-        while ((line = br.readLine()) != null)
+        while ((line = FastCsvUtils.csvReadLine(br)) != null)
         {
             String[] items = FastCsvUtils.csvSplitLine( line );
             out.put(items[0],items[1]);
