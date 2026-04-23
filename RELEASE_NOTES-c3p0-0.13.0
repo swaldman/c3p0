@@ -1,0 +1,69 @@
+RELEASE NOTES, c3p0-0.13.0
+==========================
+
+This release addresses remaining security issues deriving from c3p0 and its
+supporting libraries using Java serialization in constructing and decoding
+JNDI javax.naming.Reference objects.
+
+Prior to c3p0-0.12.0 / mchange-commons-java-0.4.0, attackers could craft
+javax.naming.Reference objects, which upon dereferencing, would download
+and execute malicious code.
+
+c3p0-0.12.0 eliminated the most critical issues, preventing download of
+code from arbitrary factoryClassLocation URLs, preventing JNDI lookups
+from remote name services, and preventing use of potentially malicious
+configuration (initial context environment) that might have been serialized
+into references.
+
+However, c3p0's own references still relied upon Java serialization of
+nested objects. So, subject to restrictions that ony code on the application's
+codebase could be accessed, only using the application's default JNDI config,
+it remained possible for deserialization of objects embedded in References
+to execute code by, for example, causing a superclass constructor of
+whatever is getting deserialized to be invoked.
+
+This is a pretty narrow attack surface. A malicious Reference could only
+cause execution through rather restrictive pathways, and only of code
+already on the CLASSPATH.
+
+Nevertheless, modern applications have a lot of dependencies, and so a lot
+of code on the CLASSPATH for a clever attacker to work with. c3p0's
+use of Java serialization in resolving javax.naming.Reference objects could
+still play a role in a chain of invocations that might constitute an effective
+attack.
+
+c3p0-0.13.0 / mchange-commons-java-0.5.0 eliminate this pathway entirely.
+c3p0 and its dependent libraries no longer create or decode javax.naming.Reference
+objects containing Java-serialized binary objects. All items in c3p0's references
+are now stored in String formats. The complicated and dangerous
+machinery of Java serialization is eschewed entirely.
+
+In particular, com.mchange.v2.naming.JavaBeanObjectFactory has been hardened,
+so it will never unmarshall Java-serialized BinaryRefAddr components. That
+eldrich magic is disabled, unless users actively re-enable it via their own
+subclass of that ObjectFactory.
+
+See https://www.mchange.com/projects/c3p0/#configuring_security for
+details, particularly documentation of config parameter
+
+   com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr
+
+---
+
+This version also addresses a rare race condition that occurs because
+end-of-session was marked (using JDBC 4.3 endRequest()) *after* Connections
+were checked in to the pool.
+
+JDBC drivers sometimes handle endRequest() with cleanup operations on the
+Connection. If a new client checks out a Connection prior to the endRequest()
+call, which was possible because endRequest() was called after the Connection
+was returned to the pool, then the new client might see their Statements and
+ResultSets cleaned out from underneath them.
+
+c3p0 now ensures that endRequest() is called prior to the return of the
+Connection to the pool.
+
+Thanks to Krrish (ota0912 on GitHub) for discovering and analyzing this issue.
+
+
+

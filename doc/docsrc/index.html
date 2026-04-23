@@ -1989,7 +1989,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
             <tt>false</tt> by default. If reset to <tt>true</tt>, when <tt>javax.naming.Reference</tt> instances are constructed, if they contain
             properties that cannot otherwise be represented or serialized, Java serialization may be used to store the value of these properties.
             <b><tt>c3p0</tt> no longer uses or relies upon this capablility.</b> Only users building custom extensions with unusual references
-            would ever have use for this capability, and they should avoid it given how dangerous a vector for malware Java deserialization
+            would ever have use for this capability, and they should avoid it given how dangerous a vector for malware Java serialization
             has proven to be.<br><br>If you do wish to construct <tt>Reference</tt> instances containing Serialized objects, keep in mind that c3p0's
             (and mchange-commons-java's) ObjectFactory instances no longer <i>deserialize</i> these properties by default. You'd need to
             <ol>
@@ -2003,7 +2003,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
                 Make sure your setting for <a href="#com.mchange.v2.naming.objectFactoryWhitelist"><tt>com.mchange.v2.naming.objectFactoryWhitelist</tt></a>
                 includes the fully-qualified-name of your new <tt>ObjectFactory</tt> implementation. If you will be referencing/derefencing c3p0 DataSources,
                 your whitelist must also include <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>.
-              </li>    
+              </li>
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.nameGuardClassName"></a>com.mchange.v2.naming.nameGuardClassName</dt>
