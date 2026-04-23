@@ -286,7 +286,7 @@
     </h1>
     <div class="top_boilerplate">
       <p>by Steve Waldman &lt;<a href="mailto:swaldman@mchange.com">swaldman@mchange.com</a>&gt;</p>
-      <p>&copy; @c3p0.copyright.year@ Machinery For Change, LLC</p>
+      <p>&copy; @c3p0.copyright.year@ Machinery For Change LLC</p>
       <p><i>
 	  This software is made available for use, modification, and redistribution,
 	  under the terms of the
@@ -340,6 +340,10 @@
         for your deployment.
         Please see <a href="#configuring_security">Configuring Security</a> below for information on how, and for more
         background on the security issues.
+      </p>
+      <p>
+        c3p0-0.13.0, with mchange-commons-java-0.5.0, eliminates all use of Java serialization in resolving <tt>Reference</tt>s, definitively
+        ending any possibility of misuse of c3p0-related JNDI utilities to construct deserialization gadgets.
       </p>
       <p>
         Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about this issue.
