@@ -15,7 +15,9 @@
 > [!WARNING]
 > c3p0 and its dependencies have been used as [deserialization gadgets](https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69).
 > Please see [the docs](https://www.mchange.com/projects/c3p0/#security-note) for more information.
-> The vulnerabilities that enable this are addressed as of c3p0-0.12.0. c3p0-0.13.0 eliminates from c3p0's `CLASSPATH`
+> The vulnerabilities that enable this are addressed as of c3p0-0.12.0.
+>
+> c3p0-0.13.0 eliminates from c3p0's `CLASSPATH`
 > the `javax.naming.Reference` &rarr; Java serialization pipeline that makes possible the mischief.
 > Please update your applications!
 
