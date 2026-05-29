@@ -6,7 +6,7 @@ import mill._, scalalib._, meta._
 
 object `package` extends MillBuildRootModule {
 
-  val McjVersion = "0.5.1-SNAPSHOT"
+  val McjVersion = "0.6.0-SNAPSHOT"
 
   // override def scalaVersion = Task("3.3.6")
 
