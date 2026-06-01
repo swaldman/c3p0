@@ -59,6 +59,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
               classPath = runClasspath().map(_.path),
               jvmArgs = forkArgs(),
               env = forkEnv(),
+              stdout = os.Inherit, // otherwise stuff printed to stdout gets captured in the never used CommandResult rather than streamed to the terminal as desired
               mainArgs = args,
               cwd = forkWorkingDir(),
               cpPassingJarPath = if runUseArgsFile() then Some(os.temp(prefix = "run-", suffix = ".jar", deleteOnExit = false)) else None
