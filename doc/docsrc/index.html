@@ -319,7 +319,7 @@
     <h2 class="security-note"><a name="security-note">Security Note</a><span class="toplink"></span></h2>
     <div class="sectiontext">
       <p>
-	To its author's profound shame, c3p0, along with its supporting libraries, was <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">used</a> for about a decade as a
+	To this author's profound shame, c3p0, along with its supporting libraries, was <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">used</a> for about a decade as a
         "<a href="https://medium.com/@dub-flow/deserialization-what-the-heck-actually-is-a-gadget-chain-1ea35e32df69">deserialization gadget</a>".
         If an attacker is able to replace and maliciously recraft a <tt>javax.naming.Reference</tt> or Java-serialized
         object that an application will decode, c3p0's libraries could be misused to expand that access into
@@ -327,7 +327,20 @@
       </p>
       <p>
         c3p0-0.12.0, along with its dependency mchange-commons-java-0.4.0, includes mitigations
-        that lock down the functionality misused as gadget chains.
+        that lock down the most dangerous functionality misused in gadget chains.
+      </p>
+      <p>
+        c3p0-0.13.0, with mchange-commons-java-0.5.0, eliminates all use of Java serialization in resolving <tt>Reference</tt>s,
+        and includes no <tt>ObjectFactory</tt> implementation capable of interpreting binary fields of <tt>Reference</tt> instances
+        as serialized objects.
+        This renders impossible the most common means by which c3p0 and its supporting libraries have historically been recruited into
+        deserialization gadgets.
+      </p>
+      <p>
+        c3p0-0.14.0, with mchange-commons-java-0.6.0, locks down some more subtle pathways by which attackers have sought to abuse
+        c3p0, including "indirect serialization" of objects via wrapped, serialized <tt>Reference</tt> instances and misusing
+        <tt>DataSource.getConnection()</tt>'s conformance to JavaBeans property naming conventions to trigger dangerous calls
+        on <tt>DataSource</tt> instances configured with maliciously-crafted JDBC URLs.
       </p>
       <p>
         Although it remains possible to resurrect and make use of the dangerous
@@ -335,15 +348,13 @@
         should do so.
       </p>
       <p>
-        Most installations will not, but if you experience breaking changes in c3p0-0.12.0,
+        Most installations will not, but if you experience breaking changes when migrating from earlier versions to c3p0-0.14.0,
         you may need to customize security configuration
         for your deployment.
-        Please see <a href="#configuring_security">Configuring Security</a> below for information on how, and for more
-        background on the security issues.
       </p>
       <p>
-        c3p0-0.13.0, with mchange-commons-java-0.5.0, eliminates all use of Java serialization in resolving <tt>Reference</tt>s, definitively
-        ending any possibility of misuse of c3p0-related JNDI utilities to construct deserialization gadgets.
+        Please see <a href="#configuring_security">Configuring Security</a> below for information on how, and for much more
+        background on the security issues.
       </p>
       <p>
         Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about this issue.
@@ -1950,18 +1961,48 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         This functionality continues to exist. But as of the c3p0-0.12.0, it is now disabled by default.
       </p>
       <p>
-        Two other potentially dangerous
-        JNDI capabilities &mdash; JNDI-lookups against apparently remote name services and support of JNDI contexts configured by
-        a deserialized environment &mdash; are also disabled by default.
+        Several other potentially dangerous
+        JNDI capabilities are now disabled by default, including JNDI-lookups against apparently remote name services and
+        support of JNDI contexts configured by a deserialized environment.
       </p>
       <p>
         Objects looked up via JNDI get reconstituted by a
         <tt>javax.naming.spi.ObjectFactory</tt> instance, which gets constructed via Java reflection. <tt>c3p0</tt>
-        now requires and sets a whitelist of allowable <tt>ObjectFactory</tt> fully-qualified classname.
+        now requires and sets a whitelist of allowable <tt>ObjectFactory</tt> fully-qualified class names.
       </p>
       <p>
-        For information on the vulnerabilities against which these changes defend, see e.g.
-        <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">here</a> and <a href="https://raw.githubusercontent.com/mbechler/marshalsec/master/marshalsec.pdf">here</a>.
+        The sole <tt>ObjectFactory</tt> that c3p0 now whitelists (along with its parent <tt>JavaBeanObjectFactory</tt>)
+        enforces its own, internal, whitelist limiting what classes it is willing to reconstitute, to prevent attackers
+        from materializing unexpected and potentially dangerous things.
+      </p>
+      <p>
+        c3p0 used to support a clever (too clever) mechanism by which objects not inherently <tt>Serializable</tt> but which
+        supported the JNDI <tt>Referenceable</tt> interface could be "indirectly serialized" as a <tt>Serializable</tt> wrapper
+        around the <tt>Reference</tt>. Unfortunately, this created an opening for attackers to craft dangerous <tt>Reference</tt>
+        instances and wrap them in Java-serialized objects. The potentially dangerous dereferencing would occur automatically
+        on deserialization. This functionality also is now disabled by default.
+      </p>
+      <p>
+        The JDBC specification contains an inherent, inadvertent vulnerability in that <tt>javax.sql.DataSource</tt>
+        and <tt>javax.sql.ConnectionPoolDataSource</tt> expose their live, perishable, potentially-dangerous-to-construct resources using methods that conform
+        to "Java Beans" property naming conventions (<tt>getConnection()</tt> and <tt>getPooledConnection()</tt> respectively).
+        Common libraries (such as <a href="https://commons.apache.org/proper/commons-beanutils/">Apache Commons BeanUtils</a>)
+        assume JavaBean properties are safe to read and implement e.g. orderings via <tt>java.util.Comparator</tt> based
+        on those properties. One need only <a href="https://github.com/frohoff/ysoserial/blob/master/src/main/java/ysoserial/payloads/CommonsBeanutils1.java">place an object</a>
+        whose method naming conforms to JavaBean conventions into a Collection
+        sorted on such an ordering and that verifies the sort upon deserialization to get these methods called.
+      </p>
+      <p>
+        To prevent this sort of attack, c3p0 now supplies explicit <a href="https://docs.oracle.com/javase/8/docs/api/java/beans/BeanInfo.html"><tt>BeanInfo</tt></a> classes that override the default JavaBean
+        name-convention-based "introspection" with explicit enumeration of JavaBean properties. <tt>connection</tt> and <tt>pooledConnection</tt>
+        are no longer JavaBeans properties of c3p0 <tt>DataSource</tt> implementations, even though they retain <tt>getConnection()</tt> and <tt>getPooledConnection()</tt>
+        methods. JavaBeans libraries that promiscuously read properties won't call these methods.
+      </p>
+      <p>
+        For information on the kinds of vulnerabilities against which these changes defend, see e.g.
+        <a href="https://mogwailabs.de/en/blog/2025/02/c3p0-you-little-rascal/">here</a> and
+        <a href="https://mogwailabs.de/en/blog/2023/04/look-mama-no-templatesimpl/">here</a> and
+        <a href="https://raw.githubusercontent.com/mbechler/marshalsec/master/marshalsec.pdf">here</a>.
         Other vulnerabilities documented in those resources, like the Java-serialization-based <tt>userOverridesAsString</tt>
         parameter, are eliminated, but in ways that require no new configuration. (For example, <tt>userOverridesAsString</tt> is now stored
         as CSV, rather than in a Java-serialization-based format.)
@@ -1984,7 +2025,21 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
             <tt>false</tt> by default. If reset to <tt>true</tt>, objects serialized as JNDI references may also include a serialized "environment",
             that is, a serialized mapping of key-value pairs that configure the lookup. That in turn can configure several dangerous parameters, including
             <tt>java.naming.factory.initial</tt>, which specifies a class that will be reflexively instantiated to handle the lookup, and <tt>java.naming.provider.url</tt>
-            which may specify the URL an unsafe or malicious name service.
+            which may specify the URL of an unsafe or malicious name service. (c3p0's supporting libraries only potentially deserialize a <tt>Reference</tt>'s
+            environment when the indirect serialization mechanism is used, which is now disabled by default.
+            See <a href="#com.mchange.v2.naming.allowIndirectSerializationViaReference">com.mchange.v2.naming.allowIndirectSerializationViaReference</a> just below.)
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.allowIndirectSerializationViaReference"></a>com.mchange.v2.naming.allowIndirectSerializationViaReference</dt>
+	<dd>
+	  <div class="propdesc">
+            <tt>false</tt> by default. If reset to <tt>true</tt>, the now-disabled
+            <a href="https://github.com/swaldman/mchange-commons-java/blob/master/src/main/java/com/mchange/v2/naming/ReferenceIndirector.java">mechanism</a>
+            whereby <tt>Referenceable</tt> objects can be serialized
+            via a wrapped <tt>Reference</tt> which is automatically dereferenced by c3p0's supporting libraries upon deserialization will be restored.
+            This has its uses, but risks an attacker crafting a malicious wrapped <tt>Reference</tt>. (c3p0 now adopts a "defense-in-depth" ethos; the
+            other disabled-by-default settings here dramatically decrease the likelihood that dereferencing of a maliciously crafted <tt>Reference</tt>
+            will do harm. Nevertheless, this is rarely used functionality that has been a vector for attacks, so it too is disabled by default.)
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr"></a>com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr</dt>
@@ -2005,7 +2060,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
               </li>
               <li>
                 Make sure your setting for <a href="#com.mchange.v2.naming.objectFactoryWhitelist"><tt>com.mchange.v2.naming.objectFactoryWhitelist</tt></a>
-                includes the fully-qualified-name of your new <tt>ObjectFactory</tt> implementation. If you will be referencing/derefencing c3p0 DataSources,
+                includes the fully-qualified-name of your new <tt>ObjectFactory</tt> implementation. If you will be referencing/dereferencing c3p0 DataSources,
                 your whitelist must also include <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>.
               </li>
 	  </div>
@@ -2050,6 +2105,22 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
             By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
             c3p0 uses when constructing its own references.
             In general, it's comma separated list of fully qualified class name expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
+            If you want to live very dangerously (not recommended!), setting this property simply to "*" will disable enforcement of any whitelist of what <tt>ObjectFactory</tt>
+            implementations c3p0's supporting libraries will permit to resolve <tt>Reference</tt> instances.
+            <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
+            will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
+            value and the library config value should be very rare. Such differences might result if System properties are changed at runtime, after c3p0 config has been read
+            and cached.)</i>
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.referenceableJavaBeanClassWhitelist"></a>com.mchange.v2.naming.referenceableJavaBeanClassWhitelist</dt>
+	<dd>
+	  <div class="propdesc">
+            By default this contains all of the c3p0-provided concrete <tt>Referenceable</tt> resources (including some used by c3p0 only for testing), and only those.
+            If you are customizing c3p0 and require some alternative <tt>DataSource</tt> or <tt>ConnectionPoolDataSource</tt> implementations to be materialized from <tt>Reference</tt> objects by c3p0,
+            append the fully-qualified class name of your implementation to the existing default list. (If you replace the list rather than appending, you will break <tt>Referenceable</tt> support of
+            the c3p0-built-in resources.) If you want to live very dangerously (not recommended!), setting this property simply to "*" will disable enforcement of any whitelist of what classes can be
+            materialized from <tt>Reference</tt>s.
             <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
             will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
             value and the library config value should be very rare. Such differences might result if System properties are changed at runtime, after c3p0 config has been read
@@ -2873,6 +2944,7 @@ c3p0 {
 	    <a href="#maxStatementsPerConnection">maxStatementsPerConnection</a> are configured to their defaults of zero).
 	    [See <a href="#other_ds_configuration">"Other DataSource Configuration"</a>]
 	  </div>
+	</dd>
 	<dt><a name="maxAdministrativeTaskTime"></a>maxAdministrativeTaskTime</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
