@@ -21,7 +21,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
     private static Set findShardingKeyMethods()
     {
         Method[] allMethods = Connection.class.getMethods();
-        Set<Method> out = new HashSet<>();
+        TreeSet<Method> out = new TreeSet<>(CodegenUtils.METHOD_COMPARATOR);
         for ( Method method : allMethods )
             if (method.getName().startsWith("setShardingKey"))
                 out.add(method);
