@@ -303,7 +303,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // build taks has run. It does not generate source into the main build's generatedSources.
   // So we have to add it explicitly.
   def sourceJar: T[PathRef] = Task {
-    val out = Task.dest / "source.jar"
+    val out = Task.dest / "out.jar" // match the out.jar name produced by the default sourceJar task.
     Jvm.createJar(
       jar = out,
       inputPaths = (allSources() ++ resources() ++ compileResources() ++ Seq(beanInfoGen()) ++ allLicenses()).map(_.path).filter(os.exists),
