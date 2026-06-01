@@ -81,6 +81,11 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   object bean extends Gen {}
 
+  object beanInfo extends Gen {
+    override def moduleDeps = Seq(build) // makes the c3p0 bean classes loadable at run time
+    override def mainClass   = Task { Some("com.mchange.v2.c3p0.beaninfo.C3P0BeanInfoGen") }
+  }
+
   object proxy extends Gen {
     override def sources = Task {
       BuildCtx.withFilesystemCheckerDisabled {
@@ -88,6 +93,13 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       }
     }
     override def mainClass = Task { Some("com.mchange.v2.c3p0.codegen.JdbcProxyGenerator") }
+  }
+
+  object beanInfoBin extends JavaModule {
+    override def moduleDeps       = Seq(build) // compile BeanInfos against the beans
+    override def javacOptions     = Seq("-source", JvmCompatVersion, "-target", JvmCompatVersion)
+    override def sources          = Task { Seq.empty[PathRef] } // no hand-written sources
+    override def generatedSources = Task { Seq(beanInfoGen()) }
   }
 
   val Debug = true
@@ -182,6 +194,32 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       PathRef(realDest)
     }
   }
+  def beanInfoGenGeneratedSourceDir : T[os.Path] = Task(persistent=true) { Task.dest }
+  def beanInfoGen : T[PathRef] = Task {
+    BuildCtx.withFilesystemCheckerDisabled {
+      val realDest = beanInfoGenGeneratedSourceDir()
+      beanInfo.runIf(
+        Task.Anon(
+          Args(
+            (Seq(buildModTime(),recursiveDirModTime(BuildCtx.workspaceRoot/"src"),recursiveDirModTime(BuildCtx.workspaceRoot/"beanInfo"/"src")).max > recursiveDirModTime(beanInfoGenGeneratedSourceDir())).toString,
+            "com.mchange.v2.c3p0.DriverManagerDataSource",
+            "com.mchange.v2.c3p0.PoolBackedDataSource",
+            "com.mchange.v2.c3p0.ComboPooledDataSource",
+            "com.mchange.v2.c3p0.WrapperConnectionPoolDataSource",
+            "com.mchange.v2.c3p0.JndiRefConnectionPoolDataSource",
+            "com.mchange.v2.c3p0.JndiRefForwardingDataSource",
+            "com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource",
+            "com.mchange.v2.c3p0.debug.ConstructionLoggingComboPooledDataSource",
+            "com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource",
+            //"com.mchange.v2.c3p0.test.FreezableDriverManagerDataSource",
+            //"com.mchange.v2.c3p0.test.AlwaysFailDataSource",
+            beanInfoGenGeneratedSourceDir().toString
+          )
+        )
+      )()
+      PathRef(realDest)
+    }
+  }
   def proxygenGeneratedSourceDir : T[os.Path] = Task(persistent=true) { Task.dest }
   def proxygen : T[PathRef] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
@@ -219,8 +257,18 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     val out = Task.dest / "source.jar"
     Jvm.createJar(
       jar = out,
-      inputPaths = (allSources() ++ resources() ++ compileResources() ++ allLicenses()).map(_.path).filter(os.exists),
+      inputPaths = (allSources() ++ resources() ++ compileResources() ++ Seq(beanInfoGen()) ++ allLicenses()).map(_.path).filter(os.exists),
       manifest = manifest()
+    )
+    PathRef(out)
+  }
+
+  override def jar: T[PathRef] = Task {
+    val out = Task.dest / "out.jar" // match the out.jar name produced by the default jar task.
+    Jvm.createJar(
+      jar        = out,
+      inputPaths = (Seq(compile().classes, beanInfoBin.compile().classes) ++ resources()).map(_.path).filter(os.exists),
+      manifest   = manifest()
     )
     PathRef(out)
   }
@@ -296,8 +344,17 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     def localResourcesRough : T[PathRef] = Task.Source { moduleDir / "resources-local-rough" }
 
     override def runClasspath : T[Seq[PathRef]] = Task {
-      super.runClasspath() :+ localResources()
-      // super.runClasspath() :+ localResourcesRough()
+      // build.beanInfoBin holds the generated explicit BeanInfo classes, which ship in the
+      // main jar but are not part of build.compile (so not pulled in via the moduleDep on build).
+      // We add them here so java.beans.Introspector finds them at test runtime, as it would in a
+      // deployed jar. (See PerishableConnectionResourcesNotBeanPropertiesJUnitTestCase.)
+      val testClasses = super.runClasspath() :+ build.beanInfoBin.compile().classes
+
+      // we maintain two sets of configs for quick tests, one "reasonable",
+      // the other intentionally miserable. We tend to run tests against both,
+      // manually switching between the versions below
+      testClasses :+ localResources()
+      // testClasses :+ localResourcesRough()
     }
 
     def externalClassPath : T[String] = Task {
