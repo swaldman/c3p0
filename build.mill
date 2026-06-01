@@ -237,6 +237,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     }
   }
 
+  // note that beanInfoGen is NOT included here, because it must get built AFTER the root module
+  // is built, requires code to be generated against reflection of the root build.
   override def generatedSources = Task {
     super.generatedSources() ++ Seq(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
   }
@@ -254,6 +256,10 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   // is the same manifest good?
   // some users want licenses in the source jars... https://github.com/swaldman/c3p0/issues/167
+  //
+  // Note that beanInfoGen() is not included in allSources() because it holds code that gets geerated AFTER the main
+  // build taks has run. It does not generate source into the main build's generatedSources.
+  // So we have to add it explicitly.
   def sourceJar: T[PathRef] = Task {
     val out = Task.dest / "source.jar"
     Jvm.createJar(
