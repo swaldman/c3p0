@@ -1,0 +1,24 @@
+#!/usr/bin/env -S scala-cli shebang
+
+//> using scala "3.3.6"
+//> using dep "com.lihaoyi::os-lib:0.11.4"
+
+import java.net.URL
+import java.io.*
+import java.nio.file.attribute.PosixFilePermission.*
+import scala.util.Using
+
+
+val SourceUrl = "https://raw.githubusercontent.com/com-lihaoyi/mill/refs/heads/main/mill"
+val TargetPath = os.Path("mill", os.pwd)
+
+Using.resource( new BufferedInputStream( new URL(SourceUrl).openStream() ) ): is =>
+  val exists = os.exists(TargetPath)
+  if exists then
+    val perms : os.PermSet = os.perms(TargetPath) + OWNER_EXECUTE + GROUP_EXECUTE + OTHERS_EXECUTE
+    os.write.over(TargetPath, is, perms=(os.perms(TargetPath) + OWNER_EXECUTE + GROUP_EXECUTE + OTHERS_EXECUTE))
+  else
+    val perms : os.PermSet = "rwxr-xr-x"
+    os.write(TargetPath, is, perms=perms)
+
+println("mill updated.")
