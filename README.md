@@ -155,14 +155,23 @@ A baseline pathological configuration is defined in [`test/resources-local-rough
 To give this effect, temporarily edit [`build.mill`](build.mill):
 
 ```scala
-    override def runClasspath : T[Seq[PathRef]] = T{
-      super.runClasspath() ++ localResources()
-      // super.runClasspath() ++ localResourcesRough()
+    override def runClasspath : T[Seq[PathRef]] = Task {
+      // build.beanInfoBin holds the generated explicit BeanInfo classes, which ship in the
+      // main jar but are not part of build.compile (so not pulled in via the moduleDep on build).
+      // We add them here so java.beans.Introspector finds them at test runtime, as it would in a
+      // deployed jar. (See PerishableConnectionResourcesNotBeanPropertiesJUnitTestCase.)
+      val testClasses = super.runClasspath() :+ build.beanInfoBin.compile().classes
+
+      // we maintain two sets of configs for quick tests, one "reasonable",
+      // the other intentionally miserable. We tend to run tests against both,
+      // manually switching between the versions below
+      testClasses :+ localResources()
+      // testClasses :+ localResourcesRough()
     }
 ```
 
-* Comment out `super.runClasspath() ++ localResources()`
-* Uncomment in `super.runClasspath() ++ localResourcesRough()`
+* Comment out `testClasses :+ localResources()`
+* Uncomment in `testClasses :+ localResourcesRough()`
 
 Then of course you can edit [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
 
