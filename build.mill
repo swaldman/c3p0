@@ -1,5 +1,4 @@
-//| mill-version: 1.0.6
-//| mill-jvm-version: 11
+//| mill-version: 1.1.6
 package build
 
 // see mill-build/build.mill
@@ -29,12 +28,16 @@ object Dependency {
 
 object `package` extends JavaModule with SonatypeCentralPublishModule {
 
+  val BuildJvmVersion = "11"
+
   val organization = "com.mchange"
   override def artifactName = Task {"c3p0"}
 
   override def publishVersion = Task {"0.14.0-SNAPSHOT"}
 
   override def sonatypeCentralShouldRelease: T[Boolean] = Task { false }
+
+  override def jvmVersion = BuildJvmVersion
 
   // we are currently building in Java 11, but releasing Java 7 compatible class files
   // for users of smaller JDBC subsets
@@ -78,6 +81,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       super.mvnDeps() ++ Seq(Dependency.MchangeCommonsJava)
     }
     override def forkArgs = Task {Seq("-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog")}
+
+    override def jvmVersion = BuildJvmVersion
   }
 
   object bean extends Gen {}
@@ -101,6 +106,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     override def javacOptions     = Seq("-source", JvmCompatVersion, "-target", JvmCompatVersion)
     override def sources          = Task { Seq.empty[PathRef] } // no hand-written sources
     override def generatedSources = Task { Seq(beanInfoGen()) }
+    override def jvmVersion       = BuildJvmVersion
   }
 
   val Debug = true
@@ -254,6 +260,42 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     }
   }
 
+  // For reproducible builds: when SOURCE_DATE_EPOCH is set, stamp every jar entry with that fixed
+  // time (Jvm.createJar leaves entry mtimes at wall-clock build time by default). Mirrors the
+  // SOURCE_DATE_EPOCH handling in genC3P0SubstitutionsSource. Task.Input so a change is observed.
+  def sourceDateEpochMillis : T[Option[Long]] = Task.Input {
+    sys.env.get("SOURCE_DATE_EPOCH").map( _.toLong * 1000L )
+  }
+
+  // Jvm.createJar honors its `timestamp` param for file/dir entries, but the META-INF/MANIFEST.MF
+  // entry is written by the JarOutputStream(out, manifest) constructor and always gets wall-clock
+  // time (verified unaddressed through mill 1.1.6). For reproducible builds we rewrite the finished
+  // jar in place, forcing every entry's mtime to SOURCE_DATE_EPOCH. Entry content and order are
+  // preserved; only mtimes change (a no-op for the already-correct entries). When SOURCE_DATE_EPOCH
+  // is unset, millisOpt is None and the jar is left untouched. See https://reproducible-builds.org/docs/jvm/
+  def normalizeJarEntryTimes( jar : os.Path, millisOpt : Option[Long] ) : Unit = 
+    millisOpt.foreach { millis =>
+      import java.util.zip.{ZipEntry, ZipInputStream, ZipOutputStream}
+      import scala.util.Using
+      val bo = new java.io.ByteArrayOutputStream()
+      Using.resources(
+        new ZipInputStream( new java.io.ByteArrayInputStream( os.read.bytes(jar) ) ),
+        new ZipOutputStream( bo )
+      ) { (in,out) =>
+        var e = in.getNextEntry()
+        while (e != null) {
+          val ne = new ZipEntry( e.getName )
+          ne.setTime( millis )
+          out.putNextEntry( ne )
+          out.write( in.readAllBytes() )
+          out.closeEntry()
+          e = in.getNextEntry()
+        }
+      }
+      // write only after Using has closed the ZipOutputStream, so the central directory is flushed
+      os.write.over( jar, bo.toByteArray() )
+  }
+
   // is the same manifest good?
   // some users want licenses in the source jars... https://github.com/swaldman/c3p0/issues/167
   //
@@ -265,8 +307,10 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     Jvm.createJar(
       jar = out,
       inputPaths = (allSources() ++ resources() ++ compileResources() ++ Seq(beanInfoGen()) ++ allLicenses()).map(_.path).filter(os.exists),
-      manifest = manifest()
+      manifest = manifest(),
+      timestamp = sourceDateEpochMillis()
     )
+    normalizeJarEntryTimes( out, sourceDateEpochMillis() )
     PathRef(out)
   }
 
@@ -275,8 +319,10 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     Jvm.createJar(
       jar        = out,
       inputPaths = (Seq(compile().classes, beanInfoBin.compile().classes) ++ resources()).map(_.path).filter(os.exists),
-      manifest   = manifest()
+      manifest   = manifest(),
+      timestamp  = sourceDateEpochMillis()
     )
+    normalizeJarEntryTimes( out, sourceDateEpochMillis() )
     PathRef(out)
   }
 
@@ -338,6 +384,8 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
     // when you want to generate tests you can try under old JVMs
     override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
+
+    override def jvmVersion = BuildJvmVersion
 
     def testParallelism = false
 
@@ -410,40 +458,40 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       s"""-Djava.util.logging.config.file=${moduleDir / "conf-logging" / "logging.properties"}""" ::
       Nil
     }
-    def c3p0Benchmark = Task {
+    def c3p0Benchmark() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.C3P0BenchmarkApp")()
     }
-    def c3p0Stats = Task {
+    def c3p0Stats() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.StatsTest")()
     }
-    def c3p0Proxywrapper = Task {
+    def c3p0Proxywrapper() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.ProxyWrappersTest")()
     }
-    def c3p0RawConnectionOp = Task {
+    def c3p0RawConnectionOp() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.RawConnectionOpTest")()
     }
-    def c3p0Load = Task {
+    def c3p0Load() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.LoadPoolBackedDataSource")()
     }
-    def c3p0PSLoad = Task {
+    def c3p0PSLoad() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.PSLoadPoolBackedDataSource")()
     }
-    def c3p0InterruptedBatch = Task {
+    def c3p0InterruptedBatch() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.InterruptedBatchTest")()
     }
-    def c3p0Dispersion = Task {
+    def c3p0Dispersion() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.ConnectionDispersionTest")()
     }
-    def c3p0OneThreadRepeat = Task {
+    def c3p0OneThreadRepeat() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.OneThreadRepeatedInsertOrQueryTest")()
     }
-    def c3p0RefSer = Task {
+    def c3p0RefSer() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.TestRefSerStuff")()
     }
-    def c3p0JavaBeanRef = Task {
+    def c3p0JavaBeanRef() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.JavaBeanRefTest")()
     }
-    def c3p0DynamicPreparedStatement = Task {
+    def c3p0DynamicPreparedStatement() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")()
     }
     override def pomSettings = Task {
