@@ -20,6 +20,10 @@
 > c3p0-0.13.0 eliminates from c3p0's `CLASSPATH`
 > the `javax.naming.Reference` &rarr; Java serialization pipeline that makes possible the mischief.
 >
+> c3p0-0.14.0 further hardens JNDI and serialization-related utilities, and prevents attacks that
+> rely on JavaBeans-related libraries triggering `getConnection()` or `getPooledConnection()`
+> on maliciously constructed `DataSource` instances.
+>
 > Please update your applications!
 
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
@@ -34,7 +38,7 @@ From the current *development snapshot*, here is the latest [CHANGELOG](CHANGELO
 
 Please address comments and questions to the [library author](mailto:swaldman@mchange.com).
 
-However, please keep in mind he is an abysmal correspondent and basically an asshole. 
+However, please keep in mind he is an abysmal correspondent and basically an asshole.
 
 Despite that, your feedback is very much appreciated. Pull requests are gratefully accepted. You may also open issues.
 
@@ -42,14 +46,14 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 ### Building c3p0
 
-For now (v0.13.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
+For now (v0.14.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
 
 Install `mill`. Then, within this repository direcory, run
 
 ```plaintext
-$ mill jar
+$ ./mill jar
 ```
 
 You'll find the raw as library `out/jar.dest/out.jar`.
@@ -57,21 +61,47 @@ You'll find the raw as library `out/jar.dest/out.jar`.
 If you maintain a local ivy repository, You can customize `publishVersion` in [`build.mill`](build.mill), then run
 
 ```plaintext
-$ mill publishLocal
+$ ./mill publishLocal
 ```
 
 To build the documentation
 
 ```plaintext
-$ mill doc.docroot
+$ ./mill doc.docroot
 ```
 
 You can then open in your browser `out/doc/docroot.dest/index.html`
 
+### Reproducible builds
+
+c3p0 supports reproducible builds of it binary and source jar files.
+(It does not yet support reprocucible build of doc jars.)
+
+To prevent everchanging timestamps, set the environment variable
+[`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/)
+when building.
+
+`mill` runs by default as a persistent server in the background, which makes setting
+environment variables challenging. In order to get `SOURCE_DATE_EPOCH` passed effectively
+to the build process, prevent this using the `-i` flag.
+
+`mill` caches artifacts, and will does not take the alteration of an environment variable
+as a reason to regenerate. So it's best to run clean builds to ensure reproducibility.
+So, for example
+
+```plantext
+$ export SOURCE_DATE_EPOCH=1234567890
+$ ./mill -i __.clean
+$ ./mill -i jar
+$ ./mill -i sourceJar
+```
+
+The files `out/jar.dest/out.jar` and `out/sourceJar.dest/out.jar` will have been deterministically and reproducibly built.
+
 ### Testing c3p0
 
 By default the tests expect to find a database at `jdbc:postgresql://localhost:5432/c3p0`.
-As you can see, I usually test against a local postgres database. You can change this in 
+As you can see, I usually test against a local postgres database. You can change this in
 the `forkArgs` function of the `test` module, in [`build.mill`](build.mill).
 
 c3p0's testing is, um, embarrassingly informal. There is a junit test suite, but it covers a
@@ -179,7 +209,7 @@ test applications, usually one of...
 ### Building c3p0-loom
 
 Because c3p0 currently builds under Java 11, but c3p0-loom requires Java 21, c3p0 loom is a
-[separate project](https://github.com/swaldman/c3p0-loom). 
+[separate project](https://github.com/swaldman/c3p0-loom).
 
 It is just a parallel mill project.
 The instructions above apply (except `c3p0-loom` does not have independent documentation to build).
@@ -193,8 +223,3 @@ opt to license c3p0 under any version of LGPL higher than v.2.1.
 
 **Note:** c3p0 has had a good experience with reporting of a security vulnerability via Sonatype's _Central Security Project_.
 If you find a c3p0 security issue, do consider reporting it via https://hackerone.com/central-security-project
-
-
-
-
-
