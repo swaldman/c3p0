@@ -1,3 +1,22 @@
+c3p0-0.14.0
+	-- Update to mill 1.1.6 and fix broken support for reproducible builds via the SOURCE_DATE_EPOCH
+	   environment variable.
+	-- Generate explicit BeanInfo classes for c3p0-defined concrete DataSource and ConnectionPoolDataSource
+	   implementations, which exclude "connection" and/or "pooledConnection" from introspected bean properties,
+	   in order to preclude attacks such as those described here: https://mogwailabs.de/en/blog/2023/04/look-mama-no-templatesimpl/
+	-- Enforce a deterministic ordering on methods produced by the code generator DelegatorGenerator, in order
+	   to keep builds including such generated classes reproducible. (mchange-commons-java and c3p0 subclass)
+	-- Define BeanInfoGen, a code-generation utility that defines explicit BeanInfo
+	   classes for what otherwise would have been introspected via JavaBean naming conventions, but that
+	   permits properties to be excluded from such introspection. (mchange-commons-java)
+	-- JavaBeanObjectFactory now enforces a whitelist of classes it is willing to construct from References
+	   that call upon it. That whitelist is defined by new config parameter
+	   com.mchange.v2.naming.referenceableJavaBeanClassWhitelist (mchange-commons-java)
+	-- Define false-biased config security key com.mchange.v2.naming.allowIndirectSerializationViaReference,
+	   disabling by default indirect serialization/deserialization of Referenceable but otherwise not
+	   serializable objects by serializing their references. This is a clever mechanism, but rarely used,
+	   and a place where attackers might smuggle a malicious reference. (mchange-commons-java)
+c3p0-0.13.0
 	-- Ensure sessions are marked as endRequest() is called prior to check-in, to eliminate
 	   race between DBMS cleanup and checkout by a new client. Thanks Krrish (ota0912 on github).
         -- Take generic JavaBeanObjectFactory out of the whitelist of object factories,

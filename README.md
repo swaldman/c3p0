@@ -74,8 +74,8 @@ You can then open in your browser `out/doc/docroot.dest/index.html`
 
 ### Reproducible builds
 
-c3p0 supports reproducible builds of it binary and source jar files.
-(It does not yet support reprocucible build of doc jars.)
+c3p0 supports reproducible builds of its binary and source jar files.
+(It does not yet support reproducible builds of doc jars.)
 
 To prevent everchanging timestamps, set the environment variable
 [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/)
@@ -85,11 +85,11 @@ when building.
 environment variables challenging. In order to get `SOURCE_DATE_EPOCH` passed effectively
 to the build process, prevent this using the `-i` flag.
 
-`mill` caches artifacts, and will does not take the alteration of an environment variable
+`mill` caches artifacts, and does not take the alteration of an environment variable
 as a reason to regenerate. So it's best to run clean builds to ensure reproducibility.
 So, for example
 
-```plantext
+```plaintext
 $ export SOURCE_DATE_EPOCH=1234567890
 $ ./mill -i __.clean
 $ ./mill -i jar
