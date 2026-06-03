@@ -1,0 +1,59 @@
+RELEASE NOTES, c3p0-0.14.0
+==========================
+
+This release is another security-focused release addressing less
+common but still dangerous attacks based on JNDI injection.
+
+c3p0 (via its mchange-commons-java supporting libraries) supported a
+clever but rarely used facility intended to allow objects that
+implement javax.naming.Referenceable but are not serializable to be
+serialized indirectly, via serialized References. Unfortunately, this
+introduces a JNDI-injection path, if an attacker can get an
+application to deserialize an object, indirected via a maliciously
+crafted reference.
+
+Although c3p0 now locks down pretty tightly what a maliciously crafted
+reference can do (within the c3p0 codebase), it's better never to
+encounter and try to dereference such a Reference.
+
+c3p0 now implements a false-biased config param:
+
+   com.mchange.v2.naming.allowIndirectSerializationViaReference
+
+which disables the potentially dangerous functionality by default.
+
+In the spirit of locking down tightly what a malicious Reference
+can do, c3p0 now enforces a whitelist over what classes
+JavaBeanObjectFactory can instantiate:
+
+   com.mchange.v2.naming.referenceableJavaBeanClassWhitelist
+
+By default, it includes only c3p0-implemented concrete Referenceable
+classes, preventing References from provoking instantiation of
+arbitrary classes, potentially doing arbitrary mischief.
+
+This release also generates BeanInfo classes for its DataSource and
+ConnectionPoolDataSource implementations to ensure that "connection"
+and "pooledConnection" are not introspected as JavaBean properties.
+Various libraries and tools assume JavaBeans property reads are safe,
+but triggering a call to getConnection() / getPooledConnection() on
+a DataSource referencing a maliciously crafted JDBC URL is a potential
+attack vector.
+
+c3p0 previously included some work towards enabling reproducible
+builds, via support of the SOURCE_DATE_EPOCH. However, that support
+was incomplete, rendering builds in practice not reproducible.
+
+c3p0-0.14.0 remedies those loose ends. When built properly
+(see "Reproducible builds" in README.md), the binary and source
+jar files (but not the doc jar!) should be bit-for-bit reproducible.
+
+New configuration properties in this release:
+   com.mchange.v2.naming.allowIndirectSerializationViaReference
+   com.mchange.v2.naming.referenceableJavaBeanClassWhitelist
+
+Thanks to Qing Xu for sharing a demonstration SSRF attack
+via an adversarially crafted reference embedded as an indirectly
+serialized object. Both the default disabling of deserializing
+such indirected objects and the whitelist's omission of the
+HTTP-requesting class would prevent this attack under c3p0-0.14.0.
