@@ -13,9 +13,9 @@ public final class InterruptedBatchTest
     {
         if (argv.length > 0)
         {
-            System.err.println( C3P0BenchmarkApp.class.getName() + 
+            System.err.println( C3P0BenchmarkApp.class.getName() +
                                 " now requires no args. Please set everything in standard c3p0 config files.");
-            return;                    
+            return;
         }
 
 	try
@@ -34,7 +34,7 @@ public final class InterruptedBatchTest
 	catch( Throwable t )
 	    {
 		System.err.print("Aborting tests on Throwable -- ");
-		t.printStackTrace(); 
+		t.printStackTrace();
 		if (t instanceof Error)
 		    throw (Error) t;
 	    }
@@ -54,26 +54,26 @@ public final class InterruptedBatchTest
     {
 	Connection        con        = null;
 	PreparedStatement prepStat   = null;
-	
+
 	try
 	    {
 		con = ds_pooled.getConnection();
 		con.setAutoCommit(false);
 
 		prepStat = con.prepareStatement("INSERT INTO CG_TAROPT_LOG(CO_ID, ENTDATE, CS_SEQNO, DESCRIPTION) VALUES (?,?,?,?)");
-		
+
 		prepStat.setLong     (1, -665);
 		prepStat.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
 		prepStat.setInt      (3, 1);
 		prepStat.setString   (4, "time: " + System.currentTimeMillis());
-		
+
 		prepStat.addBatch();
-		
+
 		if(throwAnException)
 		    throw new NullPointerException("my exception");
-		
+
 		prepStat.executeBatch();
-		
+
 		con.commit();
 	    }
 	catch(Exception e)
@@ -85,7 +85,7 @@ public final class InterruptedBatchTest
 	    {
 		try { if (prepStat != null) prepStat.close(); } catch (Exception e) { e.printStackTrace(); }
 		try { con.close(); } catch (Exception e) { e.printStackTrace(); }
-	    }		
+	    }
     }
 
     private static void attemptSetupTable() throws Exception
@@ -100,10 +100,10 @@ public final class InterruptedBatchTest
 		    {
 			stmt.executeUpdate("CREATE TABLE CG_TAROPT_LOG ( CO_ID INTEGER, ENTDATE TIMESTAMP, CS_SEQNO INTEGER, DESCRIPTION VARCHAR(32) )");
 		    }
-		catch (SQLException e) 
+		catch (SQLException e)
 		    {
 			System.err.println("Table already constructed?");
-			e.printStackTrace(); 
+			e.printStackTrace();
 		    }
 
 		stmt.executeUpdate("DELETE FROM CG_TAROPT_LOG");
@@ -136,8 +136,3 @@ public final class InterruptedBatchTest
 	    }
     }
 }
-
-
-
-
-

@@ -21,7 +21,7 @@ public final class ProxyWrappersTest
 		// cpds.setJdbcUrl( "jdbc:postgresql://localhost/c3p0-test" );
 		// cpds.setUser("swaldman");
 		// cpds.setPassword("test");
-		
+
 		cpds.setMinPoolSize(5);
 		cpds.setAcquireIncrement(5);
 		cpds.setMaxPoolSize(20);

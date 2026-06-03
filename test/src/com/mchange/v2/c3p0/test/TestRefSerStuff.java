@@ -169,15 +169,18 @@ public final class TestRefSerStuff
 
 		System.err.println("DriverManagerDataSource:");
 		doTest( dmds );
-
+                System.err.println();
+                System.err.println();
 		WrapperConnectionPoolDataSource wcpds = new WrapperConnectionPoolDataSource();
 		wcpds.setNestedDataSource( dmds );
 		PoolBackedDataSource pbds = new PoolBackedDataSource();
 		pbds.setConnectionPoolDataSource( wcpds );
-
+                System.err.println();
+                System.err.println();
 		System.err.println("PoolBackedDataSource:");
 		doTest( pbds );
-
+                System.err.println();
+                System.err.println();
 		ComboPooledDataSource cpds = new ComboPooledDataSource();
                 //cpds.setMaxPoolSize(63);
 		doTest( cpds );
