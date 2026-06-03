@@ -33,7 +33,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   val organization = "com.mchange"
   override def artifactName = Task {"c3p0"}
 
-  override def publishVersion = Task {"0.14.0-SNAPSHOT"}
+  override def publishVersion = Task {"0.14.0"}
 
   override def sonatypeCentralShouldRelease: T[Boolean] = Task { false }
 
@@ -510,7 +510,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     // just to give ourselves the command `$ mill -i test.scalamod.console`
     object scalamod extends ScalaModule {
       override def moduleDeps = Seq(build.test)
-      override def scalaVersion = "3.3.4"
+      override def scalaVersion = "3.3.7"
       override def runClasspath = Task { build.test.runClasspath() }
       override def forkArgs = Task { build.test.forkArgs() }
     }
