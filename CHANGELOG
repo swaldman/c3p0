@@ -1,3 +1,15 @@
+c3p0-0.14.1
+        -- Modify c3p0 to use new BeanInfoGen functionality, restoring compatability with
+           Java [7,11).
+        -- Modify BeanInfoGen to (optionally but by default) cache descriptors rather than
+           regenerating for each call to an introspection method.
+        -- Modify BeanInfoGen to log items skipped from descriptors due to API incompatibility.
+        -- Modify BeanInfoGen to generate BeanInfo classes in which properties/events/methods that
+           existed in the JVM under which they were generated and built, but do not exist under the
+           runtime JVM are tolerate, simply omitted at runtime from BeanInfo descriptors. This fixes
+           compatability with Java environments before Java 11, under whose API c3p0 and
+           mchange-commons-java are currently built. (Thanks to Vlad Skarzhevskyy, @skarzhevskyy on
+           GitHub, for calling attention to this issue.)
 c3p0-0.14.0
 	-- Update to mill 1.1.6 and fix broken support for reproducible builds via the SOURCE_DATE_EPOCH
 	   environment variable.

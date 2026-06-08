@@ -1,0 +1,38 @@
+RELEASE NOTES, c3p0-0.14.1
+==========================
+
+This is a minor release on top of c3p0-0.14.0 to restore
+compatibility with Java versions 7, 8, 9, and 10, which
+was accidentally broken in c3p0-0.14.0.
+
+The issue is that c3p0-0.14.x generates hard-coded BeanInfo
+classes to prevent DataSource.getConnection() and
+ConnectionPoolDataSource.getPooledConnection() from getting
+treated as JavaBean properties. Calls to those methods are
+not safe, combined with maliciously crafted JDBC URLs they
+can do harm, but JavaBeans-related libraries promiscuously
+and automatically "read" what are presumed to be simple
+metadata by calling getXXX() methods. Under c3p0-0.14.x,
+attackers can no longer use JavaBean library to provoke
+"execution" of maliciously crafted JDBC URLs by simply
+having bean libraries run properties-based equality or
+ordering tests.
+
+However, these pregenerated BeanInfo classes report all
+properties, events, and methods of c3p0 DataSources and
+ConnectionPoolDataSources, all that exist in the API under
+which the library (and its dependency mchange-commons-java)
+are built. Currently that's Java 11, but c3p0 intends to
+remain compatible with versions as old as Java 7.
+c3p0-0.14.0 naively threw exceptions when expected Java 11
+properties, events, or methods proved not to be present
+on beans at runtime.
+
+c3p0-0.14.1 no longer breaks when BeanInfo-expected API
+is not found in the runtime environment. It simply warns
+once into logs what API was not found, then omits the
+missing API from BeanInfo reported descriptors.
+
+Thanks to Vlad Skarzhevskyy, @skarzhevskyy on GitHub, for
+calling attention to this issue!
+
