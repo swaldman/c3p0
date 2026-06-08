@@ -43,7 +43,7 @@ public final class C3P0BeanInfoGen
             Class beanClass = Class.forName(fqcn);
             try (Writer w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), UTF_8)))
             {
-                w.write(BeanInfoGen.explicitBeanInfoClassSourceForBeanClass( beanClass, excludedPropertyNames, excludedPropertyTypes ));
+                w.write(BeanInfoGen.explicitBeanInfoClassSourceForBeanClass( beanClass, excludedPropertyNames, excludedPropertyTypes, false, true ));
             }
         }
         System.out.println("Bean info class generation complete.");
