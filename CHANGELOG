@@ -1,3 +1,8 @@
+        -- The Statement cache was clearing parameters and batches, but otherwise not resetting
+	   Statement state that may have been modified by prior users' activity. We now carefully
+	   either reset mutated Statement state, or refuse to re-cache on operations that change
+	   state in ways we can't reverse. Many thanks to Fredrik Jeppsson for calling attention
+	   to this issue!
 c3p0-0.14.1
         -- Modify c3p0 to use new BeanInfoGen functionality, restoring compatability with
            Java [7,11).
