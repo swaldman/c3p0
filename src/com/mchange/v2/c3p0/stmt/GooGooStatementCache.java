@@ -764,16 +764,7 @@ public abstract class GooGooStatementCache
             if (hazards.isMaxRowsUpdated())
             {
                 long initial = hazards.getMaxRowsUpdatedFrom();
-                try { ps.setLargeMaxRows(initial); }
-                catch (Throwable t)
-                {
-                    if (initial > Integer.MAX_VALUE)
-                        throw t;
-                    else if (t instanceof AbstractMethodError || t instanceof NoSuchMethodError || t instanceof UnsupportedOperationException || t instanceof SQLFeatureNotSupportedException)
-                        ps.setMaxRows((int) initial);
-                    else
-                        throw t;
-                }
+                CarefulMaxRowsReaderWriter.writeMaxRows(ps, initial);
             }
         }
 	ps.clearParameters();

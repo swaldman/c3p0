@@ -348,7 +348,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.println("{");
                 iw.upIndent();
                 iw.println("long from;");
-                iw.println("try {from = carefulReadMaxRows();}"); 
+                iw.println("try {from = CarefulMaxRowsReaderWriter.readMaxRows(inner);}"); 
                 iw.println("catch (Exception e)");
                 iw.println("{");
                 iw.upIndent();
@@ -371,7 +371,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.println("{");
                 iw.upIndent();
                 iw.println("long from;");
-                iw.println("try {from = carefulReadMaxRows();}"); 
+                iw.println("try {from = CarefulMaxRowsReaderWriter.readMaxRows(inner);}"); 
                 iw.println("catch (Exception e)");
                 iw.println("{");
                 iw.upIndent();
@@ -594,27 +594,6 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println();
             iw.println("void maybeDirtyTransaction()");
             iw.println("{ if (creatorProxy != null) creatorProxy.maybeDirtyTransaction(); }");
-            iw.println();
-            iw.println("long carefulReadMaxRows() throws SQLException");
-            iw.println("{");
-            iw.upIndent();
-            iw.println("try");
-            iw.println("{");
-            iw.upIndent();
-            iw.println("long out = inner.getLargeMaxRows();");
-            iw.println("if (out == 0) out = inner.getMaxRows();");
-            iw.println("return out;");
-            iw.downIndent();
-            iw.println("}");
-            iw.println("catch (Throwable t)");
-            iw.println("{");
-            iw.upIndent();
-            iw.println("if (t instanceof AbstractMethodError || t instanceof NoSuchMethodError || t instanceof UnsupportedOperationException || t instanceof SQLFeatureNotSupportedException) return inner.getMaxRows();");
-            iw.println("else throw t;");
-            iw.downIndent();
-            iw.println("}");
-            iw.downIndent();
-            iw.println("}");
         }
 
         protected void generateExtraImports( IndentedWriter iw ) throws IOException
@@ -623,6 +602,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("import java.lang.reflect.InvocationTargetException;");
             iw.println("import java.util.HashSet;");
             iw.println("import java.util.Iterator;");
+            iw.println("import com.mchange.v2.c3p0.stmt.CarefulMaxRowsReaderWriter;");
         }
 
 

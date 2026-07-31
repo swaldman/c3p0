@@ -108,7 +108,7 @@ c3p0's testing is, um, embarrassingly informal. There is a junit test suite, but
 very small fraction of c3p0 functionality. To run that, it's just
 
 ```plaintext
-$ mill test.test
+$ mill test
 ```
 
 Mostly c3p0 is tested by running a few test applications, and varying config _ad hoc_ to see how things work.
