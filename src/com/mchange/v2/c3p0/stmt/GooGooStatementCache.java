@@ -770,6 +770,7 @@ public abstract class GooGooStatementCache
         }
 	ps.clearParameters();
 	ps.clearBatch();
+        ps.clearWarnings();
     }
 
     private void printStats()
