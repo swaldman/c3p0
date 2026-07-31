@@ -570,6 +570,11 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.upIndent();
             iw.println("maybeDirtyTransaction();");
             iw.println();
+            iw.println("// note that we set isPoolable() to false if a user is doing something likely to change statement state even if we are not caching statements");
+            iw.println("// that may seem wasteful, provokes an unnecessary JDBC call, but it is logically correct -- statements after these operations are not poolable,");
+            iw.println("// and should be understood as such, regardless of any current intention to cache them. if the cost of this formal correctness proves high, we");
+            iw.println("// revisit it, but this case refers to an extraordinarily unlikely use of already very rarely used API. so the luxury of a cautious correctness");
+            iw.println("// is affordable.");
             iw.println("String mname = m.getName();");
             iw.println("if (\"closeOnCompletion\".equals(mname) || \"setCursorName\".equals(mname) || \"setQueryTimeout\".equals(mname) || \"setFetchDirection\".equals(mname) || \"setFetchSize\".equals(mname) || \"setMaxFieldSize\".equals(mname) || \"setMaxRows\".equals(mname) || \"setLargeMaxRows\".equals(mname)) this.setPoolable(false);");
             iw.println();

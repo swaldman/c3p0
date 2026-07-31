@@ -1,6 +1,12 @@
 package com.mchange.v2.c3p0.stmt;
 
+import java.sql.SQLException;
+import com.mchange.v2.log.*;
+
 final class Hazards implements Cloneable {
+
+    private final static MLogger logger = MLog.getLogger( Hazards.class );
+
     // escape processing has no effect on Prepared/CallableStatements, so we ignore it for now
     boolean cursorNameSet             = false;
     boolean closeOnCompletionSet      = false;
@@ -25,11 +31,18 @@ final class Hazards implements Cloneable {
     boolean isMaxFieldSizeUpdated()   { return maxFieldSizeUpdatedFrom != -1;   }
     boolean isMaxRowsUpdated()        { return maxRowsUpdatedFrom != -1;        }
 
-    int  getQueryTimeoutUpdatedFrom() throws IrreversibleHazardException   { return validOrThrow("queryTimeout", queryTimeoutUpdatedFrom);  }
-    int  getFetchDirectionUpdatedFrom() throws IrreversibleHazardException { return validOrThrow("fetchDirection", fetchDirectionUpdatedFrom);  }
-    int  getFetchSizeUpdatedFrom() throws IrreversibleHazardException      { return validOrThrow("fetchSize", fetchSizeUpdatedFrom);       }
-    int  getMaxFieldSizeUpdatedFrom() throws IrreversibleHazardException   { return validOrThrow("maxFieldSize", maxFieldSizeUpdatedFrom);    }
-    long getMaxRowsUpdatedFrom() throws IrreversibleHazardException        { return validOrThrow("maxRows", maxRowsUpdatedFrom);         }
+    /*
+     * Note that these getters should only be called if the variable has actually been updated.
+     * You have to gate on the boolean methods above!
+     *
+     * Calling any of these get...UpdatedFrom methods on a never updated variable is a
+     * violation, a programming error if it occurred. Be careful not to do this!
+     */
+    int  getQueryTimeoutUpdatedFrom() throws IrreversibleHazardException, SQLException   { return validOrThrow("queryTimeout", queryTimeoutUpdatedFrom);  }
+    int  getFetchDirectionUpdatedFrom() throws IrreversibleHazardException, SQLException { return validOrThrow("fetchDirection", fetchDirectionUpdatedFrom);  }
+    int  getFetchSizeUpdatedFrom() throws IrreversibleHazardException, SQLException      { return validOrThrow("fetchSize", fetchSizeUpdatedFrom);       }
+    int  getMaxFieldSizeUpdatedFrom() throws IrreversibleHazardException, SQLException   { return validOrThrow("maxFieldSize", maxFieldSizeUpdatedFrom);    }
+    long getMaxRowsUpdatedFrom() throws IrreversibleHazardException, SQLException        { return validOrThrow("maxRows", maxRowsUpdatedFrom);         }
 
     void markCursorNameSet()        { this.cursorNameSet = true;        }
     void markCloseOnCompletionSet() { this.closeOnCompletionSet = true; }
@@ -47,21 +60,29 @@ final class Hazards implements Cloneable {
         { throw new InternalError( "CloneNotSupportedException on clone() of Cloneable Hazards? Should never happen.", e ); }
     }
 
-    private int validOrThrow(String property, int i) throws IrreversibleHazardException
+    private int validOrThrow(String property, int i) throws IrreversibleHazardException, SQLException
     {
         if (i >= 0) return i;
         else if (i == -1)
-            throw new AssertionError("We should not get the value of a property (here '" + property + "') not set or updated.");
+        {
+            String message = "Internal Error: We should not get the value of a property (here '" + property + "') not set or updated.";
+            if (logger.isLoggable(MLevel.SEVERE)) logger.log(MLevel.SEVERE, message);
+            throw new SQLException(message);
+        }
         else
             throw new IrreversibleHazardException("An initial value of '" + property + "' was required in order to restore Prepared/CallableStatement state, but could not be determined.");
     }
 
     // it feels dumb to just repeat the code, but also dumb to cast every int to a long then downcast it again.
-    private long validOrThrow(String property, long l) throws IrreversibleHazardException
+    private long validOrThrow(String property, long l) throws IrreversibleHazardException, SQLException
     {
         if (l >= 0) return l;
         else if (l == -1)
-            throw new AssertionError("We should not get the value of a property (here '" + property + "') not set or updated.");
+        {
+            String message = "Internal Error: We should not get the value of a property (here '" + property + "') not set or updated.";
+            if (logger.isLoggable(MLevel.SEVERE)) logger.log(MLevel.SEVERE, message);
+            throw new SQLException(message);
+        }
         else
             throw new IrreversibleHazardException("An initial value of '" + property + "' was required in order to restore Prepared/CallableStatement state, but could not be determined.");
     }

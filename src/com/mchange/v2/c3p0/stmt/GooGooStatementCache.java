@@ -59,16 +59,16 @@ public abstract class GooGooStatementCache
 
     /* MT: protected by its own lock */
 
-    AsynchronousRunner blockingTaskAsyncRunner;
+    final AsynchronousRunner blockingTaskAsyncRunner;
 
-    StatementDestructionManager destructo;
+    final StatementDestructionManager destructo;
 
     // the parent WeakHashMap and all mutable Hazard objects are protected by the stmtToHazards monitor!
     //
     // we use WeakHashMap because values are set externally, by Statement proxies (via Connection proxies),
     // and need not reliably map to Statements ever actually incorporated into the cache.
     // uncached Statements will fall out of this map after they are garbage collected
-    WeakHashMap stmtToHazards = new WeakHashMap();
+    final WeakHashMap stmtToHazards = new WeakHashMap();
 
     /* MT: end protected by its own lock */
 
@@ -499,6 +499,7 @@ public abstract class GooGooStatementCache
     { stmtToHazards.remove( pstmt ); }
 
     // can be called without the stmtToHazards monitor, acquires it
+    // not currently used, but for symmetry with clearHazardsForStatement(...), which is used
     private Hazards hazardsForStatement( Object pstmt, boolean create )
     { synchronized(stmtToHazards) { return _hazardsForStatement( pstmt, create ); } }
     
