@@ -213,6 +213,7 @@ test applications, usually one of...
 * `com.mchange.v2.c3p0.test.TestRefSerStuff`
 * `com.mchange.v2.c3p0.test.JavaBeanRefTest`
 * `com.mchange.v2.c3p0.test.DynamicPreparedStatementTest`
+* `com.mchange.v2.c3p0.test.StatementStateTest`
 
 
 ### Building c3p0-loom

@@ -494,6 +494,9 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     def c3p0DynamicPreparedStatement() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")()
     }
+    def c3p0StatementState() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.test.StatementStateTest")()
+    }
     override def pomSettings = Task {
       PomSettings(
         description = "Tests of c3p0, a mature JDBC3+ Connection pooling library",
