@@ -219,7 +219,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
 
-            String mname   = method.getName();
+            String mname = method.getName();
 	    if ( jdbc4WrapperMethod( mname ) )
 	    {
 		generateWrapperDelegateCode( intfcl, genclass, method, iw );
@@ -239,6 +239,154 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 iw.println("NewProxyResultSet out = new NewProxyResultSet( innerResultSet, parentPooledConnection, inner, this );"); 
 		iw.println("synchronized ( myProxyResultSets ) { myProxyResultSets.add( out ); }"); // no potentially blocking operations within lock
 		iw.println("return out;");
+            }
+            else if ( mname.equals("setCursorName") )
+            {
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("if (is_cached) parentPooledConnection.markCursorNameSet( inner );");
+            }
+            else if ( mname.equals("closeOnCompletion") )
+            {
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("if (is_cached) parentPooledConnection.markCloseOnCompletionSet( inner );");
+            }
+            else if ( mname.equals("setQueryTimeout") )
+            {
+                iw.println("if (is_cached)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("int from;");
+                iw.println("try {from = inner.getQueryTimeout();}");
+                iw.println("catch (Exception e)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("if (logger.isLoggable(MLevel.WARNING)) logger.log( MLevel.WARNING, \"An Exception occurred while trying to read the prior queryTimeout. This statement will not be cacheable.\", e );");
+                iw.println("from = -999;");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("parentPooledConnection.markQueryTimeoutUpdatedFrom( inner, from );");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("else");
+                iw.upIndent();
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.downIndent();
+            }
+            else if ( mname.equals("setFetchDirection") )
+            {
+                iw.println("if (is_cached)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("int from;");
+                iw.println("try {from = inner.getFetchDirection();}");
+                iw.println("catch (Exception e)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("if (logger.isLoggable(MLevel.WARNING)) logger.log( MLevel.WARNING, \"An Exception occurred while trying to read the prior fetchDirection. This statement will not be cacheable.\", e );");
+                iw.println("from = -999;");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("parentPooledConnection.markFetchDirectionUpdatedFrom( inner, from );");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("else");
+                iw.upIndent();
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.downIndent();
+            }
+            else if ( mname.equals("setFetchSize") )
+            {
+                iw.println("if (is_cached)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("int from;");
+                iw.println("try {from = inner.getFetchSize();}");
+                iw.println("catch (Exception e)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("if (logger.isLoggable(MLevel.WARNING)) logger.log( MLevel.WARNING, \"An Exception occurred while trying to read the prior fetchSize. This statement will not be cacheable.\", e );");
+                iw.println("from = -999;");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("parentPooledConnection.markFetchSizeUpdatedFrom( inner, from );");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("else");
+                iw.upIndent();
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.downIndent();
+            }
+            else if ( mname.equals("setMaxFieldSize") )
+            {
+                iw.println("if (is_cached)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("int from;");
+                iw.println("try {from = inner.getMaxFieldSize();}");
+                iw.println("catch (Exception e)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("if (logger.isLoggable(MLevel.WARNING)) logger.log( MLevel.WARNING, \"An Exception occurred while trying to read the prior maxFieldSize. This statement will not be cacheable.\", e );");
+                iw.println("from = -999;");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("parentPooledConnection.markMaxFieldSizeUpdatedFrom( inner, from );");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("else");
+                iw.upIndent();
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.downIndent();
+            }
+            else if ( mname.equals("setMaxRows") )
+            {
+                iw.println("if (is_cached)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("long from;");
+                iw.println("try {from = carefulReadMaxRows();}"); 
+                iw.println("catch (Exception e)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("if (logger.isLoggable(MLevel.WARNING)) logger.log( MLevel.WARNING, \"An Exception occurred while trying to read the prior maxRows. This statement will not be cacheable.\", e );");
+                iw.println("from = -999;");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("parentPooledConnection.markMaxRowsUpdatedFrom( inner, from );");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("else");
+                iw.upIndent();
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.downIndent();
+            }
+            else if ( mname.equals("setLargeMaxRows") )
+            {
+                iw.println("if (is_cached)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("long from;");
+                iw.println("try {from = carefulReadMaxRows();}"); 
+                iw.println("catch (Exception e)");
+                iw.println("{");
+                iw.upIndent();
+                iw.println("if (logger.isLoggable(MLevel.WARNING)) logger.log( MLevel.WARNING, \"An Exception occurred while trying to read the prior largeMaxRows. This statement will not be cacheable.\", e );");
+                iw.println("from = -999;");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.println("parentPooledConnection.markMaxRowsUpdatedFrom( inner, from );");
+                iw.downIndent();
+                iw.println("}");
+                iw.println("else");
+                iw.upIndent();
+                iw.println("inner." + CodegenUtils.methodCall( method ) + ";");
+                iw.downIndent();
             }
             else if ( mname.equals("getConnection") )
             {
@@ -422,6 +570,9 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.upIndent();
             iw.println("maybeDirtyTransaction();");
             iw.println();
+            iw.println("String mname = m.getName();");
+            iw.println("if (\"closeOnCompletion\".equals(mname) || \"setCursorName\".equals(mname) || \"setQueryTimeout\".equals(mname) || \"setFetchDirection\".equals(mname) || \"setFetchSize\".equals(mname) || \"setMaxFieldSize\".equals(mname) || \"setMaxRows\".equals(mname) || \"setLargeMaxRows\".equals(mname)) this.setPoolable(false);");
+            iw.println();
             iw.println("if (target == C3P0ProxyStatement.RAW_STATEMENT) target = inner;");
             iw.println("for (int i = 0, len = args.length; i < len; ++i)");
             iw.upIndent();
@@ -443,6 +594,27 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println();
             iw.println("void maybeDirtyTransaction()");
             iw.println("{ if (creatorProxy != null) creatorProxy.maybeDirtyTransaction(); }");
+            iw.println();
+            iw.println("long carefulReadMaxRows() throws SQLException");
+            iw.println("{");
+            iw.upIndent();
+            iw.println("try");
+            iw.println("{");
+            iw.upIndent();
+            iw.println("long out = inner.getLargeMaxRows();");
+            iw.println("if (out == 0) out = inner.getMaxRows();");
+            iw.println("return out;");
+            iw.downIndent();
+            iw.println("}");
+            iw.println("catch (Throwable t)");
+            iw.println("{");
+            iw.upIndent();
+            iw.println("if (t instanceof AbstractMethodError || t instanceof NoSuchMethodError || t instanceof UnsupportedOperationException || t instanceof SQLFeatureNotSupportedException) return inner.getMaxRows();");
+            iw.println("else throw t;");
+            iw.downIndent();
+            iw.println("}");
+            iw.downIndent();
+            iw.println("}");
         }
 
         protected void generateExtraImports( IndentedWriter iw ) throws IOException

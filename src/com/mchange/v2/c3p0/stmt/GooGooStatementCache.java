@@ -55,7 +55,6 @@ public abstract class GooGooStatementCache
     // culling in case of overflow
     HashSet checkedOut = new HashSet();
 
-
     /* MT: end protected by mainLock */
 
     /* MT: protected by its own lock */
@@ -63,6 +62,13 @@ public abstract class GooGooStatementCache
     AsynchronousRunner blockingTaskAsyncRunner;
 
     StatementDestructionManager destructo;
+
+    // the parent WeakHashMap and all mutable Hazard objects are protected by the stmtToHazards monitor!
+    //
+    // we use WeakHashMap because values are set externally, by Statement proxies (via Connection proxies),
+    // and need not reliably map to Statements ever actually incorporated into the cache.
+    // uncached Statements will fall out of this map after they are garbage collected
+    WeakHashMap stmtToHazards = new WeakHashMap();
 
     /* MT: end protected by its own lock */
 
@@ -274,10 +280,22 @@ public abstract class GooGooStatementCache
             {
                 if (Debug.DEBUG)
                 {
-                    // System.err.println("Problem with checked-in Statement, discarding.");
-                    // e.printStackTrace();
-                    if (logger.isLoggable(MLevel.INFO))
-                        logger.log(MLevel.INFO, "Problem with checked-in Statement, discarding.", e);
+                    if (e instanceof IrreversibleHazardException)
+                    {
+                        // these represent occasions where we basically choose not to cache, because
+                        // we can't guarantee the quality of the statements if we did cache them.
+                        // this is a choice we make under some circumstance, not a problem of which most
+                        // users must be informed
+                        if (logger.isLoggable(MLevel.DEBUG))
+                            logger.log(MLevel.DEBUG, "A Statement could not be restored to its initial condition for (re)inclusion in the cache. Discarding.", e);
+                    }
+                    else
+                    {
+                        // System.err.println("Problem with checked-in Statement, discarding.");
+                        // e.printStackTrace();
+                        if (logger.isLoggable(MLevel.INFO))
+                            logger.log(MLevel.INFO, "Problem with checked-in Statement, discarding.", e);
+                    }
                 }
 
                 // swaldman -- 2004-01-31: readd problem statement to checkedOut for consistency
@@ -464,7 +482,37 @@ public abstract class GooGooStatementCache
     }
 
 
+    // should only be called with the stmtToHazards monitor
+    private Hazards _hazardsForStatement( Object pstmt, boolean create )
+    {
+        Hazards out = (Hazards) stmtToHazards.get( pstmt );
+        if (create && out == null)
+        {
+            out = new Hazards();
+            stmtToHazards.put( pstmt, out );
+        }
+        return out;
+    }
 
+    // should only be called with the stmtToHazards monitor
+    private void _clearHazardsForStatement( Object pstmt )
+    { stmtToHazards.remove( pstmt ); }
+
+    // can be called without the stmtToHazards monitor, acquires it
+    private Hazards hazardsForStatement( Object pstmt, boolean create )
+    { synchronized(stmtToHazards) { return _hazardsForStatement( pstmt, create ); } }
+    
+    // can be called without the stmtToHazards monitor, acquires it
+    private void clearHazardsForStatement( Object pstmt )
+    { synchronized(stmtToHazards) { _clearHazardsForStatement( pstmt ); } }
+
+    public void markCursorNameSet(Object pstmt)                       { synchronized(stmtToHazards) { _hazardsForStatement( pstmt, true ).markCursorNameSet(); } }
+    public void markCloseOnCompletionSet(Object pstmt)                { synchronized(stmtToHazards) { _hazardsForStatement( pstmt, true ).markCloseOnCompletionSet(); } }
+    public void markQueryTimeoutUpdatedFrom(Object pstmt, int from)   { synchronized(stmtToHazards) { _hazardsForStatement( pstmt, true ).markQueryTimeoutUpdatedFrom(from); } }
+    public void markFetchDirectionUpdatedFrom(Object pstmt, int from) { synchronized(stmtToHazards) { _hazardsForStatement( pstmt, true ).markFetchDirectionUpdatedFrom(from); } }
+    public void markFetchSizeUpdatedFrom(Object pstmt, int from)      { synchronized(stmtToHazards) { _hazardsForStatement( pstmt, true ).markFetchSizeUpdatedFrom(from); } }
+    public void markMaxFieldSizeUpdatedFrom(Object pstmt, int from)   { synchronized(stmtToHazards) { _hazardsForStatement( pstmt, true ).markMaxFieldSizeUpdatedFrom(from); } }
+    public void markMaxRowsUpdatedFrom(Object pstmt, long from)       { synchronized(stmtToHazards) { _hazardsForStatement( pstmt, true ).markMaxRowsUpdatedFrom(from); } }
 
     /* non-public methods that MUST be called with mainLock */
 
@@ -524,6 +572,8 @@ public abstract class GooGooStatementCache
         finally
         { removalPendingLock.unlock(); }
 
+        clearHazardsForStatement( ps );
+
         StatementCacheKey sck = (StatementCacheKey) stmtToKey.remove( ps );
         removeFromKeySet( sck, ps );
         Connection pConn = sck.physicalConnection;
@@ -561,9 +611,6 @@ public abstract class GooGooStatementCache
         finally
         { removalPendingLock.unlock(); }
     }
-
-
-
 
     private Object acquireStatement(final Connection pConn,
                     final Method stmtProducingMethod,
@@ -685,8 +732,50 @@ public abstract class GooGooStatementCache
     private boolean ourResource( Object ps )
     { return stmtToKey.keySet().contains( ps ); }
 
+    // any Exception forces removal
     private void refreshStatement( PreparedStatement ps ) throws Exception
     {
+        if (!ps.isPoolable())
+            throw new IrreversibleHazardException("Statement has been explicitly marked non-poolable.");
+        Hazards hazards;
+        synchronized (stmtToHazards)
+        {
+            hazards = _hazardsForStatement( ps, false );
+            if (hazards != null)
+            {
+                hazards = hazards.snapshot();
+                _clearHazardsForStatement( ps );
+            }
+        }
+        if (hazards != null)
+        {
+            if (hazards.isCursorNameSet())
+                throw new IrreversibleHazardException("Client set a cursor name. We have no means by which to restore Statement to initial, unset-cursor-name state.");
+            if (hazards.isCloseOnCompletionSet())
+                throw new IrreversibleHazardException("Client set closeOnCompletion(). We have no means by which to unset that value and restore the default non-auto-closing state.");
+            if (hazards.isQueryTimeoutUpdated())
+                ps.setQueryTimeout(hazards.getQueryTimeoutUpdatedFrom());
+            if (hazards.isFetchDirectionUpdated())
+                ps.setFetchDirection(hazards.getFetchDirectionUpdatedFrom());
+            if (hazards.isFetchSizeUpdated())
+                ps.setFetchSize(hazards.getFetchSizeUpdatedFrom());
+            if (hazards.isMaxFieldSizeUpdated())
+                ps.setMaxFieldSize(hazards.getMaxFieldSizeUpdatedFrom());
+            if (hazards.isMaxRowsUpdated())
+            {
+                long initial = hazards.getMaxRowsUpdatedFrom();
+                try { ps.setLargeMaxRows(initial); }
+                catch (Throwable t)
+                {
+                    if (initial > Integer.MAX_VALUE)
+                        throw t;
+                    else if (t instanceof AbstractMethodError || t instanceof NoSuchMethodError || t instanceof UnsupportedOperationException || t instanceof SQLFeatureNotSupportedException)
+                        ps.setMaxRows((int) initial);
+                    else
+                        throw t;
+                }
+            }
+        }
 	ps.clearParameters();
 	ps.clearBatch();
     }

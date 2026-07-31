@@ -278,6 +278,28 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     public synchronized GooGooStatementCache getStatementCache()
     { return scache; }
 
+    // information for the statement cache, if any
+    public synchronized void markCursorNameSet(Object pstmt)
+    { if (scache != null) scache.markCursorNameSet(pstmt); }
+
+    public synchronized void markCloseOnCompletionSet(Object pstmt)
+    { if (scache != null) scache.markCloseOnCompletionSet(pstmt); }
+
+    public synchronized void markQueryTimeoutUpdatedFrom(Object pstmt, int from)
+    { if (scache != null) scache.markQueryTimeoutUpdatedFrom( pstmt, from ); }
+
+    public synchronized void markFetchDirectionUpdatedFrom(Object pstmt, int from)
+    { if (scache != null) scache.markFetchDirectionUpdatedFrom( pstmt, from ); }
+
+    public synchronized void markFetchSizeUpdatedFrom(Object pstmt, int from)
+    { if (scache != null) scache.markFetchSizeUpdatedFrom( pstmt, from ); }
+
+    public synchronized void markMaxFieldSizeUpdatedFrom(Object pstmt, int from)
+    { if (scache != null) scache.markMaxFieldSizeUpdatedFrom( pstmt, from ); }
+
+    public synchronized void markMaxRowsUpdatedFrom(Object pstmt, long from)
+    { if (scache != null) scache.markMaxRowsUpdatedFrom( pstmt, from ); }
+
     //api for NewProxyConnections
     void markNewTxnIsolation( int lvl ) //intentionally unsync'd -- isolation_lvl_nondefault is marked volatile
     {
