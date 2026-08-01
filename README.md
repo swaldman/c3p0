@@ -81,19 +81,14 @@ To prevent everchanging timestamps, set the environment variable
 [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/)
 when building.
 
-`mill` runs by default as a persistent server in the background, which makes setting
-environment variables challenging. In order to get `SOURCE_DATE_EPOCH` passed effectively
-to the build process, prevent this using the `-i` flag.
-
-`mill` caches artifacts, and does not take the alteration of an environment variable
-as a reason to regenerate. So it's best to run clean builds to ensure reproducibility.
-So, for example
+The build reads `SOURCE_DATE_EPOCH` from the environment of the `mill` command you invoke, and
+treats it as a build input, so changing it is itself a reason to regenerate. Neither the `-i` flag
+nor a clean build is required. So, for example
 
 ```plaintext
 $ export SOURCE_DATE_EPOCH=1234567890
-$ ./mill -i __.clean
-$ ./mill -i jar
-$ ./mill -i sourceJar
+$ ./mill jar
+$ ./mill sourceJar
 ```
 
 The files `out/jar.dest/out.jar` and `out/sourceJar.dest/out.jar` will have been deterministically and reproducibly built.
@@ -101,8 +96,8 @@ The files `out/jar.dest/out.jar` and `out/sourceJar.dest/out.jar` will have been
 ### Testing c3p0
 
 By default the tests expect to find a database at `jdbc:postgresql://localhost:5432/c3p0`.
-As you can see, I usually test against a local postgres database. You can change this in
-the `forkArgs` function of the `test` module, in [`build.mill`](build.mill).
+As you can see, I usually test against a local postgres database. You can change this by
+setting `C3P0_TEST_JDBC_URL` in the environment — see [Test configuration](#test-configuration) below.
 
 c3p0's testing is, um, embarrassingly informal. There is a junit test suite, but it covers a
 very small fraction of c3p0 functionality. To run that, it's just
@@ -145,35 +140,41 @@ You can observe (most of) the config of your c3p0 `DataSource` when you test, be
 upon the first `Connection` checkout attempt. When testing, verify that you are working with the configuration
 you expect!
 
-Tests are configured by command-line arguments and by a `c3p0.properties` file.
+Tests are configured by a `c3p0.properties` file and by environment variables.
 To play with different configurations, edit [`test/resources-local/c3p0.properties`](test/resources-local/c3p0.properties).
-Also check the `forkArgs()` method in [`build.mill`](build.mill)
+
+Test runs are configured from the environment rather than by editing [`build.mill`](build.mill).
+Since these affect only how tests run, switching between setups rebuilds nothing:
+
+| Variable | Effect |
+| --- | --- |
+| `C3P0_TEST_CONFIG` | `local` (the default) or `rough`, selecting which `c3p0.properties` the tests see |
+| `C3P0_TEST_JDBC_URL` | overrides the default URL, `jdbc:postgresql://localhost:5432/c3p0` |
+| `C3P0_TEST_USER` | sets `-Dc3p0.user`, when present |
+| `C3P0_TEST_PASSWORD` | sets `-Dc3p0.password`, when present (may be empty) |
+| `C3P0_TEST_JVM_ARGS` | whitespace-separated extra JVM args, appended last; may define c3p0 properties such as `-Dc3p0.maxStatements=100` |
 
 Sometimes you want to put the library through its paces with pathological configuration.
 A baseline pathological configuration is defined in [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
+To give this effect:
 
-To give this effect, temporarily edit [`build.mill`](build.mill):
-
-```scala
-    override def runClasspath : T[Seq[PathRef]] = Task {
-      // build.beanInfoBin holds the generated explicit BeanInfo classes, which ship in the
-      // main jar but are not part of build.compile (so not pulled in via the moduleDep on build).
-      // We add them here so java.beans.Introspector finds them at test runtime, as it would in a
-      // deployed jar. (See PerishableConnectionResourcesNotBeanPropertiesJUnitTestCase.)
-      val testClasses = super.runClasspath() :+ build.beanInfoBin.compile().classes
-
-      // we maintain two sets of configs for quick tests, one "reasonable",
-      // the other intentionally miserable. We tend to run tests against both,
-      // manually switching between the versions below
-      testClasses :+ localResources()
-      // testClasses :+ localResourcesRough()
-    }
+```bash
+$ C3P0_TEST_CONFIG=rough mill test.c3p0Load
 ```
 
-* Comment out `testClasses :+ localResources()`
-* Uncomment in `testClasses :+ localResourcesRough()`
-
 Then of course you can edit [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
+
+Test environment changes that, in versions of c3p0 prior to 0.15.0, you would have uncommented in the `forkArgs()` task of `build.mill` now go in `C3P0_TEST_JVM_ARGS`.
+For example:
+
+```bash
+$ C3P0_TEST_JVM_ARGS='-ea -Dc3p0.maxStatements=100' mill test.c3p0PSLoad
+```
+
+Running against hsqldb rather than postgres additionally requires uncommenting `Dependency.Hsqldb`
+in the test module's `mvnDeps`. That one stays a source edit deliberately: the test module is
+published, and an environment-conditional dependency would make the published pom depend on the
+environment it happened to be published from.
 
 #### Test logging
 

@@ -395,13 +395,50 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     def testParallelism = false
 
     /**
+      * How a test run is configured, read from the environment rather than by editing this file.
+      * Everything here affects only how tests are run, never what is compiled or published, so
+      * switching setups costs nothing and rebuilds nothing.
+      *
+      *   C3P0_TEST_CONFIG    "local" (the default) or "rough", selecting which c3p0.properties
+      *                       the tests see -- see localResources / localResourcesRough below
+      *   C3P0_TEST_JDBC_URL  overrides the default postgres URL
+      *   C3P0_TEST_USER      sets -Dc3p0.user, when present
+      *   C3P0_TEST_PASSWORD  sets -Dc3p0.password, when present (may be empty, as hsqldb wants)
+      *   C3P0_TEST_JVM_ARGS  whitespace-separated extra JVM args, appended last
+      *
+      * So, for example:
+      *
+      *   C3P0_TEST_CONFIG=rough mill test.c3p0Load
+      *   C3P0_TEST_JVM_ARGS='-ea -Dc3p0.maxStatements=100' mill test.c3p0PSLoad
+      *
+      * One switch deliberately remains a source edit: running against hsqldb also needs its driver
+      * on the classpath, and this module is published, so an env-conditional mvnDeps would make the
+      * published pom depend on the environment it was published from. Uncomment Dependency.Hsqldb
+      * in mvnDeps below, then set C3P0_TEST_JDBC_URL, C3P0_TEST_USER and C3P0_TEST_PASSWORD.
+      */
+    def testEnv : T[Map[String,String]] = Task.Input {
+      Task.env.filter { case (k,_) => k.startsWith("C3P0_TEST_") }
+    }
+
+    /**
       * A place for resources we want seen by local (test) runs, but
       * should not be published (even locally) into the c3p0-test jar,
       * so that when we run tests from elsewhere, they are not polluted
       * by settings in these resources
+      *
+      * We maintain two sets of configs for quick tests, one "reasonable", the other intentionally
+      * miserable. We tend to run tests against both, selected by C3P0_TEST_CONFIG.
       */
     def localResources : T[PathRef] = Task.Source { moduleDir / "resources-local" }
     def localResourcesRough : T[PathRef] = Task.Source { moduleDir / "resources-local-rough" }
+
+    def selectedLocalResources : T[PathRef] = Task {
+      testEnv().get("C3P0_TEST_CONFIG").map( _.toLowerCase ) match {
+        case None | Some("local") => localResources()
+        case Some("rough")        => localResourcesRough()
+        case Some( bad )          => sys.error(s"C3P0_TEST_CONFIG must be 'local' or 'rough', found '${bad}'.")
+      }
+    }
 
     override def runClasspath : T[Seq[PathRef]] = Task {
       // build.beanInfoBin holds the generated explicit BeanInfo classes, which ship in the
@@ -410,11 +447,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       // deployed jar. (See PerishableConnectionResourcesNotBeanPropertiesJUnitTestCase.)
       val testClasses = super.runClasspath() :+ build.beanInfoBin.compile().classes
 
-      // we maintain two sets of configs for quick tests, one "reasonable",
-      // the other intentionally miserable. We tend to run tests against both,
-      // manually switching between the versions below
-      testClasses :+ localResources()
-      // testClasses :+ localResourcesRough()
+      testClasses :+ selectedLocalResources()
     }
 
     def externalClassPath : T[String] = Task {
@@ -441,27 +474,32 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
         //Dependency.Hsqldb
       )
     }
+    val DefaultTestJdbcUrl = "jdbc:postgresql://localhost:5432/c3p0"
+
+    // Everything that used to sit here commented-out, waiting to be switched on by hand, now goes
+    // through the environment. Some that were worth keeping a record of:
+    //
+    //   hsqldb        C3P0_TEST_JDBC_URL='jdbc:hsqldb:hsql://localhost/mydb;hsqldb.sqllog=3'
+    //                 C3P0_TEST_USER=SA C3P0_TEST_PASSWORD=
+    //                 (plus uncommenting Dependency.Hsqldb above -- see testEnv)
+    //   statements    C3P0_TEST_JVM_ARGS='-Dc3p0.maxStatements=100 -Dc3p0.maxStatementsPerConnection=5'
+    //                 C3P0_TEST_JVM_ARGS='-Dc3p0.cancelAutomaticallyClosedStatements=true'
+    //   jmx           C3P0_TEST_JVM_ARGS='-Dcom.sun.management.jmxremote.port=38383
+    //                   -Dcom.sun.management.jmxremote.authenticate=false
+    //                   -Dcom.sun.management.jmxremote.ssl=false'
+    //   profiling     C3P0_TEST_JVM_ARGS='-Xrunhprof:cpu=times,file=/tmp/java.hprof,doe=y,format=a'
+    //   misc          C3P0_TEST_JVM_ARGS='-server -ea -verbose:class -XX:MaxJavaStackTraceDepth=0'
     override def forkArgs = Task {
-      "-Dc3p0.jdbcUrl=jdbc:postgresql://localhost:5432/c3p0" ::
-      //"-Dc3p0.jdbcUrl=jdbc:hsqldb:hsql://localhost/mydb;hsqldb.sqllog=3" :: // hsqldb
-      //"-Dc3p0.user=SA" ::                                                   // hsqldb
-      //"-Dc3p0.password=" ::                                                 // hsqldb
-      //"-Dc3p0.maxStatements=100" ::
-      //"-Dc3p0.maxStatementsPerConnection=5" ::
-      //"-Dc3p0.cancelAutomaticallyClosedStatements=true" ::
-      //"-Dcom.sun.management.jmxremote.port=38383" ::
-      //"-Dcom.sun.management.jmxremote.authenticate=false" ::
-      //"-Dcom.sun.management.jmxremote.ssl=false" ::
-      //"-server" ::
-      //"-Xrunhprof:cpu=times,file=/tmp/java.hprof,doe=y,format=a" ::
-      //"-Xprof" ::
-      //"-Xrunhprof:file=/tmp/java.hprof,doe=y,format=b" ::
-      //"-verbose:class"
-      //"-ea" ::
-      //"-XX:MaxJavaStackTraceDepth=0" ::
-      "-Djava.rmi.server.hostname=localhost" ::
-      s"""-Djava.util.logging.config.file=${moduleDir / "conf-logging" / "logging.properties"}""" ::
-      Nil
+      val env         = testEnv()
+      val jdbcUrl     = env.getOrElse("C3P0_TEST_JDBC_URL", DefaultTestJdbcUrl)
+      val credentials = env.get("C3P0_TEST_USER").map( u => s"-Dc3p0.user=${u}" ) ++
+                        env.get("C3P0_TEST_PASSWORD").map( p => s"-Dc3p0.password=${p}" )
+      val extraArgs   = env.get("C3P0_TEST_JVM_ARGS").toSeq.flatMap( _.split("\\s+") ).filter( _.nonEmpty )
+      Seq(
+        s"-Dc3p0.jdbcUrl=${jdbcUrl}",
+        "-Djava.rmi.server.hostname=localhost",
+        s"""-Djava.util.logging.config.file=${moduleDir / "conf-logging" / "logging.properties"}"""
+      ) ++ credentials ++ extraArgs
     }
     def c3p0Benchmark() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.C3P0BenchmarkApp")()
