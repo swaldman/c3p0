@@ -72,6 +72,22 @@ $ ./mill doc.docroot
 
 You can then open in your browser `out/doc/docroot.dest/index.html`
 
+### Build freshness
+
+Much of c3p0 is generated during the build: a `Debug` class per package beneath `src`, JavaBean base
+classes from the `beangen-xml` files, explicit `BeanInfo`s reflected off those compiled beans, and the
+JDBC proxies. You should never need `mill clean` to get a correct jar out of that. To verify it:
+
+```plaintext
+$ ./checkBuildFreshness
+```
+
+It perturbs a build input of each kind — a new package under `src`, a new property in a
+`beangen-xml`, a change to generator code — and checks that an incremental build afterwards matches
+a clean build of the same sources, that the perturbation really did move the output, and that
+reverting restores the artifacts bit for bit. It takes well under a minute, exits nonzero on
+failure, and leaves your working tree as it found it.
+
 ### Reproducible builds
 
 c3p0 supports reproducible builds of its binary and source jar files.
