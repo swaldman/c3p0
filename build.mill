@@ -1,9 +1,6 @@
 //| mill-version: 1.1.6
 package build
 
-// see mill-build/build.mill
-import millbuild.MillBuildCommonDependencies
-
 import mill._
 import mill.api.BuildCtx
 import mill.scalalib._
@@ -18,7 +15,7 @@ import scala.annotation.tailrec
  */
 
 object Dependency {
-  val MchangeCommonsJavaVersion = MillBuildCommonDependencies.McjVersion
+  val MchangeCommonsJavaVersion = "0.6.1"
   val MchangeCommonsJava        = mvn"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
 
   val JUnit  = mvn"org.junit.vintage:junit-vintage-engine:5.10.2"
@@ -102,6 +99,15 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   object bean extends Gen {}
 
+  // Unlike the other generators, this one has no sources of its own: DebugGen ships in
+  // mchange-commons-java, which Gen already puts on the classpath. The module exists only to name
+  // that main class and give it a runClasspath, so genDebugSources can fork it like any other
+  // generator. Running it in-process instead would mean putting mchange-commons-java on the build
+  // script's own classpath, which is what the mill-build meta-build used to be for.
+  object debugGen extends Gen {
+    override def mainClass = Task { Some("com.mchange.v2.debug.DebugGen") }
+  }
+
   object beanInfo extends Gen {
     override def moduleDeps = Seq(build) // makes the c3p0 bean classes loadable at run time
     override def mainClass   = Task { Some("com.mchange.v2.c3p0.beaninfo.C3P0BeanInfoGen") }
@@ -153,9 +159,12 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // package added to or removed from src must re-run this, or the main compile fails on a missing
   // Debug symbol (or silently keeps a Debug class for a package that no longer exists).
   def genDebugSources = Task {
+    val generate = debugGen.generator()
     val codebase = handwrittenSources().path
-    com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${codebase}",s"--outputbase=${Task.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
-    PathRef(Task.dest)
+    generate(
+      Task.dest,
+      Seq("--packages=com.mchange",s"--codebase=${codebase}",s"--outputbase=${Task.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}")
+    )
   }
   // TIMESTAMP falls back to wall-clock time, but this task only re-runs (and so only re-stamps)
   // when the version, the Debug/Trace constants, or SOURCE_DATE_EPOCH change — not on every build.
