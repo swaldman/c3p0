@@ -5,7 +5,7 @@ package build
 import millbuild.MillBuildCommonDependencies
 
 import mill._
-import mill.api.{BuildCtx,Result}
+import mill.api.BuildCtx
 import mill.scalalib._
 import mill.scalalib.publish._
 import mill.util.{JarManifest,Jvm}
@@ -48,39 +48,54 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
   trait Gen extends JavaModule {
-    // cpPassingJarPath handling is modified from https://github.com/com-lihaoyi/mill/blob/06170d57a211430b63c383d9e627ffe4088649d6/libs/javalib/src/mill/javalib/RunModule.scala
-    def runIf(conditionAndArgs: Task[Args]): Command[Unit] = Task.Command {
-      val caa = conditionAndArgs().value
-      val condition = caa.head
-      // println(s"!!!!! $condition")
-      val args = caa.tail
-      val truthyCondition = "true".equalsIgnoreCase(condition) || "t".equalsIgnoreCase(condition)
-      if (truthyCondition) {
-        try Result.Success(
-            Jvm.callProcess(
-              mainClass = finalMainClass(),
-              classPath = runClasspath().map(_.path),
-              jvmArgs = forkArgs(),
-              env = forkEnv(),
-              stdout = os.Inherit, // otherwise stuff printed to stdout gets captured in the never used CommandResult rather than streamed to the terminal as desired
-              mainArgs = args,
-              cwd = forkWorkingDir(),
-              cpPassingJarPath = if runUseArgsFile() then Some(os.temp(prefix = "run-", suffix = ".jar", deleteOnExit = false)) else None
-            )
-          )
-        catch {
-          case e: Exception =>
-            Result.Failure("subprocess failed")
-        }
-      }
-      else {
-        Result.Success( () )
-      }
+    /**
+      * Resolves everything needed to run this module's generator main class, and yields a function
+      * that runs it as a subprocess rooted at `destDir`, returning a PathRef to that directory.
+      * (`destDir` is where generated output is rooted, not a file written to. Which files appear
+      * beneath it is up to the generator and the mainArgs it is given.)
+      *
+      * Callers invoke this from an ordinary cached Task and hand the function that task's own
+      * Task.dest (which is why it can't simply be baked in here: Task.dest is only available inside
+      * the calling task's block). We deliberately do no staleness checking of our own. Whether a
+      * generator re-runs is decided by mill, from the inputs the calling task declares — this
+      * module's runClasspath, which covers the generator's own code and its module deps, plus
+      * whatever Task.Sources the caller reads. And because destDir is a fresh, non-persistent
+      * Task.dest, output generated for inputs that have since gone away cannot survive into a
+      * later build.
+      */
+    def generator : Task[(os.Path, Seq[String]) => PathRef] = Task.Anon {
+      val mainClass_   = finalMainClass()
+      val classPath_   = runClasspath().map(_.path)
+      val jvmArgs_     = forkArgs()
+      val env_         = forkEnv() ++ build.sourceDateEpochEnv() // see sourceDateEpochEnv: the generators read this with System.getenv
+      val useArgsFile_ = runUseArgsFile()
+      (destDir : os.Path, args : Seq[String]) =>
+        Jvm.callProcess(
+          mainClass = mainClass_,
+          classPath = classPath_,
+          jvmArgs = jvmArgs_,
+          env = env_,
+          stdout = os.Inherit, // otherwise stuff printed to stdout gets captured in the never used CommandResult rather than streamed to the terminal as desired
+          mainArgs = args,
+          cwd = destDir,
+          // cpPassingJarPath handling is modified from https://github.com/com-lihaoyi/mill/blob/06170d57a211430b63c383d9e627ffe4088649d6/libs/javalib/src/mill/javalib/RunModule.scala
+          cpPassingJarPath = if useArgsFile_ then Some(os.temp(prefix = "gen-", suffix = ".jar", deleteOnExit = false)) else None
+        )
+        PathRef(destDir)
     }
     override def mvnDeps = Task {
       super.mvnDeps() ++ Seq(Dependency.MchangeCommonsJava)
     }
-    override def forkArgs = Task {Seq("-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog")}
+    // The generators stamp their banner comments with Date.toString(), which renders in the JVM's
+    // default zone, so generated sources would otherwise differ between machines even with
+    // SOURCE_DATE_EPOCH pinned (and TZ from the invoking shell does not reach a forked subprocess).
+    // Unconditional rather than only-when-SOURCE_DATE_EPOCH, so ordinary and release builds agree.
+    override def forkArgs = Task {
+      Seq(
+        "-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog",
+        "-Duser.timezone=UTC"
+      )
+    }
 
     override def jvmVersion = BuildJvmVersion
   }
@@ -94,9 +109,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   object proxy extends Gen {
     override def sources = Task {
-      BuildCtx.withFilesystemCheckerDisabled {
-        super.sources() :+ PathRef( BuildCtx.workspaceRoot / "src-proxy-interface" )
-      }
+      super.sources() :+ build.proxyInterfaceSources()
     }
     override def mainClass = Task { Some("com.mchange.v2.c3p0.codegen.JdbcProxyGenerator") }
   }
@@ -119,128 +132,94 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // val Debug = false
   // val Trace = 0
 
+  // The same directory this module compiles (see sources below), but declared as its own Task.Source
+  // so that generators which scan the source tree — genDebugSources — read it through a declared
+  // input, and so are invalidated when it changes, rather than reading workspaceRoot behind mill's
+  // back and caching forever.
+  def handwrittenSources : T[PathRef] = Task.Source( BuildCtx.workspaceRoot / "src" )
+
+  // shared by this module (which compiles these interfaces) and proxy (which generates against them)
+  def proxyInterfaceSources : T[PathRef] = Task.Source( BuildCtx.workspaceRoot / "src-proxy-interface" )
+
   override def sources = Task {
-    BuildCtx.withFilesystemCheckerDisabled {
-      super.sources() :+ PathRef( BuildCtx.workspaceRoot / "src-proxy-interface" )
-    }
+    super.sources() :+ proxyInterfaceSources()
   }
 
   override def mvnDeps = Task {
     super.mvnDeps() ++ Seq(Dependency.MchangeCommonsJava)
   }
 
-  private val WritePermissions : os.PermSet = "-w--w--w-"
-
-  def readOnly( perms : os.PermSet ) : os.PermSet = perms -- WritePermissions
-
-  // i intended to make generated source dir contents read-only, but this prevents the build from
-  // overwriting when necessary. so this is not currently in use.
-  //
-  // i'd have to add logic to restore writability during rebuilds, cleans,
-  // etc which seems maybe too complicated.
-  def makeDirContentsReadOnly( dir : os.Path ) = os.walk(dir).foreach( p => os.perms.set(p, readOnly(os.perms(p))) )
-
-  def buildModTime : T[Long] = Task.Input {
-    val out = math.max( os.mtime( BuildCtx.workspaceRoot / "build.mill" ), os.mtime( BuildCtx.workspaceRoot / "mill-build" / "build.mill" ) )
-    //println( s"buildModTime: $out" )
-    out
-  }
-  private def recursiveDirModTime( dir : os.Path ) : Long = {
-    if (!os.exists(dir)) {
-      -1L
-    }
-    else {
-      val mtimes = os.walk.attrs(dir, includeTarget = true).map( _._2.mtime.toMillis )
-      if (mtimes.size < 2) -1L else mtimes.max // if there's only one mtime, it's the empty target
-    }
-  }
-  def genDebugSources = Task { // mill correctly caches these with no work on our part
-    com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${BuildCtx.workspaceRoot}/src",s"--outputbase=${Task.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
+  // DebugGen emits one package-private Debug.java per package it finds beneath the codebase, so a
+  // package added to or removed from src must re-run this, or the main compile fails on a missing
+  // Debug symbol (or silently keeps a Debug class for a package that no longer exists).
+  def genDebugSources = Task {
+    val codebase = handwrittenSources().path
+    com.mchange.v2.debug.DebugGen.main(Array("--packages=com.mchange",s"--codebase=${codebase}",s"--outputbase=${Task.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}"))
     PathRef(Task.dest)
   }
-  def genC3P0SubstitutionsSource = Task(persistent=true) {
-    val version = publishVersion()
-    val bmt = buildModTime()
-    val dmt = recursiveDirModTime( Task.dest )
-    if ( bmt > dmt ) {
-      import java.time.Instant
-      val timestamp = sys.env.get("SOURCE_DATE_EPOCH").map( sde => Instant.ofEpochSecond( sde.toLong ) ).getOrElse( Instant.now )
-      val text =
-        s"""|package com.mchange.v2.c3p0.subst;
-            |
-            |public final class C3P0Substitutions
-            |{
-            |    public final static String VERSION    = "${version}";
-            |    public final static String DEBUG      = "${Debug}";
-            |    public final static String TRACE      = "${Trace}";
-            |    public final static String TIMESTAMP  = "${timestamp}";
-            |
-            |    private C3P0Substitutions()
-            |    {}
-            |}
-            |""".stripMargin
-      val path = Task.dest / "com" / "mchange" / "v2" / "c3p0" / "subst" / "C3P0Substitutions.java"
-      System.err.println("Regenerating C3P0Substitutions.java")
-      os.write.over( path, data = text, createFolders = true )
-    }
+  // TIMESTAMP falls back to wall-clock time, but this task only re-runs (and so only re-stamps)
+  // when the version, the Debug/Trace constants, or SOURCE_DATE_EPOCH change — not on every build.
+  // Set SOURCE_DATE_EPOCH for a reproducible timestamp.
+  def genC3P0SubstitutionsSource : T[PathRef] = Task {
+    import java.time.Instant
+    val version   = publishVersion()
+    val timestamp = sourceDateEpochMillis().map( Instant.ofEpochMilli ).getOrElse( Instant.now )
+    val text =
+      s"""|package com.mchange.v2.c3p0.subst;
+          |
+          |public final class C3P0Substitutions
+          |{
+          |    public final static String VERSION    = "${version}";
+          |    public final static String DEBUG      = "${Debug}";
+          |    public final static String TRACE      = "${Trace}";
+          |    public final static String TIMESTAMP  = "${timestamp}";
+          |
+          |    private C3P0Substitutions()
+          |    {}
+          |}
+          |""".stripMargin
+    os.write( Task.dest / "com" / "mchange" / "v2" / "c3p0" / "subst" / "C3P0Substitutions.java", data = text, createFolders = true )
     PathRef(Task.dest)
   }
-  def beangenGeneratedSourceDir : T[os.Path] = Task(persistent=true) { Task.dest }
+
+  def beangenXmlSources : T[PathRef] = Task.Source( BuildCtx.workspaceRoot / "bean" / "beangen" )
+
   def beangen : T[PathRef] = Task {
-    BuildCtx.withFilesystemCheckerDisabled {
-      val realDest = beangenGeneratedSourceDir()
-      bean.runIf(
-        Task.Anon(
-          Args(
-            (Seq(buildModTime(),recursiveDirModTime(BuildCtx.workspaceRoot/"bean"/"beangen"),recursiveDirModTime(BuildCtx.workspaceRoot/"bean"/"src")).max > recursiveDirModTime(beangenGeneratedSourceDir())).toString,
-            BuildCtx.workspaceRoot/"bean/beangen/com/mchange/v2/c3p0/impl",
-            (beangenGeneratedSourceDir()/"com"/"mchange"/"v2"/"c3p0"/"impl").toString()
-          )
-        )
-      )()
-      PathRef(realDest)
-    }
+    val generate = bean.generator()
+    val inDir    = beangenXmlSources().path / "com" / "mchange" / "v2" / "c3p0" / "impl"
+    val outDir   = Task.dest / "com" / "mchange" / "v2" / "c3p0" / "impl"
+    os.makeDir.all( outDir )
+    generate( Task.dest, Seq( inDir.toString, outDir.toString ) )
   }
-  def beanInfoGenGeneratedSourceDir : T[os.Path] = Task(persistent=true) { Task.dest }
+
+  val BeanInfoGenClasses = Seq(
+    "com.mchange.v2.c3p0.DriverManagerDataSource",
+    "com.mchange.v2.c3p0.PoolBackedDataSource",
+    "com.mchange.v2.c3p0.ComboPooledDataSource",
+    "com.mchange.v2.c3p0.WrapperConnectionPoolDataSource",
+    "com.mchange.v2.c3p0.JndiRefConnectionPoolDataSource",
+    "com.mchange.v2.c3p0.JndiRefForwardingDataSource",
+    "com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource",
+    "com.mchange.v2.c3p0.debug.ConstructionLoggingComboPooledDataSource",
+    "com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource",
+    //"com.mchange.v2.c3p0.test.FreezableDriverManagerDataSource",
+    //"com.mchange.v2.c3p0.test.AlwaysFailDataSource",
+  )
+
+  // C3P0BeanInfoGen reflects over the compiled beans, which it reaches via beanInfo's moduleDep on
+  // this module. That dependency is what makes an edited beangen-xml (or any change to a bean class)
+  // regenerate the BeanInfos, so it must not be short-circuited by any staleness check of our own.
   def beanInfoGen : T[PathRef] = Task {
-    BuildCtx.withFilesystemCheckerDisabled {
-      val realDest = beanInfoGenGeneratedSourceDir()
-      beanInfo.runIf(
-        Task.Anon(
-          Args(
-            (Seq(buildModTime(),recursiveDirModTime(BuildCtx.workspaceRoot/"src"),recursiveDirModTime(BuildCtx.workspaceRoot/"beanInfo"/"src")).max > recursiveDirModTime(beanInfoGenGeneratedSourceDir())).toString,
-            "com.mchange.v2.c3p0.DriverManagerDataSource",
-            "com.mchange.v2.c3p0.PoolBackedDataSource",
-            "com.mchange.v2.c3p0.ComboPooledDataSource",
-            "com.mchange.v2.c3p0.WrapperConnectionPoolDataSource",
-            "com.mchange.v2.c3p0.JndiRefConnectionPoolDataSource",
-            "com.mchange.v2.c3p0.JndiRefForwardingDataSource",
-            "com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource",
-            "com.mchange.v2.c3p0.debug.ConstructionLoggingComboPooledDataSource",
-            "com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource",
-            //"com.mchange.v2.c3p0.test.FreezableDriverManagerDataSource",
-            //"com.mchange.v2.c3p0.test.AlwaysFailDataSource",
-            beanInfoGenGeneratedSourceDir().toString
-          )
-        )
-      )()
-      PathRef(realDest)
-    }
+    val generate = beanInfo.generator()
+    generate( Task.dest, BeanInfoGenClasses :+ Task.dest.toString )
   }
-  def proxygenGeneratedSourceDir : T[os.Path] = Task(persistent=true) { Task.dest }
+
+  // The generated proxies mirror the java.sql interfaces of the JDK we generate under, so jvmVersion
+  // is a genuine input here, not just a compile setting.
   def proxygen : T[PathRef] = Task {
-    BuildCtx.withFilesystemCheckerDisabled {
-      val realDest = proxygenGeneratedSourceDir()
-      proxy.runIf(
-        Task.Anon(
-          Args(
-            (math.max(buildModTime(),recursiveDirModTime(BuildCtx.workspaceRoot/"proxy"/"src")) > recursiveDirModTime(proxygenGeneratedSourceDir())).toString,
-            proxygenGeneratedSourceDir().toString
-          )
-        )
-      )()
-      PathRef(realDest)
-    }
+    val generate = proxy.generator()
+    Task.log.debug( s"Generating JDBC proxies against the java.sql interfaces of JVM ${proxy.jvmVersion()}" )
+    generate( Task.dest, Seq( Task.dest.toString ) )
   }
 
   // note that beanInfoGen is NOT included here, because it must get built AFTER the root module
@@ -254,17 +233,34 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     JarManifest( main = mainTups )
   }
 
-  def allLicenses : T[Seq[PathRef]] = Task {
-    BuildCtx.withFilesystemCheckerDisabled {
-      (BuildCtx.workspaceRoot / "LICENSE" :: BuildCtx.workspaceRoot / "LICENSE-LGPL" :: BuildCtx.workspaceRoot / "LICENSE-EPL" :: Nil).map( PathRef(_) )
-    }
+  def allLicenses : T[Seq[PathRef]] = Task.Sources(
+    BuildCtx.workspaceRoot / "LICENSE",
+    BuildCtx.workspaceRoot / "LICENSE-LGPL",
+    BuildCtx.workspaceRoot / "LICENSE-EPL"
+  )
+
+  // Task.env, not sys.env: sys.env inside a task is the environment of the long-lived mill daemon,
+  // whatever that happened to be started with, so a shell-set SOURCE_DATE_EPOCH was silently ignored
+  // unless the daemon happened to inherit it. Task.env is the invoking client's environment.
+  def sourceDateEpochSeconds : T[Option[Long]] = Task.Input {
+    Task.env.get("SOURCE_DATE_EPOCH").map( _.toLong )
   }
 
   // For reproducible builds: when SOURCE_DATE_EPOCH is set, stamp every jar entry with that fixed
-  // time (Jvm.createJar leaves entry mtimes at wall-clock build time by default). Mirrors the
-  // SOURCE_DATE_EPOCH handling in genC3P0SubstitutionsSource. Task.Input so a change is observed.
-  def sourceDateEpochMillis : T[Option[Long]] = Task.Input {
-    sys.env.get("SOURCE_DATE_EPOCH").map( _.toLong * 1000L )
+  // time (Jvm.createJar leaves entry mtimes at wall-clock build time by default). Also the source of
+  // the TIMESTAMP baked into C3P0Substitutions.
+  def sourceDateEpochMillis : T[Option[Long]] = Task {
+    sourceDateEpochSeconds().map( _ * 1000L )
+  }
+
+  // The mchange-commons-java code generators (DelegatorGenerator, SimplePropertyBeanGenerator,
+  // BeanInfoGen) already honor SOURCE_DATE_EPOCH when they stamp the date into their banner comments
+  // — but they read it from their own process environment with System.getenv, and mill's forkEnv is
+  // built from the daemon's environment, which need not have it. So we pass it through explicitly,
+  // or the generated sources (and hence the source jar) carry a wall-clock date and are not
+  // reproducible even when SOURCE_DATE_EPOCH is set.
+  def sourceDateEpochEnv : T[Map[String,String]] = Task {
+    sourceDateEpochSeconds().map( secs => Map("SOURCE_DATE_EPOCH" -> secs.toString) ).getOrElse( Map.empty )
   }
 
   // Jvm.createJar honors its `timestamp` param for file/dir entries, but the META-INF/MANIFEST.MF
