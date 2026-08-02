@@ -15,7 +15,7 @@ import scala.annotation.tailrec
  */
 
 /**
-  * What counts as part of c3p0, stated positively.
+  * What counts as part of c3p0...
   *
   * Editors and tools leave files in the source tree: emacs backups and autosaves, vim swapfiles,
   * patch rejects, OS metadata. We cannot enumerate those completely. The list would be endless, it
