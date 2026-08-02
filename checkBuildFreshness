@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+#
+# checkBuildFreshness -- verify that c3p0's incremental builds can be trusted.
+#
+# Much of c3p0 is generated during the build: a Debug class per package beneath src, JavaBean base
+# classes from the beangen-xml files, explicit BeanInfos reflected off those compiled beans, and the
+# JDBC proxies. Historically the staleness of all that was tracked by hand, and got it wrong in both
+# directions -- adding a package under src broke the build until a manual `mill clean`, while editing
+# a beangen-xml silently shipped a jar whose BeanInfo omitted the new property. Mill now decides,
+# from inputs the build declares. This script is the regression test for that property, and the
+# reason you should not need to clean by reflex.
+#
+# For each perturbation of a build input, it asserts:
+#
+#   incremental == clean    an incremental build after the change matches a clean build of the same
+#                           sources. This is the property that makes cleaning unnecessary.
+#   changed != baseline     the perturbation really did move the output. Without this, a check that
+#                           silently perturbed nothing would pass while testing nothing.
+#   reverted == baseline    undoing the change restores the artifacts bit for bit, so output
+#                           generated for an input that has since gone away cannot survive.
+#
+# It first confirms that two clean builds agree, since comparing hashes is meaningless otherwise.
+#
+# Usage:  ./checkBuildFreshness
+#
+# Exits nonzero if any check fails, so it is usable in CI. Note that it runs several clean builds
+# and so takes a couple of minutes, and that it leaves out/ freshly built.
+
+set -u -o pipefail
+
+cd "$(dirname "$0")" || exit 2
+
+readonly MILL="${MILL:-./mill}"
+readonly EPOCH=1700000000   # any fixed value; pins the timestamps stamped into jars and banners
+
+# The inputs we perturb, one per generator whose output a change should reach.
+readonly NEW_PKG_DIR="src/com/mchange/v2/c3p0/freshnesscheck"
+readonly BEANGEN_XML="bean/beangen/com/mchange/v2/c3p0/impl/WrapperConnectionPoolDataSourceBase.beangen-xml"
+readonly PROXY_GEN_SRC="proxy/src/com/mchange/v2/c3p0/codegen/JdbcProxyGenerator.java"
+
+readonly LOG="$(mktemp "${TMPDIR:-/tmp}/c3p0-freshness.XXXXXX")"
+
+failures=0
+
+note()  { printf '\n=== %s\n' "$*"; }
+ok()    { printf '     ok    %s\n' "$*"; }
+fail()  { printf '     FAIL  %s\n' "$*"; failures=$((failures + 1)); }
+
+# Restores every path we touch. Registered on EXIT so an interrupted or failed run does not leave
+# the working tree perturbed. Tracked files come back via git, so the working tree must be clean
+# for these paths -- see the preflight check below.
+restore() {
+    rm -rf "$NEW_PKG_DIR"
+    git checkout -- "$BEANGEN_XML" "$PROXY_GEN_SRC" 2>/dev/null
+}
+trap 'restore; rm -f "$LOG"' EXIT INT TERM
+
+sha256() {
+    if command -v shasum > /dev/null 2>&1
+    then shasum -a 256 "$1" | cut -d' ' -f1
+    else sha256sum "$1" | cut -d' ' -f1
+    fi
+}
+
+# Both jars, because not every change reaches both: a change to a generator's banner comment alters
+# the generated sources without altering a single class file.
+fingerprint() { printf '%s/%s' "$(sha256 out/jar.dest/out.jar)" "$(sha256 out/sourceJar.dest/out.jar)"; }
+
+build() {
+    if ! SOURCE_DATE_EPOCH="$EPOCH" "$MILL" jar > "$LOG" 2>&1 ||
+       ! SOURCE_DATE_EPOCH="$EPOCH" "$MILL" sourceJar >> "$LOG" 2>&1
+    then
+        printf '     build failed, last 30 lines:\n' >&2
+        tail -30 "$LOG" >&2
+        return 1
+    fi
+}
+
+cleanBuild() { "$MILL" clean > /dev/null 2>&1; build; }
+
+# --- the perturbations -------------------------------------------------------------------------
+#
+# Each writes a change that must reach the built artifacts. They are reverted by restore(), above.
+
+# A package that does not exist yet. DebugGen emits one Debug class per package it finds, so a build
+# that fails to re-run it cannot compile this file at all.
+perturb_new_package() {
+    mkdir -p "$NEW_PKG_DIR" || return 1
+    cat > "$NEW_PKG_DIR/FreshnessCheck.java" <<'EOF'
+package com.mchange.v2.c3p0.freshnesscheck;
+
+// Written, then removed, by ./checkBuildFreshness. If you are reading this in a working tree, that
+// script died partway through a run; deleting this package is safe.
+final class FreshnessCheck
+{
+    final static boolean DEBUG = Debug.DEBUG;
+}
+EOF
+}
+
+# A new bean property. This one has the longest chain to travel: beangen regenerates the bean base
+# class, the main module recompiles it, and beanInfoGen must then reflect over the recompiled bean
+# and regenerate the explicit BeanInfo. It is the chain that used to break silently.
+perturb_beangen_property() {
+    local block
+    block="$(mktemp "${TMPDIR:-/tmp}/c3p0-freshness-block.XXXXXX")" || return 1
+    cat > "$block" <<'EOF'
+    <property>
+       <type>int</type>
+       <name>freshnessCheckProp</name>
+       <default-value>42</default-value>
+       <getter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></getter>
+       <setter><modifiers><modifier>public</modifier><modifier>synchronized</modifier></modifiers></setter>
+    </property>
+EOF
+    awk -v blockfile="$block" '
+        !inserted && /<property>/ {
+            while ((getline line < blockfile) > 0) print line
+            inserted = 1
+        }
+        { print }
+    ' "$BEANGEN_XML" > "$BEANGEN_XML.new" || { rm -f "$block"; return 1; }
+    mv "$BEANGEN_XML.new" "$BEANGEN_XML"
+    rm -f "$block"
+}
+
+# A change to generator code rather than to generator input. This banner string is emitted into the
+# generated NewProxyConnection sources, so it reaches the source jar (though, being a comment, not a
+# single class file -- which is why fingerprint() covers both jars).
+perturb_proxy_generator() {
+    grep -q 'Autogenerated code!!! DO NOT HAND EDIT!' "$PROXY_GEN_SRC" || {
+        printf '     expected banner string not found in %s\n' "$PROXY_GEN_SRC" >&2
+        return 1
+    }
+    sed -i.bak 's|Autogenerated code!!! DO NOT HAND EDIT!|Autogenerated code!!! DO NOT HAND EDIT! (freshness check)|' "$PROXY_GEN_SRC" || return 1
+    rm -f "$PROXY_GEN_SRC.bak"
+}
+
+# --- the check itself --------------------------------------------------------------------------
+
+check() {
+    local label="$1" perturb="$2"
+    note "$label"
+
+    if ! "$perturb"
+    then
+        fail "$label: could not apply the perturbation"
+        restore
+        return
+    fi
+
+    if ! build
+    then
+        fail "$label: the incremental build failed -- generated sources are probably stale"
+        restore
+        build > /dev/null 2>&1
+        return
+    fi
+    local incremental; incremental="$(fingerprint)"
+
+    if ! cleanBuild
+    then
+        fail "$label: the clean build failed"
+        restore
+        build > /dev/null 2>&1
+        return
+    fi
+    local clean; clean="$(fingerprint)"
+
+    if [ "$incremental" = "$clean" ]
+    then ok "incremental build matches a clean build"
+    else fail "incremental build DIFFERS from a clean build of the same sources
+           incremental: $incremental
+           clean:       $clean"
+    fi
+
+    if [ "$clean" != "$baseline" ]
+    then ok "the perturbation moved the output, so this check tested something"
+    else fail "the perturbation did not change the artifacts at all -- this check proves nothing,
+           and needs to be rewritten to perturb something that reaches the build"
+    fi
+
+    restore
+    if ! build
+    then
+        fail "$label: the build failed after reverting the perturbation"
+        return
+    fi
+    local reverted; reverted="$(fingerprint)"
+
+    if [ "$reverted" = "$baseline" ]
+    then ok "reverting restores the original artifacts exactly"
+    else fail "reverting did NOT restore the original artifacts -- output for a removed input survived
+           baseline: $baseline
+           reverted: $reverted"
+    fi
+}
+
+if [ -n "$(git status --porcelain -- "$BEANGEN_XML" "$PROXY_GEN_SRC" "$NEW_PKG_DIR" 2>/dev/null)" ]
+then
+    printf 'Refusing to run: this script perturbs and then reverts the following paths, and one of\n' >&2
+    printf 'them already has uncommitted changes that reverting would discard:\n\n' >&2
+    printf '    %s\n    %s\n    %s\n\n' "$BEANGEN_XML" "$PROXY_GEN_SRC" "$NEW_PKG_DIR" >&2
+    printf 'Commit or stash those changes first.\n' >&2
+    exit 2
+fi
+
+note "baseline clean build"
+if ! cleanBuild
+then
+    printf '\nThe baseline build failed. Nothing else can be checked.\n' >&2
+    exit 1
+fi
+baseline="$(fingerprint)"
+ok "built, fingerprint $baseline"
+
+note "clean builds are reproducible"
+if ! cleanBuild
+then
+    printf '\nThe second baseline build failed. Nothing else can be checked.\n' >&2
+    exit 1
+fi
+second="$(fingerprint)"
+if [ "$second" = "$baseline" ]
+then ok "two clean builds agree, so comparing fingerprints is meaningful"
+else
+    fail "two clean builds of identical sources DIFFER
+           first:  $baseline
+           second: $second
+       Every check below compares fingerprints, so they cannot be trusted until this is fixed."
+fi
+
+check "a package added under src (genDebugSources)"            perturb_new_package
+check "a property added to a beangen-xml (beangen, beanInfoGen)" perturb_beangen_property
+check "a change to generator code (proxygen)"                  perturb_proxy_generator
+
+if [ "$failures" -eq 0 ]
+then
+    printf '\nAll checks passed. Incremental builds match clean ones; you do not need to clean.\n'
+    exit 0
+else
+    printf '\n%d check(s) FAILED. Incremental builds cannot currently be trusted.\n' "$failures"
+    exit 1
+fi
