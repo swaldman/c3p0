@@ -169,7 +169,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   val HandwrittenSourceDir = BuildCtx.workspaceRoot / "src"
 
   /**
-    * The project files a generator scanning a directory actually depends on, as individual PathRefs
+    * The files that a generator scanning a directory actually depend on, as individual PathRefs
     * rather than one PathRef over the whole directory.
     *
     * A Task.Source over a directory hashes everything in it, so an editor backup written beside a
@@ -177,33 +177,33 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     * Walking with a filter, in a Task.Input so the walk happens every build, means the recorded
     * input is exactly the set of project files: unchanged after filtering, no downstream work.
     *
-    * Everything skipped is reported at warning level, because a file quietly not being built is a
+    * Everything ignored is reported at warning level, because a file quietly being ignored is a
     * miserable thing to debug. If the allowlist in ProjectFiles ever needs widening, the warning is
     * what tells you so, rather than a generated class mysteriously failing to appear. It is also
     * meant to nag: the usual cure is to delete the junk it names.
     */
   // `warn` is taken as a plain function rather than reached via Task.log, because Task.* is usable
   // only directly inside a Task{...} block. Callers pass Task.log.warn from within theirs.
-  def projectFilesIn( dir : os.Path, warn : String => Unit )( keep : String => Boolean ) : Seq[PathRef] = {
+  def relevantFilesIn( codeGenerator : String )( dir : os.Path, warn : String => Unit )( keep : String => Boolean ) : Seq[PathRef] = {
     if (os.exists(dir)) {
-      val (kept, skipped) = os.walk(dir).filter( os.isFile(_) ).sorted.partition( p => keep( p.ext ) )
+      val (kept, ignored) = os.walk(dir).filter( os.isFile(_) ).sorted.partition( p => keep( p.ext ) )
       val relDir          = dir.relativeTo( BuildCtx.workspaceRoot )
-      skipped.foreach { p =>
-        warn( s"Skipped, from directory '${relDir}', unexpected file '${p.relativeTo(dir)}'." )
+      ignored.foreach { p =>
+        warn( s"${codeGenerator}: In directory '${relDir}', ignored file '${p.relativeTo(dir)}'." )
       }
       // the remedy, said once per directory rather than once per file
-      skipped.size match {
+      ignored.size match {
         case 0 => ()
-        case 1 => warn("If this file ought to be part of the build, add its extension to ProjectFiles in build.mill.")
-        case _ => warn("If any of these files ought to be part of the build, add their extensions to ProjectFiles in build.mill.")
+        case 1 => warn(s"If this file ought to be taken into account when deciding whether to re-run code generator '${codeGenerator}', add its extension to ProjectFiles in build.mill.")
+        case _ => warn(s"If any of these files ought to be taken into account when deciding whether to re-run code generator '${codeGenerator}', add their extensions to ProjectFiles in build.mill.")
       }
       kept.map( PathRef(_) )
     }
     else Nil
   }
 
-  def handwrittenSourceFiles : T[Seq[PathRef]] = Task.Input {
-    projectFilesIn( HandwrittenSourceDir, Task.log.warn )( ProjectFiles.isSource )
+  def debugGenSourceFiles : T[Seq[PathRef]] = Task.Input {
+    relevantFilesIn("debugGen")( HandwrittenSourceDir, Task.log.warn )( ProjectFiles.isSource )
   }
 
   // shared by this module (which compiles these interfaces) and proxy (which generates against them).
@@ -224,7 +224,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // Debug symbol (or silently keeps a Debug class for a package that no longer exists).
   def genDebugSources = Task {
     val generate    = debugGen.generator()
-    val sourceFiles = handwrittenSourceFiles() // the filtered input that decides whether we re-run
+    val sourceFiles = debugGenSourceFiles() // the filtered input that decides whether we re-run
     Task.log.debug( s"DebugGen scanning ${sourceFiles.size} java sources beneath ${HandwrittenSourceDir}" )
     generate(
       Task.dest,
@@ -259,7 +259,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   val BeangenXmlDir = BuildCtx.workspaceRoot / "bean" / "beangen"
 
   def beangenXmlFiles : T[Seq[PathRef]] = Task.Input {
-    projectFilesIn( BeangenXmlDir, Task.log.warn )( ProjectFiles.isBeangenInput )
+    relevantFilesIn("beangen")( BeangenXmlDir, Task.log.warn )( ProjectFiles.isBeangenInput )
   }
 
   def beangen : T[PathRef] = Task {
@@ -382,11 +382,25 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     * directory would silently drop classes. So we only screen the roots where a person edits files,
     * and take compiler and generator output as given.
     */
-  def jarFileFilter( sourceRoots : Set[os.Path], resourceRoots : Set[os.Path] ) : (os.Path, os.RelPath) => Boolean =
+  def jarFileFilter(jarLabel : String)( warn : String => Unit )( sourceRoots : Set[os.Path], resourceRoots : Set[os.Path] ) : (os.Path, os.RelPath) => Boolean =
+    // relative to the workspace, to match how relevantFilesIn names directories. Generated roots
+    // live under out/, so this stays readable for them too, and relativeTo yields '../' segments
+    // rather than failing should a root ever lie outside the workspace.
+    def relRoot( root : os.Path ) : os.RelPath = root.relativeTo( BuildCtx.workspaceRoot )
+    def checkWarnSource( root : os.Path, rel : os.RelPath ) : Boolean =
+      val out = ProjectFiles.isSource( rel.ext )
+      if !out then
+        warn(s"When building ${jarLabel}, apparent source file '${rel}' from '${relRoot(root)}' was omitted. Add extension '${rel.ext}' to ProjectFiles.SourceExtensions if it should be included.")
+      out
+    def checkWarnResource( root : os.Path, rel : os.RelPath ) : Boolean =
+      val out = ProjectFiles.isResource( rel.ext )
+      if !out then
+        warn(s"When building ${jarLabel}, apparent resource '${rel}' from '${relRoot(root)}' was omitted. Add extension '${rel.ext}' to ProjectFiles.ResourceExtensions if it should be included.")
+      out
     (root, rel) =>
       if      ( os.isDir( root / rel ) ) true                             // keep the directory entries
-      else if ( sourceRoots( root ) )    ProjectFiles.isSource( rel.ext )
-      else if ( resourceRoots( root ) )  ProjectFiles.isResource( rel.ext )
+      else if ( sourceRoots( root ) )    checkWarnSource(root,rel)
+      else if ( resourceRoots( root ) )  checkWarnResource(root,rel)
       else                               true                             // compiled classes, generated sources, licenses
 
   // is the same manifest good?
@@ -403,7 +417,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       jar = out,
       inputPaths = (allSources() ++ resources() ++ compileResources() ++ Seq(beanInfoGen()) ++ allLicenses()).map(_.path).filter(os.exists),
       manifest = manifest(),
-      fileFilter = jarFileFilter( sourceRoots, resourceRoots ),
+      fileFilter = jarFileFilter("source jar")(Task.log.warn)( sourceRoots, resourceRoots ),
       timestamp = sourceDateEpochMillis()
     )
     normalizeJarEntryTimes( out, sourceDateEpochMillis() )
@@ -417,7 +431,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       jar        = out,
       inputPaths = (Seq(compile().classes, beanInfoBin.compile().classes) ++ resources()).map(_.path).filter(os.exists),
       manifest   = manifest(),
-      fileFilter = jarFileFilter( Set.empty, resourceRoots ), // no hand-edited source roots here, only compiler output and resources
+      fileFilter = jarFileFilter("main (binary) jar")(Task.log.warn)( Set.empty, resourceRoots ), // no hand-edited source roots here, only compiler output and resources
       timestamp  = sourceDateEpochMillis()
     )
     normalizeJarEntryTimes( out, sourceDateEpochMillis() )
