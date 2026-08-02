@@ -14,6 +14,34 @@ import scala.annotation.tailrec
  * See https://reproducible-builds.org/docs/source-date-epoch/
  */
 
+/**
+  * What counts as part of c3p0, stated positively.
+  *
+  * Editors and tools leave files in the source tree: emacs backups and autosaves, vim swapfiles,
+  * patch rejects, OS metadata. We deliberately do not enumerate those. That list is endless, it
+  * differs with whoever is at the keyboard, and knowledge of any particular developer's tools has
+  * no business in a shared build. Instead we say what c3p0's own files are, and everything else is
+  * neither shipped in a jar nor treated as a build input. A stray Foo.java~ then can neither reach
+  * Maven Central nor provoke a needless regeneration, and so can every artifact of every editor
+  * nobody here has thought of.
+  *
+  * Adding a genuinely new kind of source or resource means adding its extension here.
+  */
+object ProjectFiles {
+  /** javac compiles only these, and DebugGen reads the package structure from them */
+  val SourceExtensions = Set("java")
+
+  /** resources we ship on the classpath */
+  val ResourceExtensions = Set("properties","txt")
+
+  /** the input BeangenDataSourceGenerator consumes */
+  val BeangenExtension = "beangen-xml"
+
+  def isSource( ext : String )       : Boolean = SourceExtensions( ext )
+  def isResource( ext : String )     : Boolean = ResourceExtensions( ext )
+  def isBeangenInput( ext : String ) : Boolean = ext == BeangenExtension
+}
+
 object Dependency {
   val MchangeCommonsJavaVersion = "0.6.1"
   val MchangeCommonsJava        = mvn"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
@@ -138,13 +166,49 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // val Debug = false
   // val Trace = 0
 
-  // The same directory this module compiles (see sources below), but declared as its own Task.Source
-  // so that generators which scan the source tree — genDebugSources — read it through a declared
-  // input, and so are invalidated when it changes, rather than reading workspaceRoot behind mill's
-  // back and caching forever.
-  def handwrittenSources : T[PathRef] = Task.Source( BuildCtx.workspaceRoot / "src" )
+  val HandwrittenSourceDir = BuildCtx.workspaceRoot / "src"
 
-  // shared by this module (which compiles these interfaces) and proxy (which generates against them)
+  /**
+    * The project files a generator scanning a directory actually depends on, as individual PathRefs
+    * rather than one PathRef over the whole directory.
+    *
+    * A Task.Source over a directory hashes everything in it, so an editor backup written beside a
+    * real source file changes the hash and re-runs the generator to produce byte-identical output.
+    * Walking with a filter, in a Task.Input so the walk happens every build, means the recorded
+    * input is exactly the set of project files: unchanged after filtering, no downstream work.
+    *
+    * Everything skipped is reported at warning level, because a file quietly not being built is a
+    * miserable thing to debug. If the allowlist in ProjectFiles ever needs widening, the warning is
+    * what tells you so, rather than a generated class mysteriously failing to appear. It is also
+    * meant to nag: the usual cure is to delete the junk it names.
+    */
+  // `warn` is taken as a plain function rather than reached via Task.log, because Task.* is usable
+  // only directly inside a Task{...} block. Callers pass Task.log.warn from within theirs.
+  def projectFilesIn( dir : os.Path, warn : String => Unit )( keep : String => Boolean ) : Seq[PathRef] = {
+    if (os.exists(dir)) {
+      val (kept, skipped) = os.walk(dir).filter( os.isFile(_) ).sorted.partition( p => keep( p.ext ) )
+      val relDir          = dir.relativeTo( BuildCtx.workspaceRoot )
+      skipped.foreach { p =>
+        warn( s"Skipped, from directory '${relDir}', unexpected file '${p.relativeTo(dir)}'." )
+      }
+      // the remedy, said once per directory rather than once per file
+      skipped.size match {
+        case 0 => ()
+        case 1 => warn("If this file ought to be part of the build, add its extension to ProjectFiles in build.mill.")
+        case _ => warn("If any of these files ought to be part of the build, add their extensions to ProjectFiles in build.mill.")
+      }
+      kept.map( PathRef(_) )
+    }
+    else Nil
+  }
+
+  def handwrittenSourceFiles : T[Seq[PathRef]] = Task.Input {
+    projectFilesIn( HandwrittenSourceDir, Task.log.warn )( ProjectFiles.isSource )
+  }
+
+  // shared by this module (which compiles these interfaces) and proxy (which generates against them).
+  // Stays a directory Task.Source because mill's source handling wants source *directories*, and
+  // compile is already immune to stray files -- mill's own allSourceFiles filters by extension.
   def proxyInterfaceSources : T[PathRef] = Task.Source( BuildCtx.workspaceRoot / "src-proxy-interface" )
 
   override def sources = Task {
@@ -159,11 +223,12 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // package added to or removed from src must re-run this, or the main compile fails on a missing
   // Debug symbol (or silently keeps a Debug class for a package that no longer exists).
   def genDebugSources = Task {
-    val generate = debugGen.generator()
-    val codebase = handwrittenSources().path
+    val generate    = debugGen.generator()
+    val sourceFiles = handwrittenSourceFiles() // the filtered input that decides whether we re-run
+    Task.log.debug( s"DebugGen scanning ${sourceFiles.size} java sources beneath ${HandwrittenSourceDir}" )
     generate(
       Task.dest,
-      Seq("--packages=com.mchange",s"--codebase=${codebase}",s"--outputbase=${Task.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}")
+      Seq("--packages=com.mchange",s"--codebase=${HandwrittenSourceDir}",s"--outputbase=${Task.dest}","--recursive",s"--debug=${Debug}",s"--trace=${Trace}")
     )
   }
   // TIMESTAMP falls back to wall-clock time, but this task only re-runs (and so only re-stamps)
@@ -191,12 +256,18 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     PathRef(Task.dest)
   }
 
-  def beangenXmlSources : T[PathRef] = Task.Source( BuildCtx.workspaceRoot / "bean" / "beangen" )
+  val BeangenXmlDir = BuildCtx.workspaceRoot / "bean" / "beangen"
+
+  def beangenXmlFiles : T[Seq[PathRef]] = Task.Input {
+    projectFilesIn( BeangenXmlDir, Task.log.warn )( ProjectFiles.isBeangenInput )
+  }
 
   def beangen : T[PathRef] = Task {
     val generate = bean.generator()
-    val inDir    = beangenXmlSources().path / "com" / "mchange" / "v2" / "c3p0" / "impl"
+    val xmlFiles = beangenXmlFiles() // the filtered input that decides whether we re-run
+    val inDir    = BeangenXmlDir / "com" / "mchange" / "v2" / "c3p0" / "impl"
     val outDir   = Task.dest / "com" / "mchange" / "v2" / "c3p0" / "impl"
+    Task.log.debug( s"beangen reading ${xmlFiles.size} beangen-xml files beneath ${BeangenXmlDir}" )
     os.makeDir.all( outDir )
     generate( Task.dest, Seq( inDir.toString, outDir.toString ) )
   }
@@ -301,6 +372,23 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       os.write.over( jar, bo.toByteArray() )
   }
 
+  /**
+    * Keeps files that are not ours out of a jar we publish.
+    *
+    * Jvm.createJar hands its fileFilter the input root along with the path relative to it, so we can
+    * apply a different rule per kind of root rather than one blunt rule over everything. That matters:
+    * an allowlist wide enough to be safe over compiler output would have to admit every extension
+    * javac might emit, while a list narrow enough to be useful over a hand-maintained resources
+    * directory would silently drop classes. So we only screen the roots where a person edits files,
+    * and take compiler and generator output as given.
+    */
+  def jarFileFilter( sourceRoots : Set[os.Path], resourceRoots : Set[os.Path] ) : (os.Path, os.RelPath) => Boolean =
+    (root, rel) =>
+      if      ( os.isDir( root / rel ) ) true                             // keep the directory entries
+      else if ( sourceRoots( root ) )    ProjectFiles.isSource( rel.ext )
+      else if ( resourceRoots( root ) )  ProjectFiles.isResource( rel.ext )
+      else                               true                             // compiled classes, generated sources, licenses
+
   // is the same manifest good?
   // some users want licenses in the source jars... https://github.com/swaldman/c3p0/issues/167
   //
@@ -308,11 +396,14 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // build taks has run. It does not generate source into the main build's generatedSources.
   // So we have to add it explicitly.
   def sourceJar: T[PathRef] = Task {
-    val out = Task.dest / "out.jar" // match the out.jar name produced by the default sourceJar task.
+    val out           = Task.dest / "out.jar" // match the out.jar name produced by the default sourceJar task.
+    val sourceRoots   = allSources().map(_.path).toSet
+    val resourceRoots = (resources() ++ compileResources()).map(_.path).toSet
     Jvm.createJar(
       jar = out,
       inputPaths = (allSources() ++ resources() ++ compileResources() ++ Seq(beanInfoGen()) ++ allLicenses()).map(_.path).filter(os.exists),
       manifest = manifest(),
+      fileFilter = jarFileFilter( sourceRoots, resourceRoots ),
       timestamp = sourceDateEpochMillis()
     )
     normalizeJarEntryTimes( out, sourceDateEpochMillis() )
@@ -320,11 +411,13 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   }
 
   override def jar: T[PathRef] = Task {
-    val out = Task.dest / "out.jar" // match the out.jar name produced by the default jar task.
+    val out           = Task.dest / "out.jar" // match the out.jar name produced by the default jar task.
+    val resourceRoots = resources().map(_.path).toSet
     Jvm.createJar(
       jar        = out,
       inputPaths = (Seq(compile().classes, beanInfoBin.compile().classes) ++ resources()).map(_.path).filter(os.exists),
       manifest   = manifest(),
+      fileFilter = jarFileFilter( Set.empty, resourceRoots ), // no hand-edited source roots here, only compiler output and resources
       timestamp  = sourceDateEpochMillis()
     )
     normalizeJarEntryTimes( out, sourceDateEpochMillis() )
