@@ -1,3 +1,6 @@
+        -- Reorganize the build, which previously was basically a direct port of an ancient ant
+	   build, into a build that is reliable, much simpler, and respects the mill-build philosophy.
+	   (With a lot of help from claude.ai, this one.)
         -- The Statement cache was clearing parameters and batches, but otherwise not resetting
            Statement state that may have been modified by prior users' activity. We now carefully
            either reset mutated Statement state, or refuse to re-cache on operations that change
