@@ -120,7 +120,7 @@ public final class C3P0Config
 	String[] defaults = {"/mchange-commons.properties", "/mchange-log.properties"};
 	String[] preempts = {"hocon:/reference,/application,/c3p0,/","/c3p0.properties", "/"};
 
-	return MConfig.readVmConfig( defaults, preempts );
+	return MConfig.readCachedClassloaderResourceConfig( defaults, preempts );
     }
 
     // _MPCONFIG must be set first!
