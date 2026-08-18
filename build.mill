@@ -47,7 +47,7 @@ object ProjectFiles {
 }
 
 object Dependency {
-  val MchangeCommonsJavaVersion = "0.6.1"
+  val MchangeCommonsJavaVersion = "0.7.0-SNAPSHOT"
   val MchangeCommonsJava        = mvn"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
 
   val JUnit  = mvn"org.junit.vintage:junit-vintage-engine:5.10.2"
@@ -74,7 +74,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
 
   // we don't use the newer --release flag, we intentionally compile against newer API, so newer API is supported
   // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
-  override def javacOptions = Seq("-source",JvmCompatVersion,"-target",JvmCompatVersion)
+  override def javacOptions = Seq("-Xlint:deprecation","-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
   trait Gen extends JavaModule {
     /**
