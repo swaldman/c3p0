@@ -585,6 +585,9 @@ public abstract class GooGooStatementCache
                                this + " was asked to remove a Statement it does not hold. Please report this. " +
                                "[The Statement cache recovers; this is a diagnostic.]",
                                new Exception("LOG STACK TRACE"));
+
+                // rather than provoke null pointer Exceptions trying to remove a Statement
+                // that appears already not to be in the cache, we just quit.
                 return;
             }
 
@@ -620,6 +623,9 @@ public abstract class GooGooStatementCache
         }
         finally
         {
+            // no matter what, we'd better get this Statement out of removalPending,
+            // or else it will become a never removable zombie (see the guard at
+            // the very beginning of this method.)
             removalPendingLock.lock();
             try
             { removalPending.remove(ps); }
@@ -929,7 +935,7 @@ public abstract class GooGooStatementCache
             {
                 if (sck == null)
                     sck = ((StatementCacheKey) stmtToKey.get(cullMeStmt));
-                if (sck == null)
+                if (sck == null) // this shouldn't happen, but very rarely for some deployments it apparently does
                 {
                     // A deathmarched Statement the cache no longer knows. Removing it is hopeless --
                     // removeStatement(...) looks it up by key -- so drop it from this deathmarch
