@@ -524,42 +524,60 @@ public abstract class GooGooStatementCache
         finally
         { removalPendingLock.unlock(); }
 
-        StatementCacheKey sck = (StatementCacheKey) stmtToKey.remove( ps );
-        removeFromKeySet( sck, ps );
-        Connection pConn = sck.physicalConnection;
-
-        boolean checked_in = !checkedOut.contains( ps );
-
-        if ( checked_in )
-        {
-            removeStatementFromDeathmarches( ps, pConn );
-            removeFromCheckoutQueue( sck , ps );
-            if ((destruction_policy & DESTROY_IF_CHECKED_IN) != 0)
-                destructo.deferredDestroyStatement( pConn, ps );
-        }
-        else
-        {
-            checkedOut.remove( ps );
-            if ((destruction_policy & DESTROY_IF_CHECKED_OUT) != 0)
-                destructo.deferredDestroyStatement( pConn, ps );
-        }
-
-
-        boolean check =	cxnStmtMgr.removeStatementForConnection( ps, pConn );
-        if (Debug.DEBUG && check == false)
-        {
-            //new Exception("WARNING: removed a statement that apparently wasn't in a statement set!!!").printStackTrace();
-            if (logger.isLoggable(MLevel.WARNING))
-                logger.log(MLevel.WARNING,
-                                this + " removed a statement that apparently wasn't in a statement set!!!",
-                                new Exception("LOG STACK TRACE"));
-        }
-
-        removalPendingLock.lock();
         try
-        { removalPending.remove(ps); }
+        {
+            StatementCacheKey sck = (StatementCacheKey) stmtToKey.remove( ps );
+            if ( sck == null ) //not (or no longer) a cached Statement -- there is nothing to remove
+            {
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING,
+                               this + " was asked to remove a Statement it does not hold. Please report this. " +
+                               "[The Statement cache recovers; this is a diagnostic.]",
+                               new Exception("LOG STACK TRACE"));
+
+                // rather than provoke null pointer Exceptions trying to remove a Statement
+                // that appears already not to be in the cache, we just quit.
+                return;
+            }
+
+            removeFromKeySet( sck, ps );
+            Connection pConn = sck.physicalConnection;
+
+            boolean checked_in = !checkedOut.contains( ps );
+
+            if ( checked_in )
+            {
+                removeStatementFromDeathmarches( ps, pConn );
+                removeFromCheckoutQueue( sck , ps );
+                if ((destruction_policy & DESTROY_IF_CHECKED_IN) != 0)
+                    destructo.deferredDestroyStatement( pConn, ps );
+            }
+            else
+            {
+                checkedOut.remove( ps );
+                if ((destruction_policy & DESTROY_IF_CHECKED_OUT) != 0)
+                    destructo.deferredDestroyStatement( pConn, ps );
+            }
+
+
+            boolean check =	cxnStmtMgr.removeStatementForConnection( ps, pConn );
+            if (Debug.DEBUG && check == false)
+            {
+                //new Exception("WARNING: removed a statement that apparently wasn't in a statement set!!!").printStackTrace();
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING,
+                                    this + " removed a statement that apparently wasn't in a statement set!!!",
+                                    new Exception("LOG STACK TRACE"));
+            }
+        }
         finally
-        { removalPendingLock.unlock(); }
+        {
+            removalPendingLock.lock();
+            try
+            { removalPending.remove(ps); }
+            finally
+            { removalPendingLock.unlock(); }
+        }
     }
 
 
@@ -659,24 +677,36 @@ public abstract class GooGooStatementCache
         return ( rec == null ? null : rec.checkoutQueue );
     }
 
+    private final static String PREPARED_STMT_WITH_BROKEN_EQUALITY_WARNING_MSG =
+        "Apparent JDBC Driver Bug! PreparedStatement.equals(...) is improperly implemented (perhaps as a naive dynamic proxy?) " +
+        "A PreparedStatement fails to equal itself! PreparedStatement caching will be pathological " +
+        "under these circumstances. Please turn it off, set configuration parameters maxStatements and maxStatementsPerConnection both to 0.";
+
     private boolean removeFromCheckoutQueue( StatementCacheKey key, Object pstmt )
     {
         boolean out;
         LinkedList q = checkoutQueue( key );
         out = q.remove( pstmt );
-	if (Debug.DEBUG)
-	{
-	    if (!out && !pstmt.equals(pstmt))
-	    {
-		// apparently this happens with some versions of some drivers?
-		// see https://github.com/swaldman/c3p0/pull/59/
-		String msg =
-		    "Apparent JDBC Driver Bug! PreparedStatement.equals(...) is improperly implemented (perhaps as a naive dynamic proxy?) " +
-		    "A PreparedStatement fails to equal itself! PreparedStatement caching will be pathological " +
-		    "under these circumstances. Please turn it off, set configuration parameters maxStatements and maxStatementsPerConnection both to 0.";
-		throw new RuntimeException(msg);
-	    }
-	}
+
+        // apparently this happens with some versions of some drivers?
+        // see https://github.com/swaldman/c3p0/pull/59/
+        if (!out && !pstmt.equals(pstmt))
+        {
+            // LinkedList.remove(Object) is the one lookup in this class that a broken equals(...)
+            // defeats -- HashMap and HashSet compare by identity first -- so we finish the job by
+            // identity here. We must not throw: we are in the middle of removeStatement(...), and
+            // leaving the cache half-updated is far worse than a badly behaved driver.
+            for (Iterator ii = q.iterator(); ii.hasNext(); )
+                if (ii.next() == pstmt)
+                {
+                    ii.remove();
+                    out = true;
+                    break;
+                }
+            if (logger.isLoggable(MLevel.WARNING))
+                logger.warning(PREPARED_STMT_WITH_BROKEN_EQUALITY_WARNING_MSG); // same message, logged not thrown
+        }
+
         if (q.isEmpty() && keySet( key ).isEmpty())
             keyToKeyRec.remove( key );
         return out;
@@ -771,12 +801,10 @@ public abstract class GooGooStatementCache
 
             Long old = (Long) stmtsToLongs.remove( ps );
             if (Debug.DEBUG && old == null)
-                throw new RuntimeException("Internal inconsistency: " +
-                "A (not new) checking-out statement is not in deathmarch.");
+                throw new RuntimeException("Internal inconsistency: A (not new) checking-out statement is not in deathmarch.");
             Object check = longsToStmts.remove( old );
-            if (Debug.DEBUG && old == null)
-                throw new RuntimeException("Internal inconsistency: " +
-                "A (not new) checking-out statement is not in deathmarch.");
+            if (Debug.DEBUG && check == null)
+                throw new RuntimeException("Internal inconsistency: A deathmarch's stmtsToLongs and longsToStmts disagree.");
         }
 
         boolean cullNext()
@@ -793,13 +821,16 @@ public abstract class GooGooStatementCache
                     Long l = (Long) ii.next();
                     Object maybeCullMe = longsToStmts.get( l );
                     StatementCacheKey maybeSck = (StatementCacheKey) stmtToKey.get( maybeCullMe );
-                    Connection pCon = maybeSck.physicalConnection;
-                    if (! destructo.knownInUse( pCon ) ) //we don't cull Statements underneath of Connections in current use
+                    if (maybeSck != null)
                     {
-                        // we've found the first statement in the deathmarch
-                        // that we can cull...
-                        cullMeStmt = maybeCullMe;
-                        sck = maybeSck;
+                        Connection pCon = maybeSck.physicalConnection;
+                        if (! destructo.knownInUse( pCon ) ) //we don't cull Statements underneath of Connections in current use
+                        {
+                            // we've found the first statement in the deathmarch
+                            // that we can cull...
+                            cullMeStmt = maybeCullMe;
+                            sck = maybeSck;
+                        }
                     }
                 }
             }
@@ -821,10 +852,25 @@ public abstract class GooGooStatementCache
                 return false;
             else
             {
+                if (sck == null)
+                    sck = ((StatementCacheKey) stmtToKey.get(cullMeStmt));
+                if (sck == null) // this shouldn't happen, but very rarely for some deployments it apparently does
+                {
+                    // A deathmarched Statement the cache no longer knows. Removing it is hopeless --
+                    // removeStatement(...) looks it up by key -- so drop it from this deathmarch
+                    // rather than returning to it on every future cull.
+                    if (logger.isLoggable(MLevel.WARNING))
+                        logger.log(MLevel.WARNING,
+                                   this + " found a Statement in a deathmarch that the cache no longer holds: " +
+                                   cullMeStmt + ". Dropping it from the deathmarch. Please report this.",
+                                   new Exception("LOG STACK TRACE"));
+                    undeathmarchStatement( cullMeStmt );
+                    return cullNext(); // no Statement was actually freed, so try the next candidate
+                                       // -- terminates, since each call drops one deathmarch entry
+                }
+
                 if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
                 {
-                    if (sck == null)
-                        sck = ((StatementCacheKey) stmtToKey.get(cullMeStmt));
                     if (logger.isLoggable(MLevel.FINEST))
                         logger.finest("CULLING: " + sck.stmtText);
                 }
