@@ -437,6 +437,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       )
     }
     override def forkArgs = Task {
+      (
       "-Dc3p0.jdbcUrl=jdbc:postgresql://localhost:5432/c3p0" ::
       //"-Dc3p0.jdbcUrl=jdbc:hsqldb:hsql://localhost/mydb;hsqldb.sqllog=3" :: // hsqldb
       //"-Dc3p0.user=SA" ::                                                   // hsqldb
@@ -457,6 +458,16 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
       "-Djava.rmi.server.hostname=localhost" ::
       s"""-Djava.util.logging.config.file=${moduleDir / "conf-logging" / "logging.properties"}""" ::
       Nil
+      ) ++ testJvmArgsFromEnv()
+    }
+
+    /**
+      * Whitespace-separated extra JVM args from C3P0_TEST_JVM_ARGS, appended last. The statement
+      * cache harnesses are configured this way -- see c3p0StmtCacheStress below -- and want at
+      * least -ea, so that the cache's own assertions participate.
+      */
+    def testJvmArgsFromEnv : T[Seq[String]] = Task.Input {
+      Task.env.get("C3P0_TEST_JVM_ARGS").toSeq.flatMap( _.split("\\s+") ).filter( _.nonEmpty )
     }
     def c3p0Benchmark() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.C3P0BenchmarkApp")()
@@ -493,6 +504,22 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     }
     def c3p0DynamicPreparedStatement() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.DynamicPreparedStatementTest")()
+    }
+    // Statement cache concurrency harnesses. These need no database -- they run against an
+    // in-process fake JDBC driver -- and exit nonzero on failure, so they work as regression
+    // checks. Best run with assertions on, so the cache's own internal assertions participate:
+    //
+    //   C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheStress
+    //
+    // See test/src/com/mchange/v2/c3p0/test/stmt/StatementCacheStressHarness.java for the knobs.
+    def c3p0StmtCacheStress() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.test.stmt.StatementCacheStressHarness")()
+    }
+    def c3p0StmtCacheFullStack() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.test.stmt.StatementCacheFullStackHarness")()
+    }
+    def c3p0StmtCacheIssue196() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.test.stmt.Issue196Demo")()
     }
     override def pomSettings = Task {
       PomSettings(
