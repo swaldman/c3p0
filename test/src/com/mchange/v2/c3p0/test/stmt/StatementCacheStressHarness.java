@@ -79,6 +79,13 @@ public final class StatementCacheStressHarness
         public       double  closeFailureProbability      = 0d;
         public       double  executeFailureProbability    = 0d;
         public       double  recycleClosedStatementProbability = 0d;
+        /**
+         * Out of spec, and off by default: the driver reissues a PreparedStatement object it (and
+         * c3p0) still considers open. Kept as a knob because a driver-side implicit statement cache
+         * getting this wrong under concurrency is one of the few mechanisms that can put a
+         * Statement into the cache's structures under one key while stmtToKey names another.
+         */
+        public       double  handBackLiveStatementProbability  = 0d;
         public       boolean supportLargeMaxRows          = true;
 
         public Scenario( String name )
@@ -218,6 +225,7 @@ public final class StatementCacheStressHarness
         driverConfig.closeFailureProbability            = scenario.closeFailureProbability;
         driverConfig.executeFailureProbability          = scenario.executeFailureProbability;
         driverConfig.recycleClosedStatementProbability  = scenario.recycleClosedStatementProbability;
+        driverConfig.handBackLiveStatementProbability   = scenario.handBackLiveStatementProbability;
         driverConfig.supportLargeMaxRows                = scenario.supportLargeMaxRows;
         result.driverStats = driverConfig.stats;
 
@@ -423,7 +431,9 @@ public final class StatementCacheStressHarness
                 { return; }
                 catch ( Throwable t )
                 {
-                    if ( isFatal( t ) )
+                    boolean fatal = isFatal( t )
+                                    && !( keepGoing() && !(t instanceof InconsistentStatementCacheException) );
+                    if ( fatal )
                     {
                         noteFatal( fatalLock, firstFatal, firstFatalDesc, t, "worker session" );
                         return;
@@ -677,6 +687,15 @@ public final class StatementCacheStressHarness
     }
 
     /**
+     * Diagnostic mode: count the cache's own internal-inconsistency throws and carry on, the way an
+     * application that logs and continues would, so we can watch what a damaged cache degenerates
+     * into rather than stopping at the first sign. Off by default -- for a regression run, the
+     * first sign is exactly where you want to stop.
+     */
+    static boolean keepGoing()
+    { return Boolean.getBoolean("c3p0.test.stmtcache.keepGoing"); }
+
+    /**
      * Which failures end the run. Everything the workload can legitimately provoke -- a simulated
      * driver failure surfacing as a SQLException -- is counted and tolerated; everything that
      * indicates the cache has lost track of its own state is fatal.
@@ -765,6 +784,9 @@ public final class StatementCacheStressHarness
             s.threads     = threads;
             s.connections = connections;
             s.distinctSql = distinctSql;
+            s.handBackLiveStatementProbability =
+                Double.parseDouble( System.getProperty("c3p0.test.stmtcache.handBackLiveProbability",
+                                                       String.valueOf( s.handBackLiveStatementProbability )) );
 
             System.out.println("---- " + s.name + " ----");
             Result r = runScenario( s, durationMillis, seed, auditEveryOps );
