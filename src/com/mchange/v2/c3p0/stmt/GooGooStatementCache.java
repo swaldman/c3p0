@@ -905,13 +905,16 @@ public abstract class GooGooStatementCache
                     Long l = (Long) ii.next();
                     Object maybeCullMe = longsToStmts.get( l );
                     StatementCacheKey maybeSck = (StatementCacheKey) stmtToKey.get( maybeCullMe );
-                    Connection pCon = maybeSck.physicalConnection;
-                    if (! destructo.knownInUse( pCon ) ) //we don't cull Statements underneath of Connections in current use
+                    if (maybeSck != null)
                     {
-                        // we've found the first statement in the deathmarch
-                        // that we can cull...
-                        cullMeStmt = maybeCullMe;
-                        sck = maybeSck;
+                        Connection pCon = maybeSck.physicalConnection;
+                        if (! destructo.knownInUse( pCon ) ) //we don't cull Statements underneath of Connections in current use
+                        {
+                            // we've found the first statement in the deathmarch
+                            // that we can cull...
+                            cullMeStmt = maybeCullMe;
+                            sck = maybeSck;
+                        }
                     }
                 }
             }
