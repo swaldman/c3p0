@@ -651,6 +651,22 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     def c3p0StatementState() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.StatementStateTest")()
     }
+    // Statement cache concurrency harnesses. These need no database -- they run against an
+    // in-process fake JDBC driver -- and exit nonzero on failure, so they work as regression
+    // checks. Best run with assertions on, so the cache's own internal assertions participate:
+    //
+    //   C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheStress
+    //
+    // See test/src/com/mchange/v2/c3p0/test/stmt/StatementCacheStressHarness.java for the knobs.
+    def c3p0StmtCacheStress() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.test.stmt.StatementCacheStressHarness")()
+    }
+    def c3p0StmtCacheFullStack() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.test.stmt.StatementCacheFullStackHarness")()
+    }
+    def c3p0StmtCacheIssue196() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.test.stmt.Issue196Demo")()
+    }
     override def pomSettings = Task {
       PomSettings(
         description = "Tests of c3p0, a mature JDBC3+ Connection pooling library",
