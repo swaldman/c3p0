@@ -671,7 +671,18 @@ public abstract class GooGooStatementCache
                     {
                         mainLock.lock();
                         try
-                        { conditionStatementPerhapsAcquired.signalAll(); }
+                        {
+                            // JDBC drivers' statement producing methods must either return a Statement or
+                            // throw an Exception. Returning null is out-of-spec. If that happens,
+                            // we need to move on, and we need to see a Statement or an Exception in order
+                            // to do that. Obviously, we are able only to supply an Exception.
+                            if ( outHolder[0] == null && exceptionHolder[0] == null )
+                                exceptionHolder[0] = new SQLException(
+                                    "JDBC driver bug: " + stmtProducingMethod.getName() + "(...) returned null rather than a " +
+                                    "Statement, and threw no Exception. [Connection class: " + pConn.getClass().getName() + "] " +
+                                    "c3p0 cannot cache what it was not given." );
+                            conditionStatementPerhapsAcquired.signalAll();
+                        }
                         finally
                         { mainLock.unlock(); }
                     }
