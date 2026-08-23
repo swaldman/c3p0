@@ -174,10 +174,17 @@ public final class FakeConnection implements InvocationHandler
         if ( closed )
             throw new SQLException("Connection used after close: " + this + " -- method " + name);
 
-        if ( "prepareStatement".equals( name ) )
-            return acquireStatement( (String) args[0], false ).proxy();
-        if ( "prepareCall".equals( name ) )
-            return acquireStatement( (String) args[0], true ).proxy();
+        if ( "prepareStatement".equals( name ) || "prepareCall".equals( name ) )
+        {
+            if ( config.roll( config.returnNullFromPrepareProbability ) )
+            {
+                // deliberately out of spec: a Statement-producing method must return a Statement or
+                // throw. See FakeDriverConfig.returnNullFromPrepareProbability.
+                config.sleepPrepareLatency();
+                return null;
+            }
+            return acquireStatement( (String) args[0], "prepareCall".equals( name ) ).proxy();
+        }
         if ( "createStatement".equals( name ) )
             return FakeJdbcObjects.plainStatement();
         if ( "nativeSQL".equals( name ) )

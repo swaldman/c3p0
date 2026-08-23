@@ -82,6 +82,14 @@ public final class FakeDriverConfig
      */
     public volatile double handBackLiveStatementProbability = 0d;
 
+    /**
+     * Probability that prepareStatement(...)/prepareCall(...) returns null having thrown nothing,
+     * which is out of spec but is what some Statement-less mock drivers do -- see MockDriver.
+     * The cache acquires Statements on a background thread and waits for one, so before c3p0
+     * treated this as an error, a null left the waiting thread stranded for good.
+     */
+    public volatile double returnNullFromPrepareProbability = 0d;
+
     /** If false, getLargeMaxRows()/setLargeMaxRows() throw SQLFeatureNotSupportedException, exercising CarefulMaxRowsReaderWriter's fallback. */
     public volatile boolean supportLargeMaxRows = true;
 
