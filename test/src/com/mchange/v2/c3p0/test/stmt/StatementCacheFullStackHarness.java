@@ -226,6 +226,10 @@ public final class StatementCacheFullStackHarness
         ComboPooledDataSource ds = new ComboPooledDataSource();
         ds.setDriverClass( FakeDriver.DRIVER_CLASS_NAME );
         ds.setJdbcUrl( driverConfig.jdbcUrl() );
+        // Use the named Driver class directly rather than going through DriverManager, which hands
+        // a URL to registered drivers in order and takes the first Connection offered -- so a badly
+        // behaved driver registered by some other test can answer for ours.
+        ds.setForceUseNamedDriverClass( true );
         ds.setUser( null );
         ds.setPassword( null );
         ds.setMaxStatements( scenario.maxStatements );
