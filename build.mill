@@ -39,7 +39,16 @@ object ProjectFiles {
   /** the input BeangenDataSourceGenerator consumes */
   val BeangenExtension = "beangen-xml"
 
+  /**
+    * Documentation that lives beside the code it documents. Not compiled, not shipped on the
+    * classpath, and -- unlike editor junk -- not something to be nagged about, so relevantFilesIn
+    * drops these before it reports what it ignored. See statement-cache-internals.md.
+    */
+  val DocExtensions = Set("md")
+
   private def knownExcludable(p : os.Path) = p.last.startsWith("#") || p.last.startsWith(".#")
+
+  def isDoc( path : os.Path ) : Boolean = os.isFile(path) && !knownExcludable(path) && DocExtensions( path.ext )
 
   def isSource( path : os.Path )       : Boolean = os.isFile(path) && !knownExcludable(path) && SourceExtensions( path.ext )
   def isResource( path : os.Path )     : Boolean = os.isFile(path) && !knownExcludable(path) && ResourceExtensions( path.ext )
@@ -184,13 +193,17 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     * Everything ignored is reported at warning level, because a file quietly being ignored is a
     * miserable thing to debug. If the allowlist in ProjectFiles ever needs widening, the warning is
     * what tells you so, rather than a generated class mysteriously failing to appear. It is also
-    * meant to nag: the usual cure is to delete the junk it names.
+    * meant to nag: the usual cure is to delete the junk it names. Markdown is the exception --
+    * documentation kept beside the code it documents is intentional and permanent, so
+    * ProjectFiles.isDoc files are dropped before the report rather than nagged about.
     */
   // `warn` is taken as a plain function rather than reached via Task.log, because Task.* is usable
   // only directly inside a Task{...} block. Callers pass Task.log.warn from within theirs.
   def relevantFilesIn( codeGenerator : String )( dir : os.Path, warn : String => Unit )( keep : os.Path => Boolean ) : Seq[PathRef] = {
     if (os.exists(dir)) {
-      val (kept, ignored) = os.walk(dir).filter( p => !os.isDir(p) ).sorted.partition( keep )
+      // Documentation beside the code is deliberate, so it is neither kept nor reported.
+      val (kept, ignored) =
+        os.walk(dir).filter( p => !os.isDir(p) && !ProjectFiles.isDoc(p) ).sorted.partition( keep )
       val relDir          = dir.relativeTo( BuildCtx.workspaceRoot )
       ignored.foreach { p =>
         warn( s"${codeGenerator}: In directory '${relDir}', ignored file '${p.relativeTo(dir)}'." )
