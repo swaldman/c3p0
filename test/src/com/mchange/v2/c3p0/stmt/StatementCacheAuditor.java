@@ -1,6 +1,5 @@
 package com.mchange.v2.c3p0.stmt;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,30 +24,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * https://github.com/swaldman/c3p0/pull/59/ -- so an auditor that used equals(...) could not
  * tell a real inconsistency from the pathology that caused it.
  *
- * <p>Since it needs nothing but mainLock and package-private access, this auditor can also be
- * attached to a live application: put the c3p0-test jar on the classpath and call
+ * <p>No reflection is involved: every structure this reads is package-private, and this class is
+ * declared into that package. Since it needs nothing but mainLock and that access, the auditor can
+ * also be attached to a live application: put the c3p0-test jar on the classpath and call
  * {@link #startWatchdog}.
  */
 public final class StatementCacheAuditor
 {
-    private final static Field KEYREC_ALL_STMTS;
-    private final static Field KEYREC_CHECKOUT_QUEUE;
-
-    static
-    {
-        // KeyRec is a private nested class, so this is the one place reflection is unavoidable
-        try
-        {
-            Class keyRecClass = Class.forName("com.mchange.v2.c3p0.stmt.GooGooStatementCache$KeyRec");
-            KEYREC_ALL_STMTS = keyRecClass.getDeclaredField("allStmts");
-            KEYREC_ALL_STMTS.setAccessible( true );
-            KEYREC_CHECKOUT_QUEUE = keyRecClass.getDeclaredField("checkoutQueue");
-            KEYREC_CHECKOUT_QUEUE.setAccessible( true );
-        }
-        catch ( Exception e )
-        { throw new ExceptionInInitializerError( e ); }
-    }
-
     private final static AtomicReference FIRST_FAILURE = new AtomicReference( null );
 
     /**
@@ -183,8 +165,9 @@ public final class StatementCacheAuditor
         {
             Map.Entry entry = (Map.Entry) ii.next();
             StatementCacheKey key = (StatementCacheKey) entry.getKey();
-            Set allStmts     = idSet( allStmts( entry.getValue() ) );
-            List checkoutQ   = checkoutQueue( entry.getValue() );
+            GooGooStatementCache.KeyRec rec = (GooGooStatementCache.KeyRec) entry.getValue();
+            Set allStmts     = idSet( rec.allStmts );
+            List checkoutQ   = rec.checkoutQueue;
             Set checkoutQSet = idSet( checkoutQ );
 
             if ( allStmts.isEmpty() && checkoutQ.isEmpty() )
@@ -399,8 +382,9 @@ public final class StatementCacheAuditor
             Map.Entry entry = (Map.Entry) ii.next();
             StatementCacheKey key = (StatementCacheKey) entry.getKey();
             sb.append("    '").append( key.stmtText ).append("' @ ").append( key.physicalConnection ).append('\n');
-            sb.append("        allStmts:      ").append( describe( allStmts( entry.getValue() ) ) ).append('\n');
-            sb.append("        checkoutQueue: ").append( describe( checkoutQueue( entry.getValue() ) ) ).append('\n');
+            GooGooStatementCache.KeyRec rec = (GooGooStatementCache.KeyRec) entry.getValue();
+            sb.append("        allStmts:      ").append( describe( rec.allStmts ) ).append('\n');
+            sb.append("        checkoutQueue: ").append( describe( rec.checkoutQueue ) ).append('\n');
         }
 
         sb.append("  cxnStmtMgr (").append( cache.cxnStmtMgr.cxnToStmtSets.size() ).append(" connections):\n");
@@ -580,22 +564,6 @@ public final class StatementCacheAuditor
         }
         sb.append(']');
         return sb.toString();
-    }
-
-    private static Set allStmts( Object keyRec )
-    {
-        try
-        { return (Set) KEYREC_ALL_STMTS.get( keyRec ); }
-        catch ( IllegalAccessException e )
-        { throw new RuntimeException( e ); }
-    }
-
-    private static List checkoutQueue( Object keyRec )
-    {
-        try
-        { return (List) KEYREC_CHECKOUT_QUEUE.get( keyRec ); }
-        catch ( IllegalAccessException e )
-        { throw new RuntimeException( e ); }
     }
 
     private StatementCacheAuditor()
