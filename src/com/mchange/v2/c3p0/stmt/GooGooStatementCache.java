@@ -897,7 +897,7 @@ public abstract class GooGooStatementCache
     }
 
 
-    private static class KeyRec
+    static class KeyRec
     {
         HashSet  allStmts       = new HashSet();
         LinkedList checkoutQueue  = new LinkedList();
