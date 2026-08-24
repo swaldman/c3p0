@@ -137,10 +137,10 @@ The watchdog thread is a daemon. It **stops at the first inconsistency** — the
 spinning on a broken cache, and the state is recorded in `firstFailure()` — and it returns quietly
 when the cache closes. Interrupt it to stop it early.
 
-Choosing an interval is a trade: each check takes `mainLock`, so a 50ms interval on a busy pool is
-noticeable but tolerable for a diagnostic run, while several seconds is nearly free and still
-catches a corruption that persists (and the ones that matter here do persist — that is what made
-#196 recur). Start high; lower it if the fault escapes you.
+Choosing an interval is a trade: each check takes `mainLock`, so a 50ms interval on a busy pool
+is noticeable but tolerable for a diagnostic run, while several seconds is nearly free and still
+catches a corruption that persists (and the ones that matter here do persist — that is what
+made #196 recur). Start high; lower it if the fault escapes you.
 
 Retrieve what it found:
 
