@@ -46,11 +46,11 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 ### Building c3p0
 
-For now (v0.14.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
+For now (v0.15.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
 
-Install `mill`. Then, within this repository direcory, run
+Install `mill`. Then, within this repository directory, run
 
 ```plaintext
 $ ./mill jar
