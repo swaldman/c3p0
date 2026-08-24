@@ -463,6 +463,13 @@ public abstract class GooGooStatementCache
                 if (logger.isLoggable(MLevel.FINE))
                     logger.log(MLevel.FINE, this + ": duplicate call to close() [not harmful! -- debug only!]", new Exception("DUPLICATE CLOSE DEBUG STACK TRACE."));
             }
+
+            // arguably this should be in the (! isClose) branch above, but it's harmless to
+            // repeat and if somehow there are threads still waiting on the lock during a
+            // duplicate close() call, the redundant call would liberate them.
+            //
+            // that shouldn't happen. but what if it did?
+            conditionStatementPerhapsAcquired.signalAll();
         }
         finally
         { mainLock.unlock(); }
@@ -692,7 +699,8 @@ public abstract class GooGooStatementCache
             Runnable r = new StmtAcquireTask();
             blockingTaskAsyncRunner.postRunnable(r);
 
-            while ( outHolder[0] == null && exceptionHolder[0] == null )
+            // be sure to handle any of the conditions that would break this while below!
+            while ( outHolder[0] == null && exceptionHolder[0] == null && !this.isClosed())
                 conditionStatementPerhapsAcquired.await(); //give up our lock while the Statement gets prepared
             Throwable t = exceptionHolder[0];
             if (t != null)
@@ -704,11 +712,17 @@ public abstract class GooGooStatementCache
                 else
                     throw new Error("Unexpected non-Error, non-Exception Throwable while trying to acquire a cached PreparedStatement in a background thread: " + t, t);
             }
-            else
+            else if (outHolder[0] != null)
+                return outHolder[0];
+            else if (this.isClosed())
             {
-                Object out = outHolder[0];
-                return out;
+                // ResourceClosedException are caught by Statement proxies, which fall back to an
+                // uncached Statement -- so a Connection in use can survive a DataSource reset,
+                // but just lose the Statement cache
+                throw new ResourceClosedException("The Statement cache has been close()ed. It will no longer acquire Statements.");
             }
+            else
+                throw new RuntimeException("Unexpected state in GooGooStatementCache.acquireStatement(...), probably a programmer error, a new lock pass-through condition not handled.");
         }
         catch ( InterruptedException e )
         { throw SqlUtils.toSQLException( e ); }
