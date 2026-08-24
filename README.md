@@ -232,6 +232,13 @@ test applications, usually one of...
 * `com.mchange.v2.c3p0.test.DynamicPreparedStatementTest`
 * `com.mchange.v2.c3p0.test.StatementStateTest`
 
+### Developer documentation
+
+In addition to this `README.md`, please see...
+
+* [Adding properties](adding-properties.md)
+* [The c3p0 Statement Cache: structures and invariants](src/com/mchange/v2/c3p0/stmt/statement-cache-internals.md)
+* [The statement cache auditor, and the harnesses around it](test/src/com/mchange/v2/c3p0/stmt/statement-cache-auditor.md)
 
 ### Building c3p0-loom
 
