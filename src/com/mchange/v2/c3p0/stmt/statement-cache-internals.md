@@ -8,7 +8,7 @@ This document says what those collections hold, what must be true of them betwee
 which locks protect what. It describes the code as it stands; if you change the code, change this.
 
 Everything here is checked mechanically. `StatementCacheAuditor`, in the test module and declared
-into this package, verifies the invariants in §5 against a live cache. See §9.
+into this package, verifies the invariants in §5 against a live cache. See §11.
 
 ---
 
@@ -18,10 +18,10 @@ into this package, verifies the invariants in §5 against a live cache. See §9.
 | --- | --- |
 | `GooGooStatementCache.java` | Everything: the collections, the algorithms, and the nested `KeyRec`, `Deathmarch`, `ConnectionStatementManager` and `StatementDestructionManager` classes |
 | `PerConnectionMaxOnlyStatementCache.java`, `GlobalMaxOnlyStatementCache.java`, `DoubleMaxStatementCache.java` | The three concrete caches. Each supplies a culling policy and a set of deathmarches |
-| `StatementCacheKey.java` and its three subclasses | The cache key. Only `ValueIdentityStatementCacheKey` is live — see §8 |
-| `Hazards.java`, `IrreversibleHazardException.java` | Statement state a client mutated, and whether it can be undone — see §7 |
+| `StatementCacheKey.java` and its three subclasses | The cache key. Only `ValueIdentityStatementCacheKey` is live — see §10 |
+| `Hazards.java`, `IrreversibleHazardException.java` | Statement state a client mutated, and whether it can be undone — see §9 |
 | `CarefulMaxRowsReaderWriter.java` | `maxRows` across drivers that may lack `getLargeMaxRows()`/`setLargeMaxRows()` |
-| `StatementCache.java` | Vestigial. Nothing implements it; `GooGooStatementCache` declares the same methods independently |
+| `StatementCache.java` | Vestigial, and `@Deprecated` since 00548767. Nothing implements it; `GooGooStatementCache` declares the same methods independently |
 
 ## 2. Three caches, one mechanism
 
@@ -51,9 +51,14 @@ A physical Statement the cache has produced is in exactly one of three condition
   culled. It is returned to the client but *not cached*: it appears in none of the collections. The
   cache destroys it if it is ever checked in, and knows nothing about it otherwise.
 
-  Note the consequence: an overload Statement whose client never checks it in is never closed by
-  c3p0, because `checkinAll(...)` and `closeAll(...)` only sweep Statements the cache accepted. It
-  survives until the physical Connection is closed.
+  Because the cache does not track it, nothing here can clean it up: `checkinAll(...)` and
+  `closeAll(...)` sweep only Statements the cache accepted. So the caller is told. The four-argument
+  `checkoutStatement(...)` sets its `actuallyCachedHolder` to say whether the Statement was taken
+  into the cache, and `NewPooledConnection` registers the ones that were not through
+  `markActiveUncachedStatement(...)`, so that `cleanupUncachedStatements(...)` closes them when the
+  logical Connection closes — the same machinery that handles Statements when caching is off
+  entirely. Before that (6df8c127), an overload Statement whose client never closed it stayed open
+  for the life of the physical Connection.
 
 ## 4. The collections
 
@@ -81,7 +86,7 @@ removal. Culling walks `longsToStmts` from the LRU end.
 | --- | --- | --- |
 | `removalPending` | `removalPendingLock` | Statements currently inside `removeStatement(...)`, so that a second, concurrent removal does not repeat the work. **Must be empty between operations** — see §5.1 |
 | `stmtToHazards` | its own monitor | `WeakHashMap` of Statement → `Hazards`. Weak because the Statement proxies mark hazards on Statements that may never have entered the cache |
-| `inUseConnections`, `connectionsToZombieStatementSets` | `csdmLock` | `CautiousStatementDestructionManager` only — see §6 |
+| `inUseConnections`, `connectionsToZombieStatementSets` | `csdmLock` | `CautiousStatementDestructionManager` only — see §8 |
 
 ## 5. The invariants
 
@@ -128,17 +133,18 @@ All five entry points take `mainLock` for their duration.
 
 | Method | What it does to the structures |
 | --- | --- |
-| `checkoutStatement(pcon, method, args)` | Cache hit: takes the head of the key's `checkoutQueue`, adds it to `checkedOut`, removes it from the deathmarches. Miss: acquires a new Statement (§7), then, if `prepareAssimilateNewStatement(pcon)` allows, adds it to `stmtToKey`, the key's `allStmts`, `cxnStmtMgr` and `checkedOut`; otherwise returns it uncached as an overload Statement |
-| `checkinStatement(pstmt)` | Removes it from `checkedOut`, restores its state (§7), then appends it to its key's `checkoutQueue` and adds it to the deathmarches. A Statement that cannot be restored is put back into `checkedOut` and removed with `DESTROY_ALWAYS`. A Statement the cache does not hold is simply destroyed |
+| `checkoutStatement(pcon, method, args [, actuallyCachedHolder])` | Cache hit: takes the head of the key's `checkoutQueue`, adds it to `checkedOut`, removes it from the deathmarches. Miss: acquires a new Statement (§7), then, if `prepareAssimilateNewStatement(pcon)` allows, adds it to `stmtToKey`, the key's `allStmts`, `cxnStmtMgr` and `checkedOut`; otherwise returns it uncached as an overload Statement. The optional holder reports which happened, so the caller can take responsibility for what the cache declined to keep (§3) |
+| `checkinStatement(pstmt)` | Removes it from `checkedOut`, restores its state (§9), then appends it to its key's `checkoutQueue` and adds it to the deathmarches. A Statement that cannot be restored is put back into `checkedOut` and removed with `DESTROY_ALWAYS`. A Statement the cache does not hold is simply destroyed |
 | `checkinAll(pcon)` | Checks in every checked-out Statement on that Connection. Iterates a clone, since check-in can remove |
 | `closeAll(pcon)` | Removes every Statement on that Connection with `DESTROY_NEVER`, under the lock, then **releases the lock** and destroys them synchronously |
-| `close()` | Destroys every cached Statement synchronously, closes the destruction manager, and nulls the collections |
+| `close()` | Destroys every cached Statement synchronously, closes the destruction manager, nulls the collections, and signals `conditionStatementPerhapsAcquired` so that nobody is left waiting for a Statement that will now never arrive (§7) |
 
 `removeStatement(ps, policy)` is the single path out of the cache, used by `checkinStatement`,
 `closeAll` and `cullNext`. It removes the Statement from every collection above, and destroys it
 according to the policy: `DESTROY_NEVER`, `DESTROY_IF_CHECKED_IN`, `DESTROY_IF_CHECKED_OUT`,
 `DESTROY_ALWAYS`. It must leave nothing behind however it exits — including by exception, which a
-misbehaving driver can cause.
+misbehaving driver can cause — so its body sits in a `try`/`finally` that always clears
+`removalPending`, and it logs and returns rather than dereferencing a key it no longer has.
 
 `Deathmarch.cullNext()` picks the least recently checked-in Statement that is not checked out —
 defensively, since by invariant 7 no deathmarched Statement should be checked out — and removes it
@@ -158,6 +164,20 @@ thread can take `mainLock` is a moment the invariants hold. Second, and less com
 state can change across that window*: by the time `checkoutStatement(...)` resumes, the key's
 queue, the maxima and the Connection's Statement set may all differ from what it saw. Do not
 presume atomicity before and after.
+
+The wait ends on one of three things, and every one of them must be made to happen, because none of
+them is guaranteed by the driver:
+
+- **a Statement**, the ordinary case;
+- **an exception** — including one the cache manufactures, when a driver returns null from a
+  statement-producing method rather than returning a Statement or throwing, which would otherwise
+  satisfy neither condition and leave the waiter here for good;
+- **the cache closing**, which `close()` signals. A DataSource shutdown closes the cache before it
+  closes the task runner, and the runner discards whatever acquisition tasks were still queued — a
+  discarded task never runs, so it never signals, so without that signal a waiter behind one would
+  wait forever, holding its `NewPooledConnection`'s monitor. Waiters released this way see
+  `ResourceClosedException`, which the Statement proxies catch in order to fall back to an uncached
+  Statement, so a Connection in use survives a reset and merely loses the cache.
 
 Lock order is `mainLock` first, then any of `removalPendingLock`, the `stmtToHazards` monitor, or
 `csdmLock`. Nothing acquires `mainLock` while holding one of those, except the statement-acquisition
@@ -223,13 +243,19 @@ keys — which is worth remembering when reading a diagnostic that prints only t
 ## 11. Checking the invariants
 
 `StatementCacheAuditor` (test sources, this package) checks §5 against a live cache by taking
-`mainLock` and looking. It needs no cooperation from this class, and can be attached to a running
-application:
+`mainLock` and looking. It uses no reflection — everything it reads is package-private and it is
+declared into this package — so it needs no cooperation from this class, and can be attached to a
+running application:
 
 ```java
 GooGooStatementCache scache = C3P0TestInternals.statementCacheOf( myPooledDataSource );
 StatementCacheAuditor.startWatchdog( scache, 50 ); // millis
 ```
+
+Remember that a DataSource has one pool, and so one cache, per authentication: the call above finds
+the default one, `statementCacheOf( pds, user, password )` finds another, and `statementCachesOf( pds )`
+finds them all, which is what to watch on a DataSource serving several credentials. None of them
+creates anything, so attaching the auditor cannot itself start threads or open Connections.
 
 The harnesses that exercise it need no database — they run against an in-process fake JDBC driver —
 and audit after every operation, so an inconsistency is reported where it happens rather than later,
