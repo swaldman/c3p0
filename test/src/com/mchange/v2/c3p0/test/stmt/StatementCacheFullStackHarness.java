@@ -115,17 +115,22 @@ public final class StatementCacheFullStackHarness
         public String firstFatal;
         public Throwable firstFatalThrowable;
         public FakeDriverStats driverStats;
-        /** Never closed, and the client had closed its proxy -- always a defect. */
+        /**
+         * Never closed, though the client closed its proxy. c3p0 undertook to destroy the Statement
+         * on check-in and did not.
+         */
         public List   leakedUnexpectedly = new ArrayList();
         /**
-         * Never closed, and the client abandoned the proxy without closing it. c3p0 sweeps up
-         * abandoned <i>cached</i> Statements when the logical Connection closes, but an overload
-         * Statement -- one the cache produced and declined to keep, because every Statement it
-         * held for that Connection was checked out -- is registered nowhere, so nothing closes it.
-         * Counted, and reported, but not by itself a failure unless failOnAbandonedLeak is set.
+         * Never closed, and the client abandoned the proxy rather than closing it. c3p0 is
+         * responsible for these too: NewPooledConnection sweeps up whatever a client leaves behind
+         * when the logical Connection closes -- cached Statements through checkinAll(...), and
+         * "overload" Statements, which the cache produces but declines to keep, through
+         * uncachedActiveStatements.
+         *
+         * <p>This bucket was once tolerated by default, because overload Statements really were
+         * registered nowhere and so really did leak. That is fixed, so it is a failure now.
          */
         public List   leakedAfterClientAbandon = new ArrayList();
-        public boolean failOnAbandonedLeak = false;
         public List   loggedInconsistencies = new ArrayList();
         public final Map expectedExceptionCounts = new TreeMap();
 
@@ -138,7 +143,7 @@ public final class StatementCacheFullStackHarness
                 && loggedInconsistencies.isEmpty()
                 && driverStats.numAnomalies() == 0
                 && leakedUnexpectedly.isEmpty()
-                && ( !failOnAbandonedLeak || leakedAfterClientAbandon.isEmpty() );
+                && leakedAfterClientAbandon.isEmpty();
         }
 
         public String report()
@@ -153,17 +158,19 @@ public final class StatementCacheFullStackHarness
                 sb.append("\n    LOGGED INCONSISTENCY: ").append( ii.next() );
             if (! leakedAfterClientAbandon.isEmpty() )
             {
-                sb.append("\n    NOTE: ").append( leakedAfterClientAbandon.size() )
-                  .append(" Statement(s) the client abandoned were never closed by c3p0. These are")
-                  .append("\n          overload Statements: the cache produced them but declined to keep them, and")
-                  .append("\n          nothing registers them for cleanup when the logical Connection closes.")
-                  .append("\n          Set -Dc3p0.test.stmtcache.failOnAbandonedLeak=true to treat this as a failure.");
-                for ( int i = 0, len = Math.min( 5, leakedAfterClientAbandon.size() ); i < len; ++i )
+                sb.append("\n    LEAKED -- the client abandoned these without closing them, and nothing swept")
+                  .append("\n              them up when the logical Connection closed: ").append( leakedAfterClientAbandon.size() )
+                  .append("\n              Look at whether Statements the cache declines to keep are still being")
+                  .append("\n              registered via markActiveUncachedStatement(...), and at whether")
+                  .append("\n              cleanupUncachedStatements(...) still runs on the paths that closed this Connection.");
+                for ( int i = 0, len = Math.min( 10, leakedAfterClientAbandon.size() ); i < len; ++i )
                     sb.append("\n        ").append( leakedAfterClientAbandon.get(i) );
             }
             if (! leakedUnexpectedly.isEmpty() )
             {
-                sb.append("\n    LEAKED (client closed these, and they are still open): ").append( leakedUnexpectedly.size() );
+                sb.append("\n    LEAKED -- the client closed these, and they are still open: ").append( leakedUnexpectedly.size() )
+                  .append("\n              Look at the check-in path: GooGooStatementCache.checkinStatement(...) destroys")
+                  .append("\n              Statements it does not hold, and removeStatement(...) destroys the ones it does.");
                 for ( int i = 0, len = Math.min( 10, leakedUnexpectedly.size() ); i < len; ++i )
                     sb.append("\n        ").append( leakedUnexpectedly.get(i) );
             }
@@ -324,7 +331,6 @@ public final class StatementCacheFullStackHarness
             else
                 result.leakedUnexpectedly.add( fs );
         }
-        result.failOnAbandonedLeak = Boolean.getBoolean("c3p0.test.stmtcache.failOnAbandonedLeak");
         result.loggedInconsistencies = new ArrayList( watcher.hits );
 
         InconsistentStatementCacheException auditFailure = StatementCacheAuditor.firstFailure();
