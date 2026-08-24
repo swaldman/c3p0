@@ -4,6 +4,13 @@ import java.lang.reflect.*;
 import java.sql.*;
 import com.mchange.v1.util.ClosableResource;
 
+
+/**
+ *  This interface is not actually in use.
+ *  We just use the inheritance hierarcy under abstract
+ *  class GooGooStatementCache.
+ */
+@Deprecated
 public interface StatementCache extends ClosableResource
 {
     public Object checkoutStatement( Connection physicalConnection,
