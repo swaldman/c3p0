@@ -1,6 +1,23 @@
+        -- Fix unlikely but possible thread leaks and hangs in the Statement cache, if a misbehaving
+           JDBC driver returned null from a Statement producing method (rather than producing a
+           Statement or throwing an Exception per the spec), or if a c3p0 pool-backed DataSource
+           was close()ed, reset(), or reconfigured (many ComboPooledDataSource setters reset the
+           pool) while a thread was still waiting on Statement acquisition. Although this
+           issue was never observed in the wild, frozen threads would hold Connection monitors,
+           so the freezes would deadlock Connection clients as well as leaking resources.
+        -- Fix an entirely unrelated path by which Statements could be leaked, if clients failed
+           to explicitly close them, and they had been created as "overload Statements" while a
+           Statement cache was active but "full" and so unable to actually cache new Statements.
+        -- Fix an issue that converted what should have been transient (albeit still unexplained)
+           faults in the Statement cache into unrecoverable permanent corruption of the cache for
+           the affected Connection (Statements leaked, caching silently ceased for that Connection,
+           and the logs filled with complaints of cache inconsistency). Thanks to Devil2-O on github
+           for calling attention to this issue.
+        -- Let "Claude" build a stress-testing harness (complete with instrumenting mock JDBC
+           driver) to help track down rare Statement cache faults and inconsistencies.
         -- Reorganize the build, which previously was basically a direct port of an ancient ant
-	   build, into a build that is reliable, much simpler, and respects the mill-build philosophy.
-	   (With a lot of help from claude.ai, this one.)
+           build, into a build that is reliable, much simpler, and respects the mill-build philosophy.
+           (With a lot of help from claude.ai, this one.)
         -- The Statement cache was clearing parameters and batches, but otherwise not resetting
            Statement state that may have been modified by prior users' activity. We now carefully
            either reset mutated Statement state, or refuse to re-cache on operations that change
