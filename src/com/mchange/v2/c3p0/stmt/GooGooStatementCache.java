@@ -188,6 +188,19 @@ public abstract class GooGooStatementCache
 
     public Object checkoutStatement( Connection physicalConnection, Method stmtProducingMethod, Object[] args )
         throws SQLException, ResourceClosedException
+    { return checkoutStatement( physicalConnection, stmtProducingMethod, args, null ); }
+
+    /**
+     * @param actuallyCachedHolder if non-null, set to whether the returned Statement was taken into the cache.
+     *        A Statement the cache declines to keep -- because everything it held for this Connection
+     *        was checked out, so nothing could be culled -- is an "overload Statement", and is returned uncached.
+     *        The cache destroys it if it is ever checked in, and knows nothing about it otherwise: whoever holds one owns it.
+     *        But clients that try to ensure that abandoned Statements get close()ed when parent Connections are checked-in
+     *        need to know that the cache was unable to take control over the "overload Statement", so that they know to
+     *        close the Statement themselves upon Connection check-in.
+     */
+    public Object checkoutStatement( Connection physicalConnection, Method stmtProducingMethod, Object[] args, boolean[] actuallyCachedHolder )
+        throws SQLException, ResourceClosedException
     {
         mainLock.lock();
         try
@@ -205,10 +218,18 @@ public abstract class GooGooStatementCache
                 out = acquireStatement( physicalConnection, stmtProducingMethod, args );
 
                 if ( prepareAssimilateNewStatement( physicalConnection ) )
+                {
                     assimilateNewCheckedOutStatement( key, physicalConnection, out );
-                // else case: we can't assimilate the statement...
-                // so, we just return our newly created statement, without caching it.
-                // on check-in, it will simply be destroyed... this is an "overload statement"
+                    if (actuallyCachedHolder != null) actuallyCachedHolder[0] = true;
+                }
+                else
+                {
+                    // we can't assimilate the statement...
+                    // so, we just return our newly created statement, without caching it.
+                    // on check-in, it will simply be destroyed... this is an "overload statement"
+                    // we let the client know this by setting actuallyCachedHolder[0] to false
+                    if (actuallyCachedHolder != null) actuallyCachedHolder[0] = false;
+                }
             }
             else //okay, we can use an old one
             {
@@ -223,6 +244,10 @@ public abstract class GooGooStatementCache
                                     "Checking out a statement marked " +
                     "as already checked out!");
                 removeStatementFromDeathmarches( out, physicalConnection );
+
+                // we are reusing a cached Statement, so the Statement is not an
+                // "overload Statement". it is managed by the cache
+                if (actuallyCachedHolder != null) actuallyCachedHolder[0] = true;
             }
 
             if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)

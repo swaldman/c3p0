@@ -67,6 +67,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     Set                  metaDataResultSets        = new HashSet();
     Set                  rawConnectionResultSets   = null;          //very rarely used, so we lazy initialize...
     boolean              connection_error_signaled = false;
+    boolean[]            actuallyCachedHolder      = new boolean[1]; // used sequentially to track whether Statements we try to cache actually are cached
 
     //MT: thread-safe, volatile
     volatile AbstractNewProxyConnection exposedProxy = null;
@@ -328,11 +329,47 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     }
 
     synchronized Object checkoutStatement( Method stmtProducingMethod, Object[] args ) throws SQLException
-    { return scache.checkoutStatement( physicalConnection, stmtProducingMethod, args ); }
+    {
+        // Setting an initial value here shouldn't matter, as scache.checkoutStatement(...) should always
+        // overwrite it. But what if it doesn't?
+        //
+        // It's a recycled container, so its value at this point could be anything.
+        // If for some reason it is NOT overwritten by scache.checkoutStatement(...) and it's
+        // initial value carries through, which direction would be the safer direction to err?
+        //
+        // an erroneous 'false' would cause us to close() out Statements from underneath the Statement cache,
+        // corrupting it.
+        //
+        // An erroneous 'true' would leak the Statement for the lifetime of the parent Connection,
+        // which occupies potentially scarce resources but is otherwise harmless (and whose occasional
+        // occurrence went unnoticed for may years by users of the library, only claude noticed this
+        // leak.
+        //
+        // So, we go with 'true'.
+        //
+        // But really, it shouldn't matter, because scache.checkoutStatement(...) really should always
+        // overwrite it.
+        actuallyCachedHolder[0] = true;
+
+        Object out = scache.checkoutStatement( physicalConnection, stmtProducingMethod, args, actuallyCachedHolder );
+
+        // Statements might not be "actually cached" because the Statement cache is full.
+        // In that case, the cache just returns a newly created "overload Statement", and doesn't
+        // track it. When an untracked Statement is checked in, it is just destroyed, so it's fine.
+        //
+        // But if a client never checks the Statement in, we need to use our usual machinery to ensure
+        // the Statement gets close()ed when its parent Connection is checked in.
+        boolean actuallyCached = actuallyCachedHolder[0];
+        if (!actuallyCached)
+            markActiveUncachedStatement( (Statement) out );
+
+        return out;
+    }
 
     synchronized void checkinStatement( Statement stmt ) throws SQLException
     {
         cleanupStatementResultSets( stmt );
+        uncachedActiveStatements.remove( stmt ); // no-op unless this was an "overload Statement", see checkoutStatement(...) above
         scache.checkinStatement( stmt );
     }
 
