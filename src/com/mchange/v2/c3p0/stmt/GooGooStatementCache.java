@@ -480,6 +480,36 @@ public abstract class GooGooStatementCache
                     Connection pConn,
                     Object ps )
     {
+        // We must not presume that Connection.prepareStatement(...) and friends hand back a
+        // Statement we have never seen. Some JDBC drivers cache Statements internally, and a
+        // driver-side cache may hand back a Statement this cache already holds. See
+        // https://github.com/swaldman/c3p0/issues/196
+        //
+        // Caching it a second time would fork our bookkeeping. stmtToKey.put(...) below would
+        // repoint the Statement at the new key while the Statement remained in the *old* key's
+        // allStmts and checkoutQueue, and checkedOut.add(...) would mark as checked-out a Statement
+        // still sitting in a deathmarch. Neither is noticed here. Both surface later and elsewhere,
+        // as a double-deathmarch on check-in, or as a checked-out Statement with no key.
+        //
+        // So we decline to cache it, and disown the copy we hold. The client still gets the
+        // Statement -- if the driver's own cache was content to hand it out, we have no reason to
+        // refuse -- but this cache must no longer offer that Statement for checkout, nor cull it,
+        // while a client is using it. DESTROY_NEVER, emphatically: the Statement we are disowning is
+        // the very object we are about to return.
+        if ( stmtToKey.containsKey( ps ) )
+        {
+            if ( logger.isLoggable( MLevel.WARNING ) )
+                logger.log( MLevel.WARNING,
+                            this + " was handed a Statement it already caches, so it will not be cached again. " +
+                            "Is a driver-side Statement cache (Oracle's implicit statement caching, for instance) " +
+                            "also in use, or is something wrapping Connections? Statement caching remains correct, " +
+                            "but is less effective while this occurs. [" + key.stmtText + "]",
+                            new Exception("LOG STACK TRACE") );
+
+            removeStatement( ps, DESTROY_NEVER );
+            return;
+        }
+
         stmtToKey.put( ps, key );
         HashSet ks = keySet( key );
         if (ks == null)
