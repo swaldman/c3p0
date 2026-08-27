@@ -1,3 +1,7 @@
+        -- Some hardening of com.mchange.v2.log (in mchange-commons-java)
+        -- Substantial reorganization of com.mchange.v2.cfg, including adding support for 'file:'-URL
+           specified resources, which can (via pseudo-query-string config) be restricted to files
+           with user-only access, and which can be required or be skippable. (in mchange-commons-java)
         -- Fix unlikely but possible thread leaks and hangs in the Statement cache, if a misbehaving
            JDBC driver returned null from a Statement producing method (rather than producing a
            Statement or throwing an Exception per the spec), or if a c3p0 pool-backed DataSource
