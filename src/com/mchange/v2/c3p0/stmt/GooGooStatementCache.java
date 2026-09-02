@@ -182,6 +182,19 @@ public abstract class GooGooStatementCache
 
     public Object checkoutStatement( Connection physicalConnection, Method stmtProducingMethod, Object[] args )
         throws SQLException, ResourceClosedException
+    { return checkoutStatement( physicalConnection, stmtProducingMethod, args, null ); }
+
+    /**
+     * @param actuallyCachedHolder if non-null, set to whether the returned Statement was taken into the cache.
+     *        Two things can prevent that. The cache may be unable to make room, in which case the Statement is
+     *        an "overload Statement"; or the Statement may be one this cache already holds, handed back to us by
+     *        a driver-side Statement cache, in which case we disown our copy rather than cache it twice.
+     *        Either way the cache does not track the Statement, and will simply destroy it if it is ever
+     *        checked in. Callers that ensure abandoned Statements get close()ed when their parent Connection
+     *        is checked in need to know this, so that they can take responsibility for what we declined to keep.
+     */
+    public Object checkoutStatement( Connection physicalConnection, Method stmtProducingMethod, Object[] args, boolean[] actuallyCachedHolder )
+        throws SQLException, ResourceClosedException
     {
         mainLock.lock();
         try
@@ -199,10 +212,18 @@ public abstract class GooGooStatementCache
                 out = acquireStatement( physicalConnection, stmtProducingMethod, args );
 
                 if ( prepareAssimilateNewStatement( physicalConnection ) )
-                    assimilateNewCheckedOutStatement( key, physicalConnection, out );
-                // else case: we can't assimilate the statement...
-                // so, we just return our newly created statement, without caching it.
-                // on check-in, it will simply be destroyed... this is an "overload statement"
+                {
+                    // assimilation can still decline, if this is a Statement we already hold
+                    boolean actually_cached = assimilateNewCheckedOutStatement( key, physicalConnection, out );
+                    if (actuallyCachedHolder != null) actuallyCachedHolder[0] = actually_cached;
+                }
+                else
+                {
+                    // we can't assimilate the statement...
+                    // so, we just return our newly created statement, without caching it.
+                    // on check-in, it will simply be destroyed... this is an "overload statement"
+                    if (actuallyCachedHolder != null) actuallyCachedHolder[0] = false;
+                }
             }
             else //okay, we can use an old one
             {
@@ -217,6 +238,9 @@ public abstract class GooGooStatementCache
                                     "Checking out a statement marked " +
                     "as already checked out!");
                 removeStatementFromDeathmarches( out, physicalConnection );
+
+                // we are reusing a cached Statement, so it is managed by the cache
+                if (actuallyCachedHolder != null) actuallyCachedHolder[0] = true;
             }
 
             if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
@@ -476,7 +500,8 @@ public abstract class GooGooStatementCache
     final int countCachedStatements()
     { return stmtToKey.size(); }
 
-    private void assimilateNewCheckedOutStatement( StatementCacheKey key,
+    /** @return whether the Statement was actually taken into the cache */
+    private boolean assimilateNewCheckedOutStatement( StatementCacheKey key,
                     Connection pConn,
                     Object ps )
     {
@@ -507,7 +532,7 @@ public abstract class GooGooStatementCache
                             new Exception("LOG STACK TRACE") );
 
             removeStatement( ps, DESTROY_NEVER );
-            return;
+            return false;
         }
 
         stmtToKey.put( ps, key );
@@ -539,6 +564,8 @@ public abstract class GooGooStatementCache
         }
 
         checkedOut.add( ps );
+
+        return true;
     }
 
     private void removeStatement( Object ps , int destruction_policy )

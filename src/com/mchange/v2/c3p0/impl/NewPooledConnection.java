@@ -67,6 +67,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     Set                  metaDataResultSets        = new HashSet();
     Set                  rawConnectionResultSets   = null;          //very rarely used, so we lazy initialize...
     boolean              connection_error_signaled = false;
+    boolean[]            actuallyCachedHolder      = new boolean[1]; // used sequentially to track whether Statements we try to cache actually are cached
 
     //MT: thread-safe, volatile
     volatile AbstractNewProxyConnection exposedProxy = null;
@@ -306,11 +307,31 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     }
 
     synchronized Object checkoutStatement( Method stmtProducingMethod, Object[] args ) throws SQLException
-    { return scache.checkoutStatement( physicalConnection, stmtProducingMethod, args ); }
+    {
+        // We reuse this array, so we state our assumption rather than inheriting the last call's
+        // answer. scache.checkoutStatement(...) should always overwrite it, but if it somehow did
+        // not, 'true' is the safer direction to err: it would leak a Statement until its parent
+        // Connection closes, where 'false' would have us close() a Statement out from under the
+        // cache, corrupting it.
+        actuallyCachedHolder[0] = true;
+
+        Object out = scache.checkoutStatement( physicalConnection, stmtProducingMethod, args, actuallyCachedHolder );
+
+        // The cache may decline to keep a Statement -- because it could make no room, or because a
+        // driver-side Statement cache handed us one it already holds. It does not track what it
+        // declines, so it will destroy such a Statement if it is checked in, but nothing would ever
+        // close one a client abandons. That is ours to look after, using the same machinery we use
+        // when there is no Statement cache at all.
+        if (! actuallyCachedHolder[0] )
+            markActiveUncachedStatement( (Statement) out );
+
+        return out;
+    }
 
     synchronized void checkinStatement( Statement stmt ) throws SQLException
     {
         cleanupStatementResultSets( stmt );
+        uncachedActiveStatements.remove( stmt ); // no-op unless the cache declined this Statement, see checkoutStatement(...) above
         scache.checkinStatement( stmt );
     }
 
