@@ -524,12 +524,17 @@ public abstract class GooGooStatementCache
         if ( stmtToKey.containsKey( ps ) )
         {
             if ( logger.isLoggable( MLevel.WARNING ) )
+            {
                 logger.log( MLevel.WARNING,
                             this + " was handed a Statement it already caches, so it will not be cached again. " +
                             "Is a driver-side Statement cache (Oracle's implicit statement caching, for instance) " +
                             "also in use, or is something wrapping Connections? Statement caching remains correct, " +
-                            "but is less effective while this occurs. [" + key.stmtText + "]",
-                            new Exception("LOG STACK TRACE") );
+                            "but is less effective while this occurs. [" + key.stmtText + "]");
+                if (logger.isLoggable( MLevel.FINE))
+                    logger.log( MLevel.FINE,
+                                this + " logging stack trace for duplicate appearance of a PreparedStatement. [" + key.stmtText + "]",
+                                new Exception("LOG STACK TRACE") );
+            }
 
             removeStatement( ps, DESTROY_NEVER );
             return false;
