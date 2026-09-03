@@ -1,0 +1,41 @@
+RELEASE NOTES, c3p0-0.14.2
+==========================
+
+This release addresses Statement cache corruption that
+appears to result from "dueling Statement caches".
+
+Prior to this release, c3p0's Statement cache simply
+presumed that it is handed a freshly created
+PreparedStatement when it calls Connection.prepareXXX methods.
+
+But that's not always true. Some Drivers implement
+their own Statement caches internally, and nothing prevents
+users from accidentally or intentionally running a
+configuration in which both c3p0 and the JDBC driver
+cache some or all Statements.
+
+Prior to this release, that would lead to corruption
+of the Statement cache.
+
+This release makes the Statement cache resilient to that
+condition. If the cache, when preparing a "new" Statement,
+encounters a reference to a Statement it has already seen,
+the cache simply refuses the Statement. The Statement is
+made available to the client as an ordinary, uncached
+Statement, and its lifecycle is managed like "overload
+Statements" -- Statements that could not be cached
+because the cache was full.
+
+When c3p0 encounters this condition, it logs a WARNING
+naming the likely causes -- a driver-side Statement cache such
+as Oracle's implicit statement caching, or a layer that wraps
+Connections. If you see it, statement caching remains correct
+but is less effective, and we would be glad to hear about it.
+
+(This release also eliminates a potential Statement leak
+should clients fail to close the aforementioned "overload
+Statements".)
+
+Thanks to Devil2-O on github for reporting conditions
+consistent with multiply cached Statements and for helping
+us test the fix.
