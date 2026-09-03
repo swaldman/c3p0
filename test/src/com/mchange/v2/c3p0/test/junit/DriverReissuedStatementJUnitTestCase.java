@@ -119,25 +119,39 @@ public final class DriverReissuedStatementJUnitTestCase extends TestCase
      */
     public void testCacheStaysConsistentWhenDriverReissuesStatements() throws Exception
     {
+        // All three cache implementations, because they keep different deathmarch structures and
+        // the guard removes the Statement it declines -- so each drives removeStatement(...)
+        // differently. The guard was written against PerConnectionMaxOnly, which is the reporter's
+        // configuration; the other two deserve the same cover.
+        checkStaysConsistent( StatementCacheStressHarness.PER_CONNECTION_MAX_ONLY, "perConnectionMaxOnly", false );
+        checkStaysConsistent( StatementCacheStressHarness.GLOBAL_MAX_ONLY,         "globalMaxOnly",        true  );
+        checkStaysConsistent( StatementCacheStressHarness.DOUBLE_MAX,              "doubleMax",            false );
+    }
+
+    private void checkStaysConsistent( int cacheKind, String label, boolean deferredStatementDestroyer )
+        throws Exception
+    {
         StatementCacheStressHarness.Scenario s =
-            new StatementCacheStressHarness.Scenario("junit-driver-reissued-statements");
-        s.cacheKind = StatementCacheStressHarness.PER_CONNECTION_MAX_ONLY;
+            new StatementCacheStressHarness.Scenario("junit-driver-reissued-statements-" + label);
+        s.cacheKind = cacheKind;
+        s.deferredStatementDestroyer = deferredStatementDestroyer;
         s.threads     = 8;
         s.connections = 4;
         s.handBackLiveStatementProbability = 0.25d;
+        s.expectDriverAliasing = true;
 
         StatementCacheStressHarness.Result r =
-            StatementCacheStressHarness.runScenario( s, 3000, 196196196L, 1 );
+            StatementCacheStressHarness.runScenario( s, 2000, 196196196L, 1 );
 
         // The substantive check comes first, and deliberately before the sanity checks below: the
         // harness stops at its first fatal, so a cache that breaks immediately also looks like a
         // workload that never ran. This is the assertion that says what actually went wrong.
-        assertNull("The statement cache lost track of its own state while the driver reissued " +
-                   "Statements it already held:\n" + r.firstFatal, r.firstFatal );
+        assertNull( label + ": the statement cache lost track of its own state while the driver " +
+                   "reissued Statements it already held:\n" + r.firstFatal, r.firstFatal );
 
-        assertTrue("The workload did no work; the harness is misconfigured.", r.operations > 100 );
+        assertTrue( label + ": the workload did no work; the harness is misconfigured.", r.operations > 100 );
 
-        assertTrue("The duplicate-Statement guard never fired across " + r.operations + " operations. " +
+        assertTrue( label + ": the duplicate-Statement guard never fired across " + r.operations + " operations. " +
                    "Either the guard in assimilateNewCheckedOutStatement(...) is gone, or the fake " +
                    "driver no longer reissues Statements -- either way this test is no longer testing " +
                    "what it means to test.",

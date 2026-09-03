@@ -86,6 +86,15 @@ public final class StatementCacheStressHarness
          * Statement into the cache's structures under one key while stmtToKey names another.
          */
         public       double  handBackLiveStatementProbability  = 0d;
+
+        /**
+         * Set on scenarios that deliberately run a driver which hands one Statement to two owners.
+         * Whoever closes first closes it under the other, so use-after-close and redundant closes
+         * follow from the driver's behavior and nothing c3p0 does can prevent them. Such a run is
+         * still expected to keep the cache's own bookkeeping intact and to leak nothing, so those
+         * remain failures; only the driver-level anomalies are tolerated.
+         */
+        public       boolean expectDriverAliasing              = false;
         public       boolean supportLargeMaxRows          = true;
 
         public Scenario( String name )
@@ -162,6 +171,26 @@ public final class StatementCacheStressHarness
         s.irreversibleHazardProbability = 0.04d;
         out.add( s );
 
+        // A driver that reissues Statements c3p0 already holds -- see
+        // https://github.com/swaldman/c3p0/issues/196 -- against each cache implementation in turn.
+        // The three keep different deathmarch structures, and the duplicate guard removes a
+        // Statement it declines, so each exercises removeStatement(...) differently. These are in
+        // the default battery deliberately: the guard is the newest code here and had, until this
+        // was added, only ever been exercised against PerConnectionMaxOnly.
+        int[] kinds = { PER_CONNECTION_MAX_ONLY, GLOBAL_MAX_ONLY, DOUBLE_MAX };
+        String[] kindNames = { "perConnection", "globalMax", "doubleMax" };
+        for (int i = 0; i < kinds.length; ++i)
+        {
+            s = new Scenario( kindNames[i] + "-driverReissuedStatements" );
+            s.cacheKind = kinds[i];
+            s.maxStatements = 10;
+            s.maxStatementsPerConnection = 3;
+            s.deferredStatementDestroyer = (i % 2 == 0); // cover both destruction managers
+            s.handBackLiveStatementProbability = 0.25d;
+            s.expectDriverAliasing = true;
+            out.add( s );
+        }
+
         return out;
     }
 
@@ -176,6 +205,8 @@ public final class StatementCacheStressHarness
         public String firstFatal;                 // null when clean
         public Throwable firstFatalThrowable;
         public FakeDriverStats driverStats;
+        /** @see Scenario#expectDriverAliasing */
+        public boolean expectDriverAliasing = false;
         public List  unclosedStatements = new ArrayList();
         public final Map expectedExceptionCounts = new TreeMap();
 
@@ -185,7 +216,7 @@ public final class StatementCacheStressHarness
         public boolean ok()
         {
             return firstFatal == null
-                && driverStats.numAnomalies() == 0
+                && ( expectDriverAliasing || driverStats.numAnomalies() == 0 )
                 && unclosedStatements.isEmpty();
         }
 
@@ -196,6 +227,10 @@ public final class StatementCacheStressHarness
             sb.append("  [sessions=").append( sessions ).append(", operations=").append( operations )
               .append(", overloadStatementsDestroyedByCaller=").append( overloadStatementsDestroyedByCaller ).append(']');
             sb.append("\n    ").append( driverStats.report() );
+            if ( expectDriverAliasing && driverStats.numAnomalies() > 0 )
+                sb.append("\n    (anomalies above are expected: this scenario runs a driver that hands one")
+                  .append("\n     Statement to two owners, so whoever closes first closes it under the other.")
+                  .append("\n     What is asserted here is that the cache's own bookkeeping survives that.)");
             if (! expectedExceptionCounts.isEmpty() )
                 sb.append("\n    tolerated exceptions: ").append( expectedExceptionCounts );
             if (! unclosedStatements.isEmpty() )
@@ -228,6 +263,7 @@ public final class StatementCacheStressHarness
         driverConfig.handBackLiveStatementProbability   = scenario.handBackLiveStatementProbability;
         driverConfig.supportLargeMaxRows                = scenario.supportLargeMaxRows;
         result.driverStats = driverConfig.stats;
+        result.expectDriverAliasing = scenario.expectDriverAliasing;
 
         Timer timer = new Timer("StatementCacheStressHarness-timer", true);
         ThreadPoolAsynchronousRunner taskRunner =
