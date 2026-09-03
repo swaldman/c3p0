@@ -219,8 +219,8 @@ public abstract class GooGooStatementCache
 
                 if ( prepareAssimilateNewStatement( physicalConnection ) )
                 {
-                    assimilateNewCheckedOutStatement( key, physicalConnection, out );
-                    if (actuallyCachedHolder != null) actuallyCachedHolder[0] = true;
+                    boolean actuallyCached = assimilateNewCheckedOutStatement( key, physicalConnection, out );
+                    if (actuallyCachedHolder != null) actuallyCachedHolder[0] = actuallyCached;
                 }
                 else
                 {
@@ -557,39 +557,85 @@ public abstract class GooGooStatementCache
     final int countCachedStatements()
     { return stmtToKey.size(); }
 
-    private void assimilateNewCheckedOutStatement( StatementCacheKey key,
+    /** @return whether the Statement was actually taken into the cache */
+    private boolean assimilateNewCheckedOutStatement( StatementCacheKey key,
                     Connection pConn,
                     Object ps )
     {
-        stmtToKey.put( ps, key );
-        HashSet ks = keySet( key );
-        if (ks == null)
-            keyToKeyRec.put( key, new KeyRec() );
+        boolean out;
+
+        // We must not presume that Connection.prepareStatement(...) and friends hand back a
+        // Statement we have never seen. Some JDBC drivers cache Statements internally, and a
+        // driver-side cache may hand back a Statement this cache already holds. See
+        // https://github.com/swaldman/c3p0/issues/196
+        //
+        // Caching it a second time would fork our bookkeeping. stmtToKey.put(...) below would
+        // repoint the Statement at the new key while the Statement remained in the *old* key's
+        // allStmts and checkoutQueue, and checkedOut.add(...) would mark as checked-out a Statement
+        // still sitting in a deathmarch. Neither is noticed here. Both surface later and elsewhere,
+        // as a double-deathmarch on check-in, or as a checked-out Statement with no key.
+        //
+        // So we decline to cache it, and disown the copy we hold. The client still gets the
+        // Statement -- if the driver's own cache was content to hand it out, we have no reason to
+        // refuse -- but this cache must no longer offer that Statement for checkout, nor cull it,
+        // while a client is using it. DESTROY_NEVER, emphatically: the Statement we are disowning is
+        // the very object we are about to return. Returning false lets our caller report the
+        // Statement as uncached, so that NewPooledConnection looks after it if a client abandons it.
+        if ( stmtToKey.containsKey( ps ) )
+        {
+            if ( logger.isLoggable( MLevel.WARNING ) )
+            {
+                logger.log( MLevel.WARNING,
+                            this + " was handed a Statement it already caches, so it will not be cached again. " +
+                            "Is a driver-side Statement cache (Oracle's implicit statement caching, for instance) " +
+                            "also in use, or is something wrapping Connections? Statement caching remains correct, " +
+                            "but is less effective while this occurs. [" + key.stmtText + "]");
+                if (logger.isLoggable( MLevel.FINE))
+                    logger.log( MLevel.FINE,
+                                this + " logging stack trace for duplicate appearance of a PreparedStatement. [" + key.stmtText + "]",
+                                new Exception("LOG STACK TRACE") );
+            }
+
+            removeStatement( ps, DESTROY_NEVER );
+
+            out = false;
+        }
         else
         {
-            //System.err.println("-------> Multiply prepared statement! " + key.stmtText );
-            if (logger.isLoggable(MLevel.INFO))
-                logger.info("Multiply-cached PreparedStatement: " + key.stmtText );
-            if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
-                logger.fine("(The same statement has already been prepared by this Connection, " +
-                                "and that other instance has not yet been closed, so the statement pool " +
-                                "has to prepare a second PreparedStatement object rather than reusing " +
-                                "the previously-cached Statement. The new Statement will be cached, in case " +
-                "you frequently need multiple copies of this Statement.)");
-        }
-        keySet( key ).add( ps );
-        cxnStmtMgr.addStatementForConnection( ps, pConn );
+            stmtToKey.put( ps, key );
+            HashSet ks = keySet( key );
+            if (ks == null)
+                keyToKeyRec.put( key, new KeyRec() );
+            else
+            {
+                //System.err.println("-------> Multiply prepared statement! " + key.stmtText );
+                if (logger.isLoggable(MLevel.INFO))
+                    logger.info("Multiply-cached PreparedStatement: " + key.stmtText );
+                if (Debug.DEBUG && logger.isLoggable(MLevel.FINE))
+                    logger.fine("(The same statement has already been prepared by this Connection, " +
+                                    "and that other instance has not yet been closed, so the statement pool " +
+                                    "has to prepare a second PreparedStatement object rather than reusing " +
+                                    "the previously-cached Statement. The new Statement will be cached, in case " +
+                    "you frequently need multiple copies of this Statement.)");
+            }
+            keySet( key ).add( ps );
+            cxnStmtMgr.addStatementForConnection( ps, pConn );
 
-        if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
-        {
-//          System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " +
-//          cxnStmtMgr.statementSet( pConn ).size());
-            if (logger.isLoggable(MLevel.FINEST))
-                logger.finest("assimilateNewCheckedOutStatement(...) -- cxnStmtMgr.statementSet( " + pConn + " ).size(): " +
-                                cxnStmtMgr.statementSet( pConn ).size());
+            if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
+            {
+//              System.err.println("cxnStmtMgr.statementSet( " + pConn + " ).size(): " +
+//              cxnStmtMgr.statementSet( pConn ).size());
+                if (logger.isLoggable(MLevel.FINEST))
+                    logger.finest("assimilateNewCheckedOutStatement(...) -- cxnStmtMgr.statementSet( " + pConn + " ).size(): " +
+                                    cxnStmtMgr.statementSet( pConn ).size());
+            }
+
+            checkedOut.add( ps );
+
+            out = true;
         }
 
-        checkedOut.add( ps );
+        return out;
     }
 
     private void removeStatement( Object ps , int destruction_policy )
