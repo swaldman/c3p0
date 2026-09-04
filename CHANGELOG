@@ -1,3 +1,14 @@
+        -- Fix latent defect in Statement cache where closeAll(conn) might have been called
+           while the cache was acquiring Statements from conn. Incorporating those Statements
+           would occupy cache space and prevent garbage collection of often permanently close()ed
+           Connections. Where a global maxStatements is configured, such Statements
+           would eventually be culled under pressure from other Connections; where only
+           maxStatementsPerConnection is set, nothing would ever cull them, since culling for
+           a Connection is driven by new Statements on that same Connection. In practice, this
+           defect was latent within c3p0, because Statement acquisition and closeAll(...) calls
+           for a single Connection are serialized under the lock of a NewPooledConnection. But
+           that's fragile, and who knows, maybe someone uses the Statement cache implementation
+           independently.
         -- Guard against the possibility of "dueling Statement caches", where the Statement
            cache, when it goes to a Connection intending to prepare a new PreparedStatement,
            instead receives a reference to a Statement in a different cache, which our Statement
