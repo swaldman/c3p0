@@ -461,7 +461,7 @@ public final class StatementCacheAuditor
             return null;
     }
 
-    /** Connection -> Deathmarch, or null for caches that keep no per-connection deathmarches. */
+    /** Maps each Connection to its Deathmarch, or null for caches that keep no per-connection deathmarches. */
     public static Map perConnectionDeathmarches( GooGooStatementCache cache )
     {
         GooGooStatementCache.DeathmarchConnectionStatementManager dcsm = null;
