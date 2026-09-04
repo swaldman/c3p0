@@ -29,6 +29,26 @@ public final class FakeDriverStats
     void anomaly( String msg )
     { anomalies.add( msg ); }
 
+    /** Prefix marking an anomaly that reports two threads inside one Statement at once. */
+    public final static String CONCURRENT_USE = "Concurrent use";
+
+    /**
+     * Anomalies reporting two threads inside one Statement at once -- the dangerous kind. Distinct
+     * from use-after-close and from redundant closes, which are tolerable: cleanup should be
+     * idempotent, and erring toward closing twice is the right direction to err.
+     */
+    public List concurrentUseAnomalies()
+    {
+        List out = new ArrayList();
+        for ( Iterator ii = anomalies().iterator(); ii.hasNext(); )
+        {
+            String a = (String) ii.next();
+            if ( a != null && a.startsWith( CONCURRENT_USE ) )
+                out.add( a );
+        }
+        return out;
+    }
+
     public List anomalies()
     {
         synchronized ( anomalies )

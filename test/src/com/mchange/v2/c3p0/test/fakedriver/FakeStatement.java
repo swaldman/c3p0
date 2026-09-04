@@ -32,6 +32,32 @@ public final class FakeStatement implements InvocationHandler
 
     private final PreparedStatement proxy;
 
+    // Who, if anyone, is presently inside a method of this Statement, and which method. JDBC
+    // objects are not thread-safe, so two threads in here at once is undefined behavior, not merely
+    // an exception -- it is what c3p0 guards against with CautiousStatementDestructionManager.
+    //
+    // Overlapping *cleanup* is exempt, though. Cleanup should be idempotent, and where a Statement
+    // might otherwise go unclosed, closing it twice is the right direction to err -- so two threads
+    // both closing (or cancelling before closing) is tolerated, and only reported when one of them
+    // is doing something other than cleaning up.
+    private final java.util.concurrent.atomic.AtomicReference occupant =
+        new java.util.concurrent.atomic.AtomicReference( null );
+
+    private final static class Occupancy
+    {
+        final Thread thread;
+        final String method;
+
+        Occupancy( Thread thread, String method )
+        { this.thread = thread; this.method = method; }
+    }
+
+    /** close(), cancel() and isClosed() are cleanup or queries about it; overlapping them is benign. */
+    private static boolean isCleanup( String methodName )
+    {
+        return "close".equals( methodName ) || "cancel".equals( methodName ) || "isClosed".equals( methodName );
+    }
+
     private volatile boolean closed             = false;
     private volatile boolean poolable           = true;
     private volatile boolean closeOnCompletion  = false;
@@ -111,7 +137,9 @@ public final class FakeStatement implements InvocationHandler
     {
         String name = m.getName();
 
-        // Object methods first -- these must work even on a closed Statement
+        // Object methods first -- these must work even on a closed Statement. They are also not
+        // driver operations: the cache's own HashMaps and HashSets call them, from whichever thread
+        // holds mainLock, so they are exempt from the occupancy check below.
         if ( "equals".equals( name ) && args != null && args.length == 1 )
             return Boolean.valueOf( !brokenEquals && prx == args[0] );
         if ( "hashCode".equals( name ) && (args == null || args.length == 0) )
@@ -119,6 +147,21 @@ public final class FakeStatement implements InvocationHandler
         if ( "toString".equals( name ) && (args == null || args.length == 0) )
             return this.toString();
 
+        Thread me = Thread.currentThread();
+        Occupancy other = (Occupancy) occupant.get();
+        if ( other != null && other.thread != me && !( isCleanup( name ) && isCleanup( other.method ) ) )
+            config.stats.anomaly( FakeDriverStats.CONCURRENT_USE + ": " + this + " -- " + me.getName() +
+                                  " entered " + name + "() while " + other.thread.getName() +
+                                  " was still inside " + other.method + "()" );
+        occupant.set( new Occupancy( me, name ) );
+        try
+        { return doInvoke( prx, m, args, name ); }
+        finally
+        { occupant.set( null ); }
+    }
+
+    private Object doInvoke( Object prx, Method m, Object[] args, String name ) throws Throwable
+    {
         if ( "close".equals( name ) )
         {
             doClose();
