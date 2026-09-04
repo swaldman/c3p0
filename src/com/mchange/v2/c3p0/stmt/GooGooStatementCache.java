@@ -55,6 +55,18 @@ public abstract class GooGooStatementCache
     // culling in case of overflow
     HashSet checkedOut = new HashSet();
 
+    // while we are acquiring a new Statement, it is possible closeAll(Connection c)
+    // might be called. any Statement acquired while that happens must not be placed
+    // in the cache. we may not ever (under current practice we probably won't) see
+    // that Connection again, in which case the Statement would uselessly occupy 
+    // cache space and we'd continue to track a dead Connection.
+    //
+    // closeAll(Connection c) can execute during statement acquisition, because
+    // statement acquisition surrenders the cache's lock. So we track acquiring
+    // threads on a per Connection basis, and let closeAll(...) invalidate
+    // acquisitions currently in process.
+    HashMap cxnToValidAcquiringThreadSet = new HashMap();
+
     /* MT: end protected by mainLock */
 
     /* MT: protected by its own lock */
@@ -207,17 +219,47 @@ public abstract class GooGooStatementCache
         {
             Object out = null;
 
-            StatementCacheKey key = StatementCacheKey.find( physicalConnection,
-                            stmtProducingMethod,
-                            args );
+            StatementCacheKey key =
+                StatementCacheKey.find( physicalConnection,
+                                        stmtProducingMethod,
+                                        args );
             LinkedList l = checkoutQueue( key );
             if (l == null || l.isEmpty()) //we need a new statement
             {
-                // we might conditionStatementPerhapsAcquired.await() here...
-                // don't presume atomicity before and after!
-                out = acquireStatement( physicalConnection, stmtProducingMethod, args );
+                // true as long as Statement acquisition does not collide
+                // with a closeAll(physicalConnection)
+                boolean validAcquiringThread;
+                try
+                {
+                    Set validAcquirers = (Set) cxnToValidAcquiringThreadSet.get(physicalConnection);
+                    if ( validAcquirers == null)
+                    {
+                        validAcquirers = new HashSet();
+                        cxnToValidAcquiringThreadSet.put(physicalConnection, validAcquirers);
+                    }
+                    validAcquirers.add(Thread.currentThread());
 
-                if ( prepareAssimilateNewStatement( physicalConnection ) )
+                    // we might conditionStatementPerhapsAcquired.await() here...
+                    // don't presume atomicity before and after!
+                    out = acquireStatement( physicalConnection, stmtProducingMethod, args );
+                }
+                finally
+                {
+                    Set recheckValidAcquirers = (Set) cxnToValidAcquiringThreadSet.get(physicalConnection);
+                    if (recheckValidAcquirers == null)
+                        validAcquiringThread = false;
+                    else
+                    {
+                        // returns true if and only if it had been in there!
+                        validAcquiringThread = recheckValidAcquirers.remove(Thread.currentThread());
+                        if (recheckValidAcquirers.isEmpty()) cxnToValidAcquiringThreadSet.remove(physicalConnection);
+                    }
+                }
+                if ( !validAcquiringThread )
+                {
+                    if (actuallyCachedHolder != null) actuallyCachedHolder[0] = false;
+                }
+                else if ( prepareAssimilateNewStatement( physicalConnection ) )
                 {
                     boolean actuallyCached = assimilateNewCheckedOutStatement( key, physicalConnection, out );
                     if (actuallyCachedHolder != null) actuallyCachedHolder[0] = actuallyCached;
@@ -421,6 +463,8 @@ public abstract class GooGooStatementCache
             try
             {
                 HashSet cSet = cxnStmtMgr.statementSet( pcon );
+
+                cxnToValidAcquiringThreadSet.remove(pcon); // any Statements currently being acquired for this Connection should not be cached
 
                 if (cSet != null)
                 {
