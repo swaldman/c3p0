@@ -94,6 +94,19 @@ public final class FakeConnection implements InvocationHandler
 
     private FakeStatement acquireStatement( String sql, boolean callable )
     {
+        // let a test park us here, inside acquireStatement()'s mainLock-releasing await
+        java.util.concurrent.CountDownLatch reached = config.prepareReached;
+        if ( reached != null )
+            reached.countDown();
+        java.util.concurrent.CountDownLatch gate = config.prepareGate;
+        if ( gate != null )
+        {
+            try
+            { gate.await(); }
+            catch ( InterruptedException e )
+            { Thread.currentThread().interrupt(); }
+        }
+
         config.sleepPrepareLatency();
 
         // the pathological case: the driver hands back an object it (and possibly c3p0) still

@@ -90,6 +90,20 @@ public final class FakeDriverConfig
      */
     public volatile double returnNullFromPrepareProbability = 0d;
 
+    /**
+     * When set, a prepare call counts this down as it arrives, so a test can know that a thread has
+     * reached the driver rather than guessing with a sleep.
+     */
+    public volatile java.util.concurrent.CountDownLatch prepareReached = null;
+
+    /**
+     * When set, a prepare call blocks here until the latch opens. Together with prepareReached this
+     * parks a thread inside GooGooStatementCache.acquireStatement()'s await -- where mainLock is
+     * released -- deterministically, so a test can drive what happens during that window rather
+     * than racing it.
+     */
+    public volatile java.util.concurrent.CountDownLatch prepareGate = null;
+
     /** If false, getLargeMaxRows()/setLargeMaxRows() throw SQLFeatureNotSupportedException, exercising CarefulMaxRowsReaderWriter's fallback. */
     public volatile boolean supportLargeMaxRows = true;
 

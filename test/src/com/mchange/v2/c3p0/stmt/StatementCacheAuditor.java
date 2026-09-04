@@ -96,6 +96,16 @@ public final class StatementCacheAuditor
         { cache.removalPendingLock.unlock(); }
     }
 
+    /** How many Statements the cache currently files under this Connection. */
+    public static int numStatementsForConnection( GooGooStatementCache cache, Connection pcon )
+    {
+        cache.mainLock.lock();
+        try
+        { return cache.cxnStmtMgr == null ? 0 : cache.cxnStmtMgr.getNumStatementsForConnection( pcon ); }
+        finally
+        { cache.mainLock.unlock(); }
+    }
+
     /** Whether this exact Statement object sits in any deathmarch, global or per-connection. */
     public static boolean inAnyDeathmarch( GooGooStatementCache cache, Object pstmt )
     {
