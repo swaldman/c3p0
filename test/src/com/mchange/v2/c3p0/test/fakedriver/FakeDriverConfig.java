@@ -104,6 +104,20 @@ public final class FakeDriverConfig
      */
     public volatile java.util.concurrent.CountDownLatch prepareGate = null;
 
+    /**
+     * When set, a Statement method of this name blocks partway through, the same way prepareGate
+     * blocks a prepare. Lets a test park a thread inside an operation that the cache performs
+     * without holding mainLock -- refreshStatement(...), for instance, whose JDBC calls are made
+     * on a Statement that is still checked out.
+     */
+    public volatile String gateOnStatementMethod = null;
+
+    /** Counted down when a Statement method named by gateOnStatementMethod is entered. */
+    public volatile java.util.concurrent.CountDownLatch statementMethodReached = null;
+
+    /** Such a method waits here until the latch opens. */
+    public volatile java.util.concurrent.CountDownLatch statementMethodGate = null;
+
     /** If false, getLargeMaxRows()/setLargeMaxRows() throw SQLFeatureNotSupportedException, exercising CarefulMaxRowsReaderWriter's fallback. */
     public volatile boolean supportLargeMaxRows = true;
 

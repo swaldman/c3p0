@@ -139,6 +139,22 @@ public final class FakeStatement implements InvocationHandler
             throw new SQLException( msg );
         }
 
+        // let a test park us inside a Statement operation the cache performs without mainLock
+        if ( name.equals( config.gateOnStatementMethod ) )
+        {
+            java.util.concurrent.CountDownLatch reached = config.statementMethodReached;
+            if ( reached != null )
+                reached.countDown();
+            java.util.concurrent.CountDownLatch gate = config.statementMethodGate;
+            if ( gate != null )
+            {
+                try
+                { gate.await(); }
+                catch ( InterruptedException e )
+                { Thread.currentThread().interrupt(); }
+            }
+        }
+
         if ( "isPoolable".equals( name ) )
             return Boolean.valueOf( poolable );
         if ( "setPoolable".equals( name ) )
