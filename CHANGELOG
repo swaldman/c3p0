@@ -11,14 +11,14 @@
            seen and cached under one key, but would now be cached under a distinct key! We do not
            want to track Statements whose putatively fixed properties may be evolving unbeknownst
            to our cache, and in fact, we presume that we receive fresh Statements whenever we ask
-           a Connection to prepare a Statement. Dueling Statement caches are a pathological
-           condition from our perspective. But they have been observed in the wild, so we need to
-           be resilient to them! When acquiring a new Statement from a Connection, we now check
-           whether the Statement we receive is already in the cache. If it is, we do not recache
-           the new Statement, and we drop the Statement from the cache. It becomes from our
+           a Connection to prepare a Statement. Dueling Statement caches constitute a pathological
+           condition from our perspective. But it's a condition that does seem to occur in the wild,
+           so we need to be resilient to it! When acquiring a new Statement from a Connection, we
+           now check whether the Statement we receive is already in the cache. If it is, we do not
+           recachethe new Statement, and we drop the Statement from the cache. It becomes from our
            perspective an uncached Statement (and per the fix just below, is marked for clean-up
            on checkin of its parent Connection). Thanks to Devil2-O on github for observing and
-           reporting this condition.
+           reporting the failures that led us to diagnose this condition.
         -- Fix a potential Statement leak when (1) a Statement cache is full, and so a newly
            requested PreparedStatement is returned as an uncached "overload Statement"; and
            (2) the client omits to call close() on the Statement explicitly. In this case,
@@ -41,11 +41,6 @@
            pool) while a thread was still waiting on Statement acquisition. Although this
            issue was never observed in the wild, frozen threads would hold Connection monitors,
            so the freezes would deadlock Connection clients as well as leaking resources.
-        -- Fix an issue that converted what should have been transient (albeit still unexplained)
-           faults in the Statement cache into unrecoverable permanent corruption of the cache for
-           the affected Connection (Statements leaked, caching silently ceased for that Connection,
-           and the logs filled with complaints of cache inconsistency). Thanks to Devil2-O on github
-           for calling attention to this issue.
         -- Let "Claude" build a stress-testing harness (complete with instrumenting mock JDBC
            driver) to help track down rare Statement cache faults and inconsistencies.
         -- Reorganize the build, which previously was basically a direct port of an ancient ant
