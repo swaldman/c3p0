@@ -477,6 +477,10 @@ public abstract class GooGooStatementCache
 
         if (! this.isClosed())
         {
+            assert
+                (!(destructo instanceof CautiousStatementDestructionManager) || destructo.knownInUse(pcon)) :
+                "If we are monitoring connections in-use, closeAll(...) does a lot of work on children of a Connection, so had better be marked in-use!";
+
             if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX)
             {
                 if (logger.isLoggable(MLevel.FINEST))
