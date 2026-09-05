@@ -1,3 +1,13 @@
+        -- Move refreshStatement(...), which performs potentially blocking JDBC operations,
+           out of GooGooStatementCache.mainLock, to reduce contention on that lock.
+        -- When we are enforcing a prohibition on simultaneous operations against any of a
+           Connection's children -- typically, when statementCacheNumDeferredCloseThreads
+           is set to a nonzero value -- GooGooStatementCache.closeAll( pcon ) now participates.
+           It requires -- and asserts, when assertions are enabled -- that pcon be marked in-use
+           before closing that Connection's Statements, and it ensures those Statements are
+           closed asynchronously, once the Connection is no longer in-use. (c3p0's internal
+           calls adhere to this requirement. Any independent users of GooGooStatementCache
+           should verify their compliance before upgrading.)
         -- Fix latent defect in Statement cache where closeAll(conn) might have been called
            while the cache was acquiring Statements from conn. Incorporating those Statements
            would occupy cache space and prevent garbage collection of often permanently close()ed
