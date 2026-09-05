@@ -320,6 +320,39 @@ public abstract class GooGooStatementCache
         { mainLock.unlock(); }
     }
 
+
+    /**
+     * Note that this method currently executes refreshStatement(...)
+     * synchronously. It no longer pins mainLock, however, which means
+     * it affects only operations having to do with the lifecycle of
+     * a single Connection rather than blocking operations on *all*
+     * Connections. (It pins one PooledConnection's lifecycle operations
+     * because it is typically called via a synchronized method of
+     * NewPooledConnection, and so occupies that object's monitor.)
+     *
+     * refreshStatement(...), depending on how much state a client
+     * has mutated, can require multiple JDBC operations
+     * in order to restore a Statement to the pristine
+     * state that a new client will expect.
+     *
+     * Since it is called synchronously, it does slow client threads.
+     * This is an old issue and has not occasioned complaints.
+     * But recent improvements that render refreshStatement(...) more
+     * cautious and correct also mean it may do more work than in
+     * the past. Prior to c3p0-0.15.0, refresh performed two JDBC
+     * operations. As of v0.15.0 it can perform up to nine.
+     *
+     * In the future, we may consider performing the check-in
+     * asynchronously and having this method return very quickly to
+     * the client, consistent with c3p0's usual behavior in other
+     * contexts. However, when we are handed a deferredStatementDestroyer,
+     * we rely upon clients marking when Connections are potentially
+     * in use, including when Statements are checked in. Returning
+     * asynchronously while Connection operations remain pending would
+     * break that tracking, and leave us vulnerable to out-of-spec
+     * concurrent operations on a single Connection's children that
+     * all the careful tracking has been implemented to prevent.
+     */
     public void checkinStatement( Object pstmt )
 	throws SQLException
     {
