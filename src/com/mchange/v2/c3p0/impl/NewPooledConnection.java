@@ -227,6 +227,10 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     public synchronized int getConnectionStatus()
     { return connection_status; }
 
+    /**
+     * Callers must ALREADY have marked the Connection in use
+     * before calling this method!
+     */
     public synchronized void closeAll() throws SQLException
     {
         try
@@ -240,9 +244,17 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         }
     }
 
+    /**
+     * If scache is non-null, callers must ALREADY have marked the Connection in use
+     * before calling this method!
+     */
     synchronized void closeMaybeCheckedOut( boolean checked_out ) throws SQLException
     { close( null, checked_out ); }
 
+    /**
+     * If scache is non-null, callers must ALREADY have marked the Connection in use
+     * before calling this method!
+     */
     public synchronized void close() throws SQLException
     { close( null ); }
 
@@ -648,10 +660,17 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
      *
      *  If cause is null, then we think the PooledConnection is healthy, and we will report (throw) an exception
      *  if resources unexpectedlay fail to close.
+     *
+     *  Callers must ALREADY have marked the Connection in use
+     *  before calling this method!
      */
     private void close( Throwable cause ) throws SQLException
     { close( cause, false ); }
 
+    /**
+     * If scache is non-null, callers must ALREADY have marked the Connection in use
+     * before calling this method!
+     */
     private void close( Throwable cause, boolean forced ) throws SQLException
     {
 	assert Thread.holdsLock( this );
@@ -847,6 +866,10 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
         { closeExceptions.add(e); }
     }
 
+    /**
+     * If scache is non-null, callers must ALREADY have marked the Connection in use
+     * before calling this method!
+     */
     private void closeAllCachedStatements() throws SQLException
     {
         if (scache != null)

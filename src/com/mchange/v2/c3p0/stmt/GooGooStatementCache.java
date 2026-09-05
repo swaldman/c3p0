@@ -323,6 +323,7 @@ public abstract class GooGooStatementCache
     public void checkinStatement( Object pstmt )
 	throws SQLException
     {
+        // don't try to refresh what is not our resource
         mainLock.lock();
         try
         {
@@ -332,7 +333,7 @@ public abstract class GooGooStatementCache
 
                 return;
             }
-            else if (! checkedOut.remove( pstmt ) )
+            else if (! checkedOut.contains( pstmt ) )
             {
                 if (! ourResource( pstmt ) ) //this is not our resource, or it is an overload statement
                     destructo.uncheckedDestroyStatement( pstmt ); // so we just destroy
@@ -340,40 +341,69 @@ public abstract class GooGooStatementCache
 
                 return;
             }
+        }
+        finally
+        { mainLock.unlock(); }
 
-            try
-            { refreshStatement( (PreparedStatement) pstmt ); }
-            catch (Exception e)
+        boolean broken;
+        try
+        {
+            refreshStatement( (PreparedStatement) pstmt );
+            broken = false;
+        }
+        catch (Exception e)
+        {
+            if (Debug.DEBUG)
             {
-                if (Debug.DEBUG)
+                if (e instanceof IrreversibleHazardException)
                 {
-                    if (e instanceof IrreversibleHazardException)
-                    {
-                        // these represent occasions where we basically choose not to cache, because
-                        // we can't guarantee the quality of the statements if we did cache them.
-                        // this is a choice we make under some circumstance, not a problem of which most
-                        // users must be informed
-                        if (logger.isLoggable(MLevel.DEBUG))
-                            logger.log(MLevel.DEBUG, "A Statement could not be restored to its initial condition for (re)inclusion in the cache. Discarding.", e);
-                    }
-                    else
-                    {
-                        // System.err.println("Problem with checked-in Statement, discarding.");
-                        // e.printStackTrace();
-                        if (logger.isLoggable(MLevel.INFO))
-                            logger.log(MLevel.INFO, "Problem with checked-in Statement, discarding.", e);
-                    }
+                    // these represent occasions where we basically choose not to cache, because
+                    // we can't guarantee the quality of the statements if we did cache them.
+                    // this is a choice we make under some circumstance, not a problem of which most
+                    // users must be informed
+                    if (logger.isLoggable(MLevel.DEBUG))
+                        logger.log(MLevel.DEBUG, "A Statement could not be restored to its initial condition for (re)inclusion in the cache. Discarding.", e);
                 }
+                else
+                {
+                    // System.err.println("Problem with checked-in Statement, discarding.");
+                    // e.printStackTrace();
+                    if (logger.isLoggable(MLevel.INFO))
+                        logger.log(MLevel.INFO, "Problem with checked-in Statement, discarding.", e);
+                }
+            }
 
-                // swaldman -- 2004-01-31: readd problem statement to checkedOut for consistency
-                // the statement is not yet checked-in, but it is removed from checked out, and this
-                // violates the consistency assumption of removeStatement(). Thanks to Zach Scott for
-                // calling attention to this issue.
-                checkedOut.add( pstmt );
+            broken = true;
+        }
 
+        mainLock.lock();
+        try
+        {
+            // receheck what we checked before.
+            // Anything might have happened while we didn't hold the lock
+            //
+            // oops, we were closed while we were refreshing
+            if (checkedOut == null) //we're closed
+            {
+                destructo.synchronousDestroyStatement( pstmt );
+                return;
+            }
+            // something else removed it from the cache
+            else if (! checkedOut.contains( pstmt ) )
+            {
+                if (! ourResource( pstmt ) ) //this is not our resource, or it is an overload statement
+                    destructo.uncheckedDestroyStatement( pstmt ); // so we just destroy
+                //in the else case, it's already checked-in, so we ignore
+
+                return;
+            }
+            else if (broken) // at this point, we are still checked out!
+            {
                 removeStatement( pstmt, DESTROY_ALWAYS ); //force destruction of the statement even though it appears checked-out
                 return;
             }
+            else
+                checkedOut.remove( pstmt );
 
             StatementCacheKey key = (StatementCacheKey) stmtToKey.get( pstmt );
             if (Debug.DEBUG && key == null)
@@ -488,8 +518,18 @@ public abstract class GooGooStatementCache
             {
                 for (Iterator ii = stmtSet.iterator(); ii.hasNext(); )
                 {
+                    // we use deferred destroy, if we have a CautiousStatementDestructionManager,
+                    // so that if any Statements are in-process of being refreshed in preparation for
+                    // check-in, we don't destroy Statements on the same parent Connection, which
+                    // some drivers do not tolerate.
+                    //
+                    // in general it's more correct than the prior direct, synchronous destroy. it's
+                    // possible pcon is in-use for reasons we do not contemplate. if we are being
+                    // Cautious about statement destruction, it's presumptuous to assume it's safe
+                    // to be incautious here, even if the most common way we find ourselves here is
+                    // in prelude to close()ing the parent Connection.
                     Object stmt = ii.next();
-                    destructo.synchronousDestroyStatement( stmt );
+                    destructo.deferredDestroyStatement( pcon, stmt );
                 }
             }
 
@@ -733,7 +773,7 @@ public abstract class GooGooStatementCache
             }
 
 
-            boolean check =	cxnStmtMgr.removeStatementForConnection( ps, pConn );
+            boolean check = cxnStmtMgr.removeStatementForConnection( ps, pConn );
             if (Debug.DEBUG && check == false)
             {
                 //new Exception("WARNING: removed a statement that apparently wasn't in a statement set!!!").printStackTrace();
@@ -906,6 +946,8 @@ public abstract class GooGooStatementCache
     { return stmtToKey.keySet().contains( ps ); }
 
     // any Exception forces removal
+    //
+    // refreshStatement(...) should NOT be called under mainLock!
     private void refreshStatement( PreparedStatement ps ) throws Exception
     {
         if (!ps.isPoolable())
@@ -1230,7 +1272,7 @@ public abstract class GooGooStatementCache
 
     /*
      * Some drivers cannot abide the close()ing of a Statement while the parent Connection object is
-     * in use elsewhere. For those driver, CautiosStatementDestructionManager should be used. For
+     * in use elsewhere. For those driver, CautiousStatementDestructionManager should be used. For
      * drivers that do not have this issue [formally close()ing a Statement while a Connection is in
      * use should be within spec], best to default to the faster, simpler IncautiousStatementDestructionManager
      */
