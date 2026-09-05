@@ -22,16 +22,36 @@ import com.mchange.v2.c3p0.test.fakedriver.FakeDriverConfig;
  * Statement is checked out, its owner is inside refreshStatement rather than using it, and another
  * thread holds the lock.
  *
- * <p>closeAll(pcon) in that window removes the Statement and destroys it. The refresh, still
- * running, then goes on calling clearBatch(), clearWarnings() and the rest on a Statement c3p0 has
- * just physically closed. On a real driver that is an SQLException from a Statement we closed
- * ourselves; here the fake driver records it as a use-after-close anomaly, which is what this test
- * asserts against.
+ * <p>closeAll(pcon) in that window removes the Statement and destroys it, and the refresh goes on
+ * calling clearBatch(), clearWarnings() and the rest on a Statement c3p0 has just physically
+ * closed. What the test asserts against is not that use-after-close, though, but the thing beneath
+ * it: two threads inside one Statement at once. JDBC objects are not thread-safe, so that is
+ * undefined behavior rather than a specified exception. Closing twice, and using after close, are
+ * left alone -- cleanup should be idempotent, and where a Statement might otherwise go unclosed,
+ * closing it twice is the right direction to err.
  *
- * <p>This is not a defect in c3p0 as it stands, where refreshStatement(...) is called with mainLock
- * held and closeAll(pcon) therefore cannot interleave. It is a test to keep alongside any change
- * that moves the refresh out of the lock, so the window that change opens is closed deliberately
- * rather than discovered later.
+ * <p><b>Why this exercises the deferred-destroy arrangement, which is not the default.</b>
+ * statementCacheNumDeferredCloseThreads defaults to 0, which gives
+ * IncautiousStatementDestructionManager, and that manager closes Statements on a pool thread
+ * without regard to whether the parent Connection is in use. That is knowingly out of spec -- JDBC
+ * asks that only one thread interact with a Connection's children at a time, and close() counts as
+ * interacting -- and it has been c3p0's default for two decades because most drivers tolerate it,
+ * and because changing the default would disturb a great many working deployments to fix something
+ * they are not suffering from.
+ *
+ * <p>So under the default, a destroy overlapping a refresh is not a new violation. It is the same
+ * bargain those users already have, and it ends well enough: the refresh throws and the Statement
+ * is discarded, or the refresher reacquires the lock, finds the Statement no longer in the cache,
+ * and destroys it. Asserting otherwise here would be asserting a guarantee c3p0 deliberately does
+ * not make. It would also make this test load-dependent -- green when run alone, red under a full
+ * suite -- since whether the asynchronous close lands inside the refresh window is a matter of
+ * scheduling.
+ *
+ * <p>The deferred-destroy arrangement is where the guarantee actually exists: it is what users
+ * whose drivers insist on the spec (Oracle's, most often) configure precisely to avoid concurrent
+ * access to a Connection's children. So that is the arrangement worth holding to it, and the one
+ * this test builds. A caller must have marked the Connection in use before calling closeAll(pcon)
+ * -- every path within c3p0 does -- and the test does the same, standing in for the pool.
  */
 public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
 {
@@ -51,6 +71,7 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
     private FakeDriverConfig             cfg;
     private Timer                        timer;
     private ThreadPoolAsynchronousRunner runner;
+    private ThreadPoolAsynchronousRunner deferredDestroyer;
     private GooGooStatementCache         cache;
     private Connection                   conn;
 
@@ -59,7 +80,10 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
         this.cfg    = FakeDriverConfig.register("closeAllRefresh-" + System.nanoTime(), 7L);
         this.timer  = new Timer("closeAllRefresh-timer", true);
         this.runner = new ThreadPoolAsynchronousRunner( 3, true, timer, "closeAllRefresh" );
-        this.cache  = new PerConnectionMaxOnlyStatementCache( runner, null, 5, false );
+        // a deferred statement destroyer, so the cache uses CautiousStatementDestructionManager --
+        // the arrangement in which destruction can be held back while a Connection is in use
+        this.deferredDestroyer = new ThreadPoolAsynchronousRunner( 1, true );
+        this.cache  = new PerConnectionMaxOnlyStatementCache( runner, deferredDestroyer, 5, false );
         this.conn   = FakeConnection.create( cfg );
     }
 
@@ -73,12 +97,20 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
         }
         try { if ( cache != null ) cache.close(); } catch ( Exception e ) { /* shutting down */ }
         if ( runner != null ) runner.close( true );
+        if ( deferredDestroyer != null ) deferredDestroyer.close( true );
         if ( timer != null )  timer.cancel();
         if ( cfg != null )    FakeDriverConfig.unregister( cfg.name );
     }
 
     public void testCloseAllDoesNotDestroyAStatementBeingRefreshed() throws Exception
     {
+        // Mark the Connection in use, as C3P0PooledConnectionPool does for the whole of a checkout
+        // and as callers of closeAll(...) are now required to do. Without it the cache has no
+        // reason to hold destruction back, and closeAll(...) merely closes asynchronously rather
+        // than synchronously -- which does not avoid the overlap, it only makes it a matter of
+        // scheduling, green when this test runs alone and red when it runs under load.
+        cache.waitMarkConnectionInUse( conn );
+
         Object stmt = cache.checkoutStatement( conn, PREPARE_STATEMENT, new Object[] { SQL } );
         assertEquals( 1, StatementCacheAuditor.numStatementsForConnection( cache, conn ) );
 
@@ -110,6 +142,9 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
         assertFalse("The checking-in thread never finished.", checkin.isAlive());
         assertFalse("The closeAll thread never finished.", closeAll.isAlive());
         assertNull("closeAll(...) failed: " + closeAll.failure, closeAll.failure);
+
+        // as the pool does on check-in; this is also what releases any deferred destruction
+        cache.unmarkConnectionInUse( conn );
 
         if (! windowExists )
             return; // refresh runs under mainLock; closeAll could not interleave. Nothing to assert.
