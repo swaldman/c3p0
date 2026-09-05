@@ -26,9 +26,14 @@ not the thing measured.
 ## 1. Why an outside observer is sound
 
 Every public method of `GooGooStatementCache` holds `mainLock` for its whole duration, with exactly
-one exception: `acquireStatement(...)` awaits `conditionStatementPerhapsAcquired` while the driver
-prepares a Statement — and at that point the waiting thread has computed a key, found the checkout
-queue empty, and mutated nothing.
+two exceptions, and the cache is consistent in both:
+
+- `acquireStatement(...)` awaits `conditionStatementPerhapsAcquired` while the driver prepares a
+  Statement. The waiting thread has computed a key, found the checkout queue empty, registered
+  itself in `cxnToValidAcquiringThreadSet`, and mutated nothing else.
+- `checkinStatement(...)` releases the lock to run `refreshStatement(...)`. The Statement stays in
+  `checkedOut` for the whole of that window, which is not a convenience but the truth of the matter:
+  its client has let go, the cache has not yet taken it back.
 
 **So any moment another thread can acquire `mainLock` is a moment the cache must be fully
 consistent.** An auditor that takes the lock and looks is therefore a complete oracle, and needs no
@@ -84,6 +89,7 @@ untouched DataSource reports null and empty until it has served a Connection.
 | `containsStatement( cache, pstmt )` | takes `mainLock` | is this exact object cached? Identity, not `equals` |
 | `removalPending( cache )` | takes `removalPendingLock` | Statements presently inside `removeStatement(...)` |
 | `inAnyDeathmarch( cache, pstmt )` | takes `mainLock` | is this exact object in any deathmarch, global or per-connection? |
+| `numStatementsForConnection( cache, pcon )` | takes `mainLock` | how many cached Statements `cxnStmtMgr` files under this Connection. Zero for a Connection it does not know, which is how a test tells "flushed" from "never cached" |
 | `globalDeathmarch( cache )` / `perConnectionDeathmarches( cache )` | none (plain field reads) | the deathmarches, for tests that need to inspect them directly |
 
 A closed cache is vacuously consistent: every method reports no violations once `close()` has nulled
@@ -191,7 +197,7 @@ Each message maps to an invariant in `statement-cache-internals.md` §5:
 | --- | --- | --- |
 | `removalPending is not empty between operations` | 1 | something threw inside `removeStatement(...)`; those Statements can never be removed again |
 | `Statement in KeyRec.allStmts ... is absent from stmtToKey`, `The union of all KeyRec.allStmts does not match` | 2 | a removal aborted partway, or a Statement was assimilated twice |
-| `Statement appears in the allStmts of more than one key`, `Statement is filed under ... but stmtToKey maps it to` | 2 | the driver handed back a Statement c3p0 still held, so `stmtToKey.put(...)` overwrote |
+| `Statement appears in the allStmts of more than one key`, `Statement is filed under ... but stmtToKey maps it to` | 2 | the driver handed back a Statement c3p0 still held, and it was assimilated twice, so `stmtToKey.put(...)` overwrote. `assimilateNewCheckedOutStatement(...)` now declines such a Statement, so seeing this again means the guard has been defeated — most likely by something that changed a Statement's identity between the guard's check and the `put` |
 | `Statement is simultaneously available for checkout and marked checked out`, `checkoutQueue ... contains duplicates`, `appears in more than one checkoutQueue` | 3 | checkout and check-in disagree |
 | `Statement is marked checked out but is not in stmtToKey` | 4 | removed while checked out, or assimilation failed partway |
 | `cxnStmtMgr ... but absent from stmtToKey`, `filed under connection ... but its key names`, `retains an empty Statement set` | 5 | a Statement stranded in `cxnStmtMgr` — it pins that Connection's count at its maximum forever |
@@ -241,6 +247,31 @@ hypothetical — it hung this suite once, and is why `MockDriver` now accepts on
 | `connectionInvalidProbability` | 0 | `isValid(...)` failures, forcing pool churn |
 | `supportLargeMaxRows` | true | when false, `get/setLargeMaxRows` throw `SQLFeatureNotSupportedException`, exercising `CarefulMaxRowsReaderWriter`'s fallback |
 
+### The gates: driving a race deterministically
+
+Probabilities find faults; they cannot demonstrate one. For a test that must go red on a specific
+interleaving and green when it is fixed, the driver can be made to *stop* at a chosen point and wait
+to be released. Each gate is a pair of `CountDownLatch`es — one the driver counts down on arrival,
+one it then awaits — so a test can be certain a thread is parked exactly where it wants it before
+letting the other thread proceed.
+
+| Field | Parks a thread |
+| --- | --- |
+| `prepareReached` / `prepareGate` | inside `prepareStatement(...)`, ie inside `acquireStatement(...)`'s `mainLock`-releasing await |
+| `gateOnStatementMethod` + `statementMethodReached` / `statementMethodGate` | inside the named `Statement` method — set it to `clearBatch` or `clearWarnings` to park a thread inside `refreshStatement(...)` |
+
+Two lessons from writing tests with these are worth passing on.
+
+**Park the thread, then ask what another thread can do — not what the driver saw.** A test for
+"does `closeAll` wait for a refresh" cannot be written as "did the driver receive a `close`", because
+both the arrangement being tested and the one being ruled out reach the driver eventually. It has to
+be written as "can another thread take the lock", which is the property that actually differs.
+
+**A gate can deadlock the test itself.** Parking a thread inside `refreshStatement(...)` used to park
+it holding `mainLock`; a test that then called `closeAll` on its *own* thread blocked forever and
+hung the build. Run the other half on a thread of its own, with a bounded join — a test for an
+unbounded wait must never itself be able to wait unboundedly.
+
 ### `FakeDriverStats` — oracles independent of the cache
 
 Reachable as `cfg.stats`. The driver tracks every Statement it issues, so these catch things the
@@ -248,7 +279,8 @@ cache's own invariants cannot:
 
 | | Meaning |
 | --- | --- |
-| `anomalies()` | use-after-close: c3p0 handed out or used a Statement the driver had closed. Always a defect |
+| `anomalies()` | everything below plus use-after-close: c3p0 handed out or used a Statement the driver had closed |
+| `concurrentUseAnomalies()` | **two threads inside one Statement at once**, which JDBC does not permit and which no amount of cache bookkeeping would reveal. Every `Statement` method records the thread occupying it; a second thread entering finds it occupied and reports. Overlapping *cleanup* calls (`close`, `cancel`, `isClosed`) are exempt: c3p0 may well close a Statement twice, cleanup should be idempotent, and where a Statement might otherwise leak, closing twice is the right direction to err. `equals`, `hashCode` and `toString` never take occupancy at all |
 | `unclosedStatements()` | still open at the end of a run. After an orderly shutdown, must be empty |
 | `redundantCloses` | closed more than once. Legal per JDBC, but means c3p0 destroyed the same Statement twice |
 | `statementsPrepared` / `statementsClosed` | should be equal after an orderly shutdown |
@@ -268,6 +300,12 @@ serialized. `SimulatedPooledConnection` reproduces that discipline, and the pool
 harness cannot "reproduce" a failure that production locking makes impossible. Its
 `serializePerConnection` flag exists to ask the opposite question.
 
+Fidelity runs to the marking contract too. `closeAll(...)` requires that its caller have already
+marked the Connection in use, and the cache asserts it, so `SimulatedPooledConnection.destroy()`
+exists to retire a Connection the way the pool does: mark, `closeAll`, unmark. Getting that wrong
+is not academic — the assertion caught this harness first, where the retire path called `closeAll`
+after the `finally` that had already unmarked.
+
 | Scenario | Covers |
 | --- | --- |
 | `perConnection-incautious` | the shape reported in #196, with c3p0's default (incautious) destruction |
@@ -277,6 +315,25 @@ harness cannot "reproduce" a failure that production locking makes impossible. I
 | `doubleMax-refreshFailures` | Statements that refuse to be refreshed, plus close and execute failures |
 | `perConnection-cautious-recycling` | Oracle-style statement recycling, and no `largeMaxRows` support |
 | `doubleMax-everything` | all of the above, with the widest prepare latency and the most Connection churn |
+| `perConnection-driverReissuedStatements`, `globalMax-driverReissuedStatements`, `doubleMax-driverReissuedStatements` | a driver reissuing Statements c3p0 already holds, against each cache implementation in turn |
+
+The last three are in the default battery deliberately. The duplicate guard in
+`assimilateNewCheckedOutStatement(...)` is the newest code in the cache, it calls
+`removeStatement(...)` on a Statement it is about to hand back, and the three implementations keep
+different deathmarch structures — so each exercises that path differently. Until these were added
+the guard had only ever run against `PerConnectionMaxOnly`.
+
+They also need `expectDriverAliasing`. `handBackLiveStatementProbability` is out of spec by
+construction: the driver hands one Statement to two owners, so whoever closes first closes it under
+the other, and both driver-side oracles — use-after-close and concurrent use — fire by design. The
+flag tolerates the driver's whole anomaly count for that reason. **The auditor's invariants and the
+leak count remain fatal**, which is what these scenarios are actually asserting: that the cache's
+bookkeeping survives a driver behaving this way. The run still prints the anomaly count, with a note
+saying why it is expected, so a scenario cannot pass by quietly becoming a different one.
+
+`concurrentUseAnomalies()` earns its separate existence elsewhere, in
+`CloseAllDuringRefreshJUnitTestCase`, where the driver is behaving and so any two threads found
+inside one Statement are c3p0's doing.
 
 ### 7.2 Full stack: `StatementCacheFullStackHarness`
 
@@ -360,20 +417,31 @@ mill test.testOnly com.mchange.v2.c3p0.test.junit.StatementCacheInvariantsJUnitT
 
 ## 10. What the tests use
 
-`mill test` runs all of these. The whole statement-cache set takes about six seconds, of which
-six are the two three-second stress runs; everything else is measured in milliseconds.
+`mill test` runs all of these. The whole statement-cache set takes about thirteen seconds, of which
+twelve and a half are five fixed-seed stress runs — two of three seconds, three of two. Everything
+else is measured in milliseconds.
 
 | Test | Asserts | Uses |
 | --- | --- | --- |
 | `StatementCacheInvariantsJUnitTestCase` | two short fixed-seed stress runs stay consistent, leak nothing, and provoke no driver anomalies | the stress harness, auditing every operation |
+| `DriverReissuedStatementJUnitTestCase` | the duplicate guard fires, keeps the cache consistent across all three implementations, and really disowns what it declines — so a disowned Statement is never handed out again | the stress harness's three `driverReissuedStatements` scenarios, plus a deterministic single-threaded case |
+| `CloseAllDuringAcquisitionJUnitTestCase` | a Statement whose acquisition straddled a `closeAll(pcon)` is not assimilated, **and** that caching resumes normally for acquisitions beginning afterwards | `prepareReached`/`prepareGate`, `numStatementsForConnection` |
+| `CloseAllDuringRefreshJUnitTestCase` | `closeAll(pcon)` does not destroy a Statement another thread is inside `refreshStatement(...)` on | `gateOnStatementMethod`, `concurrentUseAnomalies()` |
 | `StatementCacheIssue196JUnitTestCase` | the auditor names both #196 states, and `cullNext()` no longer throws `NullPointerException` on a keyless deathmarched Statement | `CullNextInconsistencyDemo` → `checkQuietly`, `dump` |
 | `RemovalPendingLeakJUnitTestCase` | `removeStatement(...)` never strands `removalPending`, and the cache recovers from a driver whose `equals` is broken | `RemovalPendingLeakDemo` → `checkQuietly`, `removalPending`, `inAnyDeathmarch` |
 | `NullStatementAcquisitionJUnitTestCase` | a driver returning null from `prepareStatement`/`prepareCall` fails fast instead of stranding the acquiring thread | the fake driver only |
 | `StatementCacheCloseReleasesWaitersJUnitTestCase` | closing the cache releases threads waiting for a Statement, including one whose acquisition task was discarded unrun | the fake driver only |
 | `C3P0TestInternalsJUnitTestCase` | per-authentication pools and caches are reachable and distinct, and observing creates nothing | `C3P0TestInternals` |
 
-Both of the last two join their threads with a timeout: **a test for an unbounded wait must not
-itself be able to wait unboundedly**, or a regression hangs the build instead of reporting.
+`NullStatementAcquisitionJUnitTestCase` and `StatementCacheCloseReleasesWaitersJUnitTestCase` join
+their threads with a timeout: **a test for an unbounded wait must not itself be able to wait
+unboundedly**, or a regression hangs the build instead of reporting it. The two gate-driven cases
+above do the same, for the reason given in §6.
+
+Two of these carry a second test whose job is to fail if a fix over-reaches —
+`testCachingResumesNormallyAfterCloseAll` and `testDisownedDuplicateIsNotHandedOutAgain`. Both should
+be green before the fix and after. A regression test that only proves the bad thing stopped happening
+cannot tell a fix from an amputation.
 
 ## 11. Costs and caveats
 
