@@ -1066,6 +1066,8 @@ public final class C3P0PooledConnectionPool
         // System.err.println(this + " closing.");
         Exception throwMe = null;
 
+        // GooGooStatementCache.close() destroys cached Statements whether or not clients are using
+        // them. See the comment on that method: known, longstanding, deliberately left as-is.
         try { if (scache != null) scache.close(); }
         catch (SQLException e)
         { throwMe = e; }

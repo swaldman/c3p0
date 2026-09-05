@@ -431,6 +431,12 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
         return Collections.unmodifiableList( out );
     }
 
+    /**
+     * Note that this tears down the Statement cache along with everything else, and that
+     * GooGooStatementCache.close() destroys cached Statements irrespective of whether clients are
+     * presently using them. See the comment on that method: the hazard is known, longstanding, and
+     * deliberately left alone. It is of a piece with what hardReset() is for.
+     */
     public synchronized void hardReset()
     {
         resetPoolManager(); 

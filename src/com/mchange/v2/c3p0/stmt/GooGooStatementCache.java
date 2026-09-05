@@ -552,6 +552,47 @@ public abstract class GooGooStatementCache
 //      }
     }
 
+    /**
+     * A known deficiency, deliberately left alone. Recorded here so that whoever next reads this
+     * loop does not have to rediscover it, and does not "fix" it without knowing what was traded.
+     *
+     * This destroys every Statement in stmtToKey, and stmtToKey holds checked-out Statements as
+     * well as idle ones. A client using a checked-out Statement holds no lock of ours --
+     * checkoutStatement(...) returns and releases mainLock, and the client then calls JDBC
+     * freely -- so we may well close a Statement while somebody is in the middle of executing it.
+     * That is concurrent use of a Connection's children, which JDBC forbids, and unlike the
+     * asynchronous closes the IncautiousStatementDestructionManager already performs, it can put
+     * two threads inside one Statement object rather than merely inside two children of one
+     * Connection. Note that we call synchronousDestroyStatement(...) directly, so even the
+     * cautious arrangement, which exists precisely to prevent that, does not protect this path.
+     *
+     * The window is not new and is not narrow. It has always been the whole of a client's use of
+     * a checked-out Statement, which may be minutes; a client's brief JDBC work at check-in is a
+     * strict subset of it.
+     *
+     * Where it comes from: PooledDataSource.hardReset() -- and the ComboPooledDataSource property
+     * setters, which reset the pool manager -- reach C3P0PooledConnectionPool.close(), which calls
+     * this. hardReset() is documented as disruptive, "obviously disruptive, and should be [used]
+     * with great care", closing Connections that are currently checked out. It is meant to be the
+     * kill -9 of this library, for administrators working around applications that leak
+     * Connections. Tearing Statements out from under their users is arguably what makes it hard.
+     *
+     * There is an irony worth recording. A driver that dislikes a close() racing active use may
+     * respond by hanging rather than by failing, in which case this forcefulness could block the
+     * very teardown it is trying to accomplish -- and would surface as "hardReset() hangs" rather
+     * than as anything about Statements, which may be why we have never had it reported as such.
+     *
+     * Why we leave it: in more than twenty years, neither freezes nor leaks from hardReset() have
+     * been reported. Either they do not happen in practice, or they are rare enough and one-off
+     * enough that bounded leaks go unnoticed. Fixing it properly is not a small change -- it means
+     * deciding what a forced shutdown ought to do about Statements that clients still hold, which
+     * is a design question rather than a bug -- and the risk of disturbing long-stable behavior
+     * outweighs a hazard nobody has hit. If someone does report trouble here, look again: the test
+     * harness now has instruments that did not exist when this was written. FakeStatement reports
+     * two threads inside one Statement directly, and FakeDriverConfig's prepareGate and
+     * gateOnStatementMethod can drive such an interleaving deterministically rather than hoping a
+     * stress run stumbles onto it.
+     */
     public void close()
 	throws SQLException
     {
