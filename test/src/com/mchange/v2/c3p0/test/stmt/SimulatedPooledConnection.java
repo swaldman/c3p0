@@ -101,6 +101,22 @@ public final class SimulatedPooledConnection
             scache.closeAll( physicalConnection );
     }
 
+    /**
+     * Models what C3P0PooledConnectionPool.destroyResource(...) does when it retires a Connection:
+     * it marks the Connection in use for the duration, then lets NewPooledConnection close out the
+     * cached Statements. closeAll(...) requires its caller to have marked already -- it does a lot
+     * of work on a Connection's children, and where the cache is tracking Connections in use, that
+     * is what keeps destruction from landing on a Statement somebody is still inside.
+     */
+    public void destroy() throws SQLException, InterruptedException
+    {
+        scache.waitMarkConnectionInUse( physicalConnection );
+        try
+        { closeAll(); }
+        finally
+        { scache.unmarkConnectionInUse( physicalConnection ); }
+    }
+
     /** Models C3P0PooledConnectionPool.checkoutAndScacheMarkConnectionInUse()'s try-and-retry. */
     public boolean tryMarkInUse()
     { return scache.tryMarkConnectionInUse( physicalConnection ); }

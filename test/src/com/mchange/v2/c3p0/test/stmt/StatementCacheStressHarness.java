@@ -340,7 +340,7 @@ public final class StatementCacheStressHarness
             {
                 SimulatedPooledConnection spc = (SimulatedPooledConnection) ii.next();
                 try { spc.checkinAll(); } catch ( Throwable t ) { /* shutting down */ }
-                try { spc.closeAll(); }   catch ( Throwable t ) { /* shutting down */ }
+                try { spc.destroy(); }    catch ( Throwable t ) { /* shutting down */ }
             }
             scache.close();
         }
@@ -523,9 +523,10 @@ public final class StatementCacheStressHarness
 
                 if ( retire )
                 {
-                    // the pool destroying a Connection: closeAll(), then physically close it, then
+                    // the pool destroying a Connection: mark it in use and close out its cached
+                    // Statements as destroyResource(...) does, then physically close it, then
                     // replace it, as maxIdleTime/maxConnectionAge expiry would
-                    spc.closeAll();
+                    spc.destroy();
                     spc.closePhysicalConnection();
                     SimulatedPooledConnection replacement =
                         new SimulatedPooledConnection( driverConfig, scache, scenario.serializePerConnection );
