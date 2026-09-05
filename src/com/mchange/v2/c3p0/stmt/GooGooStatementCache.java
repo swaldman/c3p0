@@ -345,13 +345,27 @@ public abstract class GooGooStatementCache
      * In the future, we may consider performing the check-in
      * asynchronously and having this method return very quickly to
      * the client, consistent with c3p0's usual behavior in other
-     * contexts. However, when we are handed a deferredStatementDestroyer,
+     * contexts.
+     *
+     * However, when we are handed a deferredStatementDestroyer,
      * we rely upon clients marking when Connections are potentially
-     * in use, including when Statements are checked in. Returning
-     * asynchronously while Connection operations remain pending would
-     * break that tracking, and leave us vulnerable to out-of-spec
+     * in use, which includes the entire period that a Connection is checked
+     * out, including while Statements are being checked in. (We rely upon
+     * Statement-checked-out implies Connection-checked-out implies
+     * Connection marked-in-use.) Returning asynchronously while Connection
+     * operations remain pending could break that tracking, if refreshing
+     * of Statements has not completed prior to Connection check-in.
+     *
+     * In this scenario, we would become vulnerable to out-of-spec
      * concurrent operations on a single Connection's children that
      * all the careful tracking has been implemented to prevent.
+     * A solution would have to ensure all pending asynchronous
+     * check-ins of Statements of a given Connection be completed
+     * prior to marking the Connection no longer in use.
+     *
+     * (See C3P0PooledConnectionPool.scacheUnmarkConnectionInUseAndCheckin(...),
+     * the client Connection check-in path, which unmarks via
+     * scacheUnmarkPhysicalConnectionInUse(...))
      */
     public void checkinStatement( Object pstmt )
 	throws SQLException
