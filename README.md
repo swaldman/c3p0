@@ -50,7 +50,9 @@ For now (v0.15.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles
 
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
 
-Install `mill`. Then, within this repository directory, run
+You do not need to install it. `./mill`, the launcher in this repository, fetches the version
+the build pins; a `mill` on your PATH may be too old to parse `build.mill`. Within this
+repository directory, run
 
 ```plaintext
 $ ./mill jar
@@ -76,7 +78,7 @@ You can then open in your browser `out/doc/docroot.dest/index.html`
 
 Much of c3p0 is generated during the build: a `Debug` class per package beneath `src`, JavaBean base
 classes from the `beangen-xml` files, explicit `BeanInfo`s reflected off those compiled beans, and the
-JDBC proxies. You should never need `mill clean` to get a correct jar out of that. To verify it:
+JDBC proxies. You should never need `./mill clean` to get a correct jar out of that. To verify it:
 
 ```plaintext
 $ ./checkBuildFreshness
@@ -97,7 +99,7 @@ To prevent everchanging timestamps, set the environment variable
 [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/)
 when building.
 
-The build reads `SOURCE_DATE_EPOCH` from the environment of the `mill` command you invoke, and
+The build reads `SOURCE_DATE_EPOCH` from the environment of the `./mill` command you invoke, and
 treats it as a build input, so changing it is itself a reason to regenerate. Neither the `-i` flag
 nor a clean build is required. So, for example
 
@@ -119,7 +121,7 @@ c3p0's testing is, um, embarrassingly informal. There is a junit test suite, but
 very small fraction of c3p0 functionality. To run that, it's just
 
 ```plaintext
-$ mill test
+$ ./mill test
 ```
 
 Mostly c3p0 is tested by running a few test applications, and varying config _ad hoc_ to see how things work.
@@ -129,21 +131,21 @@ _If you think c3p0 could/should be tested more professionally and automatically,
 [`build.mill`](build.mill) contains a lot of test applications, but the most important are
 
 ```plaintext
-$ mill test.c3p0Benchmark
+$ ./mill test.c3p0Benchmark
 ```
 
 This is c3p0 most basic, common, test-of-first-resort.
 It runs through and times a bunch of different c3p0 operations, and puts the library through pretty good exercise
 
 ```plaintext
-$ mill test.c3p0Load
+$ ./mill test.c3p0Load
 ```
 
 This one puts c3p0 under load of a 100 thread performing 1000 database operations each,
 then terminates.
 
 ```plaintext
-$ mill test.c3p0PSLoad
+$ ./mill test.c3p0PSLoad
 ```
 
 This one puts c3p0 under load of a 100 thread performing database operations indefinitely.
@@ -175,7 +177,7 @@ A baseline pathological configuration is defined in [`test/resources-local-rough
 To give this effect:
 
 ```bash
-$ C3P0_TEST_CONFIG=rough mill test.c3p0Load
+$ C3P0_TEST_CONFIG=rough ./mill test.c3p0Load
 ```
 
 Then of course you can edit [`test/resources-local-rough/c3p0.properties`](test/resources-local-rough/c3p0.properties).
@@ -184,7 +186,7 @@ Test environment changes that, in versions of c3p0 prior to 0.15.0, you would ha
 For example:
 
 ```bash
-$ C3P0_TEST_JVM_ARGS='-ea -Dc3p0.maxStatements=100' mill test.c3p0PSLoad
+$ C3P0_TEST_JVM_ARGS='-ea -Dc3p0.maxStatements=100' ./mill test.c3p0PSLoad
 ```
 
 Running against hsqldb rather than postgres additionally requires uncommenting `Dependency.Hsqldb`
@@ -208,7 +210,7 @@ all the necessary dependencies and the same config, under other JVM versions. To
 first, in the build's required JVM version, run
 
 ```plaintext
-% mill test.printExternalCommandBase
+% ./mill test.printExternalCommandBase
 ```
 
 That will print a long String, beginning with "java" and typically ending with a very long `CLASSPATH`.

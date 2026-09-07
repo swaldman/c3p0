@@ -121,8 +121,8 @@ The reason this class avoids reflection and creates nothing. To diagnose a cache
 in someone else's environment:
 
 ```bash
-mill publishLocal        # the library
-mill test.publishLocal   # the c3p0-test jar, which carries the auditor
+./mill publishLocal        # the library
+./mill test.publishLocal   # the c3p0-test jar, which carries the auditor
 ```
 
 Then, in the application, once the DataSource has served at least one Connection:
@@ -395,29 +395,29 @@ and the harnesses warn at startup if assertions are off.
 
 ```bash
 # the three harness entry points -- no database required, nonzero exit on failure
-C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheStress
-C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheFullStack
-C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheIssue196
+C3P0_TEST_JVM_ARGS='-ea' ./mill test.c3p0StmtCacheStress
+C3P0_TEST_JVM_ARGS='-ea' ./mill test.c3p0StmtCacheFullStack
+C3P0_TEST_JVM_ARGS='-ea' ./mill test.c3p0StmtCacheIssue196
 
 # a long soak with a replayable seed
 C3P0_TEST_JVM_ARGS='-ea -Dc3p0.test.stmtcache.durationSeconds=600 -Dc3p0.test.stmtcache.seed=12345' \
-  mill test.c3p0StmtCacheStress
+  ./mill test.c3p0StmtCacheStress
 
 # one scenario, verbose c3p0 logging
 C3P0_TEST_JVM_ARGS='-ea -Dc3p0.test.stmtcache.scenario=doubleMax-everything -Dc3p0.test.stmtcache.quiet=false' \
-  mill test.c3p0StmtCacheStress
+  ./mill test.c3p0StmtCacheStress
 
 # let corruption accumulate rather than stopping at the first sign
 C3P0_TEST_JVM_ARGS='-ea -Dc3p0.test.stmtcache.auditEveryOps=100000000 -Dc3p0.test.stmtcache.keepGoing=true' \
-  mill test.c3p0StmtCacheStress
+  ./mill test.c3p0StmtCacheStress
 
 # one JUnit case
-mill test.testOnly com.mchange.v2.c3p0.test.junit.StatementCacheInvariantsJUnitTestCase
+./mill test.testOnly com.mchange.v2.c3p0.test.junit.StatementCacheInvariantsJUnitTestCase
 ```
 
 ## 10. What the tests use
 
-`mill test` runs all of these. The whole statement-cache set takes about thirteen seconds, of which
+`./mill test` runs all of these. The whole statement-cache set takes about thirteen seconds, of which
 twelve and a half are five fixed-seed stress runs — two of three seconds, three of two. Everything
 else is measured in milliseconds.
 

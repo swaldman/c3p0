@@ -344,9 +344,9 @@ and audit after every operation, so an inconsistency is reported where it happen
 at `cullNext()`:
 
 ```
-C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheStress      # drives this class directly
-C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheFullStack   # drives a real ComboPooledDataSource
-C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheIssue196    # the issue #196 failure mode, step by step
+C3P0_TEST_JVM_ARGS='-ea' ./mill test.c3p0StmtCacheStress      # drives this class directly
+C3P0_TEST_JVM_ARGS='-ea' ./mill test.c3p0StmtCacheFullStack   # drives a real ComboPooledDataSource
+C3P0_TEST_JVM_ARGS='-ea' ./mill test.c3p0StmtCacheIssue196    # the issue #196 failure mode, step by step
 ```
 
 Run them with assertions enabled: `Deathmarch` guards its methods with
