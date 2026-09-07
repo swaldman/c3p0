@@ -299,11 +299,11 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		catch (SQLException e)
 		{ throw e; }
 		catch (ClassNotFoundException e)
-		{ SqlUtils.toSQLException("Could not load specified JDBC driver class. Driver class: '" + driverClass +"'", e); }
+		{ throw SqlUtils.toSQLException("Could not load specified JDBC driver class. Driver class: '" + driverClass +"'", e); }
 		catch (InstantiationException e)
-		{ SqlUtils.toSQLException("Could not instantiate specified JDBC driver class with no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class with no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
 		catch (IllegalAccessException e)
-		{ SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, no-arg constructor is not accessible. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, no-arg constructor is not accessible. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
 	    }
 	    else // if no driverClass is specified, we only have one way to try
 		driver = DriverManager.getDriver( jdbcUrl );
