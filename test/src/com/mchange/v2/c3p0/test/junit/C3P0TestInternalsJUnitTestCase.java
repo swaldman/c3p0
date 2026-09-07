@@ -21,6 +21,7 @@ public final class C3P0TestInternalsJUnitTestCase extends TestCase
     private FakeDriverConfig      cfg;
     private ComboPooledDataSource ds;
 
+    @Override
     public void setUp() throws Exception
     {
         FakeDriver.ensureRegistered();
@@ -43,6 +44,7 @@ public final class C3P0TestInternalsJUnitTestCase extends TestCase
         ds.setAcquireRetryDelay( 250 );
     }
 
+    @Override
     public void tearDown() throws Exception
     {
         if ( ds != null )

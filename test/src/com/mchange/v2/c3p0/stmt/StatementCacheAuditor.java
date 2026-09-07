@@ -434,6 +434,7 @@ public final class StatementCacheAuditor
     {
         Thread t = new Thread("StatementCacheAuditor-watchdog")
         {
+            @Override
             public void run()
             {
                 while (! Thread.currentThread().isInterrupted() )

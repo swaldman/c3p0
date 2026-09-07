@@ -46,9 +46,11 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
     static final class NewProxyMetaDataGenerator extends JdbcProxyGenerator
     { 
+        @Override
         String getInnerTypeName()
         { return "DatabaseMetaData"; }
 
+        @Override
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             String mname   = method.getName();
@@ -74,18 +76,21 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 super.generateDelegateCode( intfcl, genclass, method, iw );
         }
 
+        @Override
         protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             if ( method.getExceptionTypes().length > 0 )
                 super.generatePreDelegateCode( intfcl, genclass, method, iw );
         }
 
+        @Override
         protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             if ( method.getExceptionTypes().length > 0 )
                 super.generatePostDelegateCode( intfcl, genclass, method, iw );
         }
 
+        @Override
         protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
         {
             super.generateExtraDeclarations( intfcl, genclass, iw );
@@ -105,9 +110,11 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
     static final class NewProxyResultSetGenerator extends JdbcProxyGenerator
     {
+        @Override
         String getInnerTypeName()
         { return "ResultSet"; }
 
+        @Override
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             String mname   = method.getName();
@@ -171,6 +178,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 super.generateDelegateCode( intfcl, genclass, method, iw );
         }
 
+        @Override
         protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
         {
             super.generateExtraDeclarations( intfcl, genclass, iw );
@@ -191,6 +199,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("}");
         }
 
+        @Override
         protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             super.generatePreDelegateCode( intfcl, genclass, method, iw );
@@ -199,6 +208,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 
     static final class NewProxyAnyStatementGenerator extends JdbcProxyGenerator
     {
+        @Override
         String getInnerTypeName()
         { return "Statement"; }
 
@@ -216,6 +226,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	//     super.generateReflectiveDelegateCode( intfcl, genclass, method, iw );
 	// }
 
+        @Override
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
 
@@ -475,6 +486,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                 super.generateDelegateCode( intfcl, genclass, method, iw );
         }
 
+        @Override
         protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             // concurrent-access-debug only
@@ -501,6 +513,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             super.generatePreDelegateCode( intfcl, genclass, method, iw );
         }
 
+        @Override
         protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             super.generatePostDelegateCode( intfcl, genclass, method, iw );
@@ -518,6 +531,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             // end concurrent-access-debug only
         }
 
+        @Override
         protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
         {
             super.generateExtraDeclarations( intfcl, genclass, iw );
@@ -601,6 +615,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("{ if (creatorProxy != null) creatorProxy.maybeDirtyTransaction(); }");
         }
 
+        @Override
         protected void generateExtraImports( IndentedWriter iw ) throws IOException
         {
             super.generateExtraImports( iw );
@@ -637,9 +652,11 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             this.setGenerateWrappingConstructor(false);
         }
 
+        @Override
         String getInnerTypeName()
         { return "Connection"; }
 
+        @Override
         protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
         {
             String mname = method.getName();
@@ -925,6 +942,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             }
         }
 
+        @Override
         protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
         {
             iw.println("ReentrantLock lock = new ReentrantLock();");
@@ -1084,6 +1102,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("};");
         }
 
+        @Override
         protected void generateExtraImports( IndentedWriter iw ) throws IOException
         {
             super.generateExtraImports( iw );
@@ -1092,6 +1111,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
             iw.println("import com.mchange.v2.util.ResourceClosedException;");
         }
 
+	@Override
 	protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
             iw.println("this.lock.lock();");
@@ -1110,6 +1130,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		super.generatePreDelegateCode( intfcl, genclass, method, iw );
 	}
 
+	@Override
 	protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
 	{
 	    if ("setClientInfo".equals(method.getName()))
@@ -1142,6 +1163,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 		super.generateFullDelegateMethod( intfcl, genclass, method, iw );
         }
 
+        @Override
         protected void generateFullDelegateMethod(Class intfcl, String genclass, Method method, IndentedWriter iw) throws IOException
         { this.generateFullDelegateMethod( intfcl, genclass, method, iw, false ); }
 
@@ -1151,17 +1173,20 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
     }
 
     //totally superfluous, but included to be "regular" and very specific, and as a hook for "general" overrides in future
+    @Override
     protected void generateDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
     {
 	super.generateDelegateCode( intfcl, genclass, method, iw );
     }
 
+    @Override
     protected void generatePreDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
     {
 	if (! jdbc4WrapperMethod( method.getName() ) )
 	    generateTryOpener( iw );
     }
 
+    @Override
     protected void generatePostDelegateCode( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException 
     {
 	if (! jdbc4WrapperMethod( method.getName() ) )
@@ -1239,6 +1264,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         iw.println("}");
     }
 
+    @Override
     protected void generateExtraDeclarations( Class intfcl, String genclass, IndentedWriter iw ) throws IOException
     {
         // premature-detach-debug-debug only!
@@ -1350,6 +1376,7 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         iw.println("parentPooledConnection = null;");
     }
 
+    @Override
     protected void generateExtraImports( IndentedWriter iw ) throws IOException
     {
         iw.println("import java.sql.*;");

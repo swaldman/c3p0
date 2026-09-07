@@ -25,9 +25,11 @@ public final class CloseLoggingComboPooledDataSource extends AbstractComboPooled
     public CloseLoggingComboPooledDataSource(String configName)
     { super( configName );  }
     
+    @Override
     public Connection getConnection() throws SQLException
     { return new CloseLoggingConnectionWrapper( super.getConnection(), level );  }
     
+    @Override
     public Connection getConnection(String user, String password) throws SQLException
     { return new CloseLoggingConnectionWrapper( super.getConnection(user, password), level );  }
     

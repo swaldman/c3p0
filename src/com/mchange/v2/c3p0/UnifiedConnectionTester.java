@@ -33,16 +33,22 @@ public interface UnifiedConnectionTester extends FullQueryConnectionTester
     public final static int CONNECTION_IS_INVALID    = ConnectionTester.CONNECTION_IS_INVALID;
     public final static int DATABASE_IS_INVALID      = ConnectionTester.DATABASE_IS_INVALID;
     
+    @Override
     public int activeCheckConnection(Connection c);
     public int activeCheckConnection(Connection c, Throwable[] rootCauseOutParamHolder);
+    @Override
     public int activeCheckConnection(Connection c, String preferredTestQuery);
     public int activeCheckConnection(Connection c, String preferredTestQuery, Throwable[] rootCauseOutParamHolder);
 
+    @Override
     public int statusOnException(Connection c, Throwable t);
     public int statusOnException(Connection c, Throwable t, Throwable[] rootCauseOutParamHolder);
+    @Override
     public int statusOnException(Connection c, Throwable t, String preferredTestQuery);
     public int statusOnException(Connection c, Throwable t, String preferredTestQuery, Throwable[] rootCauseOutParamHolder);
 
+    @Override
     public boolean equals(Object o);
+    @Override
     public int hashCode();
 }

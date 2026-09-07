@@ -80,6 +80,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     {
         PropertyChangeListener driverClassListener = new PropertyChangeListener()
         {
+            @Override
             public void propertyChange( PropertyChangeEvent evt )
             {
                 if ( "driverClass".equals( evt.getPropertyName() ) )
@@ -148,6 +149,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
     // sync'ing the method creates the danger that one freeze on connect
     // blocks access to the entire DataSource
+    @Override
     public Connection getConnection() throws SQLException
     { 
         ensureIfPossibleDriverClassLoaded();
@@ -162,6 +164,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // should NOT be sync'ed -- driver() is sync'ed and that's enough
     // sync'ing the method creates the danger that one freeze on connect
     // blocks access to the entire DataSource
+    @Override
     public Connection getConnection(String username, String password) throws SQLException
     { 
         ensureIfPossibleDriverClassLoaded();
@@ -173,19 +176,24 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         return out;
     }
 
+    @Override
     public PrintWriter getLogWriter() throws SQLException
     { return DriverManager.getLogWriter(); }
 
+    @Override
     public void setLogWriter(PrintWriter out) throws SQLException
     { DriverManager.setLogWriter( out ); }
 
+    @Override
     public int getLoginTimeout() throws SQLException
     { return DriverManager.getLoginTimeout(); }
 
+    @Override
     public void setLoginTimeout(int seconds) throws SQLException
     { DriverManager.setLoginTimeout( seconds ); }
 
     //overrides
+    @Override
     public synchronized void setJdbcUrl(String jdbcUrl)
     {
         //System.err.println( "setJdbcUrl( " + jdbcUrl + " )");
@@ -335,11 +343,13 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     private boolean isWrapperForThis(Class<?> iface)
     { return iface.isAssignableFrom( this.getClass() ); }
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
 	return isWrapperForThis( iface );
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
 	if ( this.isWrapperForThis( iface ) )

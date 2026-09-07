@@ -54,6 +54,7 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     {
 	VetoableChangeListener l = new VetoableChangeListener()
 	    {
+		@Override
 		public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
 		{
 		    Object value = evt.getNewValue();
@@ -69,6 +70,7 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 
 	PropertyChangeListener pcl = new PropertyChangeListener()
 	    {
+		@Override
 		public void propertyChange( PropertyChangeEvent evt )
 		{ cachedInner = null; }
 	    };
@@ -126,21 +128,27 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 	    }
     }
 
+    @Override
     public Connection getConnection() throws SQLException
     { return inner().getConnection(); }
 
+    @Override
     public Connection getConnection(String username, String password) throws SQLException
     { return inner().getConnection( username, password );  }
 
+    @Override
     public PrintWriter getLogWriter() throws SQLException
     { return inner().getLogWriter(); }
 
+    @Override
     public void setLogWriter(PrintWriter out) throws SQLException
     { inner().setLogWriter( out ); }
 
+    @Override
     public int getLoginTimeout() throws SQLException
     { return inner().getLoginTimeout(); }
 
+    @Override
     public void setLoginTimeout(int seconds) throws SQLException
     { inner().setLoginTimeout( seconds ); }
 
@@ -167,11 +175,13 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     }
 
     // JDBC4 Wrapper stuff
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
 	return false;
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
 	throw new SQLException(this + " is not a Wrapper for " + iface.getName());

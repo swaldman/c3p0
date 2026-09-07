@@ -20,9 +20,11 @@ public final class AfterCloseLoggingComboPooledDataSource extends AbstractComboP
     public AfterCloseLoggingComboPooledDataSource(String configName)
     { super( configName );  }
     
+    @Override
     public Connection getConnection() throws SQLException
     { return AfterCloseLoggingConnectionWrapper.wrap( super.getConnection() );  }
     
+    @Override
     public Connection getConnection(String user, String password) throws SQLException
     { return AfterCloseLoggingConnectionWrapper.wrap( super.getConnection(user, password) );  }
     

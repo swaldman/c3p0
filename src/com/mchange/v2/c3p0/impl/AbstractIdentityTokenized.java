@@ -8,6 +8,7 @@ package com.mchange.v2.c3p0.impl;
  */
 public abstract class AbstractIdentityTokenized implements IdentityTokenized
 {
+    @Override
     public boolean equals(Object o)
     {
 	if (this == o)
@@ -19,6 +20,7 @@ public abstract class AbstractIdentityTokenized implements IdentityTokenized
 	    return false;
     }
 
+    @Override
     public int hashCode()
     { return ~this.getIdentityToken().hashCode(); }
 }

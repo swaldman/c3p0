@@ -20,14 +20,17 @@ public final class TaskRunnerThreadFactory implements ThreadFactory
 
     private final static ContextClassLoaderSetter NO_CLASSLOADER = new ContextClassLoaderSetter()
     {
+        @Override
         public void set(Thread t) { t.setContextClassLoader(null); }
     };
     private final static ContextClassLoaderSetter LIBRARY_CLASSLOADER = new ContextClassLoaderSetter()
     {
+        @Override
         public void set(Thread t) { t.setContextClassLoader(LIBRARY_CLASSLOADER_INSTANCE); }
     };
     private final static ContextClassLoaderSetter CALLER_CLASSLOADER = new ContextClassLoaderSetter()
     {
+        @Override
         public void set(Thread t) { /* t.setContextClassLoader(Thread.currentThread().getContextClassLoader()); */ } // just let it propogate, it's the default
     };
 
@@ -67,12 +70,14 @@ public final class TaskRunnerThreadFactory implements ThreadFactory
         return out;
     }
 
+    @Override
     public Thread newThread(final Runnable r)
     {
 	if ( privilege_spawned_threads )
 	{
 	    PrivilegedAction privilegedRun = new PrivilegedAction()
 	    {
+		@Override
 		public Object run() { return createUnprivileged(r); }
 	    };
 	    return (Thread) AccessController.doPrivileged( privilegedRun );

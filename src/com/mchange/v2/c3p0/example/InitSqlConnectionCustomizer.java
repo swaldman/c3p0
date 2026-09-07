@@ -11,6 +11,7 @@ public class InitSqlConnectionCustomizer extends AbstractConnectionCustomizer
     private String getInitSql( String parentDataSourceIdentityToken )
     { return (String) extensionsForToken( parentDataSourceIdentityToken ).get ( "initSql" ); }
 
+    @Override
     public void onCheckOut( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {
 	String initSql = getInitSql( parentDataSourceIdentityToken );

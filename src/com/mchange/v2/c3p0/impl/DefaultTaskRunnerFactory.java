@@ -7,6 +7,7 @@ import com.mchange.v2.c3p0.TaskRunnerFactory;
 
 public final class DefaultTaskRunnerFactory implements TaskRunnerFactory
 {
+    @Override
     public ThreadPoolReportingAsynchronousRunner createTaskRunner(
         final int num_threads,
         final int matt,  // maxAdministrativeTaskTime, in seconds
@@ -22,6 +23,7 @@ public final class DefaultTaskRunnerFactory implements TaskRunnerFactory
 
         Runnable initializer = new Runnable()
             {
+                @Override
                 public void run()
                 {
                     if ( matt > 0 )
@@ -47,6 +49,8 @@ public final class DefaultTaskRunnerFactory implements TaskRunnerFactory
         return outHolder[0];
     }
 
+    @Override
     public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    @Override
     public int hashCode() { return this.getClass().getName().hashCode(); }
 }

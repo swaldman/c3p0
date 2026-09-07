@@ -11,6 +11,7 @@ public final class Validators
 
         abstract T _validate( T value ) throws InvalidConfigException;
 
+        @Override
         public T validate( T value ) throws InvalidConfigException
         {
             try
@@ -24,6 +25,7 @@ public final class Validators
 
     public static Validator<String> MarkSessionBoundaries = new AbstractValidator<String>("markSessionBoundaries")
     {
+        @Override
         String _validate( String value ) throws InvalidConfigException
         {
             String out = value.toLowerCase();
@@ -36,6 +38,7 @@ public final class Validators
 
     public static Validator<String> ContextClassLoaderSource = new AbstractValidator<String>("contextClassLoaderSource")
     {
+        @Override
         String _validate( String value ) throws InvalidConfigException
         {
              String out = value.toLowerCase();

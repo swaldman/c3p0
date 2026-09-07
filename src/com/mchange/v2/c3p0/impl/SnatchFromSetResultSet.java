@@ -11,12 +11,14 @@ final class SnatchFromSetResultSet extends FilterResultSet
     SnatchFromSetResultSet(Set activeResultSets)
     { this.activeResultSets = activeResultSets; }
 
+    @Override
     public synchronized void setInner(ResultSet inner)
     {
 	this.inner = inner;
 	activeResultSets.add( inner );
     }
     
+    @Override
     public synchronized void close() throws SQLException
     { 
 	inner.close();

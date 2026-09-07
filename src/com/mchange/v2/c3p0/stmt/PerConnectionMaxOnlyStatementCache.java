@@ -21,16 +21,20 @@ public final class PerConnectionMaxOnlyStatementCache extends GooGooStatementCac
     }
 
     //called only in parent's constructor
+    @Override
     protected ConnectionStatementManager createConnectionStatementManager()
     { return (this.dcsm = new DeathmarchConnectionStatementManager()); }
 
     //all below called by parent only with mainLock
+    @Override
     void addStatementToDeathmarches( Object pstmt, Connection physicalConnection )
     { dcsm.getDeathmarch( physicalConnection ).deathmarchStatement( pstmt ); }
 
+    @Override
     void removeStatementFromDeathmarches( Object pstmt, Connection physicalConnection )
     { dcsm.getDeathmarch( physicalConnection ).undeathmarchStatement( pstmt ); }
 
+    @Override
     boolean prepareAssimilateNewStatement(Connection pcon)
     {
 	int cxn_stmt_count = dcsm.getNumStatementsForConnection( pcon );

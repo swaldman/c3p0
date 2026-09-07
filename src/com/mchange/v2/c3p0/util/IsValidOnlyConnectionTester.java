@@ -31,6 +31,7 @@ public abstract class IsValidOnlyConnectionTester extends AbstractConnectionTest
 
     protected abstract int getIsValidTimeout();
 
+    @Override
     public int activeCheckConnection(Connection c, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)
     {
 	checkWarn( preferredTestQuery );
@@ -68,6 +69,7 @@ public abstract class IsValidOnlyConnectionTester extends AbstractConnectionTest
 	}
     }
 
+    @Override
     public int statusOnException(Connection c, Throwable t, String preferredTestQuery, Throwable[] rootCauseOutParamHolder)
     {
 	checkWarn( preferredTestQuery );

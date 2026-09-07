@@ -104,6 +104,7 @@ public interface ResourcePool extends ClosableResource
     public void resetPool()
 	throws ResourcePoolException;
 
+    @Override
     public void close() 
 	throws ResourcePoolException;
 

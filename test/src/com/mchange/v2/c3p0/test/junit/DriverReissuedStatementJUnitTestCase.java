@@ -36,6 +36,7 @@ public final class DriverReissuedStatementJUnitTestCase extends TestCase
 
     private GuardWatcher watcher;
 
+    @Override
     public void setUp()
     {
         FakeDriver.ensureRegistered();
@@ -43,6 +44,7 @@ public final class DriverReissuedStatementJUnitTestCase extends TestCase
         java.util.logging.Logger.getLogger("").addHandler( watcher );
     }
 
+    @Override
     public void tearDown()
     {
         java.util.logging.Logger.getLogger("").removeHandler( watcher );
@@ -189,6 +191,7 @@ public final class DriverReissuedStatementJUnitTestCase extends TestCase
         boolean fired()
         { return fired; }
 
+        @Override
         public void publish( LogRecord record )
         {
             String msg = ( record == null ? null : record.getMessage() );
@@ -196,7 +199,9 @@ public final class DriverReissuedStatementJUnitTestCase extends TestCase
                 fired = true;
         }
 
+        @Override
         public void flush() {}
+        @Override
         public void close() {}
     }
 }

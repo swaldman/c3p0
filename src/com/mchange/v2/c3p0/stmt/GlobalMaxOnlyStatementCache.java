@@ -17,16 +17,20 @@ public final class GlobalMaxOnlyStatementCache extends GooGooStatementCache
     }
 
     //called only in parent's constructor
+    @Override
     protected ConnectionStatementManager createConnectionStatementManager()
     { return new SimpleConnectionStatementManager(); }
 
     //all below called by parent only with mainLock
+    @Override
     void addStatementToDeathmarches( Object pstmt, Connection physicalConnection )
     { globalDeathmarch.deathmarchStatement( pstmt ); }
 
+    @Override
     void removeStatementFromDeathmarches( Object pstmt, Connection physicalConnection )
     { globalDeathmarch.undeathmarchStatement( pstmt ); }
 
+    @Override
     boolean prepareAssimilateNewStatement(Connection pcon)
     {
 	int global_size = this.countCachedStatements();

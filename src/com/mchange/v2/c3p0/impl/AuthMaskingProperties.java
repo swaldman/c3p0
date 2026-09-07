@@ -47,6 +47,7 @@ public class AuthMaskingProperties extends Properties
     private String normalToString()
     { return super.toString(); }
 
+    @Override
     public String toString()
     {
 	boolean hasUser = (this.get("user") != null);

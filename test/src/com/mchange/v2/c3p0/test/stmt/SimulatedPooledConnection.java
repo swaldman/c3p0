@@ -135,6 +135,7 @@ public final class SimulatedPooledConnection
         { /* the fake driver's close does not fail */ }
     }
 
+    @Override
     public String toString()
     { return "SimulatedPooledConnection[" + physicalConnection + "]"; }
 }

@@ -900,6 +900,7 @@ public abstract class GooGooStatementCache
 
             class StmtAcquireTask implements Runnable
             {
+                @Override
                 public void run()
                 {
                     try
@@ -1336,6 +1337,7 @@ public abstract class GooGooStatementCache
     {
         Map cxnsToDms = new HashMap();
 
+        @Override
         public void addStatementForConnection( Object ps, Connection pcon )
         {
             super.addStatementForConnection( ps, pcon );
@@ -1347,6 +1349,7 @@ public abstract class GooGooStatementCache
             }
         }
 
+        @Override
         public boolean removeStatementForConnection( Object ps, Connection pcon )
         {
             boolean out = super.removeStatementForConnection( ps, pcon );
@@ -1430,6 +1433,7 @@ public abstract class GooGooStatementCache
 	{
 	    class UncheckedStatementCloseTask implements Runnable
 	    {
+		@Override
 		public void run()
 		{ cancelClose( (PreparedStatement) pstmt ); }
 	    }
@@ -1451,23 +1455,34 @@ public abstract class GooGooStatementCache
 	IncautiousStatementDestructionManager(AsynchronousRunner runner)
 	{ super( runner ); }
 
+	@Override
 	void waitMarkConnectionInUse(Connection physicalConnection) throws InterruptedException {}
+	@Override
 	boolean tryMarkConnectionInUse(Connection physicalConnection) { return true; }
+	@Override
 	void unmarkConnectionInUse(Connection physicalConnection) {}
+	@Override
 	void deferredDestroyStatement(Object parentConnection, Object pstmt) { uncheckedDestroyStatement( pstmt ); }
+	@Override
 	void close() {}
 
 	// return -1 if unknown
+	@Override
 	int countConnectionsInUse() { return -1; }
 
 	// under alternative implementation we don't cull Statements
 	// underneath of Connections in current use
+	@Override
 	boolean knownInUse(Connection pCon) { return false; }
 
+	@Override
 	Boolean tvlInUse( Connection pCon ) { return null; }
 
+	@Override
 	int getNumConnectionsInUse() { return -1; }
+	@Override
 	int getNumConnectionsWithDeferredDestroyStatements() { return -1; }
+	@Override
 	int getNumDeferredDestroyStatements() { return -1; }
     }
 
@@ -1497,6 +1512,7 @@ public abstract class GooGooStatementCache
         final ReentrantLock csdmLock = new ReentrantLock();
         final Condition statementsMaybeDestroyed = csdmLock.newCondition();
 
+	@Override
 	void close()
 	{
             csdmLock.lock();
@@ -1530,6 +1546,7 @@ public abstract class GooGooStatementCache
 	    System.err.println(trace());
 	}
 
+	@Override
 	void waitMarkConnectionInUse(Connection physicalConnection) throws InterruptedException
 	{
             csdmLock.lock();
@@ -1561,6 +1578,7 @@ public abstract class GooGooStatementCache
             { csdmLock.unlock(); }
 	}
 
+	@Override
 	boolean tryMarkConnectionInUse(Connection physicalConnection)
 	{
             csdmLock.lock();
@@ -1594,6 +1612,7 @@ public abstract class GooGooStatementCache
             { csdmLock.unlock(); }
 	}
 
+	@Override
 	void unmarkConnectionInUse(Connection physicalConnection)
 	{
             csdmLock.lock();
@@ -1613,6 +1632,7 @@ public abstract class GooGooStatementCache
             { csdmLock.unlock(); }
 	}
 
+	@Override
 	void deferredDestroyStatement(Object parentConnection, Object pstmt)
 	{
             csdmLock.lock();
@@ -1643,6 +1663,7 @@ public abstract class GooGooStatementCache
 	}
 
 	// return -1 if unknown
+	@Override
 	int countConnectionsInUse()
         {
             csdmLock.lock();
@@ -1652,6 +1673,7 @@ public abstract class GooGooStatementCache
 
 	// under alternative implementation we don't cull Statements
 	// underneath of Connections in current use
+	@Override
 	boolean knownInUse(Connection pCon)
         {
             csdmLock.lock();
@@ -1661,9 +1683,11 @@ public abstract class GooGooStatementCache
 
 	// we don't sync 'cuz we're just wrapping
 	// a sync'ed method
+	@Override
 	Boolean tvlInUse( Connection pCon )
 	{ return Boolean.valueOf( knownInUse( pCon ) ); }
 
+	@Override
 	int getNumConnectionsInUse()
         {
             csdmLock.lock();
@@ -1671,6 +1695,7 @@ public abstract class GooGooStatementCache
             finally { csdmLock.unlock(); }
         }
 
+	@Override
 	int getNumConnectionsWithDeferredDestroyStatements()
         {
             csdmLock.lock();
@@ -1678,6 +1703,7 @@ public abstract class GooGooStatementCache
             finally { csdmLock.unlock(); }
         }
 
+        @Override
         int getNumDeferredDestroyStatements()
 	{
             csdmLock.lock();
@@ -1704,6 +1730,7 @@ public abstract class GooGooStatementCache
 
 	    final class TrackedStatementCloseTask implements Runnable
 	    {
+		@Override
 		public void run()
 		{
 		    // debug
@@ -1762,6 +1789,7 @@ public abstract class GooGooStatementCache
 
 	    final class TrackedDestroyAllStatementsTask implements Runnable
 	    {
+		@Override
 		public void run()
 		{
 		    // debug

@@ -171,9 +171,11 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     public void setForceSynchronousCheckins( boolean forceSynchronousCheckins )
     { wcpds.setForceSynchronousCheckins( forceSynchronousCheckins ); }
 
+    @Override
     public String getIdentityToken()
     { return identityToken; }
 
+    @Override
     public void setIdentityToken(String identityToken)
     { this.identityToken = identityToken; }
 
@@ -352,34 +354,42 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
         referenceMaker.setReferencePropertyOverrider( com.mchange.v2.c3p0.impl.C3P0JavaBeanReferencePropertyOverrider.INSTANCE );
     }
 
+    @Override
     public Reference getReference() throws NamingException
     { return referenceMaker.createReference( this, C3P0Config.getMultiPropertiesConfig() ); }
 
     //implementation of javax.sql.ConnectionPoolDataSource
+    @Override
     public PooledConnection getPooledConnection()
 	throws SQLException
     { return wcpds.getPooledConnection(); }
 
+    @Override
     public PooledConnection getPooledConnection(String user, String password)
 	throws SQLException
     { return wcpds.getPooledConnection( user, password ); }
 
+    @Override
     public PrintWriter getLogWriter()
 	throws SQLException
     { return wcpds.getLogWriter(); }
 
+    @Override
     public void setLogWriter(PrintWriter out)
 	throws SQLException
     { wcpds.setLogWriter( out ); }
 
+    @Override
     public void setLoginTimeout(int seconds)
 	throws SQLException
     { wcpds.setLoginTimeout( seconds ); }
 
+    @Override
     public int getLoginTimeout()
 	throws SQLException
     { return wcpds.getLoginTimeout(); }
 
+    @Override
     public String toString()
     {
 	StringBuffer sb = new StringBuffer(512);
@@ -399,6 +409,7 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 
 
     // JDK7 add-on
+    @Override
     public Logger getParentLogger() throws SQLFeatureNotSupportedException
     { throw new SQLFeatureNotSupportedException("javax.sql.DataSource.getParentLogger() is not currently supported by " + this.getClass().getName());}
 }

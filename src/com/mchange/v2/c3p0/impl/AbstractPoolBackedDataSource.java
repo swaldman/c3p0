@@ -51,6 +51,7 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
         PropertyChangeListener l = new PropertyChangeListener()
         {
 	    // we reset for all bound props: connectionPoolDataSource, numHelperThreads, identityToken
+            @Override
             public void propertyChange( PropertyChangeEvent evt )
             { resetPoolManager( false ); }
         };
@@ -97,6 +98,7 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
 
     // report our ID token as dataSourceName if we have no
     // name explicitly set
+    @Override
     public String getDataSourceName()
     {
  	String out = super.getDataSourceName();
@@ -106,226 +108,288 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     }
 
     //implementation of javax.sql.DataSource
+    @Override
     public Connection getConnection() throws SQLException
     {
         PooledConnection pc = getPoolManager().getPool().checkoutPooledConnection();
         return pc.getConnection();
     }
 
+    @Override
     public Connection getConnection(String username, String password) throws SQLException
     { 
         PooledConnection pc = getPoolManager().getPool(username, password).checkoutPooledConnection();
         return pc.getConnection();
     }
 
+    @Override
     public PrintWriter getLogWriter() throws SQLException
     { return assertCpds().getLogWriter(); }
 
+    @Override
     public void setLogWriter(PrintWriter out) throws SQLException
     { assertCpds().setLogWriter( out ); }
 
+    @Override
     public int getLoginTimeout() throws SQLException
     { return assertCpds().getLoginTimeout(); }
 
+    @Override
     public void setLoginTimeout(int seconds) throws SQLException
     { assertCpds().setLoginTimeout( seconds ); }
 
     //implementation of com.mchange.v2.c3p0.PoolingDataSource
+    @Override
     public int getNumConnections() throws SQLException
     { return getPoolManager().getPool().getNumConnections(); }
 
+    @Override
     public int getNumIdleConnections() throws SQLException
     { return getPoolManager().getPool().getNumIdleConnections(); }
 
+    @Override
     public int getNumBusyConnections() throws SQLException
     { return getPoolManager().getPool().getNumBusyConnections(); }
 
+    @Override
     public int getNumUnclosedOrphanedConnections() throws SQLException
     { return getPoolManager().getPool().getNumUnclosedOrphanedConnections(); }
 
+    @Override
     public int getNumConnectionsDefaultUser() throws SQLException
     { return getNumConnections();}
 
+    @Override
     public int getNumIdleConnectionsDefaultUser() throws SQLException
     { return getNumIdleConnections();}
 
+    @Override
     public int getNumBusyConnectionsDefaultUser() throws SQLException
     { return getNumBusyConnections();}
 
+    @Override
     public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException
     { return getNumUnclosedOrphanedConnections();}
 
+    @Override
     public int getStatementCacheNumStatementsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getStatementCacheNumStatements(); }
 
+    @Override
     public int getStatementCacheNumCheckedOutDefaultUser() throws SQLException
     { return getPoolManager().getPool().getStatementCacheNumCheckedOut(); }
 
+    @Override
     public int getStatementCacheNumConnectionsWithCachedStatementsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getStatementCacheNumConnectionsWithCachedStatements(); }
 
+    @Override
     public float getEffectivePropertyCycleDefaultUser() throws SQLException
     { return getPoolManager().getPool().getEffectivePropertyCycle(); }
     
+    @Override
     public long getStartTimeMillisDefaultUser() throws SQLException
     { return getPoolManager().getPool().getStartTime(); }
 
+    @Override
     public long getUpTimeMillisDefaultUser() throws SQLException
     { return getPoolManager().getPool().getUpTime(); }
     
+    @Override
     public long getNumFailedCheckinsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getNumFailedCheckins(); }
 
+    @Override
     public long getNumFailedCheckoutsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getNumFailedCheckouts(); }
 
+    @Override
     public long getNumFailedIdleTestsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getNumFailedIdleTests(); }
 
+    @Override
     public int getNumThreadsAwaitingCheckoutDefaultUser() throws SQLException
     { return getPoolManager().getPool().getNumThreadsAwaitingCheckout(); }
 
+    @Override
     public int getThreadPoolSize() throws SQLException
     { return getPoolManager().getThreadPoolSize(); }
 
+    @Override
     public int getThreadPoolNumActiveThreads() throws SQLException
     { return getPoolManager().getThreadPoolNumActiveThreads(); }
 
+    @Override
     public int getThreadPoolNumIdleThreads() throws SQLException
     { return getPoolManager().getThreadPoolNumIdleThreads(); }
 
+    @Override
     public int getThreadPoolNumTasksPending() throws SQLException
     { return getPoolManager().getThreadPoolNumTasksPending(); }
 
+    @Override
     public String sampleThreadPoolStackTraces() throws SQLException
     { return getPoolManager().getThreadPoolStackTraces(); }
 
+    @Override
     public String sampleThreadPoolStatus() throws SQLException
     { return getPoolManager().getThreadPoolStatus(); }
 
+    @Override
     public String sampleStatementCacheStatusDefaultUser() throws SQLException
     { return getPoolManager().getPool().dumpStatementCacheStatus(); }
     
+    @Override
     public String sampleStatementCacheStatus(String username, String password) throws SQLException
     { return assertAuthPool(username, password).dumpStatementCacheStatus(); }
     
+    @Override
     public Throwable getLastAcquisitionFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastAcquisitionFailure(); }
 
+    @Override
     public Throwable getLastCheckinFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastCheckinFailure(); }
 
+    @Override
     public Throwable getLastCheckoutFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastCheckoutFailure(); }
 
+    @Override
     public Throwable getLastIdleTestFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastIdleTestFailure(); }
 
+    @Override
     public Throwable getLastConnectionTestFailureDefaultUser() throws SQLException
     { return getPoolManager().getPool().getLastConnectionTestFailure(); }
     
+    @Override
     public Throwable getLastAcquisitionFailure(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getLastAcquisitionFailure(); }
 
+    @Override
     public Throwable getLastCheckinFailure(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getLastCheckinFailure(); }
 
+    @Override
     public Throwable getLastCheckoutFailure(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getLastCheckoutFailure(); }
 
+    @Override
     public Throwable getLastIdleTestFailure(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getLastIdleTestFailure(); }
 
+    @Override
     public Throwable getLastConnectionTestFailure(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getLastConnectionTestFailure(); }
     
+    @Override
     public int getNumThreadsAwaitingCheckout(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getNumThreadsAwaitingCheckout(); }
 
+    @Override
     public String sampleLastAcquisitionFailureStackTraceDefaultUser() throws SQLException
     { 
         Throwable t = getLastAcquisitionFailureDefaultUser(); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
     
+    @Override
     public String sampleLastCheckinFailureStackTraceDefaultUser() throws SQLException
     { 
         Throwable t = getLastCheckinFailureDefaultUser(); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
     
+    @Override
     public String sampleLastCheckoutFailureStackTraceDefaultUser() throws SQLException
     { 
         Throwable t = getLastCheckoutFailureDefaultUser(); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
 
+    @Override
     public String sampleLastIdleTestFailureStackTraceDefaultUser() throws SQLException
     { 
         Throwable t = getLastIdleTestFailureDefaultUser(); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
 
+    @Override
     public String sampleLastConnectionTestFailureStackTraceDefaultUser() throws SQLException
     { 
         Throwable t = getLastConnectionTestFailureDefaultUser();
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
     
+    @Override
     public String sampleLastAcquisitionFailureStackTrace(String username, String password) throws SQLException
     { 
         Throwable t = getLastAcquisitionFailure(username, password); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
 
+    @Override
     public String sampleLastCheckinFailureStackTrace(String username, String password) throws SQLException
     { 
         Throwable t = getLastCheckinFailure(username, password); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
 
+    @Override
     public String sampleLastCheckoutFailureStackTrace(String username, String password) throws SQLException
     { 
         Throwable t = getLastCheckoutFailure(username, password); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
 
+    @Override
     public String sampleLastIdleTestFailureStackTrace(String username, String password) throws SQLException
     { 
         Throwable t = getLastIdleTestFailure(username, password); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
 
+    @Override
     public String sampleLastConnectionTestFailureStackTrace(String username, String password) throws SQLException
     { 
         Throwable t = getLastConnectionTestFailure(username, password); 
         return t == null ? null : ThrowableUtils.extractStackTrace( t ); 
     }
 
+    @Override
     public void softResetDefaultUser() throws SQLException
     { getPoolManager().getPool().reset(); }
 
+    @Override
     public int getNumConnections(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getNumConnections(); }
 
+    @Override
     public int getNumIdleConnections(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getNumIdleConnections(); }
 
+    @Override
     public int getNumBusyConnections(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getNumBusyConnections(); }
 
+    @Override
     public int getNumUnclosedOrphanedConnections(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getNumUnclosedOrphanedConnections(); }
 
+    @Override
     public int getStatementCacheNumStatements(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getStatementCacheNumStatements(); }
 
+    @Override
     public int getStatementCacheNumCheckedOut(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getStatementCacheNumCheckedOut(); }
 
+    @Override
     public int getStatementCacheNumConnectionsWithCachedStatements(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getStatementCacheNumConnectionsWithCachedStatements(); }
 
+    @Override
     public float getEffectivePropertyCycle(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getEffectivePropertyCycle(); }
 
@@ -344,84 +408,110 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     public long getNumFailedIdleTests(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getNumFailedIdleTests(); }
 
+    @Override
     public void softReset(String username, String password) throws SQLException
     { assertAuthPool(username, password).reset(); }
 
+    @Override
     public int getNumBusyConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumBusyConnectionsAllAuths(); }
 
+    @Override
     public int getNumIdleConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumIdleConnectionsAllAuths(); }
 
+    @Override
     public int getNumConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumConnectionsAllAuths(); }
 
+    @Override
     public int getNumUnclosedOrphanedConnectionsAllUsers() throws SQLException
     { return getPoolManager().getNumUnclosedOrphanedConnectionsAllAuths(); }
 
+    @Override
     public int getStatementCacheNumStatementsAllUsers() throws SQLException
     { return getPoolManager().getStatementCacheNumStatementsAllUsers(); }
 
+    @Override
     public int getStatementCacheNumCheckedOutStatementsAllUsers() throws SQLException
     { return getPoolManager().getStatementCacheNumCheckedOutStatementsAllUsers(); }
 
+    @Override
     public int getStatementCacheNumConnectionsWithCachedStatementsAllUsers() throws SQLException
     { return getPoolManager().getStatementCacheNumConnectionsWithCachedStatementsAllUsers(); }
 
     // Statement Destroyer stuff
 
+    @Override
     public int getStatementDestroyerNumConnectionsInUseAllUsers() throws SQLException
     { return getPoolManager().getStatementDestroyerNumConnectionsInUseAllUsers(); }
 
+    @Override
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatementsAllUsers() throws SQLException
     { return getPoolManager().getStatementDestroyerNumConnectionsWithDeferredDestroyStatementsAllUsers(); }
 
+    @Override
     public int getStatementDestroyerNumDeferredDestroyStatementsAllUsers() throws SQLException
     { return getPoolManager().getStatementDestroyerNumDeferredDestroyStatementsAllUsers(); }
 
+    @Override
     public int getStatementDestroyerNumConnectionsInUseDefaultUser() throws SQLException
     { return getPoolManager().getPool().getStatementDestroyerNumConnectionsInUse(); }
 
+    @Override
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatementsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getStatementDestroyerNumConnectionsWithDeferredDestroyStatements(); }
 
+    @Override
     public int getStatementDestroyerNumDeferredDestroyStatementsDefaultUser() throws SQLException
     { return getPoolManager().getPool().getStatementDestroyerNumDeferredDestroyStatements(); }
 
+    @Override
     public int getStatementDestroyerNumThreads() throws SQLException
     { return getPoolManager().getStatementDestroyerNumThreads(); }
 
+    @Override
     public int getStatementDestroyerNumActiveThreads() throws SQLException
     { return getPoolManager().getStatementDestroyerNumActiveThreads(); }
 
+    @Override
     public int getStatementDestroyerNumIdleThreads() throws SQLException
     { return getPoolManager().getStatementDestroyerNumIdleThreads(); }
 
+    @Override
     public int getStatementDestroyerNumTasksPending() throws SQLException
     { return getPoolManager().getStatementDestroyerNumTasksPending(); }
 
+    @Override
     public int getStatementDestroyerNumConnectionsInUse(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getStatementDestroyerNumConnectionsInUse(); }
 
+    @Override
     public int getStatementDestroyerNumConnectionsWithDeferredDestroyStatements(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getStatementDestroyerNumConnectionsWithDeferredDestroyStatements(); }
 
+    @Override
     public int getStatementDestroyerNumDeferredDestroyStatements(String username, String password) throws SQLException
     { return assertAuthPool(username, password).getStatementDestroyerNumDeferredDestroyStatements(); }
 
+    @Override
     public String sampleStatementDestroyerStackTraces() throws SQLException
     { return getPoolManager().getStatementDestroyerStackTraces(); }
 
+    @Override
     public String sampleStatementDestroyerStatus() throws SQLException
     { return getPoolManager().getStatementDestroyerStatus(); }
 
 
+    @Override
     public void softResetAllUsers() throws SQLException
     { getPoolManager().softResetAllAuths(); }
 
+    @Override
     public int getNumUserPools() throws SQLException
     { return getPoolManager().getNumManagedAuths(); }
 
+    @Override
     public Collection getAllUsers() throws SQLException
     {
         LinkedList out = new LinkedList();
@@ -437,11 +527,13 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
      * presently using them. See the comment on that method: the hazard is known, longstanding, and
      * deliberately left alone. It is of a piece with what hardReset() is for.
      */
+    @Override
     public synchronized void hardReset()
     {
         resetPoolManager(); 
     }
 
+    @Override
     public void close()
     { 
 	// we use tight locking to...
@@ -467,6 +559,7 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
      * @deprecated the force_destroy argument is now meaningless, as pools are no longer
      *             potentially shared between multiple DataSources.
      */
+    @Override
     public void close(boolean force_destroy)
     { close(); }
 
@@ -545,11 +638,13 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     protected final boolean isWrapperForThis(Class<?> iface)
     { return iface.isAssignableFrom( this.getClass() ); }
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
 	return isWrapperForThis( iface );
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
 	if ( this.isWrapperForThis( iface ) )

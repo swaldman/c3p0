@@ -189,6 +189,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 
     // debug
     //volatile Exception firstPull = null;
+    @Override
     public synchronized Connection getConnection() throws SQLException
     {
         try
@@ -248,6 +249,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
      * If scache is non-null, callers must ALREADY have marked the Connection in use
      * before calling this method!
      */
+    @Override
     synchronized void closeMaybeCheckedOut( boolean checked_out ) throws SQLException
     { close( null, checked_out ); }
 
@@ -255,18 +257,22 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
      * If scache is non-null, callers must ALREADY have marked the Connection in use
      * before calling this method!
      */
+    @Override
     public synchronized void close() throws SQLException
     { close( null ); }
 
+    @Override
     public void addConnectionEventListener(ConnectionEventListener cel)
     { ces.addConnectionEventListener( cel );  }
 
+    @Override
     public void removeConnectionEventListener(ConnectionEventListener cel)
     { ces.removeConnectionEventListener( cel );  }
 
     public void printConnectionListeners()
     { ces.printListeners(); }
 
+    @Override
     public void addStatementEventListener(StatementEventListener sel)
     {
 	if (logger.isLoggable( MLevel.INFO ))
@@ -276,6 +282,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
 	ses.addStatementEventListener( sel );
     }
 
+    @Override
     public void removeStatementEventListener(StatementEventListener sel)
     {
 	ses.removeStatementEventListener( sel );
@@ -285,6 +292,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     { ses.printListeners(); }
 
     // api for C3P0PooledConnectionPool
+    @Override
     public synchronized void initStatementCache( GooGooStatementCache scache )
     { this.scache = scache; }
 
@@ -908,6 +916,7 @@ public final class NewPooledConnection extends AbstractC3P0PooledConnection{
     }
 
 //  used by C3P0PooledConnectionPool
+    @Override
     Connection getPhysicalConnection()
     { return physicalConnection; }
 

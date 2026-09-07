@@ -18,6 +18,7 @@ public class C3P0JavaBeanObjectFactory extends JavaBeanObjectFactory
         this.setConfigFinder(C3P0CurrentConfigFinder.INSTANCE);
     }
 
+    @Override
     protected Object createBlankInstance(Class beanClass) throws Exception
     {
 	if ( IdentityTokenized.class.isAssignableFrom( beanClass ) )
@@ -29,6 +30,7 @@ public class C3P0JavaBeanObjectFactory extends JavaBeanObjectFactory
 	    return super.createBlankInstance( beanClass );
     }
 
+    @Override
     protected Object findBean(Class beanClass, Map propertyMap, Set refProps ) throws Exception
     {
 	Object out = super.findBean( beanClass, propertyMap, refProps );

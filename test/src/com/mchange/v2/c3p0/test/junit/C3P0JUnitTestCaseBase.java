@@ -7,6 +7,7 @@ public abstract class C3P0JUnitTestCaseBase extends TestCase
 {
     protected ComboPooledDataSource cpds;
 
+    @Override
     protected void setUp() 
     {
         //we let this stuff get setup in c3p0.properties now
@@ -27,6 +28,7 @@ public abstract class C3P0JUnitTestCaseBase extends TestCase
     */
     }
 
+    @Override
     protected void tearDown() 
     { 
 	try { cpds.close(); }

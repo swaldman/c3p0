@@ -58,6 +58,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	VetoableChangeListener vetoableChangesListener = new VetoableChangeListener()
 	{
 	    // always called within synchronized mutators of the parent class... needn't explicitly sync here
+	    @Override
 	    public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
 	    {
 		String propName = evt.getPropertyName();
@@ -111,6 +112,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 
     // implementation of javax.sql.ConnectionPoolDataSource
 
+    @Override
     public PooledConnection getPooledConnection()
 	throws SQLException
     { return this.getPooledConnection( (ConnectionCustomizer) null, null ); }
@@ -118,6 +120,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     // getNestedDataSource() is sync'ed, which is enough. Unsync'ed this method,
     // because when sync'ed a hang in retrieving one connection blocks all
     //
+    @Override
     protected PooledConnection getPooledConnection( ConnectionCustomizer cc, String pdsIdt )
 	throws SQLException
     { 
@@ -160,6 +163,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	}
     } 
  
+    @Override
     public PooledConnection getPooledConnection(String user, String password)
 	throws SQLException
     { return this.getPooledConnection( user, password, null, null ); }
@@ -167,6 +171,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     // getNestedDataSource() is sync'ed, which is enough. Unsync'ed this method,
     // because when sync'ed a hang in retrieving one connection blocks all
     //
+    @Override
     protected PooledConnection getPooledConnection(String user, String password, ConnectionCustomizer cc, String pdsIdt)
 	throws SQLException
     {
@@ -262,18 +267,22 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	return (override == null ? this.getConnectionTesterClassName() : override);
     }
 
+    @Override
     public PrintWriter getLogWriter()
 	throws SQLException
     { return getNestedDataSource().getLogWriter(); }
 
+    @Override
     public void setLogWriter(PrintWriter out)
 	throws SQLException
     { getNestedDataSource().setLogWriter( out ); }
 
+    @Override
     public void setLoginTimeout(int seconds)
 	throws SQLException
     { getNestedDataSource().setLoginTimeout( seconds ); }
 
+    @Override
     public int getLoginTimeout()
 	throws SQLException
     { return getNestedDataSource().getLoginTimeout(); }
@@ -313,6 +322,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     private synchronized void setUserOverrides(Map userOverrides)
     { this.userOverrides = userOverrides; }
 
+    @Override
     public String toString()
     {
 	StringBuffer sb = new StringBuffer();
@@ -324,6 +334,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	return sb.toString();
     }
 
+    @Override
     protected synchronized String extraToStringInfo()
     {
 	if (userOverrides != null)

@@ -6,6 +6,7 @@ public final class IdentityTokenizedCoalesceChecker implements CoalesceChecker
 {
     public static IdentityTokenizedCoalesceChecker INSTANCE = new IdentityTokenizedCoalesceChecker();
 
+    @Override
     public boolean checkCoalesce( Object a, Object b )
     {
 	IdentityTokenized aa = (IdentityTokenized) a;
@@ -20,6 +21,7 @@ public final class IdentityTokenizedCoalesceChecker implements CoalesceChecker
 	    return ta.equals(tb);
     }
     
+    @Override
     public int coalesceHash( Object a )
     { 
 	String t = ((IdentityTokenized) a).getIdentityToken();

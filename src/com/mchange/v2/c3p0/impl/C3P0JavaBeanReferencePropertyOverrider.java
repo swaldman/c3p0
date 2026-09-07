@@ -21,6 +21,7 @@ public class C3P0JavaBeanReferencePropertyOverrider implements JavaBeanReference
             AbstractComboPooledDataSource.class.isAssignableFrom(beanClass);
     }
 
+    @Override
     public RefAddr overrideRefAddr(Class beanClass, PropertiesConfig pcfg, String propName, Class propType, Object val) throws Exception // null means don't override encoding
     {
         if ( extensionsDataSource(beanClass) && "extensions".equals(propName) && propType == Map.class)
@@ -33,6 +34,7 @@ public class C3P0JavaBeanReferencePropertyOverrider implements JavaBeanReference
                 return null;
             }
     }
+    @Override
     public Object overrideDecodeRefAddr(Class beanClass, PropertiesConfig pcfg, String propName, Class propType, RefAddr refAddr) throws Exception // null means don't override decoding
     {
         if ( extensionsDataSource(beanClass) && "extensions".equals(propName) && propType == Map.class)

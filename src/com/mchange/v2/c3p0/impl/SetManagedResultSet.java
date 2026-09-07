@@ -19,12 +19,14 @@ abstract class SetManagedResultSet extends FilterResultSet
  	this.activeResultSets = activeResultSets; 
     }
 
+    @Override
     public synchronized void setInner(ResultSet inner)
     {
 	this.inner = inner;
 	activeResultSets.add( inner );
     }
     
+    @Override
     public synchronized void close() throws SQLException
     { 
 	if ( inner != null )

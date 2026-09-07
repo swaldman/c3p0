@@ -8,15 +8,19 @@ import com.mchange.v2.io.IndentedWriter;
 
 public class UnsupportedParentLoggerGeneratorExtension implements GeneratorExtension
 {
+    @Override
     public Collection extraGeneralImports()
     { return Collections.EMPTY_SET; }
 
+    @Override
     public Collection extraSpecificImports()
     { return Arrays.asList( new String[]{"java.util.logging.Logger", "java.sql.SQLFeatureNotSupportedException"} ); }
 
+    @Override
     public Collection extraInterfaceNames()
     { return Collections.EMPTY_SET; }
 
+    @Override
     public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 	throws IOException
     {

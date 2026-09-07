@@ -111,6 +111,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
     
     PropertyChangeListener pcl = new PropertyChangeListener()
     {
+        @Override
         public void propertyChange(PropertyChangeEvent evt)
         {
             String propName = evt.getPropertyName();
@@ -305,6 +306,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         return (MBeanOperationInfo[]) attrInfos.toArray( new MBeanOperationInfo[ attrInfos.size() ] );
     }
 
+    @Override
     public synchronized Object getAttribute(String attr) throws AttributeNotFoundException, MBeanException, ReflectionException
     {
         try
@@ -336,6 +338,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         }
     }
 
+    @Override
     public synchronized AttributeList getAttributes(String[] attrs)
     {
         AttributeList al = new AttributeList();
@@ -370,6 +373,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
             return null;
     }
 
+    @Override
     public synchronized MBeanInfo getMBeanInfo()
     { 
         if (info == null)
@@ -377,6 +381,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         return info; 
     }
 
+    @Override
     public synchronized Object invoke(String operation, Object[] paramVals, String[] signature) throws MBeanException, ReflectionException
     {
         try
@@ -419,6 +424,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         { throw new MBeanException(e); }
     }
 
+    @Override
     public synchronized void setAttribute(Attribute attrObj) throws AttributeNotFoundException, InvalidAttributeValueException, MBeanException, ReflectionException
     {
         try
@@ -502,6 +508,7 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         }
     }
 
+    @Override
     public synchronized AttributeList setAttributes(AttributeList al)
     {
         AttributeList out = new AttributeList();

@@ -34,6 +34,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
     protected HashMap otherPropertiesFromConnectionPoolDataSource(ConnectionPoolDataSource cpds)
     { return new HashMap(); }
 
+    @Override
     public ThreadPoolReportingAsynchronousRunner createTaskRunner(
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
@@ -120,6 +121,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
 
             WrapperRunnable(Runnable inner) { this.inner = inner; }
 
+            @Override
             public void run()
             {
                 try
@@ -161,6 +163,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             public synchronized String getCarrierName() { return carrier.getName(); }
         }
 
+        @Override
         public synchronized void postRunnable(Runnable r)
         {
             if (isClosed())
@@ -173,12 +176,14 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             {
                 TimerTask tt = new TimerTask()
                 {
+                    @Override
                     public void run() { wr.interrupt(); }
                 };
                 timer.schedule( tt, matt_ms );
             }
         }
 
+        @Override
         public synchronized void close( boolean skip_remaining_tasks )
         {
             if (!is_closed)
@@ -211,14 +216,20 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
                 is_closed = true;
             }
         }
+        @Override
         public void close() { close( true ); }
 
         /* Override these when you know more! */
+        @Override
         public int getThreadCount()      { return -1; }
+        @Override
         public int getActiveCount()      { return activeCount(); }
+        @Override
         public int getIdleCount()        { return -1; }
+        @Override
         public int getPendingTaskCount() { return -1; }
 
+        @Override
         public String getStatus()
         {
             int tc  = getThreadCount();
@@ -237,6 +248,7 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
             return sb.toString();
         }
 
+        @Override
         public String getStackTraces()
         {
             StringBuilder sb = new StringBuilder(4096); // XXX: hard-coded
@@ -268,6 +280,8 @@ public abstract class AbstractExecutorTaskRunnerFactory implements TaskRunnerFac
         }
     }
 
+    @Override
     public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    @Override
     public int hashCode() { return this.getClass().getName().hashCode(); }
 }

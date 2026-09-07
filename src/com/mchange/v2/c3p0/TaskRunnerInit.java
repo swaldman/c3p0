@@ -35,6 +35,7 @@ public final class TaskRunnerInit
             this.otherProperties = Collections.unmodifiableMap( (HashMap) otherProperties.clone() );
         }
 
+    @Override
     public boolean equals( Object o )
     {
         if (o instanceof TaskRunnerInit)
@@ -52,6 +53,7 @@ public final class TaskRunnerInit
             return false;
     }
 
+    @Override
     public int hashCode()
     {
         return

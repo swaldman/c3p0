@@ -23,6 +23,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
     public DefaultC3P0ConfigFinder() 
     { this( false ); }   
 
+    @Override
     public C3P0Config findConfig() throws Exception
     {
 	C3P0Config out;

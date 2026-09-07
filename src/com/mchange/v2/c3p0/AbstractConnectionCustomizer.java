@@ -18,18 +18,24 @@ public abstract class AbstractConnectionCustomizer implements ConnectionCustomiz
     protected Map extensionsForToken( String parentDataSourceIdentityToken )
     { return C3P0Registry.extensionsForToken( parentDataSourceIdentityToken ); }
 
+    @Override
     public void onAcquire( Connection c, String parentDataSourceIdentityToken ) throws Exception
     {}
 
+    @Override
     public void onDestroy( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {}
 
+    @Override
     public void onCheckOut( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {}
 
+    @Override
     public void onCheckIn( Connection c, String parentDataSourceIdentityToken  ) throws Exception
     {}
 
+    @Override
     public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    @Override
     public int hashCode() { return this.getClass().getName().hashCode(); }
 }

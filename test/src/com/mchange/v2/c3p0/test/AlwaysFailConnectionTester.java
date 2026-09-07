@@ -14,25 +14,30 @@ public final class AlwaysFailConnectionTester implements QueryConnectionTester
 	logger.log(MLevel.WARNING,  "Instantiated: " + this, new Exception("Instantiation Stack Trace.") );
     }
 
+    @Override
     public int activeCheckConnection(Connection c)
     {
 	logger.warning(this + ": activeCheckConnection(Connection c)");
 	return CONNECTION_IS_INVALID; 
     }
 
+    @Override
     public int statusOnException(Connection c, Throwable t)
     { 
 	logger.warning(this + ": statusOnException(Connection c, Throwable t)");
 	return CONNECTION_IS_INVALID; 
     }
 
+    @Override
     public int activeCheckConnection(Connection c, String preferredTestQuery)
     { 
 	logger.warning(this + ": activeCheckConnection(Connection c, String preferredTestQuery)");
 	return CONNECTION_IS_INVALID; 
     }
 
+    @Override
     public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    @Override
     public int hashCode() { return this.getClass().getName().hashCode(); }
 }
 

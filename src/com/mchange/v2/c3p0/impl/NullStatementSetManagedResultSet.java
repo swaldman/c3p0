@@ -19,6 +19,7 @@ NullStatementSetManagedResultSet(Set activeResultSets)
 NullStatementSetManagedResultSet(ResultSet inner, Set activeResultSets)
 { super( inner, activeResultSets); }
 
+@Override
 public Statement getStatement()
 { return null; }
 }

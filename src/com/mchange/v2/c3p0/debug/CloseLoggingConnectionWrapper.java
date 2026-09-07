@@ -17,6 +17,7 @@ public class CloseLoggingConnectionWrapper extends FilterConnection
 	this.level = level;
     }
 
+    @Override
     public void close() throws SQLException
     {
 	super.close();

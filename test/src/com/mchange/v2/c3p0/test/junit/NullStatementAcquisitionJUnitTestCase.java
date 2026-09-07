@@ -78,6 +78,7 @@ public final class NullStatementAcquisitionJUnitTestCase extends TestCase
 
         Thread checkout = new Thread("nullstmt-checkout")
         {
+            @Override
             public void run()
             {
                 try

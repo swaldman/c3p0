@@ -82,6 +82,7 @@ public class BeangenDataSourceGenerator
 		// tightly coupled to the implementation of SimplePropertyBeanGenerator!
 		IndirectingSerializableExtension idse = new IndirectingSerializableExtension("com.mchange.v2.naming.ReferenceIndirector", "com.mchange.v2.c3p0.cfg.C3P0Config.getMultiPropertiesConfig()")
 		    {
+			@Override
 			protected void generateExtraSerInitializers(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 			    throws IOException
 			{
@@ -91,6 +92,7 @@ public class BeangenDataSourceGenerator
 				iw.println("this.vcs = new VetoableChangeSupport( this );");
 			}
 
+			@Override
 			protected void writeIndirectStoreObject( Property prop, Class propType, IndentedWriter iw ) throws IOException
 			{
 			    iw.println("com.mchange.v2.log.MLog.getLogger( this.getClass() ).log(com.mchange.v2.log.MLevel.FINE, \042Direct serialization provoked a NotSerializableException! Trying indirect.\042, nse);");
@@ -149,8 +151,10 @@ public class BeangenDataSourceGenerator
 
     static class BooleanInitIdentityTokenConstructortorGeneratorExtension implements GeneratorExtension
     {
+	@Override
 	public Collection extraGeneralImports()  {return Collections.EMPTY_SET;} 
 
+	@Override
 	public Collection extraSpecificImports() 
 	{
 	    Set out = new HashSet();
@@ -158,8 +162,10 @@ public class BeangenDataSourceGenerator
 	    return out;
 	}
 
+	@Override
 	public Collection extraInterfaceNames()  {return Collections.EMPTY_SET;}
 
+	@Override
 	public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 	    throws IOException
 	{
@@ -183,8 +189,10 @@ public class BeangenDataSourceGenerator
 
     static class WcpdsExtrasGeneratorExtension implements GeneratorExtension
     {
+	@Override
 	public Collection extraGeneralImports()  {return Collections.EMPTY_SET;} 
 
+	@Override
 	public Collection extraSpecificImports() 
 	{
 	    Set out = new HashSet();
@@ -194,8 +202,10 @@ public class BeangenDataSourceGenerator
 	    return out;
 	}
 
+	@Override
 	public Collection extraInterfaceNames()  {return Collections.EMPTY_SET;}
 
+	@Override
 	public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 	    throws IOException
 	{
@@ -220,6 +230,7 @@ public class BeangenDataSourceGenerator
 	    ccge = new CompleteConstructorGeneratorExtension();
 	}	
 
+	@Override
 	public Collection extraGeneralImports()  
 	{
 	    Set out = new HashSet();
@@ -228,6 +239,7 @@ public class BeangenDataSourceGenerator
 	    return out;
 	}
 
+	@Override
 	public Collection extraSpecificImports() 
 	{
 	    Set out = new HashSet();
@@ -236,8 +248,10 @@ public class BeangenDataSourceGenerator
 	    return out;
 	}
 
+	@Override
 	public Collection extraInterfaceNames()  {return Collections.EMPTY_SET;}
 
+	@Override
 	public void generate(ClassInfo info, Class superclassType, Property[] props, Class[] propTypes, IndentedWriter iw)
 	    throws IOException
 	{

@@ -390,6 +390,7 @@ public final class C3P0ImplUtils
 	    ContextClassLoaderPoolsInitThread( ClassLoader ccl )
 	    { this.setContextClassLoader( ccl ); }
 
+	    @Override
 	    public void run()
 	    { maybePrivilegedRun( privilege_spawned_threads, runnable ); }
 	};
@@ -428,6 +429,7 @@ public final class C3P0ImplUtils
 	{
 	    PrivilegedAction privilegedRun = new PrivilegedAction()
 	    {
+		@Override
 		public Object run()
 		{
 		    runnable.run();

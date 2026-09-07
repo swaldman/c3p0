@@ -7,6 +7,7 @@ public class C3P0CurrentConfigFinder implements CurrentConfigFinder
 {
     public static C3P0CurrentConfigFinder INSTANCE = new C3P0CurrentConfigFinder();
 
+    @Override
     public PropertiesConfig findCurrentConfig()
     { return C3P0Config.getMultiPropertiesConfig(); }
 

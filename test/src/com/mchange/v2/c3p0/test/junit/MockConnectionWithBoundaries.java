@@ -11,6 +11,7 @@ public class MockConnectionWithBoundaries implements Connection {
 
   }
 
+  @Override
   public void beginRequest() throws SQLException {
     MockDriver.beginRequestCount.getAndIncrement();
     System.err.println("MockConnectionWithBoundaries.beginRequest called.");
@@ -86,6 +87,7 @@ public class MockConnectionWithBoundaries implements Connection {
     return null;
   }
 
+  @Override
   public void endRequest() throws SQLException {
     MockDriver.endRequestCount.getAndIncrement();
     System.err.println("MockConnectionWithBoundaries.endRequest called.");

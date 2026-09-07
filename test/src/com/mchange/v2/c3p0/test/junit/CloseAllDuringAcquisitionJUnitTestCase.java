@@ -62,6 +62,7 @@ public final class CloseAllDuringAcquisitionJUnitTestCase extends TestCase
     private GooGooStatementCache         cache;
     private Connection                   conn;
 
+    @Override
     public void setUp() throws Exception
     {
         this.cfg    = FakeDriverConfig.register("closeAllRace-" + System.nanoTime(), 3L);
@@ -71,6 +72,7 @@ public final class CloseAllDuringAcquisitionJUnitTestCase extends TestCase
         this.conn   = FakeConnection.create( cfg );
     }
 
+    @Override
     public void tearDown() throws Exception
     {
         if ( cfg != null )
@@ -171,6 +173,7 @@ public final class CloseAllDuringAcquisitionJUnitTestCase extends TestCase
             this.setDaemon( true );
         }
 
+        @Override
         public void run()
         {
             try

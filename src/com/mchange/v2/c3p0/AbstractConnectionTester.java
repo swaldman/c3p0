@@ -33,33 +33,43 @@ public abstract class AbstractConnectionTester implements UnifiedConnectionTeste
      *  Override, but remember that <code>preferredTestQuery</code> and <code>rootCauseOutParamHolder</code>
      *  can be null.
      */
+    @Override
     public abstract int activeCheckConnection(Connection c, String preferredTestQuery, Throwable[] rootCauseOutParamHolder);
 
     /**
      *  Override, but remember that <code>preferredTestQuery</code> and <code>rootCauseOutParamHolder</code>
      *  can be null.
      */
+    @Override
     public abstract int statusOnException(Connection c, Throwable t, String preferredTestQuery, Throwable[] rootCauseOutParamHolder);
 
     //usually just leave the rest of these as-is
+    @Override
     public int activeCheckConnection(Connection c)
     { return activeCheckConnection( c, null, null); }
 
+    @Override
     public int activeCheckConnection(Connection c, Throwable[] rootCauseOutParamHolder)
     { return activeCheckConnection( c, null, rootCauseOutParamHolder); }
 
+    @Override
     public int activeCheckConnection(Connection c, String preferredTestQuery)
     { return activeCheckConnection( c, preferredTestQuery, null); }
 
+    @Override
     public int statusOnException(Connection c, Throwable t)
     { return statusOnException( c, t, null, null); }
 
+    @Override
     public int statusOnException(Connection c, Throwable t, Throwable[] rootCauseOutParamHolder)
     { return statusOnException( c, t, null, rootCauseOutParamHolder); }
 
+    @Override
     public int statusOnException(Connection c, Throwable t, String preferredTestQuery)
     { return statusOnException( c, t, preferredTestQuery, null); }
 
+    @Override
     public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    @Override
     public int hashCode() { return this.getClass().getName().hashCode(); }
 }

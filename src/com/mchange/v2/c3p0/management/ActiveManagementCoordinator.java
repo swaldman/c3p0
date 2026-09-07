@@ -43,6 +43,7 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
     }
 
 
+    @Override
     public void attemptManageC3P0Registry() 
     {
         try
@@ -74,6 +75,7 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
         }
     }
 
+    @Override
     public void attemptUnmanageC3P0Registry() 
     {
         try
@@ -97,6 +99,7 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
         }
     }
     
+    @Override
     public void attemptManagePooledDataSource(PooledDataSource pds) 
     {
 	String name = null;
@@ -132,6 +135,7 @@ public class ActiveManagementCoordinator implements ManagementCoordinator
     }
    
     
+    @Override
     public void attemptUnmanagePooledDataSource(PooledDataSource pds) 
     {
         String nameStr = null;

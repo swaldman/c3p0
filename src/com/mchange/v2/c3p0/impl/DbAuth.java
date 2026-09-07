@@ -42,6 +42,7 @@ public final class DbAuth implements Serializable
 	 }
     }
 
+    @Override
     public boolean equals(Object o)
     {
 	if (this == o)
@@ -57,6 +58,7 @@ public final class DbAuth implements Serializable
 	    return false;
     }
 
+    @Override
     public int hashCode()
     { 
 	return 

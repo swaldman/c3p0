@@ -255,6 +255,7 @@ public interface PooledDataSource extends DataSource, AutoCloseable
      *
      * @see DataSources#destroy
      */
+    @Override
     public void close() throws SQLException;
 
     /**

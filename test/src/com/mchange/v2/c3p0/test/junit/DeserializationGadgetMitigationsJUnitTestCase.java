@@ -467,6 +467,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
         // Create a dummy Referenceable to produce the IndirectlySerialized form
         Referenceable dummyReferenceable = new Referenceable()
         {
+            @Override
             public Reference getReference() throws NamingException
             {
                 return new Reference(
@@ -514,6 +515,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
 
         Referenceable dummyReferenceable = new Referenceable()
         {
+            @Override
             public Reference getReference() throws NamingException
             {
                 return new Reference(
@@ -645,6 +647,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
         ReferenceIndirector indirector = new ReferenceIndirector();
         Referenceable dummyReferenceable = new Referenceable()
         {
+            @Override
             public Reference getReference() throws NamingException
             {
                 return new Reference(
@@ -697,6 +700,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
         ReferenceIndirector indirector = new ReferenceIndirector();
         Referenceable dummyReferenceable = new Referenceable()
         {
+            @Override
             public Reference getReference() throws NamingException
             {
                 return new Reference(
@@ -745,6 +749,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
         final PropertiesConfig base = C3P0Config.getMultiPropertiesConfig();
         return new PropertiesConfig()
         {
+            @Override
             public String getProperty( String key )
             {
                 if ( SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE.equals( key ) )
@@ -752,6 +757,7 @@ public final class DeserializationGadgetMitigationsJUnitTestCase extends TestCas
                 else
                     return base.getProperty( key );
             }
+            @Override
             public java.util.Properties getPropertiesByPrefix( String pfx )
             { return base.getPropertiesByPrefix( pfx ); }
         };

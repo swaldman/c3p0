@@ -187,124 +187,155 @@ public class BasicResourcePoolFactory extends ResourcePoolFactory
      * be ignored, and the pool will start
      * with min.
      */
+    @Override
     public synchronized void setStart( int start )
 	throws ResourcePoolException
     { this.start = start; }
 
+    @Override
     public synchronized int getStart()
 	throws ResourcePoolException
     { return start; } 
 
+    @Override
     public synchronized void setMin( int min )
 	throws ResourcePoolException
     { this.min = min; }
 
+    @Override
     public synchronized int getMin()
 	throws ResourcePoolException
     { return min; }
 
+    @Override
     public synchronized void setMax( int max )
 	throws ResourcePoolException
     { this.max = max; }
 
+    @Override
     public synchronized int getMax()
 	throws ResourcePoolException
     { return max; }
 
+    @Override
     public synchronized void setIncrement( int inc )
 	throws ResourcePoolException
     { this.inc = inc; }
 
+    @Override
     public synchronized int getIncrement()
 	throws ResourcePoolException
     { return inc; }
 
+    @Override
     public synchronized void setAcquisitionRetryAttempts( int retry_attempts )
 	throws ResourcePoolException
     { this.retry_attempts = retry_attempts; }
 
+    @Override
     public synchronized int getAcquisitionRetryAttempts()
 	throws ResourcePoolException
     { return retry_attempts; }
 
+    @Override
     public synchronized void setAcquisitionRetryDelay( int retry_delay )
 	throws ResourcePoolException
     { this.retry_delay = retry_delay; }
 
+    @Override
     public synchronized int getAcquisitionRetryDelay()
 	throws ResourcePoolException
     { return retry_delay; }
 
+    @Override
     public synchronized void setIdleResourceTestPeriod( long test_period )
     { this.idle_resource_test_period = test_period; }
 
+    @Override
     public synchronized long getIdleResourceTestPeriod()
     { return idle_resource_test_period; }
 
+    @Override
     public synchronized void setResourceMaxAge( long max_age )
 	throws ResourcePoolException
     { this.max_age = max_age; }
 
+    @Override
     public synchronized long getResourceMaxAge()
 	throws ResourcePoolException
     { return max_age; }
 
+    @Override
     public synchronized void setResourceMaxIdleTime( long millis )
 	throws ResourcePoolException
     { this.max_idle_time = millis; }
 
+    @Override
     public synchronized long getResourceMaxIdleTime()
 	throws ResourcePoolException
     { return max_idle_time; }
 
+    @Override
     public synchronized void setExcessResourceMaxIdleTime( long millis )
 	throws ResourcePoolException
     { this.excess_max_idle_time = millis; }
 
+    @Override
     public synchronized long getExcessResourceMaxIdleTime()
 	throws ResourcePoolException
     { return excess_max_idle_time; }
 
+    @Override
     public synchronized long getDestroyOverdueResourceTime()
 	throws ResourcePoolException
     { return destroy_overdue_resc_time; }
 
+    @Override
     public synchronized void setDestroyOverdueResourceTime( long millis )
 	throws ResourcePoolException
     { this.destroy_overdue_resc_time = millis; }
 
+    @Override
     public synchronized void setExpirationEnforcementDelay( long expiration_enforcement_delay )
 	throws ResourcePoolException
     { this.expiration_enforcement_delay = expiration_enforcement_delay; }
 
+    @Override
     public synchronized long getExpirationEnforcementDelay()
 	throws ResourcePoolException
     { return expiration_enforcement_delay; }
 
+    @Override
     public synchronized void setBreakOnAcquisitionFailure( boolean break_on_acquisition_failure )
 	throws ResourcePoolException
     { this.break_on_acquisition_failure = break_on_acquisition_failure; }
 
+    @Override
     public synchronized boolean getBreakOnAcquisitionFailure()
 	throws ResourcePoolException
     { return break_on_acquisition_failure; }
 
+    @Override
     public synchronized void setDebugStoreCheckoutStackTrace( boolean debug_store_checkout_stacktrace )
 	throws ResourcePoolException
     { this.debug_store_checkout_stacktrace = debug_store_checkout_stacktrace; }
 
+    @Override
     public synchronized boolean getDebugStoreCheckoutStackTrace()
 	throws ResourcePoolException
     { return debug_store_checkout_stacktrace; }
 
+    @Override
     public synchronized void setForceSynchronousCheckins( boolean force_synchronous_checkins )
 	throws ResourcePoolException
     { this.force_synchronous_checkins = force_synchronous_checkins; }
 
+    @Override
     public synchronized boolean getForceSynchronousCheckins()
 	throws ResourcePoolException
     { return force_synchronous_checkins; }
 
+    @Override
     public synchronized ResourcePool createPool(ResourcePool.Manager mgr)
 	throws ResourcePoolException
     {

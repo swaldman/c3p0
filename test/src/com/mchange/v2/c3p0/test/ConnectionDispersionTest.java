@@ -168,6 +168,7 @@ public final class ConnectionDispersionTest
 	synchronized int getCount()
 	{ return count; }
 
+	@Override
 	public void run()
 	{
 	    try

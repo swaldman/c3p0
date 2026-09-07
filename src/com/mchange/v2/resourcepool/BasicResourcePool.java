@@ -119,12 +119,15 @@ class BasicResourcePool implements ResourcePool
     //DEBUG only!
     Object exampleResource;
 
+    @Override
     public long getStartTime()
     { return pool_start_time; }
 
+    @Override
     public long getUpTime()
     { return System.currentTimeMillis() - pool_start_time; }
 
+    @Override
     public long getNumFailedCheckins()
     {
         lockMain.lock();
@@ -132,6 +135,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public long getNumFailedCheckouts()
     {
         lockMain.lock();
@@ -139,6 +143,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public long getNumFailedIdleTests()
     {
         lockMain.lock();
@@ -146,6 +151,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public Throwable getLastCheckinFailure()
     {
         lockMain.lock();
@@ -162,6 +168,7 @@ class BasicResourcePool implements ResourcePool
         this.lastResourceTestFailure = t;
     }
 
+    @Override
     public Throwable getLastCheckoutFailure()
     {
         lockMain.lock();
@@ -178,6 +185,7 @@ class BasicResourcePool implements ResourcePool
         this.lastResourceTestFailure = t;
     }
 
+    @Override
     public Throwable getLastIdleCheckFailure()
     {
         lockMain.lock();
@@ -194,6 +202,7 @@ class BasicResourcePool implements ResourcePool
         this.lastResourceTestFailure = t;
     }
 
+    @Override
     public Throwable getLastResourceTestFailure()
     {
         lockMain.lock();
@@ -201,6 +210,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public Throwable getLastAcquisitionFailure()
     {
         lockMain.lock();
@@ -216,6 +226,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public int getNumCheckoutWaiters()
     {
         lockMain.lock();
@@ -461,6 +472,7 @@ class BasicResourcePool implements ResourcePool
         return out;
     }
 
+    @Override
     public long getEffectiveExpirationEnforcementDelay()
     { return expiration_enforcement_delay; }
 
@@ -475,6 +487,7 @@ class BasicResourcePool implements ResourcePool
     private boolean supportsEvents()
     { return asyncEventQueue != null; }
 
+    @Override
     public Object checkoutResource()
     throws ResourcePoolException, InterruptedException
     {
@@ -608,6 +621,7 @@ class BasicResourcePool implements ResourcePool
      *
      * by the semantics of wait(), a timeout of zero means forever.
      */
+    @Override
     public Object checkoutResource( long timeout )
 	throws TimeoutException, ResourcePoolException, InterruptedException
     {
@@ -799,6 +813,7 @@ class BasicResourcePool implements ResourcePool
         { lockMain.unlock(); }
     }
 
+    @Override
     public void checkinResource( Object resc ) throws ResourcePoolException
     {
 	try
@@ -841,6 +856,7 @@ class BasicResourcePool implements ResourcePool
 	}
     }
 
+    @Override
     public void checkinAll() throws ResourcePoolException
     {
         try
@@ -877,6 +893,7 @@ class BasicResourcePool implements ResourcePool
         }
     }
 
+    @Override
     public int statusInPool( Object resc ) throws ResourcePoolException
     {
         lockMain.lock();
@@ -901,6 +918,7 @@ class BasicResourcePool implements ResourcePool
         { lockMain.unlock(); }
     }
 
+    @Override
     public void markBroken(Object resc)
     {
         lockMain.lock();
@@ -924,13 +942,16 @@ class BasicResourcePool implements ResourcePool
     }
 
     //min is immutable, no need to synchronize
+    @Override
     public int getMinPoolSize()
     { return min; }
 
     //max is immutable, no need to synchronize
+    @Override
     public int getMaxPoolSize()
     { return max; }
 
+    @Override
     public int getPoolSize() throws ResourcePoolException
     {
         lockMain.lock();
@@ -952,6 +973,7 @@ class BasicResourcePool implements ResourcePool
 //  postRemoveTowards( req_sz );
 //  }
 
+    @Override
     public int getAvailableCount()
     {
         lockMain.lock();
@@ -959,6 +981,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public int getExcludedCount()
     {
         lockMain.lock();
@@ -966,6 +989,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public int getAwaitingCheckinCount()
     {
         lockMain.lock();
@@ -973,6 +997,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public int getAwaitingCheckinNotExcludedCount()
     {
         lockMain.lock();
@@ -980,6 +1005,7 @@ class BasicResourcePool implements ResourcePool
         finally { lockMain.unlock(); }
     }
 
+    @Override
     public void resetPool()
     {
         lockMain.lock();
@@ -1000,6 +1026,7 @@ class BasicResourcePool implements ResourcePool
         { lockMain.unlock(); }
     }
 
+    @Override
     public void close() throws ResourcePoolException
     {
         lockMain.lock();
@@ -1014,6 +1041,7 @@ class BasicResourcePool implements ResourcePool
         { lockMain.unlock(); }
     }
 
+    @Override
     public void finalize() throws Throwable
     {
         //obviously, clients mustn't rely on finalize,
@@ -1152,6 +1180,7 @@ class BasicResourcePool implements ResourcePool
         {
             Runnable r = new Runnable()
             {
+                @Override
                 public void run()
                 {rpes.fireResourceAcquired(resc, pool_size, available_size, removed_but_unreturned_size);}
             };
@@ -1169,6 +1198,7 @@ class BasicResourcePool implements ResourcePool
         {
             Runnable r = new Runnable()
             {
+                @Override
                 public void run()
                 {rpes.fireResourceCheckedIn(resc, pool_size, available_size, removed_but_unreturned_size);}
             };
@@ -1186,6 +1216,7 @@ class BasicResourcePool implements ResourcePool
         {
             Runnable r = new Runnable()
             {
+                @Override
                 public void run()
                 {rpes.fireResourceCheckedOut(resc,pool_size,available_size,removed_but_unreturned_size);}
             };
@@ -1206,6 +1237,7 @@ class BasicResourcePool implements ResourcePool
             //new Exception().printStackTrace();
             Runnable r = new Runnable()
             {
+                @Override
                 public void run()
                 {
                     rpes.fireResourceRemoved(resc, checked_out_resource,
@@ -1229,6 +1261,7 @@ class BasicResourcePool implements ResourcePool
     {
         class DestroyResourceTask implements Runnable
         {
+            @Override
             public void run()
             {
                 try
@@ -1344,6 +1377,7 @@ class BasicResourcePool implements ResourcePool
 
     }
 
+    @Override
     public void setPoolSize( int sz ) throws ResourcePoolException
     {
         lockMain.lock();
@@ -1450,6 +1484,7 @@ class BasicResourcePool implements ResourcePool
     //DEBUG
     //Exception firstClose = null;
 
+    @Override
     public void close( boolean close_checked_out_resources )
     {
         lockMain.lock();
@@ -1483,6 +1518,7 @@ class BasicResourcePool implements ResourcePool
 
                 Thread resourceDestroyer = new Thread("Resource Destroyer in BasicResourcePool.close()")
                 {
+                    @Override
                     public void run()
                     {
                         for (Iterator ii = cleanupResources.iterator(); ii.hasNext();)
@@ -1558,6 +1594,7 @@ class BasicResourcePool implements ResourcePool
 
 	class RefurbishCheckinResourceTask implements Runnable
 	{
+	    @Override
 	    public void run()
 	    {
 		boolean resc_okay = attemptRefurbishResourceOnCheckin( resc );
@@ -2058,6 +2095,7 @@ class BasicResourcePool implements ResourcePool
             }
         }
 
+        @Override
         public void run()
         {
 	    boolean recheck = false;
@@ -2172,6 +2210,7 @@ class BasicResourcePool implements ResourcePool
 
                     TimerTask doNextAcquire = new TimerTask()
                     {
+                        @Override
                         public void run()
                         { taskRunner.postRunnable( new ScatteredAcquireTask( attempts_remaining - 1, false ) ); }
                     };
@@ -2199,6 +2238,7 @@ class BasicResourcePool implements ResourcePool
         public RemoveTask()
         { incrementPendingRemoves(); }
 
+        @Override
         public void run()
         {
             try
@@ -2213,6 +2253,7 @@ class BasicResourcePool implements ResourcePool
 
     class CullTask extends TimerTask
     {
+        @Override
         public void run()
         {
             try
@@ -2241,6 +2282,7 @@ class BasicResourcePool implements ResourcePool
     // time
     class CheckIdleResourcesTask extends TimerTask
     {
+        @Override
         public void run()
         {
             try
@@ -2278,6 +2320,7 @@ class BasicResourcePool implements ResourcePool
         AsyncTestIdleResourceTask( Object resc )
         { this.resc = resc; }
 
+        @Override
         public void run()
         {
             assert !lockMain.isHeldByCurrentThread();

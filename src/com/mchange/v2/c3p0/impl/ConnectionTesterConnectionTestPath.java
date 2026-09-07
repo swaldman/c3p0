@@ -39,6 +39,7 @@ final class ConnectionTesterConnectionTestPath implements ConnectionTestPath
         this.connectionTesterIsDefault = (connectionTester instanceof DefaultConnectionTester);
     }
 
+    @Override
     public void testPooledConnection(PooledConnection pc, Connection proxyConn) throws Exception
     {
         // begin moved code

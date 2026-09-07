@@ -27,6 +27,7 @@ public interface StatementCache extends ClosableResource
     public void closeAll( Connection pcon )
 	throws SQLException;
 
+    @Override
     public void close() 
 	throws SQLException;
 }

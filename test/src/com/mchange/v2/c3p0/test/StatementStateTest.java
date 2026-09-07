@@ -332,6 +332,7 @@ public final class StatementStateTest
             this.largeMaxRowsSupported = largeMaxRowsSupported;
         }
 
+        @Override
         public String toString()
         {
             return "fetchDirection: " + fetchDirection + ", fetchSize: " + fetchSize +

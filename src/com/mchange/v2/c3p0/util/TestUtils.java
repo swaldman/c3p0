@@ -97,6 +97,7 @@ public final class TestUtils
 	StupidDataSourceInvocationHandler(DataSource ds)
 	{ this.ds = ds; }
 	
+	@Override
 	public Object invoke(Object proxy, Method method, Object[] args)
 	    throws Throwable
 	{
@@ -122,6 +123,7 @@ public final class TestUtils
 	StupidConnectionInvocationHandler(Connection conn)
 	{ this.conn = conn; }
 	
+	@Override
 	public Object invoke(Object proxy, Method method, Object[] args)
 	    throws Throwable
 	{

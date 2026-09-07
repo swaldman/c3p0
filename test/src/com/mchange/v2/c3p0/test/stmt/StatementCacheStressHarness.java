@@ -100,6 +100,7 @@ public final class StatementCacheStressHarness
         public Scenario( String name )
         { this.name = name; }
 
+        @Override
         public String toString()
         { return name; }
     }
@@ -452,6 +453,7 @@ public final class StatementCacheStressHarness
             this.auditEveryOps  = auditEveryOps;
         }
 
+        @Override
         public void run()
         {
             while (! stop.get() )

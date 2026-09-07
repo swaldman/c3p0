@@ -210,6 +210,7 @@ public final class C3P0PooledConnectionPoolManager
 
         Runnable initializeTimer = new Runnable()
         {
+            @Override
             public void run()  { timerHolder[0] = new Timer(idStr + "-AdminTaskTimer", true ); }
         };
         C3P0ImplUtils.runWithContextClassLoaderAndPrivileges( contextClassLoaderSource, privilege_spawned_threads, initializeTimer );
@@ -540,6 +541,7 @@ public final class C3P0PooledConnectionPoolManager
             poolsDestroy( close_outstanding_connections );
     }
 
+    @Override
     protected synchronized void finalize()
     {
         // System.err.println("finalizing... " + this);

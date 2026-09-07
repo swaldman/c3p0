@@ -27,6 +27,7 @@ public final class PoolBackedDataSource extends AbstractPoolBackedDataSource imp
     }
 
     // no support for a longer form with config
+    @Override
     public String toString( boolean show_config ) { return this.toString(); }
 
 }

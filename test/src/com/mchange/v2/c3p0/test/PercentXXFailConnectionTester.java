@@ -28,25 +28,30 @@ public abstract class PercentXXFailConnectionTester implements QueryConnectionTe
 	    return CONNECTION_IS_OKAY;
     }
 
+    @Override
     public int activeCheckConnection(Connection c)
     {
 	//logger.warning(this + ": activeCheckConnection(Connection c)");
 	return roulette(); 
     }
 
+    @Override
     public int statusOnException(Connection c, Throwable t)
     { 
 	//logger.warning(this + ": statusOnException(Connection c, Throwable t)");
 	return roulette(); 
     }
 
+    @Override
     public int activeCheckConnection(Connection c, String preferredTestQuery)
     { 
 	//logger.warning(this + ": activeCheckConnection(Connection c, String preferredTestQuery)");
 	return roulette(); 
     }
 
+    @Override
     public boolean equals( Object o ) { return this.getClass().equals( o.getClass() ); }
+    @Override
     public int hashCode() { return this.getClass().getName().hashCode(); }
 }
 

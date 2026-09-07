@@ -16,6 +16,7 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( ThreadPerTaskRunnerFactory.class );
 
+    @Override
     public ThreadPoolReportingAsynchronousRunner createTaskRunner(
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!
@@ -50,6 +51,7 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
             this.tf = new TaskRunnerThreadFactory( contextClassLoaderSource, privilege_spawned_threads, threadLabel, ourGroup );
         }
 
+        @Override
         public void postRunnable(Runnable r)
         {
             final Thread t = tf.newThread(r);
@@ -59,23 +61,32 @@ public final class ThreadPerTaskRunnerFactory implements TaskRunnerFactory
                 {
                     TimerTask tt = new TimerTask()
                         {
+                            @Override
                             public void run() { t.interrupt(); }
                         };
                     timer.schedule( tt, matt_ms );
                 }
         }
 
+        @Override
         public void close( boolean skip_remaining_tasks ) { if (skip_remaining_tasks) ourGroup.interrupt(); }
+        @Override
         public void close() { close( true ); }
 
+        @Override
         public int getThreadCount() { return ourGroup.activeCount(); }
+        @Override
         public int getActiveCount() { return ourGroup.activeCount(); }
+        @Override
         public int getIdleCount() { return 0; }
+        @Override
         public int getPendingTaskCount() { return 0; }
 
+        @Override
         public String getStatus()
         { return "ThreadPerAsynchronousRunner, " + getActiveCount() + " active tasks."; }
 
+        @Override
         public String getStackTraces()
         {
             StringBuilder sb = new StringBuilder(4096); // XXX: hard-coded

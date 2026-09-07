@@ -23,9 +23,11 @@ final class ValueIdentityStatementCacheKey extends StatementCacheKey
     {
 	CoalesceChecker cc = new CoalesceChecker()
 	    {
+		@Override
 		public boolean checkCoalesce( Object a, Object b )
 		{ return StatementCacheKey.equals( (StatementCacheKey) a, b ); }
 
+		@Override
 		public int coalesceHash( Object a )
 		{ return ((ValueIdentityStatementCacheKey) a).cached_hash; }
 	    }; 
@@ -145,6 +147,7 @@ final class ValueIdentityStatementCacheKey extends StatementCacheKey
 	return out;
     }
 
+    @Override
     void init( Connection physicalConnection,
 	       String stmtText,
 	       boolean is_callable,

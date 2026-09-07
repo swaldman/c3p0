@@ -62,6 +62,7 @@ public final class StatementCacheFullStackHarness
         public Scenario( String name )
         { this.name = name; }
 
+        @Override
         public String toString()
         { return name; }
     }
@@ -185,6 +186,7 @@ public final class StatementCacheFullStackHarness
     {
         final List hits = Collections.synchronizedList( new ArrayList() );
 
+        @Override
         public void publish( LogRecord record )
         {
             check( record.getMessage() );
@@ -209,7 +211,9 @@ public final class StatementCacheFullStackHarness
                 hits.add( s );
         }
 
+        @Override
         public void flush() {}
+        @Override
         public void close() {}
     }
 
@@ -399,6 +403,7 @@ public final class StatementCacheFullStackHarness
             this.rnd            = rnd;
         }
 
+        @Override
         public void run()
         {
             while (! stop.get() )

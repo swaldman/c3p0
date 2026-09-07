@@ -111,6 +111,7 @@ public final class C3P0PooledConnectionPool
     {
         WeakHashMap inUseLocks = new WeakHashMap();
 
+	@Override
 	synchronized ReentrantLock getInternalUseLock(Object resc)
         {
             ReentrantLock out = (ReentrantLock) inUseLocks.get(resc);
@@ -122,12 +123,15 @@ public final class C3P0PooledConnectionPool
             return out;
         }
 
+	@Override
 	public synchronized void lockInternalUse(Object resc)   { super.lockInternalUse(resc); }
+	@Override
 	public synchronized void unlockInternalUse(Object resc) { super.unlockInternalUse(resc); }
     }
 
     private static class C3P0PooledConnectionNestedLockInternalUseLockManager extends AbstractInternalUseLockManager
     {
+	@Override
 	ReentrantLock getInternalUseLock(Object resc)
 	{ return ((AbstractC3P0PooledConnection) resc).inInternalUseLock; }
     }
@@ -140,12 +144,15 @@ public final class C3P0PooledConnectionPool
 
     private static RequestBoundaryMarker NO_OP_REQUEST_BOUNDARY_MARKER = new RequestBoundaryMarker()
     {
+	@Override
 	public void attemptNotifyBeginRequest(PooledConnection pc) {}
+	@Override
 	public void attemptNotifyEndRequest(PooledConnection pc) {}
     };
 
     private static RequestBoundaryMarker INTERFACE_REQUEST_BOUNDARY_MARKER = new RequestBoundaryMarker()
     {
+	@Override
 	public void attemptNotifyBeginRequest(PooledConnection pc)
 	{
 	    if (pc instanceof AbstractC3P0PooledConnection)
@@ -171,6 +178,7 @@ public final class C3P0PooledConnectionPool
                 }
 	    }
 	}
+	@Override
 	public void attemptNotifyEndRequest(PooledConnection pc)
 	{
 	    if (pc instanceof AbstractC3P0PooledConnection)
@@ -210,6 +218,7 @@ public final class C3P0PooledConnectionPool
             if (!beginRequest.isAccessible()) beginRequest.setAccessible(true);
             if (!endRequest.isAccessible()) endRequest.setAccessible(true);
 	}
+	@Override
 	public void attemptNotifyBeginRequest(PooledConnection pc)
 	{
 	    if (pc instanceof AbstractC3P0PooledConnection)
@@ -230,6 +239,7 @@ public final class C3P0PooledConnectionPool
                 }
 	    }
 	}
+	@Override
 	public void attemptNotifyEndRequest(PooledConnection pc)
 	{
 	    if (pc instanceof AbstractC3P0PooledConnection)
@@ -489,6 +499,7 @@ public final class C3P0PooledConnectionPool
 		    }
                 }
 
+                @Override
                 public Object acquireResource() throws Exception
                 {
                     PooledConnection out;
@@ -591,6 +602,7 @@ public final class C3P0PooledConnectionPool
                 // checked back in to the pool. But we still may want to
                 // test to make sure it is still good.
 
+                @Override
                 public void refurbishResourceOnCheckout( Object resc ) throws Exception
                 {
                     internalUseLockManager.lockInternalUse(resc);
@@ -647,6 +659,7 @@ public final class C3P0PooledConnectionPool
                 }
 
 		// TODO: refactor this by putting the connectionCustomizer if logic inside the (currently repeated) logic
+                @Override
                 public void refurbishResourceOnCheckin( Object resc ) throws Exception
                 {
 		    Connection proxyToClose = null; // can't close a proxy while we own parent PooledConnection's lock.
@@ -729,6 +742,7 @@ public final class C3P0PooledConnectionPool
 		    }
                 }
 
+                @Override
                 public void refurbishIdleResource( Object resc ) throws Exception
                 {
                     internalUseLockManager.lockInternalUse(resc);
@@ -785,6 +799,7 @@ public final class C3P0PooledConnectionPool
                     connectionTestPath.testPooledConnection( pc, proxyConn );
                 }
 
+                @Override
                 public void destroyResource(Object resc, boolean checked_out) throws Exception
                 {
                     try
@@ -1106,6 +1121,7 @@ public final class C3P0PooledConnectionPool
         // and more reliable synchronous checkin enabled, and async closing
         // of resources in BasicResourcePool.close().
         //
+        @Override
         public void connectionClosed(final ConnectionEvent evt)
         {
             //System.err.println("Checking in: " + evt.getSource());
@@ -1114,6 +1130,7 @@ public final class C3P0PooledConnectionPool
             {
                 Runnable r = new Runnable()
                 {
+                    @Override
                     public void run()
                     { doCheckinResource( evt ); }
                 };
@@ -1156,6 +1173,7 @@ public final class C3P0PooledConnectionPool
         // and more reliable synchrounous ConnectionEventHandling enabled, and async closing
         // of resources in BasicResourcePool.close().
         //
+        @Override
         public void connectionErrorOccurred(final ConnectionEvent evt)
         {
 //          System.err.println("CONNECTION ERROR OCCURRED!");
@@ -1176,6 +1194,7 @@ public final class C3P0PooledConnectionPool
             {
                 Runnable r = new Runnable()
                 {
+                    @Override
                     public void run()
                     { doMarkPoolStatus( pc, final_status ); }
                 };

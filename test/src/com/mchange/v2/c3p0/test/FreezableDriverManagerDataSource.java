@@ -76,6 +76,7 @@ public final class FreezableDriverManagerDataSource extends DriverManagerDataSou
     {
         PropertyChangeListener driverClassListener = new PropertyChangeListener()
         {
+            @Override
             public void propertyChange( PropertyChangeEvent evt )
             {
                 Object val = evt.getNewValue();
@@ -114,6 +115,7 @@ public final class FreezableDriverManagerDataSource extends DriverManagerDataSou
     // sync'ing the method creates the danger that one freeze on connect
     // blocks access to the entire DataSource
 
+    @Override
     public Connection getConnection() throws SQLException
     { 
         ensureDriverLoaded();
@@ -131,6 +133,7 @@ public final class FreezableDriverManagerDataSource extends DriverManagerDataSou
     // sync'ing the method creates the danger that one freeze on connect
     // blocks access to the entire DataSource
 
+    @Override
     public Connection getConnection(String username, String password) throws SQLException
     { 
         ensureDriverLoaded();
@@ -144,19 +147,24 @@ public final class FreezableDriverManagerDataSource extends DriverManagerDataSou
         return out;
     }
 
+    @Override
     public PrintWriter getLogWriter() throws SQLException
     { return DriverManager.getLogWriter(); }
 
+    @Override
     public void setLogWriter(PrintWriter out) throws SQLException
     { DriverManager.setLogWriter( out ); }
 
+    @Override
     public int getLoginTimeout() throws SQLException
     { return DriverManager.getLoginTimeout(); }
 
+    @Override
     public void setLoginTimeout(int seconds) throws SQLException
     { DriverManager.setLoginTimeout( seconds ); }
 
     //overrides
+    @Override
     public synchronized void setJdbcUrl(String jdbcUrl)
     {
         //System.err.println( "setJdbcUrl( " + jdbcUrl + " )");
@@ -260,11 +268,13 @@ public final class FreezableDriverManagerDataSource extends DriverManagerDataSou
 
 
     // JDBC4 Wrapper stuff
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
 	return false;
     }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
 	throw new SQLException(this + " is not a Wrapper for " + iface.getName());

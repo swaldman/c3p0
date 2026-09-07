@@ -66,6 +66,7 @@ public final class FakeConnection implements InvocationHandler
     public boolean isPhysicallyClosed()
     { return closed; }
 
+    @Override
     public String toString()
     { return "FakeCxn-" + id + (closed ? "[CLOSED]" : ""); }
 
@@ -150,6 +151,7 @@ public final class FakeConnection implements InvocationHandler
         return out;
     }
 
+    @Override
     public Object invoke( Object prx, Method m, Object[] args ) throws Throwable
     {
         String name = m.getName();

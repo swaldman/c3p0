@@ -33,6 +33,7 @@ public final class FakeJdbcObjects
         DefaultHandler( String description )
         { this.description = description; }
 
+        @Override
         public Object invoke( Object proxy, Method m, Object[] args ) throws Throwable
         {
             String name = m.getName();

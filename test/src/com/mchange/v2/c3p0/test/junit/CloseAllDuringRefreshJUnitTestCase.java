@@ -75,6 +75,7 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
     private GooGooStatementCache         cache;
     private Connection                   conn;
 
+    @Override
     public void setUp() throws Exception
     {
         this.cfg    = FakeDriverConfig.register("closeAllRefresh-" + System.nanoTime(), 7L);
@@ -87,6 +88,7 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
         this.conn   = FakeConnection.create( cfg );
     }
 
+    @Override
     public void tearDown() throws Exception
     {
         if ( cfg != null )
@@ -174,6 +176,7 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
             this.setDaemon( true );
         }
 
+        @Override
         public void run()
         {
             try { cache.closeAll( conn ); }
@@ -194,6 +197,7 @@ public final class CloseAllDuringRefreshJUnitTestCase extends TestCase
             this.setDaemon( true );
         }
 
+        @Override
         public void run()
         {
             try { cache.checkinStatement( stmt ); }

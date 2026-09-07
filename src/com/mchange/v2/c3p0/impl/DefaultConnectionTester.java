@@ -37,6 +37,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 
     final static QuerylessTestRunner METADATA_TABLESEARCH = new QuerylessTestRunner()
     {
+	@Override
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
 	    //      if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
@@ -93,6 +94,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 
     final static QuerylessTestRunner IS_VALID = new QuerylessTestRunner()
     {
+	@Override
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
 	    try
@@ -137,6 +139,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 
     final static QuerylessTestRunner SWITCH = new QuerylessTestRunner()
     {
+	@Override
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
 	    int out;
@@ -230,6 +233,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
     //MT: final reference, internally threadsafe
     private final QuerylessTestRunner querylessTestRunner;
 
+    @Override
     public int activeCheckConnection(Connection c, String query, Throwable[] rootCauseOutParamHolder)
     {
 //      if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
@@ -294,6 +298,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
         }
     }
 
+    @Override
     public int statusOnException(Connection c, Throwable t, String query, Throwable[] rootCauseOutParamHolder)
     {
 //      if (Debug.DEBUG && Debug.TRACE == Debug.TRACE_MAX && logger.isLoggable( MLevel.FINER ) )
@@ -351,9 +356,11 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
     private static String queryInfo(String query)
     { return (query == null ? "[using Connection.isValid(...) if supported, or else traditional default query]" : "[query=" + query + "]"); }
 
+    @Override
     public boolean equals( Object o )
     { return ( o != null && o.getClass() == DefaultConnectionTester.class ); }
 
+    @Override
     public int hashCode()
     { return HASH_CODE; }
 }
@@ -367,6 +374,7 @@ class ThreadLocalQuerylessTestRunner implements DefaultConnectionTester.Queryles
 
     private final static ThreadLocal classToTestRunnerThreadLocal = new ThreadLocal()
     {
+	@Override
 	protected Object initialValue() { return new WeakHashMap(); }
     };
 
@@ -393,6 +401,7 @@ class ThreadLocalQuerylessTestRunner implements DefaultConnectionTester.Queryles
 	}
     }
 
+    @Override
     public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
     {
 	Map map = classToTestRunner();

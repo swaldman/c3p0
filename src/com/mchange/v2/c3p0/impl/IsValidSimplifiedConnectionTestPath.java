@@ -32,6 +32,7 @@ final class IsValidSimplifiedConnectionTestPath implements ConnectionTestPath
 	    this.isValidTimeout = isValidTimeout;
     }
 
+    @Override
     public void testPooledConnection(PooledConnection pc, Connection proxyConn) throws Exception
     {
 	if (proxyConn != null)

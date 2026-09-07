@@ -223,6 +223,7 @@ public final class C3P0BenchmarkApp
 	ConnectionAcquisitionTest()
 	{ super("Connection Acquisition and Cleanup"); }
 
+	@Override
 	protected long test(DataSource ds, int n) throws Exception
 	{
 	    long start;
@@ -248,6 +249,7 @@ public final class C3P0BenchmarkApp
 	StatementCreateTest()
 	{ super("Statement Creation and Cleanup"); }
 
+	@Override
 	protected long test(DataSource ds, int n) throws SQLException
 	{
 	    Connection con = null;
@@ -286,6 +288,7 @@ public final class C3P0BenchmarkApp
 	StatementEmptyTableSelectTest()
 	{ super("Empty Table Statement Select (on a single Statement)"); }
 
+	@Override
 	protected long test(DataSource ds, int n) throws SQLException
 	{
 	    Connection con  = null;
@@ -322,6 +325,7 @@ public final class C3P0BenchmarkApp
 	DataBaseMetaDataListNonexistentTablesTest()
 	{ super("DataBaseMetaDataListNonexistentTablesTest"); }
 
+	@Override
 	protected long test(DataSource ds, int n) throws SQLException
 	{
 	    Connection con  = null;
@@ -366,6 +370,7 @@ public final class C3P0BenchmarkApp
 	PreparedStatementAcquireTest()
 	{ super("Acquire and Cleanup a PreparedStatement (same statement, many times)"); }
 
+	@Override
 	protected long test(DataSource ds, int n) throws SQLException
 	{
 	    long start;
@@ -411,6 +416,7 @@ public final class C3P0BenchmarkApp
 	PreparedStatementEmptyTableSelectTest()
 	{ super("Empty Table PreparedStatement Select (on a single PreparedStatement)"); }
 
+	@Override
 	protected long test(DataSource ds, int n) throws SQLException
 	{
 	    Connection        con   = null;
@@ -453,6 +459,7 @@ public final class C3P0BenchmarkApp
   	ResultSetReadTest()
   	{ super("Reading one row / one entry from a result set"); }
 
+  	@Override
   	protected long test(DataSource ds, int n) throws SQLException
   	{
 	    if (n > 10000)
@@ -502,6 +509,7 @@ public final class C3P0BenchmarkApp
 		   "and retrieving results concurrently via a prepared statement (in a transaction)." );
 	}
 
+  	@Override
   	protected long test(final DataSource ds, final int n) throws Exception
   	{
 	    class QueryThread extends Thread
@@ -509,6 +517,7 @@ public final class C3P0BenchmarkApp
 		QueryThread(int num)
 		{ super("QueryThread-" + num);}
 
+		@Override
 		public void run()
 		{
 		    Connection        con   = null;

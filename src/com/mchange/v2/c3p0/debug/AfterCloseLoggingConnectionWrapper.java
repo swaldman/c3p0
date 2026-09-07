@@ -36,6 +36,7 @@ public class AfterCloseLoggingConnectionWrapper extends FilterConnection
 	AfterCloseLoggingInvocationHandler( Connection inner )
 	{ this.inner = inner; }
 
+	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable
 	{
 	    if ( "close".equals( method.getName() ) && closeStackTrace == null )

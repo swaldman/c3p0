@@ -131,6 +131,7 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
         VetoableChangeListener wcpdsConsistencyEnforcer = new VetoableChangeListener()
         {
             // always called within synchronized mutators of the parent class... needn't explicitly sync here
+            @Override
             public void vetoableChange( PropertyChangeEvent evt ) throws PropertyVetoException
             {
                 String propName = evt.getPropertyName();
@@ -157,6 +158,7 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 
         PropertyChangeListener wcpdsStateUpdater = new PropertyChangeListener()
         {
+            @Override
             public void propertyChange( PropertyChangeEvent evt )
             { 
                 String propName = evt.getPropertyName();
@@ -733,9 +735,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
     }
 
     // shared properties (count: 1)
+    @Override
     public String getFactoryClassLocation()
     { return super.getFactoryClassLocation(); }
 
+    @Override
     public void setFactoryClassLocation( String factoryClassLocation )
     {
 	if ( 
@@ -750,8 +754,10 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
+    @Override
     public String toString() { return toString( false ); }
 
+    @Override
     public String toString(boolean show_config)
     {
 	if ( show_config )
@@ -808,9 +814,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
     private boolean isWrapperForDmds(Class<?> iface) throws SQLException
     { return iface.isAssignableFrom( dmds.getClass() ) || dmds.isWrapperFor(iface); } // second case will be okay, because we will ask dmds to unwrap, not return it directly
 
+    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     { return isWrapperForDmds( iface ) || isWrapperForThis( iface ); }
 
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
 	if (this.isWrapperForDmds( iface ))

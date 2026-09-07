@@ -13,6 +13,7 @@ public final class LogCreationTaskRunnerFactory implements TaskRunnerFactory
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( LogCreationTaskRunnerFactory.class );
 
+    @Override
     public ThreadPoolReportingAsynchronousRunner createTaskRunner(
         int num_threads_if_supported,
         int max_administrative_task_time_if_supported, // in seconds!

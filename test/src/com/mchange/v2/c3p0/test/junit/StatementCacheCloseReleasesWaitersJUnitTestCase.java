@@ -125,6 +125,7 @@ public final class StatementCacheCloseReleasesWaitersJUnitTestCase extends TestC
             this.setDaemon( true );
         }
 
+        @Override
         public void run()
         {
             try

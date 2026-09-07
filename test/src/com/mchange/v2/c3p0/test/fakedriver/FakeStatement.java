@@ -130,9 +130,11 @@ public final class FakeStatement implements InvocationHandler
         config.stats.statementsPrepared.incrementAndGet();
     }
 
+    @Override
     public String toString()
     { return "FakeStmt-" + id + "[" + parent + ", '" + sql + "'" + (closed ? ", CLOSED" : "") + "]"; }
 
+    @Override
     public Object invoke( Object prx, Method m, Object[] args ) throws Throwable
     {
         String name = m.getName();

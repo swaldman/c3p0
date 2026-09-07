@@ -11,6 +11,7 @@ public class CloseReportingConnectionWrapper extends FilterConnection
     public CloseReportingConnectionWrapper( Connection conn )
     { super( conn ); }
 
+    @Override
     public void close() throws SQLException
     {
 	//System.err.print("ADRIAN -- ");

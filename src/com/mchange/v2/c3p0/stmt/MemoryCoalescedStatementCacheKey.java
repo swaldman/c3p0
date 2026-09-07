@@ -131,9 +131,11 @@ final class MemoryCoalescedStatementCacheKey extends StatementCacheKey
 	       resultSetHoldability );
     }
 
+    @Override
     public boolean equals( Object o )
     { return StatementCacheKey.equals( this, o ); }
 
+    @Override
     public int hashCode()
     { return StatementCacheKey.hashCode( this ); }
 }
