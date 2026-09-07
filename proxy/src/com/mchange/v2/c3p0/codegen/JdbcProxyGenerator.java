@@ -10,6 +10,8 @@ import com.mchange.v2.c3p0.C3P0ProxyConnection;
 import com.mchange.v2.c3p0.C3P0ProxyStatement;
 import com.mchange.v2.c3p0.impl.ProxyResultSetDetachable;
 
+import com.mchange.v2.io.IndentedWriter;
+
 public abstract class JdbcProxyGenerator extends DelegatorGenerator
 {
     private final static boolean PREMATURE_DETACH_DEBUG = false;
