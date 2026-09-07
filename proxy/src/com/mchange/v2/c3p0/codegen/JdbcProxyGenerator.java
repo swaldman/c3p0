@@ -1082,19 +1082,19 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
                     if (argType == boolean.class)
                         iw.print( "Boolean.valueOf( " + argName + " )" );
                     else if (argType == byte.class)
-                        iw.print( "new Byte( " + argName + " )" );
+                        iw.print( "Byte.valueOf( " + argName + " )" );
                     else if (argType == char.class)
-                        iw.print( "new Character( " + argName + " )" );
+                        iw.print( "Character.valueOf( " + argName + " )" );
                     else if (argType == short.class)
-                        iw.print( "new Short( " + argName + " )" );
+                        iw.print( "Short.valueOf( " + argName + " )" );
                     else if (argType == int.class)
-                        iw.print( "new Integer( " + argName + " )" );
+                        iw.print( "Integer.valueOf( " + argName + " )" );
                     else if (argType == long.class)
-                        iw.print( "new Long( " + argName + " )" );
+                        iw.print( "Long.valueOf( " + argName + " )" );
                     else if (argType == float.class)
-                        iw.print( "new Float( " + argName + " )" );
+                        iw.print( "Float.valueOf( " + argName + " )" );
                     else if (argType == double.class)
-                        iw.print( "new Double( " + argName + " )" );
+                        iw.print( "Double.valueOf( " + argName + " )" );
                 }
                 else
                     iw.print( argName );
@@ -1172,6 +1172,24 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         // for generating sublasses with extra API, particularly the sharding key stuff that should that has us bifurcating the proxies...
         void subclassGenerateFullDelegateMethod( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
         { this.generateFullDelegateMethod( intfcl, genclass, method, iw, true ); }
+    }
+
+    /**
+     *  Marks a generated method @Deprecated when the interface method it implements is.
+     *
+     *  Several JDBC methods a proxy must implement are deprecated -- ResultSet's
+     *  getUnicodeStream and two-argument getBigDecimal, PreparedStatement's
+     *  setUnicodeStream -- and there is nothing to migrate to: the proxy has to implement
+     *  whatever the interface declares. Marking the generated method deprecated is both
+     *  accurate and enough, since a deprecation warning is not issued for a use inside an
+     *  entity that is itself deprecated, so this also covers the delegating call to inner.
+     */
+    @Override
+    protected void generateFullDelegateMethod( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
+    {
+	if ( method.isAnnotationPresent( Deprecated.class ) )
+	    iw.println("@Deprecated");
+	super.generateFullDelegateMethod( intfcl, genclass, method, iw );
     }
 
     //totally superfluous, but included to be "regular" and very specific, and as a hook for "general" overrides in future
