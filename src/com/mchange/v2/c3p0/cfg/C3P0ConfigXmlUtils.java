@@ -265,7 +265,7 @@ public final class C3P0ConfigXmlUtils
                 String propName = propertyElem.getAttribute("name");
                 if (propName != null && propName.length() > 0)
                 {
-                    String propVal = DomParseUtils.allTextFromElement(propertyElem, true);
+                    String propVal = DomParseUtils.allText(propertyElem, true);
                     out.put( propName, propVal );
                     //System.err.println( propName + " -> " + propVal );
                 }

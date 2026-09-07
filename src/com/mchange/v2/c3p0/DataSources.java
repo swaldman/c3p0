@@ -102,7 +102,7 @@ public final class DataSources
     public static DataSource pooledDataSource( DataSource unpooledDataSource, int statement_cache_size ) throws SQLException
     {
 	Map overrideProps = new HashMap();
-	overrideProps.put( "maxStatements", new Integer( statement_cache_size ) );
+	overrideProps.put( "maxStatements", Integer.valueOf( statement_cache_size ) );
 	return pooledDataSource( unpooledDataSource, null, overrideProps );
     }
 
@@ -203,7 +203,7 @@ public final class DataSources
 		    destroy( ((WrapperConnectionPoolDataSource) cpds).getNestedDataSource(), force );
 	    }
 	if ( pooledDataSource instanceof PooledDataSource )
-	    ((PooledDataSource) pooledDataSource).close( force );
+	    ((PooledDataSource) pooledDataSource).close();
     }
 
     private static void _overwriteJavaBeanProperties( Object target, Map replacementProperties, boolean coerce_strings ) throws IntrospectionException

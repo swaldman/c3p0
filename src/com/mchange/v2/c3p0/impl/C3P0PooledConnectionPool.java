@@ -215,8 +215,12 @@ public final class C3P0PooledConnectionPool
 	{
 	    this.beginRequest = beginRequest;
 	    this.endRequest   = endRequest;
-            if (!beginRequest.isAccessible()) beginRequest.setAccessible(true);
-            if (!endRequest.isAccessible()) endRequest.setAccessible(true);
+            // No isAccessible() guard: that method is deprecated, its replacement
+            // canAccess(Object) is Java 9+, and the guard was never doing anything. These
+            // Methods come from getMethod(...), which returns a fresh copy each call, so
+            // the accessible flag is always false here.
+            beginRequest.setAccessible(true);
+            endRequest.setAccessible(true);
 	}
 	@Override
 	public void attemptNotifyBeginRequest(PooledConnection pc)

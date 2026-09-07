@@ -1042,6 +1042,7 @@ class BasicResourcePool implements ResourcePool
     }
 
     @Override
+    @SuppressWarnings("deprecation") // a close() safety net; finalize() is deprecated but still called
     public void finalize() throws Throwable
     {
         //obviously, clients mustn't rely on finalize,

@@ -44,16 +44,19 @@ public final class StatementCacheBenchmark
 		if (! jdbc_url.startsWith("jdbc:") )
 		    usage();
 
-		ds_unpooled = DriverManagerDataSourceFactory.create(jdbc_url, username, password);
-		ds_pooled
-    		    = PoolBackedDataSourceFactory.create(jdbc_url, 
-    							 username, 
-    							 password,
-    							 5,
-    							 20,
-    							 5,
-    							 0,
-    							 100 );
+		ds_unpooled = DataSources.unpooledDataSource(jdbc_url, username, password);
+
+		// The same pool this used to ask PoolBackedDataSourceFactory for, by its
+		// positional arguments: minPoolSize, maxPoolSize, acquireIncrement,
+		// maxIdleTime, maxStatements.
+		Map overrides = new HashMap();
+		overrides.put( "minPoolSize",       Integer.valueOf(  5 ) );
+		overrides.put( "maxPoolSize",       Integer.valueOf( 20 ) );
+		overrides.put( "acquireIncrement",  Integer.valueOf(  5 ) );
+		overrides.put( "maxIdleTime",       Integer.valueOf(  0 ) );
+		overrides.put( "maxStatements",     Integer.valueOf( 100 ) );
+
+		ds_pooled = DataSources.pooledDataSource( ds_unpooled, overrides );
 
 		create(ds_pooled);
 

@@ -1277,7 +1277,7 @@ public abstract class GooGooStatementCache
         { return longsToStmts.size(); }
 
         private Long getNextLong()
-        { return new Long( ++last_long ); }
+        { return Long.valueOf( ++last_long ); }
     }
 
     protected static abstract class ConnectionStatementManager

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -283,7 +284,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		    if (forceUseNamedDriverClass)
 		    {
 			if ( Debug.DEBUG ) logCircumventingDriverManager();
-			driver = (Driver) loadDriverClass( driverClass ).newInstance();
+			driver = (Driver) loadDriverClass( driverClass ).getDeclaredConstructor().newInstance();
 			this.setDriverClassLoaded( true );
 		    }
 		    else
@@ -292,7 +293,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 			if (driver == null)
 			{
 			    if ( Debug.DEBUG ) logCircumventingDriverManager();
-			    driver = (Driver) loadDriverClass( driverClass ).newInstance();
+			    driver = (Driver) loadDriverClass( driverClass ).getDeclaredConstructor().newInstance();
 			}
 		    }
 		}
@@ -304,6 +305,10 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class with no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
 		catch (IllegalAccessException e)
 		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, no-arg constructor is not accessible. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		catch (NoSuchMethodException e)
+		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, it declares no no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		catch (InvocationTargetException e)
+		{ throw SqlUtils.toSQLException("Specified JDBC driver class' no-arg constructor threw an Exception. Driver class: '" + driverClass +"'", e.getCause()); }
 	    }
 	    else // if no driverClass is specified, we only have one way to try
 		driver = DriverManager.getDriver( jdbcUrl );

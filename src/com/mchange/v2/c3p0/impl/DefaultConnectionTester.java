@@ -158,7 +158,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	try
 	{
 	    if ( propval.indexOf('.') >= 0 )
-		return (QuerylessTestRunner) Class.forName( propval ).newInstance();
+		return (QuerylessTestRunner) Class.forName( propval ).getDeclaredConstructor().newInstance();
 	    else
 	    {
 		Field staticField = DefaultConnectionTester.class.getDeclaredField( propval ); //already trim()ed

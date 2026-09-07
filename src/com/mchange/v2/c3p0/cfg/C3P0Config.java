@@ -134,7 +134,7 @@ public final class C3P0Config
 	try
 	    {
 		if (cname != null)
-		    cfgFinder = (C3P0ConfigFinder) Class.forName( cname ).newInstance();
+		    cfgFinder = (C3P0ConfigFinder) Class.forName( cname ).getDeclaredConstructor().newInstance();
 		
 	    }
 	catch (Exception e)

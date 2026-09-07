@@ -139,37 +139,45 @@ public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceB
     { assertCpds().setLoginTimeout( seconds ); }
 
     //implementation of com.mchange.v2.c3p0.PoolingDataSource
+    /** @deprecated use getNumConnectionsDefaultUser() */
+    @Deprecated
     @Override
     public int getNumConnections() throws SQLException
-    { return getPoolManager().getPool().getNumConnections(); }
+    { return getNumConnectionsDefaultUser(); }
 
+    /** @deprecated use getNumIdleConnectionsDefaultUser() */
+    @Deprecated
     @Override
     public int getNumIdleConnections() throws SQLException
-    { return getPoolManager().getPool().getNumIdleConnections(); }
+    { return getNumIdleConnectionsDefaultUser(); }
 
+    /** @deprecated use getNumBusyConnectionsDefaultUser() */
+    @Deprecated
     @Override
     public int getNumBusyConnections() throws SQLException
-    { return getPoolManager().getPool().getNumBusyConnections(); }
+    { return getNumBusyConnectionsDefaultUser(); }
 
+    /** @deprecated use getNumUnclosedOrphanedConnectionsDefaultUser() */
+    @Deprecated
     @Override
     public int getNumUnclosedOrphanedConnections() throws SQLException
-    { return getPoolManager().getPool().getNumUnclosedOrphanedConnections(); }
+    { return getNumUnclosedOrphanedConnectionsDefaultUser(); }
 
     @Override
     public int getNumConnectionsDefaultUser() throws SQLException
-    { return getNumConnections();}
+    { return getPoolManager().getPool().getNumConnections(); }
 
     @Override
     public int getNumIdleConnectionsDefaultUser() throws SQLException
-    { return getNumIdleConnections();}
+    { return getPoolManager().getPool().getNumIdleConnections(); }
 
     @Override
     public int getNumBusyConnectionsDefaultUser() throws SQLException
-    { return getNumBusyConnections();}
+    { return getPoolManager().getPool().getNumBusyConnections(); }
 
     @Override
     public int getNumUnclosedOrphanedConnectionsDefaultUser() throws SQLException
-    { return getNumUnclosedOrphanedConnections();}
+    { return getPoolManager().getPool().getNumUnclosedOrphanedConnections(); }
 
     @Override
     public int getStatementCacheNumStatementsDefaultUser() throws SQLException

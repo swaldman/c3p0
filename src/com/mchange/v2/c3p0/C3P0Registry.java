@@ -95,7 +95,7 @@ public final class C3P0Registry
         {
             try
             {
-                mc = (ManagementCoordinator) Class.forName(userManagementCoordinator).newInstance();
+                mc = (ManagementCoordinator) Class.forName(userManagementCoordinator).getDeclaredConstructor().newInstance();
             }
             catch (Exception e)
             {
@@ -113,7 +113,7 @@ public final class C3P0Registry
             {
                 Class.forName("java.lang.management.ManagementFactory");
 
-                mc = (ManagementCoordinator) Class.forName( "com.mchange.v2.c3p0.management.ActiveManagementCoordinator" ).newInstance();
+                mc = (ManagementCoordinator) Class.forName( "com.mchange.v2.c3p0.management.ActiveManagementCoordinator" ).getDeclaredConstructor().newInstance();
             }
             catch (Exception e)
             {
@@ -144,7 +144,7 @@ public final class C3P0Registry
 		    ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
 		    if (out == null)
 		    {
-			out = (ConnectionTester) Class.forName( className ).newInstance();
+			out = (ConnectionTester) Class.forName( className ).getDeclaredConstructor().newInstance();
 			classNamesToConnectionTesters.put( className, out );
 		    }
 		    return out;
@@ -167,7 +167,7 @@ public final class C3P0Registry
     // so when config is updated, we should recreate it. So we can't just hardcode an instance.
     private static ConnectionTester recreateOldSchoolDefaultConnectionTester()
     {
-	try { return (ConnectionTester) Class.forName( OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME ).newInstance(); }
+	try { return (ConnectionTester) Class.forName( OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME ).getDeclaredConstructor().newInstance(); }
 	catch ( Exception e )
 	    { throw new Error("Huh? We cannot instantiate the hard-coded, default ConnectionTester? We are very broken.", e); }
     }
@@ -195,7 +195,7 @@ public final class C3P0Registry
 		TaskRunnerFactory out = (TaskRunnerFactory) classNamesToTaskRunnerFactories.get( className );
 		if (out == null)
 		{
-		    out = (TaskRunnerFactory) Class.forName( className ).newInstance();
+		    out = (TaskRunnerFactory) Class.forName( className ).getDeclaredConstructor().newInstance();
 		    classNamesToTaskRunnerFactories.put( className, out );
 		}
 		return out;
@@ -225,7 +225,7 @@ public final class C3P0Registry
 		    ConnectionCustomizer out = (ConnectionCustomizer) classNamesToConnectionCustomizers.get( className );
 		    if (out == null)
 		    {
-			out = (ConnectionCustomizer) Class.forName( className ).newInstance();
+			out = (ConnectionCustomizer) Class.forName( className ).getDeclaredConstructor().newInstance();
 			classNamesToConnectionCustomizers.put( className, out );
 		    }
 		    return out;

@@ -542,6 +542,7 @@ public final class C3P0PooledConnectionPoolManager
     }
 
     @Override
+    @SuppressWarnings("deprecation") // a close() safety net; finalize() is deprecated but still called
     protected synchronized void finalize()
     {
         // System.err.println("finalizing... " + this);
