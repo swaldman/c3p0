@@ -1,6 +1,6 @@
 //| mill-version: 1.1.6
 //| mvnDeps:
-//| - com.mchange::mchange-java-build-checkers-millplugin::0.0.1-SNAPSHOT
+//| - com.mchange::mchange-java-build-checkers-mill::0.0.1-SNAPSHOT
 package build
 
 import mill._
