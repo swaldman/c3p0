@@ -1,4 +1,6 @@
 //| mill-version: 1.1.6
+//| mvnDeps:
+//| - com.mchange::mchange-java-build-checkers-millplugin::0.0.1-SNAPSHOT
 package build
 
 import mill._
@@ -7,11 +9,29 @@ import mill.scalalib._
 import mill.scalalib.publish._
 import mill.util.{JarManifest,Jvm}
 
+import com.mchange.jbcs.millplugin.StringentJavaModule
+
 import scala.annotation.tailrec
 
 /*
  * This build supports the environment variable SOURCE_DATE_EPOCH for deterministic builds.
  * See https://reproducible-builds.org/docs/source-date-epoch/
+ */
+
+/*
+ * Modules mix in StringentJavaModule, from mchange-java-build-checkers, so compiling
+ * also checks that every method which overrides something says so with @Override. That
+ * check is what catches a supertype whose signature moves out from under us: without
+ * the annotation an override does not break, it quietly becomes an overload, and the
+ * inherited implementation runs in its place. Exactly that happened when
+ * mchange-commons-java moved IndentedWriter between packages.
+ *
+ * Generated sources are compiled as context but never reported on, since annotating
+ * them would mean changing the generator that writes them.
+ *
+ * `./mill <module>.overrideScan` runs the check alone. `./mill <module>.overrideAnnotate`
+ * writes copies of the offending files with the annotations inserted, under out/, for a
+ * maintainer to review and copy across. Neither ever edits the source tree.
  */
 
 /**
@@ -64,7 +84,7 @@ object Dependency {
   val Hsqldb = mvn"org.hsqldb:hsqldb:2.7.4"
 }
 
-object `package` extends JavaModule with SonatypeCentralPublishModule {
+object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
 
   val BuildJvmVersion = "11"
 
@@ -85,7 +105,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // but old JVMs that hit it wil generate NoSuchMethodError or similar at runtime
   override def javacOptions = Seq("-Xlint:deprecation","-source",JvmCompatVersion,"-target",JvmCompatVersion)
 
-  trait Gen extends JavaModule {
+  trait Gen extends StringentJavaModule {
     /**
       * Resolves everything needed to run this module's generator main class, and yields a function
       * that runs it as a subprocess rooted at `destDir`, returning a PathRef to that directory.
@@ -161,7 +181,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
     override def mainClass = Task { Some("com.mchange.v2.c3p0.codegen.JdbcProxyGenerator") }
   }
 
-  object beanInfoBin extends JavaModule {
+  object beanInfoBin extends StringentJavaModule {
     override def moduleDeps       = Seq(build) // compile BeanInfos against the beans
     override def javacOptions     = Seq("-source", JvmCompatVersion, "-target", JvmCompatVersion)
     override def sources          = Task { Seq.empty[PathRef] } // no hand-written sources
@@ -504,7 +524,7 @@ object `package` extends JavaModule with SonatypeCentralPublishModule {
   // for now at least, I don't mean to publish tests as a public library,
   // but I do want to publish them locally so I have them when working on related
   // libraries
-  object test extends JavaModule with TestModule.Junit5 with PublishModule {
+  object test extends StringentJavaModule with TestModule.Junit5 with PublishModule {
 
     override def moduleDeps = Seq(build)
 
