@@ -2,6 +2,7 @@ package com.mchange.v2.c3p0.cfg;
 
 import java.beans.*;
 import java.util.*;
+import java.lang.reflect.InvocationTargetException;
 import com.mchange.v2.c3p0.impl.*;
 import com.mchange.v2.beans.*;
 import com.mchange.v2.cfg.*;
@@ -139,8 +140,11 @@ public final class C3P0Config
 	    }
 	catch (Exception e)
 	    {
+		// reflective construction wraps whatever the constructor threw; report the cause
+		Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
 		if ( logger.isLoggable(MLevel.WARNING) )
-		    logger.log( MLevel.WARNING, "Could not load specified C3P0ConfigFinder class'" + cname + "'.", e);
+		    logger.log( MLevel.WARNING, "Could not load specified C3P0ConfigFinder class'" + cname + "'.", t);
 	    }
 
 	try

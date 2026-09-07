@@ -1,6 +1,7 @@
 package com.mchange.v2.c3p0;
 
 import java.util.*;
+import java.lang.reflect.InvocationTargetException;
 import com.mchange.v2.coalesce.*;
 import com.mchange.v2.log.*;
 import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
@@ -99,11 +100,14 @@ public final class C3P0Registry
             }
             catch (Exception e)
             {
+                // reflective construction wraps whatever the constructor threw; report the cause
+                Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
                 if (logger.isLoggable(MLevel.WARNING))
                     logger.log(MLevel.WARNING,
                                "Could not instantiate user-specified ManagementCoordinator " + userManagementCoordinator +
                                ". Using NullManagementCoordinator (c3p0 JMX management disabled!)",
-                               e );
+                               t );
                 mc = new NullManagementCoordinator();
             }
         }
@@ -117,10 +121,13 @@ public final class C3P0Registry
             }
             catch (Exception e)
             {
+                // reflective construction wraps whatever the constructor threw; report the cause
+                Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
                 if ( logger.isLoggable( MLevel.INFO ) )
                     logger.log( MLevel.INFO,
                                     "jdk1.5 management interfaces unavailable... JMX support disabled.",
-                                    e);
+                                    t);
                 mc = new NullManagementCoordinator();
             }
         }
@@ -152,12 +159,15 @@ public final class C3P0Registry
 	    }
 	    catch (Exception e)
 	    {
+		// reflective construction wraps whatever the constructor threw; report the cause
+		Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
 		if (logger.isLoggable( MLevel.WARNING ))
 		    logger.log( MLevel.WARNING,
 				"Could not create for find ConnectionTester with class name '"   +
 				className + "'. Skipping custom ConnectionTester, reverting to " +
 				"null ConnectionTester for IsValidSimplifiedConnectionTestPath." ,
-				e );
+				t );
 		return null;
 	    }
 	}
@@ -169,7 +179,11 @@ public final class C3P0Registry
     {
 	try { return (ConnectionTester) Class.forName( OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME ).getDeclaredConstructor().newInstance(); }
 	catch ( Exception e )
-	    { throw new Error("Huh? We cannot instantiate the hard-coded, default ConnectionTester? We are very broken.", e); }
+	    {
+	        // reflective construction wraps whatever the constructor threw; report the cause
+	        Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+	        throw new Error("Huh? We cannot instantiate the hard-coded, default ConnectionTester? We are very broken.", t);
+	    }
     }
 
     private static void resetConnectionTesterCache()
@@ -203,11 +217,14 @@ public final class C3P0Registry
         }
         catch (Exception e)
         {
+            // reflective construction wraps whatever the constructor threw; report the cause
+            Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
             if (logger.isLoggable( MLevel.WARNING ))
                 logger.log( MLevel.WARNING,
                                 "Could not create for find TaskRunnerFactory with class name '" +
                                 className + "'. Using default.",
-                                e );
+                                t );
             return DEFAULT_TASK_RUNNER_FACTORY;
         }
     }
@@ -233,12 +250,15 @@ public final class C3P0Registry
             }
             catch (Exception e)
             {
+                // reflective construction wraps whatever the constructor threw; report the cause
+                Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
                 if (logger.isLoggable( MLevel.WARNING ))
                     logger.log( MLevel.WARNING,
                                     "Could not create for find ConnectionCustomizer with class name '" +
                                     className + "'.",
-                                    e );
-                throw SqlUtils.toSQLException( e );
+                                    t );
+                throw SqlUtils.toSQLException( t );
             }
         }
     }

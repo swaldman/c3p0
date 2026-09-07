@@ -6,6 +6,7 @@ import com.mchange.v2.log.*;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import com.mchange.v2.c3p0.AbstractConnectionTester;
 import com.mchange.v2.c3p0.FullQueryConnectionTester;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
@@ -167,8 +168,11 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
         }
 	catch ( Exception e )
 	{
+	    // reflective construction wraps whatever the constructor threw; report the cause
+	    Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
 	    if ( logger.isLoggable( MLevel.WARNING ) )
-		logger.log( MLevel.WARNING, "Specified QuerylessTestRunner '" + propval + "' could not be found or instantiated. Reverting to default 'SWITCH'", e );
+		logger.log( MLevel.WARNING, "Specified QuerylessTestRunner '" + propval + "' could not be found or instantiated. Reverting to default 'SWITCH'", t );
 	    return null;
 	}
     }
