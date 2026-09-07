@@ -46,14 +46,22 @@ note()  { printf '\n=== %s\n' "$*"; }
 ok()    { printf '     ok    %s\n' "$*"; }
 fail()  { printf '     FAIL  %s\n' "$*"; failures=$((failures + 1)); }
 
-# Restores every path we touch. Registered on EXIT so an interrupted or failed run does not leave
-# the working tree perturbed. Tracked files come back via git, so the working tree must be clean
-# for these paths -- see the preflight check below.
+# Restores every path we touch, so an interrupted or failed run does not leave the working tree
+# perturbed. Tracked files come back via `git checkout`, which discards uncommitted work without
+# asking, so this is armed on EXIT only once the preflight check below has confirmed the tree is
+# clean for these paths -- see the trap that arms it. Until then the trap only removes the log:
+# arming restore() any earlier would make the refusal path destroy the very changes refusing exists
+# to protect.
 restore() {
     rm -rf "$NEW_PKG_DIR"
-    git checkout -- "$BEANGEN_XML" "$PROXY_GEN_SRC" 2>/dev/null
+    if ! git checkout -- "$BEANGEN_XML" "$PROXY_GEN_SRC"
+    then
+        printf '\nWARNING: could not revert the perturbed inputs. The working tree may still hold\n' >&2
+        printf 'this run\047s changes to:\n\n    %s\n    %s\n\n' "$BEANGEN_XML" "$PROXY_GEN_SRC" >&2
+        printf 'Check git status and revert them by hand.\n' >&2
+    fi
 }
-trap 'restore; rm -f "$LOG"' EXIT INT TERM
+trap 'rm -f "$LOG"' EXIT INT TERM
 
 sha256() {
     if command -v shasum > /dev/null 2>&1
@@ -196,6 +204,36 @@ check() {
     fi
 }
 
+# Everything below perturbs tracked files and trusts git to put them back. Establish first that git
+# can actually do that here, because the dirty-path check that follows is itself a git query: run
+# somewhere git cannot answer for these paths and that check would find nothing to object to, let
+# the perturbations proceed, and leave restore() failing against a tree it never had the power to
+# revert -- while the run still reported success.
+if ! command -v git > /dev/null 2>&1
+then
+    printf 'Refusing to run: git is not on PATH, and this script reverts the inputs it perturbs\n' >&2
+    printf 'with git.\n' >&2
+    exit 2
+fi
+
+if [ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]
+then
+    printf 'Refusing to run: %s is not inside a git working tree, so the inputs this script\n' "$PWD" >&2
+    printf 'perturbs could not be reverted afterwards.\n' >&2
+    exit 2
+fi
+
+for path in "$BEANGEN_XML" "$PROXY_GEN_SRC"
+do
+    if ! git ls-files --error-unmatch -- "$path" > /dev/null 2>&1
+    then
+        printf 'Refusing to run: %s\n' "$path" >&2
+        printf 'is not tracked by the git repository at %s. This script perturbs that file and\n' "$PWD" >&2
+        printf 'reverts it with git, which could not work here.\n' >&2
+        exit 2
+    fi
+done
+
 if [ -n "$(git status --porcelain -- "$BEANGEN_XML" "$PROXY_GEN_SRC" "$NEW_PKG_DIR" 2>/dev/null)" ]
 then
     printf 'Refusing to run: this script perturbs and then reverts the following paths, and one of\n' >&2
@@ -204,6 +242,10 @@ then
     printf 'Commit or stash those changes first.\n' >&2
     exit 2
 fi
+
+# The preflight passed, so reverting these paths can now discard nothing but our own perturbations.
+# Only here is it safe to arm restore(); see its definition above.
+trap 'restore; rm -f "$LOG"' EXIT INT TERM
 
 note "baseline clean build"
 if ! cleanBuild
