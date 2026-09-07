@@ -1481,7 +1481,7 @@ public class VerboseConnectionCustomizer
       </ul>
       <p>
     <b><tt>unreturnedConnectionTimeout</tt></b> defines a limit (in seconds) to how long a Connection may remain checked out.
-    If set to a nozero value, unreturned, checked-out Connections that exceed this limit will be summarily destroyed,
+    If set to a non-zero value, unreturned, checked-out Connections that exceed this limit will be summarily destroyed,
     and then replaced in the pool.
     Obviously, you must take care to set this parameter to a value large enough that all intended operations
     on checked out Connections have time to complete.
