@@ -1174,23 +1174,16 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
         { this.generateFullDelegateMethod( intfcl, genclass, method, iw, true ); }
     }
 
-    /**
-     *  Marks a generated method @Deprecated when the interface method it implements is.
-     *
-     *  Several JDBC methods a proxy must implement are deprecated -- ResultSet's
-     *  getUnicodeStream and two-argument getBigDecimal, PreparedStatement's
-     *  setUnicodeStream -- and there is nothing to migrate to: the proxy has to implement
-     *  whatever the interface declares. Marking the generated method deprecated is both
-     *  accurate and enough, since a deprecation warning is not issued for a use inside an
-     *  entity that is itself deprecated, so this also covers the delegating call to inner.
-     */
-    @Override
-    protected void generateFullDelegateMethod( Class intfcl, String genclass, Method method, IndentedWriter iw ) throws IOException
-    {
-	if ( method.isAnnotationPresent( Deprecated.class ) )
-	    iw.println("@Deprecated");
-	super.generateFullDelegateMethod( intfcl, genclass, method, iw );
-    }
+    // Generated methods are marked @Override and, where the interface method they
+    // implement is deprecated, @Deprecated. DelegatorGenerator.generateMethodAnnotations
+    // does both now; this class used to emit the @Deprecated itself.
+    //
+    // Several JDBC methods a proxy must implement are deprecated -- ResultSet's
+    // getUnicodeStream and two-argument getBigDecimal, PreparedStatement's
+    // setUnicodeStream -- and there is nothing to migrate to: the proxy has to implement
+    // whatever the interface declares. Marking the generated method deprecated is both
+    // accurate and enough, since a deprecation warning is not issued for a use inside an
+    // entity that is itself deprecated, so this also covers the delegating call to inner.
 
     //totally superfluous, but included to be "regular" and very specific, and as a hook for "general" overrides in future
     @Override
@@ -1413,10 +1406,10 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
     private static void generateIsWrapperHelperMethods( Class intfcl, IndentedWriter iw ) throws IOException
     {
 	iw.println("// helper methods for unwrap( ... ), isWrapperFor( ... )"); 
-	iw.println("private boolean isWrapperForInner( Class intfcl ) throws SQLException"); // last case will be okay, because we will ask inner to unwrap, not return it directly
+	iw.println("private boolean isWrapperForInner( Class<?> intfcl ) throws SQLException"); // last case will be okay, because we will ask inner to unwrap, not return it directly
 	iw.println("{ return ( " + intfcl.getName() + ".class == intfcl || intfcl.isAssignableFrom( inner.getClass() ) || inner.isWrapperFor( intfcl ) ); }");
 	iw.println();
-	iw.println("private boolean isWrapperForThis( Class intfcl )");
+	iw.println("private boolean isWrapperForThis( Class<?> intfcl )");
 	iw.println("{ return intfcl.isAssignableFrom( this.getClass() ); }");
     }
 
@@ -1430,7 +1423,9 @@ public abstract class JdbcProxyGenerator extends DelegatorGenerator
 	else if ("unwrap".equals( mname ))
 	{
 	    iw.println("if (this.isWrapperForInner( a )) return inner.unwrap( a );");
-	    iw.println("if (this.isWrapperForThis( a )) return this;");
+	    // a.cast rather than a bare 'this': unwrap is <T> T unwrap(Class<T>), and
+	    // isWrapperForThis has just established that the cast succeeds.
+	    iw.println("if (this.isWrapperForThis( a )) return a.cast( this );");
 	    iw.println("else throw new SQLException( this + \042 is not a wrapper for or implementation of \042 + a.getName());");
 	}
     }
