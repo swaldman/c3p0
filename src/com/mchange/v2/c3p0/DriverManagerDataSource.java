@@ -279,36 +279,72 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	{
 	    if (driverClass != null)
 	    {
+                SQLException jdbcUrlBasedLookupException = null;
 		try
 		{
 		    if (forceUseNamedDriverClass)
 		    {
 			if ( Debug.DEBUG ) logCircumventingDriverManager();
 			driver = (Driver) loadDriverClass( driverClass ).getDeclaredConstructor().newInstance();
-			this.setDriverClassLoaded( true );
 		    }
 		    else
 		    {
-			driver = DriverManager.getDriver( jdbcUrl ); // if not forceUseNamedDriverClass, prefer jdbcUrl-based lookup if that succeeds, otherwise load driver by classname
+                        try
+                        {
+                            driver = DriverManager.getDriver( jdbcUrl ); // if not forceUseNamedDriverClass, prefer jdbcUrl-based lookup if that succeeds, otherwise load driver by classname
+                        }
+                        catch (SQLException e)
+                        {
+                            jdbcUrlBasedLookupException = e;
+                            if (logger.isLoggable(MLevel.WARNING))
+                                logger.log(MLevel.WARNING, "Failed to look up JDBC driver via JDBC URL: " + jdbcUrl, e);
+                        }
+
 			if (driver == null)
 			{
 			    if ( Debug.DEBUG ) logCircumventingDriverManager();
-			    driver = (Driver) loadDriverClass( driverClass ).getDeclaredConstructor().newInstance();
+                            driver = (Driver) loadDriverClass( driverClass ).getDeclaredConstructor().newInstance();
 			}
 		    }
+                    if (driver.getClass().getName().equals(driverClass))
+                        this.setDriverClassLoaded( true );
 		}
-		catch (SQLException e)
-		{ throw e; }
+                catch (ClassCastException e) // Note we presume that the only cast directly or indirectly in the try are our casts to Driver
+		{
+                    SQLException sqle = SqlUtils.toSQLException("Putative Driver class does not implement java.sql.Driver! Driver class: '" + driverClass +"'", e);
+                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
+                    throw sqle;
+                }
 		catch (ClassNotFoundException e)
-		{ throw SqlUtils.toSQLException("Could not load specified JDBC driver class. Driver class: '" + driverClass +"'", e); }
+		{
+                    SQLException sqle = SqlUtils.toSQLException("Could not load specified JDBC driver class. Driver class: '" + driverClass +"'", e);
+                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
+                    throw sqle;
+                }
 		catch (InstantiationException e)
-		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class with no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		{
+                    SQLException sqle = SqlUtils.toSQLException("Could not instantiate specified JDBC driver class with no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e);
+                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
+                    throw sqle;
+                }
 		catch (IllegalAccessException e)
-		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, no-arg constructor is not accessible. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		{
+                    SQLException sqle = SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, no-arg constructor is not accessible. Loaded but failed to instantiate driver class: '" + driverClass +"'", e);
+                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
+                    throw sqle;
+                }
 		catch (NoSuchMethodException e)
-		{ throw SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, it declares no no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e); }
+		{
+                    SQLException sqle = SqlUtils.toSQLException("Could not instantiate specified JDBC driver class, it declares no no-arg constructor. Loaded but failed to instantiate driver class: '" + driverClass +"'", e);
+                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
+                    throw sqle;
+                }
 		catch (InvocationTargetException e)
-		{ throw SqlUtils.toSQLException("Specified JDBC driver class' no-arg constructor threw an Exception. Driver class: '" + driverClass +"'", e.getCause()); }
+		{
+                    SQLException sqle = SqlUtils.toSQLException("Specified JDBC driver class' no-arg constructor threw an Exception. Driver class: '" + driverClass +"'", e.getCause());
+                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
+                    throw sqle;
+                }
 	    }
 	    else // if no driverClass is specified, we only have one way to try
 		driver = DriverManager.getDriver( jdbcUrl );

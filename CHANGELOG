@@ -1,3 +1,8 @@
+        -- Address a rare issue where forceUseNamedDriverClass is not set, but a
+           driverClass name is available, and the lookup of the Driver by JDBC URL fails.
+           Previously the attempt to load the driver would simply fail. Now,
+           DriverManagerDataSource will fall back to trying to load the Driver class by name
+           and instantiate the driver before giving up.
         -- Move refreshStatement(...), which performs potentially blocking JDBC operations,
            out of GooGooStatementCache.mainLock, to reduce contention on that lock.
         -- When we are enforcing a prohibition on simultaneous operations against any of a
