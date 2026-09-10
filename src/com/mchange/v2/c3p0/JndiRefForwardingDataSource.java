@@ -18,7 +18,6 @@ import javax.sql.DataSource;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
-import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
@@ -41,6 +40,14 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     //MT: protected by this' lock in all cases
     transient DataSource cachedInner;
 
+    //MT: protected by this' lock
+    // Maintained for the Java-serialization path only: readObject sets it, setJndiEnv clears it.
+    // It is NOT a reliable "this env is trustworthy" signal -- an env can also arrive via an
+    // ObjectFactory, potentially outside c3p0, which calls setJndiEnv, indistinguishable from an application
+    // doing so, or via constructSecurelyStringified, which assigns the jndiEnv field directly. Any
+    // future guard must not read a false here as proof the environment is safe.
+    transient boolean java_deserialized_env = false;
+
     public JndiRefForwardingDataSource()
     { this( true ); }
 
@@ -48,6 +55,13 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     {
 	super( autoregister );
 	setUpPropertyListeners();
+    }
+
+    @Override
+    public synchronized void setJndiEnv(Hashtable jndiEnv)
+    {
+        super.setJndiEnv(jndiEnv);
+        this.java_deserialized_env = false;
     }
 
     private void setUpPropertyListeners()
@@ -88,10 +102,28 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
                 C3P0ImplUtils.jndiAssertNameIsAcceptable(jndiName);
 
 		InitialContext ctx;
-		if (jndiEnv != null)
-		    ctx = new InitialContext( jndiEnv );
-		else
+		if (jndiEnv == null || jndiEnv.isEmpty())
 		    ctx = new InitialContext();
+                else
+                {
+		    // ctx = new InitialContext( jndiEnv );
+                    throw new NamingException(
+                       "JNDI resolution against non-default InitialContext instances is dangerous " +
+                       "here, as this object could have been constructed by de-Reference-ing or " +
+                       "Java deserialization, and the picked Reference or serialized object instances " +
+                       "might be subject to tampering. Although we can detect whether an instance has been " +
+                       "formed as a result of deserialization, we have no reliable way to prove it did " +
+                       "not come to be via de-Reference-ing by an ObjectFactory outside of c3p0's control. " +
+                       "So, for now we refuse to perform JNDI lookups against ANY non-default JNDI environment. " +
+                       "If this is overly restrictive for your application, please contact c3p0's developers. " +
+                       "It would be easy to allow user-defined classes to approve, filter, or veto non-default environments, " +
+                       "but the developers of c3p0 believe this path is just not used in the wild, so it's not worth " +
+                       "the trouble. If you would like to be able to forward to JNDI refs using non-default JNDI environments " +
+                       "please define an issue requesting it at https://github.com/swaldman/c3p0/issues"
+                    );
+
+                }
+
 		if (jndiName instanceof String)
                 {
                     String snm = (String) jndiName;
@@ -155,18 +187,19 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     // serialization stuff -- set up bound/constrained property event handlers on deserialization
     private static final long serialVersionUID = 1;
     private static final short VERSION = 0x0001;
-	
+
     private void writeObject( ObjectOutputStream oos ) throws IOException
     {
 	oos.writeShort( VERSION );
     }
-	
+
     private void readObject( ObjectInputStream ois ) throws IOException, ClassNotFoundException
     {
 	short version = ois.readShort();
 	switch (version)
 	    {
 	    case VERSION:
+                this.java_deserialized_env = true;
 		setUpPropertyListeners();
 		break;
 	    default:
@@ -187,4 +220,3 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
 	throw new SQLException(this + " is not a Wrapper for " + iface.getName());
     }
 }
-
