@@ -4,6 +4,7 @@ import java.util.*;
 import java.lang.reflect.InvocationTargetException;
 import com.mchange.v2.coalesce.*;
 import com.mchange.v2.log.*;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
 import com.mchange.v2.c3p0.impl.*;
 
@@ -14,6 +15,8 @@ import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.util.DoubleWeakHashMap;
 
 import com.mchange.v2.c3p0.management.*;
+
+import com.mchange.v2.reflect.ByNameInstantiationUtils;
 
 /*
  *  The primary purpose of C3P0Registry is to maintain a mapping of "identityTokens"
@@ -96,7 +99,8 @@ public final class C3P0Registry
         {
             try
             {
-                mc = (ManagementCoordinator) Class.forName(userManagementCoordinator).getDeclaredConstructor().newInstance();
+                // since userManagementCoordinator had to have been explicitly specified in config, we do not gate
+                mc = (ManagementCoordinator) ByNameInstantiationUtils.instantiateByNameUngated(userManagementCoordinator);
             }
             catch (Exception e)
             {
@@ -117,7 +121,8 @@ public final class C3P0Registry
             {
                 Class.forName("java.lang.management.ManagementFactory");
 
-                mc = (ManagementCoordinator) Class.forName( "com.mchange.v2.c3p0.management.ActiveManagementCoordinator" ).getDeclaredConstructor().newInstance();
+                // fixed, trusted name, so we don't gate
+                mc = (ManagementCoordinator) ByNameInstantiationUtils.instantiateByNameUngated( "com.mchange.v2.c3p0.management.ActiveManagementCoordinator" );
             }
             catch (Exception e)
             {
@@ -151,7 +156,8 @@ public final class C3P0Registry
 		    ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
 		    if (out == null)
 		    {
-			out = (ConnectionTester) Class.forName( className ).getDeclaredConstructor().newInstance();
+                        // name can be dereived from dereferenced or deserialized DataSource, so we do gate
+			out = (ConnectionTester) ByNameInstantiationUtils.instantiateByNameGated( className, C3P0Config.getMultiPropertiesConfig() );
 			classNamesToConnectionTesters.put( className, out );
 		    }
 		    return out;
@@ -177,7 +183,11 @@ public final class C3P0Registry
     // so when config is updated, we should recreate it. So we can't just hardcode an instance.
     private static ConnectionTester recreateOldSchoolDefaultConnectionTester()
     {
-	try { return (ConnectionTester) Class.forName( OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME ).getDeclaredConstructor().newInstance(); }
+	try
+        {
+            // fixed, trusted name, so we don't gate
+            return (ConnectionTester) ByNameInstantiationUtils.instantiateByNameUngated( OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME );
+        }
 	catch ( Exception e )
 	    {
 	        // reflective construction wraps whatever the constructor threw; report the cause
@@ -209,7 +219,8 @@ public final class C3P0Registry
 		TaskRunnerFactory out = (TaskRunnerFactory) classNamesToTaskRunnerFactories.get( className );
 		if (out == null)
 		{
-		    out = (TaskRunnerFactory) Class.forName( className ).getDeclaredConstructor().newInstance();
+                    // name can be derived from deserialized or dereferenced DataSource, so we do gate
+		    out = (TaskRunnerFactory) ByNameInstantiationUtils.instantiateByNameGated( className, C3P0Config.getMultiPropertiesConfig() );
 		    classNamesToTaskRunnerFactories.put( className, out );
 		}
 		return out;
@@ -242,7 +253,8 @@ public final class C3P0Registry
 		    ConnectionCustomizer out = (ConnectionCustomizer) classNamesToConnectionCustomizers.get( className );
 		    if (out == null)
 		    {
-			out = (ConnectionCustomizer) Class.forName( className ).getDeclaredConstructor().newInstance();
+                        // className can be derived from deserialized or dereferenced DataSource, so we do gate
+			out = (ConnectionCustomizer) ByNameInstantiationUtils.instantiateByNameGated( className, C3P0Config.getMultiPropertiesConfig() );
 			classNamesToConnectionCustomizers.put( className, out );
 		    }
 		    return out;

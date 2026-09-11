@@ -13,6 +13,8 @@ import java.lang.reflect.Method;
 import com.mchange.v1.lang.BooleanUtils;
 import com.mchange.v2.c3p0.C3P0Registry;
 import com.mchange.v2.csv.MalformedCsvException;
+import com.mchange.v2.reflect.ByNameInstantiationUtils;
+import com.mchange.v2.reflect.InstantiationNotPermittedException;
 
 //all internal maps should be HashMaps (the implementation presumes HashMaps)
 
@@ -129,15 +131,26 @@ public final class C3P0Config
     {
 	C3P0Config protoMain;
 
-	String cname = MPCONFIG().getProperty( CFG_FINDER_CLASSNAME_KEY );
+        PropertiesConfig pcfg = MPCONFIG();
+
+	String cname = pcfg.getProperty( CFG_FINDER_CLASSNAME_KEY );
 
 	C3P0ConfigFinder cfgFinder = null;
 	try
 	    {
 		if (cname != null)
-		    cfgFinder = (C3P0ConfigFinder) Class.forName( cname ).getDeclaredConstructor().newInstance();
-		
+                {
+                    // since cname had to have been explicitly specified in config, we do not gate this
+		    cfgFinder = (C3P0ConfigFinder) ByNameInstantiationUtils.instantiateByNameUngated( cname );
+                }
 	    }
+        /*
+        catch (InstantiationNotPermittedException e)
+            {
+		if ( logger.isLoggable(MLevel.WARNING) )
+		    logger.log( MLevel.WARNING, "Load of specified C3P0ConfigFinder class'" + cname + "' was not permitted: " + e.getMessage(), e);
+            }
+        */
 	catch (Exception e)
 	    {
 		// reflective construction wraps whatever the constructor threw; report the cause

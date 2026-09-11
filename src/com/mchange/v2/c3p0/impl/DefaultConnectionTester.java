@@ -13,6 +13,8 @@ import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
+import com.mchange.v2.reflect.ByNameInstantiationUtils;
+
 public final class DefaultConnectionTester extends AbstractConnectionTester
 {
     private final static String PROP_KEY             = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
@@ -158,8 +160,9 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
     {
 	try
 	{
+            // propval is derived from a configuration property, so we do not gate instantiation
 	    if ( propval.indexOf('.') >= 0 )
-		return (QuerylessTestRunner) Class.forName( propval ).getDeclaredConstructor().newInstance();
+		return (QuerylessTestRunner) ByNameInstantiationUtils.instantiateByNameUngated( propval );
 	    else
 	    {
 		Field staticField = DefaultConnectionTester.class.getDeclaredField( propval ); //already trim()ed

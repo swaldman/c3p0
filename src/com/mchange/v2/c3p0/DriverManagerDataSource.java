@@ -17,6 +17,8 @@ import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
+import com.mchange.v2.reflect.ByNameInstantiationUtils;
+import com.mchange.v2.reflect.InstantiationNotPermittedException;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.impl.DriverManagerDataSourceBase;
 
@@ -44,7 +46,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 	// get it over with before we try anything
 	try { Class.forName( "java.sql.DriverManager" ); }
 	catch ( Exception e )
-	    { 
+	    {
 		String msg = "Could not load the DriverManager class?!?";
 		if ( logger.isLoggable( MLevel.SEVERE ) )
 		    logger.log( MLevel.SEVERE, msg );
@@ -285,7 +287,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		    if (forceUseNamedDriverClass)
 		    {
 			if ( Debug.DEBUG ) logCircumventingDriverManager();
-			driver = (Driver) loadDriverClass( driverClass ).getDeclaredConstructor().newInstance();
+			driver = instantiateDriverByName();
 		    }
 		    else
 		    {
@@ -303,7 +305,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 			if (driver == null)
 			{
 			    if ( Debug.DEBUG ) logCircumventingDriverManager();
-                            driver = (Driver) loadDriverClass( driverClass ).getDeclaredConstructor().newInstance();
+                            driver = instantiateDriverByName();
 			}
 		    }
                     if (driver.getClass().getName().equals(driverClass))
@@ -341,7 +343,17 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
                 }
 		catch (InvocationTargetException e)
 		{
+                    // note we use e.getCause() here because InvocationTargetException wraps the meaningful Exception
                     SQLException sqle = SqlUtils.toSQLException("Specified JDBC driver class' no-arg constructor threw an Exception. Driver class: '" + driverClass +"'", e.getCause());
+                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
+                    throw sqle;
+                }
+                catch (InstantiationNotPermittedException e)
+		{
+                    String message =
+                        "Instantiation by name of the specified JDBC driver class was forbidden, because it is not in the enforced whitelist. Driver class: '" + driverClass +
+                        "'; Enforced whitelist: " + ByNameInstantiationUtils.currentWhitelist(C3P0Config.getMultiPropertiesConfig());
+                    SQLException sqle = SqlUtils.toSQLException(message, e);
                     if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
                     throw sqle;
                 }
@@ -350,6 +362,15 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		driver = DriverManager.getDriver( jdbcUrl );
         }
         return driver;
+    }
+
+    // driver class name is determined by a potentially dereferenced or deserialized DataSource, so we do gate instantiation
+    private Driver instantiateDriverByName()
+        throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationNotPermittedException
+    {
+        Class<?> dc = loadDriverClass( driverClass );
+        ByNameInstantiationUtils.checkWarnThrowForInstantiateByName(driverClass,C3P0Config.getMultiPropertiesConfig()); // this is the gate
+        return (Driver) ByNameInstantiationUtils.instantiateByNameUngated(driverClass,dc); // ungated here because we've gated above
     }
 
     private synchronized void clearDriver()
