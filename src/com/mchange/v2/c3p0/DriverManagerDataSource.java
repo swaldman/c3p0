@@ -369,7 +369,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationNotPermittedException
     {
         Class<?> dc = loadDriverClass( driverClass );
-        ByNameInstantiationUtils.checkWarnThrowForInstantiateByName(driverClass,C3P0Config.getMultiPropertiesConfig()); // this is the gate
+        ByNameInstantiationUtils.checkWarnThrowForInstantiateByNameGated(driverClass,C3P0Config.getMultiPropertiesConfig()); // this is the gate
         return (Driver) ByNameInstantiationUtils.instantiateByNameUngated(driverClass,dc); // ungated here because we've gated above
     }
 
