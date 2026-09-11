@@ -1,6 +1,8 @@
 package com.mchange.v2.c3p0.impl;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 import java.util.Map;
 import java.util.Set;
 import com.mchange.v2.c3p0.C3P0Registry;
@@ -23,8 +25,20 @@ public class C3P0JavaBeanObjectFactory extends JavaBeanObjectFactory
     {
 	if ( IdentityTokenized.class.isAssignableFrom( beanClass ) )
 	    {
-		Constructor ctor = beanClass.getConstructor( CTOR_ARG_TYPES );
-		return ctor.newInstance( CTOR_ARGS );
+                try
+                {
+                    Constructor ctor = beanClass.getConstructor( CTOR_ARG_TYPES );
+                    return ctor.newInstance( CTOR_ARGS );
+                }
+                catch (InvocationTargetException e)
+	        {
+                    // reflective construction wraps whatever the constructor threw, while the
+                    // Class.newInstance() this replaces let it propagate. Keep propagating it.
+                    Throwable t = e.getCause();
+                    if (t instanceof Exception) throw (Exception) t;
+                    else if (t instanceof Error) throw (Error) t;
+                    else throw e;
+                }
 	    }
 	else
 	    return super.createBlankInstance( beanClass );

@@ -20,10 +20,12 @@ public class AfterCloseLoggingConnectionWrapper extends FilterConnection
 	}
 	catch ( Exception e )
 	{
+            Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
+
 	    if ( logger.isLoggable( MLevel.SEVERE ) )
-		logger.log( MLevel.SEVERE, "An unexpected Exception occured while trying to instantiate a dynamic proxy.", e );
-	    
-	    throw new RuntimeException( e );
+		logger.log( MLevel.SEVERE, "An unexpected Exception occured while trying to instantiate a dynamic proxy.", t );
+
+	    throw new RuntimeException( t );
 	}
     }
 
