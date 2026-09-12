@@ -1,3 +1,25 @@
+        -- Gate behind a whitelist by-name-instantiation of fully-qualified class names
+           that may have come from dereferenced or deserialized objects. For now,
+           instantiation of non-white-listed class names succeeds, but with a warning.
+           Enforcement can be enabled via a setting, see "Configuring Security" in the
+           docs. THE CURRENT DEFAULT OF PERMISSIVENESS IS TEMPORARY. Future releases
+           will default to enforcement rather than warning. Deployments that explicitly
+           enable enforcement of the whitelist will enjoy greater security and avoid
+           a potentially disruptive change during future releases. Many thanks to
+           @manus-use on github for suggesting this addition.
+        -- In JndiRefForwardingDataSource, refuse to look up JNDI references from
+           InitialContext instances with non-default environment, because we can't guarantee
+           those environments haven't been constructed by deserialization or dereferencing
+           from a maliciously crafted Serialized object or DataSource. Many thanks to
+           @abhishekkushwaha4u on github for reporting this vulnerability.
+        -- Add miscellaneous security hardenings and discouragements of insecure use
+           to mchange-commons-java, thanks to @chennbnbnb on github for reporting.
+        -- Link mchange-java-build-checkers into the build (via StringentJavaModule
+           in mill plugin) to insist that overriding methods be marked @Override.
+        -- "Modernize" (to circa JDK 1.5 standards) mchange-commons-java library:
+           parameterize types to minimize raw-type and unchecked warnings.
+        -- "Modernize" (to circa JDK 1.5 standards), both c3p0 and mchange-commons-java:
+           add @Override annotations to methods that should override.
         -- Address a rare issue where forceUseNamedDriverClass is not set, but a
            driverClass name is available, and the lookup of the Driver by JDBC URL fails.
            Previously the attempt to load the driver would simply fail. Now,
@@ -41,9 +63,9 @@
            condition from our perspective. But it's a condition that does seem to occur in the wild,
            so we need to be resilient to it! When acquiring a new Statement from a Connection, we
            now check whether the Statement we receive is already in the cache. If it is, we do not
-           recachethe new Statement, and we drop the Statement from the cache. It becomes from our
+           recache the new Statement, and we drop the Statement from the cache. It becomes from our
            perspective an uncached Statement (and per the fix just below, is marked for clean-up
-           on checkin of its parent Connection). Thanks to Devil2-O on github for observing and
+           on checkin of its parent Connection). Thanks to @Devil2-O on github for observing and
            reporting the failures that led us to diagnose this condition.
         -- Fix a potential Statement leak when (1) a Statement cache is full, and so a newly
            requested PreparedStatement is returned as an uncached "overload Statement"; and
@@ -109,7 +131,7 @@ c3p0-0.14.0
            and a place where attackers might smuggle a malicious reference. (mchange-commons-java)
 c3p0-0.13.0
         -- Ensure sessions are marked as endRequest() is called prior to check-in, to eliminate
-           race between DBMS cleanup and checkout by a new client. Thanks Krrish (ota0912 on github).
+           race between DBMS cleanup and checkout by a new client. Thanks Krrish (@ota0912 on github).
         -- Take generic JavaBeanObjectFactory out of the whitelist of object factories,
            com.mchange.v2.naming.objectFactoryWhitelist, mchange-commons-java ReferenceableUtils
            is willing to dereference. Only C3P0JavaBeanObjectFactory should be used.
@@ -172,7 +194,7 @@ c3p0-0.12.0
         -- Fix rare issue in Statement caching (GooGooStatementCache), make sure any Statement
            we remove is checked into the cache in order to ensure we don't see internal inconsistencies
            when Statements we mean to cull fail to be removed by removeStatement(...) because they
-           are checked out. Thanks to vimalesh on GitHub for calling attention to this issue.
+           are checked out. Thanks to @vimalesh on GitHub for calling attention to this issue.
 c3p0-0.11.2
         -- Expose utilities `overwriteJavaBeanProperties` and `overwriteC3P0PrefixedProperties`
            in the `DataSources` class, and refactor existing functions to use those.
@@ -200,14 +222,14 @@ c3p0-0.11.0-pre1
            attention to this issue and proposing the fix!
         -- Double check after termination of BasicResourcePool.awaitAvailable(...)
            that following notification/termination a resource (Connection) remains
-           available. Many thanks to C3Stones and xtb359 on github for calling
+           available. Many thanks to @C3Stones and @xtb359 on github for calling
            attention to this issue.
         -- Prevent fragility under non-bootstrap / non-system CLASSLOADERs under
            Java 8, where references to java.sql.ShardingKey not available under Java 8
            provoke NoClassDefFoundError. Bifurcate Connection proxies, generate
            version without sharding key methods under JVMs where ShardingKey is unavailable,
            full JDBC 4.3 Connection API proxies where ShardingKey is present.
-           Thanks to Force Rs on github for finding the issue and suggesting the
+           Thanks to "Force Rs" on github for finding the issue and suggesting the
            solution!
 c3p0-0.10.2
         -- Prevent freeze due to re-waiting if a non-Exception Throwable occurs
@@ -359,16 +381,16 @@ c3p0-0.9.5.4
            set to true, making it impossible for the pool to restart acquisition attempts on recovery. We
            now unset the flag under any circumstance, but log interrupts or unexpected throwables, and make
            a best effort to complete the intended expiration of waiting clients by throwing InterruptException
-           Many thanks to Stefan Cordes (rscadrde on github), Vipin Nair (swvist on github), and Łukasz Jąder
-           (ljader on github) for their work on this issue.
+           Many thanks to Stefan Cordes (@rscadrde on github), Vipin Nair (@swvist on github), and Łukasz Jąder
+           (@ljader on github) for their work on this issue.
 c3p0-0.9.5.3
         -- Address CVE-2018-20433, https://nvd.nist.gov/vuln/detail/CVE-2018-20433 re liberal parsing of
            XML config. By default, c3p0 no longer expands entity references in XML config files. This
            behavior can be overridden via config property 'com.mchange.v2.c3p0.cfg.xml.expandEntityReferences'
            by applications that understand the security concerns but wish to make use of entity references.
-           Thanks to user zhutougg on GitHub for calling attention to and suggesting a fix for this issue.
+           Thanks to user @zhutougg on GitHub for calling attention to and suggesting a fix for this issue.
         -- Upgrade dependency to mchange-commons-java 0.2.15, which includes support for log4j2 (implemented
-           in mchange-commons-java by GitHub user fireandfuel. Many thanks!
+           in mchange-commons-java by GitHub user @fireandfuel. Many thanks!)
 
 c3p0-0.9.5.2
         -- Fix a bug in MLog bridge to slf4j logging, in which loggability of levels of wrapped loggers
@@ -376,10 +398,10 @@ c3p0-0.9.5.2
            [change is in mchange-commons-java 0.2.11]. Many thanks to Lewis Wong on Stack Exchange for calling
            attention to this issue.
         -- Embed last acquistion failure as nested Exception in CannotAcquireResourceException. Thanks to
-           nigam on github for this addition.
+           @nigam on github for this addition.
 c3p0-0.9.5.1
         -- Implemented configuration property com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout
-           to define timeouts on tests based on Connection.isValid(...). Many thanks to james-hu on github
+           to define timeouts on tests based on Connection.isValid(...). Many thanks to @james-hu on github
            for suggesting this.
         -- Added a forceSynchronousCheckins config param, which can be a significant performance boost
            if no tests are performed on checkin and no long work is performed in ConnectionCustomizer.onCheckIn(...).
@@ -390,7 +412,7 @@ c3p0-0.9.5.1
            when users lookup extensions. Many thanks to Vlad Skarzhevskyy for calling attention to this
            issue.
         -- ScatteredAcquireTask now tests to see if a BasicResourcePool has already been closed before
-           attempting an acquisition. Thanks to kenicky on github for calling attention to this issue.
+           attempting an acquisition. Thanks to @kenicky on github for calling attention to this issue.
 c3p0-0.9.5
         -- Fixed small typo in log message, thanks Jaran Nilsen
         -- DriverManagerDataSource: Added synchronization missing for the very rare case of an on-the-fly
@@ -399,11 +421,11 @@ c3p0-0.9.5
 c3p0-0.9.5-pre10
         -- Removed support for try-with-resources (implementation of marker interface java.lang.AutoCloseable)
            as it breaks Java6 support. I'll save it for 0.9.6 (unless I get a lot of complaints).
-           Thanks again to dwscott on github.
+           Thanks again to @dwscott on github.
         -- Added config parameter com.mchange.v2.c3p0.management.ExcludeIdentityToken that allows users to
            have c3p0 generate predictable, reproducible full JMX ObjectNames (at the cost of extra user
            responsibility in ensuring the uniqueness of those names). Updated and expanded documentation
-           with respect to JMX support. Thanks to dwscott on github for suggesting this improvement.
+           with respect to JMX support. Thanks to @dwscott on github for suggesting this improvement.
 c3p0-0.9.5-pre9
         -- In mchange-commons-java, modified log library to consider slf4j library unfound if it gets bound to its
            no-op ('NOP') back-end.
@@ -421,20 +443,20 @@ c3p0-0.9.5-pre9
            Many thanks to Michele Rossi for the suggestion.
         -- Finally wrapped StackOverflowError that comes in the rare, pathological case when every attempt to checkout
            a resource fails some test or check until eventually recursive retries blow the stack. A NoGoodResourcesException
-           is now thrown in this case. Thanks to Ibenda on github for calling attention to the issue (and others annoyed by
+           is now thrown in this case. Thanks to @Ibenda on github for calling attention to the issue (and others annoyed by
            it long ago). [Note: The StackOverflowError remains accessible, wrapped as the root cause Exception. So I expect
            continuing bug reports / complaints about a StackOverflowException from users who don't notice it is caught and
            handled.]
         -- Some documentation updates and fixes.
         -- Made PooledDataSource AutoCloseable, so that try with resources can be used to clean up after them.
         -- Added some warnings in BasicResourcePool's constructor if min, max, and start are misordered.
-           Misordered values are reordered. Thanks to bronzenose on github for the suggestion.
+           Misordered values are reordered. Thanks to @bronzenose on github for the suggestion.
         -- Overloaded AbstractPoolBackedDataSource / AbstractComboPoolBackedDataSource toString,
            so we've a toString( boolean show_config ). The full reflective config is now shown only when logging
            pool manager initialization. Otherwise we revert to a fast, nonreflective toString(). We'll see whether anyone
-           minds the abbreviation. Thanks to kibertoad and Xerosigma on github for the suggestion.
+           minds the abbreviation. Thanks to @kibertoad and @Xerosigma on github for the suggestion.
         -- Fixed implementations of wrap( ... ) / isWrapperFor( ... ) to properly conform to spec when given an interface implemented
-           directly by the receiver of the wrap( ... ) call. Many thanks to baracil on github for calling attention to this issue.
+           directly by the receiver of the wrap( ... ) call. Many thanks to @baracil on github for calling attention to this issue.
 c3p0-0.9.5-pre8
         -- Resolved a Serialization problem introduced in c3p0-0.9.5-pre7 (Broke serializability of DefaultConnectionTester
            and therefore typical instances of WrapperConnectionPoolDataSource.) Many thanks to Petar Tachiev for calling attention to this issue.
@@ -500,7 +522,7 @@ c3p0-0.9.5-pre6
         -- Cleaned up reflection of default properties, such that only coercible properties
            get Stringified (since Stringifying non-coercible properties render them useless
            for setting as bean params), and to eliminate treating C3P0Defaults.getKnownProperties
-           as itself a default. Many thanks to wuSam on github for exercising the library in an
+           as itself a default. Many thanks to @wuSam on github for exercising the library in an
            unusual way and revealing these issues.
 c3p0-0.9.5-pre5
         -- Made JMX names of C3P0Registry customizable via the config property
@@ -542,7 +564,7 @@ c3p0-0.9.5-pre4
            Keith Amling and Dan Berindei for calling attention to this issue.
 c3p0-0.9.5-pre3
         -- For reasons that remain obscure, the published build of c3p0-0.9.5-pre2 is missing
-           JDBC4 methods (many thanks to edysli on github for pointing this out). Apparently
+           JDBC4 methods (many thanks to @edysli on github for pointing this out). Apparently
            it was accidentally built against JDBC3 libraries. Added a compile-time check
            for JDBC4 api in generated code to C3P0ImplUtils.
         -- Divided ComboPooledDataSource into final implementation class and an abstract class
