@@ -352,7 +352,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		{
                     String message =
                         "Instantiation by name of the specified JDBC driver class was forbidden, because it is not in the enforced whitelist. Driver class: '" + driverClass +
-                        "'; Enforced whitelist: " + ByNameInstantiationUtils.currentWhitelist(C3P0Config.getMultiPropertiesConfig());
+                        "'; Enforced -- " + ByNameInstantiationUtils.currentWhitelistInfo(C3P0Config.getMultiPropertiesConfig());
                     SQLException sqle = SqlUtils.toSQLException(message, e);
                     if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
                     throw sqle;
