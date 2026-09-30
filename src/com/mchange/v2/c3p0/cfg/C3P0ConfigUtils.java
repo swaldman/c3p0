@@ -16,9 +16,11 @@ public final class C3P0ConfigUtils
     public final static int    PROPS_FILE_PROP_PFX_LEN  = 5;
 
     private final static String[] MISSPELL_PFXS = {"/c3pO", "/c3po", "/C3P0", "/C3PO"}; 
-    
+
     final static MLogger logger = MLog.getLogger( C3P0ConfigUtils.class );
-    
+
+    final static Set<String> DANGEROUS_NO_PREFIX_C3P0_PROPERTIES; // might point c3p0 to execute unexpected code, or escalate security privileges (in older JVMs)
+
     static
     {
         if ( logger.isLoggable(MLevel.WARNING) && C3P0ConfigUtils.class.getResource( PROPS_FILE_RSRC_PATH ) == null )
@@ -37,6 +39,18 @@ public final class C3P0ConfigUtils
                 }
             }
         }
+
+        HashSet<String> tmp = new HashSet<>();
+        for (Iterator ii = C3P0Defaults.getKnownProperties( null ).iterator(); ii.hasNext(); )
+        {
+            String propName = (String) ii.next();
+            if (propName != null && propName.indexOf("ClassName") >= 0)
+                tmp.add(propName);
+        }
+        tmp.add("driverClass");
+        tmp.add("factoryClassLocation");
+        tmp.add("privilegeSpawnedThreads");
+        DANGEROUS_NO_PREFIX_C3P0_PROPERTIES = Collections.unmodifiableSet(tmp);
     }
 
     /**
@@ -104,7 +118,11 @@ public final class C3P0ConfigUtils
 	
 	return new C3P0Config( defaults, configNamesToNamedScopes ); 
     }
-    
+
+    /**
+     *  @deprecated In general, try to use com.mchange.v2.cfg.SealedSystemPropertiesStringProperty with C3P0Config.getMultiPropertiesConfig() as its argument.
+     */
+    @Deprecated
     public static String getPropsFileConfigProperty( String prop )
     { return C3P0Config.getPropsFileConfigProperty( prop ); }
 
@@ -114,7 +132,7 @@ public final class C3P0ConfigUtils
     private static Properties findAllOneLevelC3P0Properties()
     { return C3P0Config.findAllOneLevelC3P0Properties(); }
 
-    static Properties findAllC3P0SystemProperties()
+    static Properties findAllC3P0SystemPropertiesRespectSealedAndDangerousProperties()
     {
 	Properties out = new Properties();
 
@@ -124,7 +142,44 @@ public final class C3P0ConfigUtils
 		    {
 			String key = (String) ii.next();
 			String prefixedKey = "c3p0." + key;
-			String value = System.getProperty( prefixedKey );
+                        String sealedValue = SealedSystemProperties.get().getProperty( prefixedKey );
+
+			String value;
+                        if (sealedValue != null)
+                        {
+                            value = sealedValue;
+                            if (logger.isLoggable(MLevel.WARNING))
+                            {
+                                String current = System.getProperty(prefixedKey);
+                                if (!sealedValue.equals(current))
+                                    logger.log(MLevel.WARNING,
+                                               "System property '" + prefixedKey +
+                                               "' has changed from its originally sealed value of '" + sealedValue +
+                                               "' to a new value of '" + current +
+                                               "'. The new value will NOT become a part of c3p0's configuration. " +
+                                               "The sealed value will remain.");
+                            }
+                        }
+                        else if (DANGEROUS_NO_PREFIX_C3P0_PROPERTIES.contains(key))
+                        {
+                            value = null; // sealed value is null, and we accept no late introductions of dangerous keys
+                            if (logger.isLoggable(MLevel.WARNING))
+                            {
+                                String current = System.getProperty(prefixedKey);
+                                if (current != null)
+                                    logger.log(MLevel.WARNING,
+                                               "System property '" + prefixedKey +
+                                               "' has been introduced at runtime with value '" + current +
+                                               "'. It was originally left unset in System properties. '" + prefixedKey +
+                                               "' is considered a dangerous property, late introductions via System properties are not supported. " +
+                                               "The configuration of '" + prefixedKey +
+                                               "' may be affected by other ways of changing c3p0's configuration, " +
+                                               "but the System property change, on its own, will not take effect.");
+                            }
+                        }
+                        else
+                            value = System.getProperty( prefixedKey );
+
 			if (value != null && value.trim().length() > 0)
 			    out.put( key, value );
 		    }

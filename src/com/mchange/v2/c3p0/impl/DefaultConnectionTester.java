@@ -13,12 +13,13 @@ import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
+import com.mchange.v2.cfg.SealedSystemPropertiesStringProperty;
 import com.mchange.v2.reflect.ByNameInstantiationUtils;
 
 public final class DefaultConnectionTester extends AbstractConnectionTester
 {
-    private final static String PROP_KEY             = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
-    private final static String IS_VALID_TIMEOUT_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
+    private final static String QUERYLESS_TEST_RUNNER_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.querylessTestRunner";
+    private final static String IS_VALID_TIMEOUT_KEY      = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
 
     final static MLogger logger = MLog.getLogger( DefaultConnectionTester.class );
 
@@ -29,6 +30,8 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
     final static int HASH_CODE = DefaultConnectionTester.class.getName().hashCode();
 
     final static Set INVALID_DB_STATES;
+
+    private final static SealedSystemPropertiesStringProperty querylessTestRunnerProperty = new SealedSystemPropertiesStringProperty(QUERYLESS_TEST_RUNNER_KEY);
 
     public static boolean probableInvalidDb( SQLException sqle )
     { return INVALID_DB_STATES.contains( sqle.getSQLState() ); }
@@ -215,6 +218,9 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	IS_VALID_TIMEOUT = isValidTimeout;
     }
 
+    //MT: final reference, internally threadsafe
+    private final QuerylessTestRunner querylessTestRunner;
+
     public DefaultConnectionTester()
     {
 	// we prefer SWITCH to THREAD_LOCAL for now only because it has less overhead in the expected code path.
@@ -227,18 +233,15 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	// Both THREAD_LOCAL and SWITCH work very well, extra overhead from resolving
 	// to METADATA_TABLESEARCH or IS_VALID does not seem to be significant.
 
-	String prop = C3P0Config.getMultiPropertiesConfig().getProperty( PROP_KEY );
+        String prop = querylessTestRunnerProperty.getValue( C3P0Config.getMultiPropertiesConfig(), logger );
 	if ( prop == null )
-	    querylessTestRunner = defaultQuerylessTestRunner;
+	    this.querylessTestRunner = defaultQuerylessTestRunner;
 	else
 	{
 	    QuerylessTestRunner reflected = reflectTestRunner( prop.trim() );
-	    querylessTestRunner = ( reflected != null ? reflected : defaultQuerylessTestRunner );
+	    this.querylessTestRunner = ( reflected != null ? reflected : defaultQuerylessTestRunner );
 	}
     }
-
-    //MT: final reference, internally threadsafe
-    private final QuerylessTestRunner querylessTestRunner;
 
     @Override
     public int activeCheckConnection(Connection c, String query, Throwable[] rootCauseOutParamHolder)

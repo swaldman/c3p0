@@ -35,6 +35,8 @@ public final class C3P0Config
 
     public final static String PROPS_FILE_RSRC_PATH = "/c3p0.properties";
 
+    private final static SealedSystemPropertiesStringProperty cfgFinderClassname = new SealedSystemPropertiesStringProperty( CFG_FINDER_CLASSNAME_KEY );
+
     final static MLogger logger;
 
     //MT: the value of the ConfigRec is informally immutable (TBD: enforce?)
@@ -42,6 +44,18 @@ public final class C3P0Config
     private static MultiPropertiesConfig _MPCONFIG;
     private static C3P0Config _MAIN;
 
+    static
+    {
+	logger = MLog.getLogger( C3P0Config.class );
+
+	// if ( logger.isLoggable( MLevel.FINE ) )
+	//     logger.log( MLevel.INFO, "Updated main c3p0 cofiguration." );
+
+	setLibraryMultiPropertiesConfig( findLibraryMultiPropertiesConfig() );
+	setMainConfig( findLibraryC3P0Config( false ) );
+
+	warnOnUnknownProperties( MAIN() );
+    }
 
     private static synchronized MultiPropertiesConfig MPCONFIG()
     { return _MPCONFIG; }
@@ -102,19 +116,6 @@ public final class C3P0Config
 	C3P0Registry.markConfigRefreshed();
     }
 
-    static
-    {
-	logger = MLog.getLogger( C3P0Config.class );
-
-	// if ( logger.isLoggable( MLevel.FINE ) )
-	//     logger.log( MLevel.INFO, "Updated main c3p0 cofiguration." );
-
-	setLibraryMultiPropertiesConfig( findLibraryMultiPropertiesConfig() );
-	setMainConfig( findLibraryC3P0Config( false ) );
-
-	warnOnUnknownProperties( MAIN() );
-    }
-
     private static MultiPropertiesConfig findLibraryMultiPropertiesConfig()
     {
 	// these should be specified in /mchange-config-resource-paths
@@ -133,7 +134,7 @@ public final class C3P0Config
 
         PropertiesConfig pcfg = MPCONFIG();
 
-	String cname = pcfg.getProperty( CFG_FINDER_CLASSNAME_KEY );
+	String cname = cfgFinderClassname.getValue(pcfg, logger);
 
 	C3P0ConfigFinder cfgFinder = null;
 	try
@@ -144,13 +145,6 @@ public final class C3P0Config
 		    cfgFinder = (C3P0ConfigFinder) ByNameInstantiationUtils.instantiateByNameUngated( cname );
                 }
 	    }
-        /*
-        catch (InstantiationNotPermittedException e)
-            {
-		if ( logger.isLoggable(MLevel.WARNING) )
-		    logger.log( MLevel.WARNING, "Load of specified C3P0ConfigFinder class'" + cname + "' was not permitted: " + e.getMessage(), e);
-            }
-        */
 	catch (Exception e)
 	    {
 		// reflective construction wraps whatever the constructor threw; report the cause
@@ -248,6 +242,10 @@ public final class C3P0Config
 	    }
     }
 
+    /**
+     *  @deprecated In general, try to use com.mchange.v2.cfg.SealedSystemPropertiesStringProperty with C3P0Config.getMultiPropertiesConfig() as its argument.
+     */
+    @Deprecated
     public static String getPropsFileConfigProperty( String prop )
     { return MPCONFIG().getProperty( prop ); }
 

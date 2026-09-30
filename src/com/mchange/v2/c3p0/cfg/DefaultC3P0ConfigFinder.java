@@ -3,6 +3,10 @@ package com.mchange.v2.c3p0.cfg;
 import java.io.*;
 import com.mchange.v2.log.*;
 
+import com.mchange.v2.cfg.PropertiesConfig;
+import com.mchange.v2.cfg.SealedSystemPropertiesBooleanProperty;
+import com.mchange.v2.cfg.SealedSystemPropertiesStringProperty;
+
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -15,13 +19,17 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 
     final static MLogger logger = MLog.getLogger( DefaultC3P0ConfigFinder.class );
 
+    private final static SealedSystemPropertiesStringProperty  xmlCfgFileProperty       = new SealedSystemPropertiesStringProperty( XML_CFG_FILE_KEY );
+    private final static SealedSystemPropertiesBooleanProperty expandEntityRefsProperty = new SealedSystemPropertiesBooleanProperty( XML_CFG_EXPAND_ENTITY_REFS_KEY, false );
+    private final static SealedSystemPropertiesBooleanProperty permissiveParserProperty = new SealedSystemPropertiesBooleanProperty( XML_CFG_USE_PERMISSIVE_PARSER_KEY, false );
+
     final boolean warn_of_xml_overrides;
 
     public DefaultC3P0ConfigFinder( boolean warn_of_xml_overrides )
     { this.warn_of_xml_overrides = warn_of_xml_overrides; }
 
     public DefaultC3P0ConfigFinder() 
-    { this( false ); }   
+    { this( false ); }
 
     @Override
     public C3P0Config findConfig() throws Exception
@@ -35,9 +43,11 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	// properties in the XML
 	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
 
-	String cfgFile = C3P0Config.getPropsFileConfigProperty( XML_CFG_FILE_KEY );
+        // we can hit C3P0Config.getMultiPropertiesConfig(), because the basic MultiPropertiesConfig is
+        // independent of and gets built prior to the C3P0Config in whose construction we are particating
+	String cfgFile = xmlCfgFileProperty.getValue( C3P0Config.getMultiPropertiesConfig(), logger );
 	boolean usePermissiveParser = findUsePermissiveParser();
-	
+
 	if (cfgFile == null)
 	    {
 		C3P0Config xmlConfig = C3P0ConfigXmlUtils.extractXmlConfigFromDefaultResource( usePermissiveParser );
@@ -95,7 +105,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 
 	// overwrite default, unspecified user config with System properties
 	// defined values
-	Properties sysPropConfig = C3P0ConfigUtils.findAllC3P0SystemProperties();
+	Properties sysPropConfig = C3P0ConfigUtils.findAllC3P0SystemPropertiesRespectSealedAndDangerousProperties();
 	out.defaultConfig.props.putAll( sysPropConfig );
 
 	return out;
@@ -113,16 +123,15 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	    logger.log( MLevel.WARNING, "Configuation defined in " + srcType + "'" + srcName + "' overrides all other c3p0 config." );
     }
 
-    private static boolean affirmativelyTrue( String propStr )
-    { return (propStr != null && propStr.trim().equalsIgnoreCase("true")); }
-
     private boolean findUsePermissiveParser()
     {
-	boolean deprecatedExpandEntityRefs = affirmativelyTrue( C3P0Config.getPropsFileConfigProperty( XML_CFG_EXPAND_ENTITY_REFS_KEY ) );
-	boolean usePermissiveParser        = affirmativelyTrue( C3P0Config.getPropsFileConfigProperty( XML_CFG_USE_PERMISSIVE_PARSER_KEY ) );
+        PropertiesConfig pcfg = C3P0Config.getMultiPropertiesConfig();
+
+	boolean deprecatedExpandEntityRefs = expandEntityRefsProperty.getValue( pcfg, logger );
+	boolean usePermissiveParser        = permissiveParserProperty.getValue( pcfg, logger );
 
 	boolean out = usePermissiveParser || deprecatedExpandEntityRefs;
-	    
+
 	if ( out && logger.isLoggable( MLevel.WARNING ) )
 	{
 	    String warningKey;

@@ -16,6 +16,7 @@ import com.mchange.v2.util.DoubleWeakHashMap;
 
 import com.mchange.v2.c3p0.management.*;
 
+import com.mchange.v2.cfg.SealedSystemPropertiesStringProperty;
 import com.mchange.v2.reflect.ByNameInstantiationUtils;
 
 /*
@@ -53,7 +54,7 @@ import com.mchange.v2.reflect.ByNameInstantiationUtils;
  */
 public final class C3P0Registry
 {
-    private final static String MC_PARAM = "com.mchange.v2.c3p0.management.ManagementCoordinator";
+    private final static String MC_PROP = "com.mchange.v2.c3p0.management.ManagementCoordinator";
 
     private final static String OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME = "com.mchange.v2.c3p0.impl.DefaultConnectionTester";
 
@@ -88,13 +89,16 @@ public final class C3P0Registry
     //MT: protected by ITS OWN LOCK
     private final static Map classNamesToConnectionCustomizers = new HashMap();
 
+    //MT: Internally synchronized (on its own lock)
+    private final static SealedSystemPropertiesStringProperty managementCoordinatorProperty = new SealedSystemPropertiesStringProperty(MC_PROP);
+
     private static ManagementCoordinator mc;
 
     static
     {
 	resetConnectionTesterCache();
 
-        String userManagementCoordinator = C3P0ConfigUtils.getPropsFileConfigProperty(MC_PARAM);
+        String userManagementCoordinator = managementCoordinatorProperty.getValue(C3P0Config.getMultiPropertiesConfig(), logger);
         if (userManagementCoordinator != null)
         {
             try
@@ -156,7 +160,7 @@ public final class C3P0Registry
 		    ConnectionTester out = (ConnectionTester) classNamesToConnectionTesters.get( className );
 		    if (out == null)
 		    {
-                        // name can be dereived from dereferenced or deserialized DataSource, so we do gate
+                        // name can be derived from dereferenced or deserialized DataSource, so we do gate
 			out = (ConnectionTester) ByNameInstantiationUtils.instantiateByNameGated( className, C3P0Config.getMultiPropertiesConfig() );
 			classNamesToConnectionTesters.put( className, out );
 		    }

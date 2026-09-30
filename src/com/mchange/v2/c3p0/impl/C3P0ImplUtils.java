@@ -18,6 +18,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import com.mchange.lang.ByteUtils;
 import com.mchange.v1.identicator.IdentityHashCodeIdenticator;
+import com.mchange.v2.cfg.SealedSystemPropertiesStringProperty;
 import com.mchange.v2.encounter.EncounterCounter;
 import com.mchange.v2.encounter.EncounterUtils;
 import com.mchange.v2.encounter.WeakIdentityEncounterCounter;
@@ -92,9 +93,11 @@ public final class C3P0ImplUtils
     public final static String VMID_PROPKEY = "com.mchange.v2.c3p0.VMID";
     private final static String VMID_PFX;
 
+    private final static SealedSystemPropertiesStringProperty vmidProperty = new SealedSystemPropertiesStringProperty( VMID_PROPKEY );
+
     static
     {
-        String vmid = C3P0Config.getPropsFileConfigProperty( VMID_PROPKEY );
+        String vmid = vmidProperty.getValue( C3P0Config.getMultiPropertiesConfig(), logger );
         if (vmid == null || (vmid = vmid.trim()).equals("") || vmid.equals("AUTO"))
             VMID_PFX = UidUtils.VM_ID + '|';
         else if (vmid.equals("NONE"))
