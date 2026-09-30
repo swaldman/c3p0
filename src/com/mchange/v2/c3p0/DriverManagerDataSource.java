@@ -13,6 +13,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import javax.sql.DataSource;
+import com.mchange.v2.cfg.PropertiesConfig;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
@@ -27,9 +28,9 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     public static String securelyStringify(DriverManagerDataSource dmds) throws Exception
     { return DriverManagerDataSourceBase.securelyStringify(dmds); }
 
-    public static DriverManagerDataSource constructSecurelyStringified( String stringified ) throws Exception
+    public static DriverManagerDataSource constructSecurelyStringified( String stringified, PropertiesConfig pcfg ) throws Exception
     {
-        DriverManagerDataSource out = (DriverManagerDataSource) DriverManagerDataSourceBase.constructSecurelyStringified( stringified, new DriverManagerDataSource(false) );
+        DriverManagerDataSource out = (DriverManagerDataSource) DriverManagerDataSourceBase.constructSecurelyStringified( stringified, new DriverManagerDataSource(false), pcfg );
         C3P0Registry.reregister( out );
         return out;
     }

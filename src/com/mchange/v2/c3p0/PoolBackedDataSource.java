@@ -1,5 +1,6 @@
 package com.mchange.v2.c3p0;
 
+import com.mchange.v2.cfg.PropertiesConfig;
 import com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource;
 
 public final class PoolBackedDataSource extends AbstractPoolBackedDataSource implements PooledDataSource
@@ -7,9 +8,9 @@ public final class PoolBackedDataSource extends AbstractPoolBackedDataSource imp
     public static String securelyStringify(PoolBackedDataSource dmds) throws Exception
     { return AbstractPoolBackedDataSource.securelyStringify(dmds); }
 
-    public static PoolBackedDataSource constructSecurelyStringified( String stringified ) throws Exception
+    public static PoolBackedDataSource constructSecurelyStringified( String stringified, PropertiesConfig pcfg ) throws Exception
     {
-        PoolBackedDataSource out = (PoolBackedDataSource) AbstractPoolBackedDataSource.constructSecurelyStringified( stringified, new PoolBackedDataSource(false) );
+        PoolBackedDataSource out = (PoolBackedDataSource) AbstractPoolBackedDataSource.constructSecurelyStringified( stringified, new PoolBackedDataSource(false), pcfg );
         C3P0Registry.reregister( out );
         return out;
     }

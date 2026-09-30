@@ -15,6 +15,7 @@ import javax.naming.Name;
 import javax.naming.NamingException;
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
+import com.mchange.v2.cfg.PropertiesConfig;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
@@ -28,9 +29,9 @@ final class JndiRefForwardingDataSource extends JndiRefDataSourceBase implements
     public static String securelyStringify(JndiRefForwardingDataSource dmds) throws Exception
     { return JndiRefDataSourceBase.securelyStringify(dmds); }
 
-    public static JndiRefForwardingDataSource constructSecurelyStringified( String stringified ) throws Exception
+    public static JndiRefForwardingDataSource constructSecurelyStringified( String stringified, PropertiesConfig pcfg ) throws Exception
     {
-        JndiRefForwardingDataSource out = (JndiRefForwardingDataSource) JndiRefDataSourceBase.constructSecurelyStringified( stringified, new JndiRefForwardingDataSource(false) );
+        JndiRefForwardingDataSource out = (JndiRefForwardingDataSource) JndiRefDataSourceBase.constructSecurelyStringified( stringified, new JndiRefForwardingDataSource(false), pcfg );
         C3P0Registry.reregister( out );
         return out;
     }

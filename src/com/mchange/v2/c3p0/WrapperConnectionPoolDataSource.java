@@ -9,6 +9,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.sql.*;
 import javax.sql.*;
+import com.mchange.v2.cfg.PropertiesConfig;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
 import com.mchange.v2.c3p0.impl.*;
@@ -23,9 +24,9 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     public static String securelyStringify(WrapperConnectionPoolDataSource wcpds) throws Exception
     { return WrapperConnectionPoolDataSourceBase.securelyStringify(wcpds); }
 
-    public static WrapperConnectionPoolDataSource constructSecurelyStringified( String stringified ) throws Exception
+    public static WrapperConnectionPoolDataSource constructSecurelyStringified( String stringified, PropertiesConfig pcfg ) throws Exception
     {
-        WrapperConnectionPoolDataSource out = (WrapperConnectionPoolDataSource) WrapperConnectionPoolDataSourceBase.constructSecurelyStringified( stringified, new WrapperConnectionPoolDataSource(false) );
+        WrapperConnectionPoolDataSource out = (WrapperConnectionPoolDataSource) WrapperConnectionPoolDataSourceBase.constructSecurelyStringified( stringified, new WrapperConnectionPoolDataSource(false), pcfg );
         out.setUserOverrides( C3P0ImplUtils.parseUserOverridesAsString( out.getUserOverridesAsString() ) );// an unmodifiable map
         C3P0Registry.reregister( out );
         return out;

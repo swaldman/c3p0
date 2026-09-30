@@ -6,8 +6,12 @@ import java.sql.*;
 import javax.sql.*;
 
 import com.mchange.lang.ThrowableUtils;
+import com.mchange.v2.cfg.PropertiesConfig;
+
 import com.mchange.v2.c3p0.*;
 import com.mchange.v2.log.*;
+
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
@@ -19,15 +23,14 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
-import com.mchange.v2.c3p0.cfg.C3P0Config;
 
 public abstract class AbstractPoolBackedDataSource extends PoolBackedDataSourceBase implements PooledDataSource
 {
     public static String securelyStringify(AbstractPoolBackedDataSource dmds) throws Exception
     { return PoolBackedDataSourceBase.securelyStringify(dmds); }
 
-    public static AbstractPoolBackedDataSource constructSecurelyStringified( String stringified, AbstractPoolBackedDataSource nascent ) throws Exception
-    { return (AbstractPoolBackedDataSource) PoolBackedDataSourceBase.constructSecurelyStringified( stringified, nascent ); }
+    public static AbstractPoolBackedDataSource constructSecurelyStringified( String stringified, AbstractPoolBackedDataSource nascent, PropertiesConfig pcfg ) throws Exception
+    { return (AbstractPoolBackedDataSource) PoolBackedDataSourceBase.constructSecurelyStringified( stringified, nascent, pcfg ); }
 
     final static MLogger logger = MLog.getLogger( AbstractPoolBackedDataSource.class );
 

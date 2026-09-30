@@ -6,6 +6,8 @@ import java.io.StringWriter;
 import java.util.Enumeration;
 import java.util.Properties;
 
+import com.mchange.v2.cfg.PropertiesConfig;
+
 public class AuthMaskingProperties extends Properties
 {
     public static String securelyStringify( AuthMaskingProperties amp ) throws IOException
@@ -17,7 +19,7 @@ public class AuthMaskingProperties extends Properties
         }
     }
 
-    public static AuthMaskingProperties constructSecurelyStringified( String s ) throws IOException
+    public static AuthMaskingProperties constructSecurelyStringified( String s, PropertiesConfig pcfg ) throws IOException
     {
         try (StringReader sr = new StringReader(s))
         {
