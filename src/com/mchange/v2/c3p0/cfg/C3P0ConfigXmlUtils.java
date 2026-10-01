@@ -6,6 +6,8 @@ import javax.xml.parsers.*;
 import org.w3c.dom.*;
 import com.mchange.v2.log.*;
 
+import javax.xml.XMLConstants;
+
 import com.mchange.v1.xml.DomParseUtils;
 
 public final class C3P0ConfigXmlUtils
@@ -114,13 +116,33 @@ public final class C3P0ConfigXmlUtils
         }
     }
 
-    private static void attemptSetFeature( DocumentBuilderFactory dbf, String featureUri, boolean setting )
+    private static boolean attemptSetFeature( DocumentBuilderFactory dbf, String featureUri, boolean setting )
     {
-	try { dbf.setFeature( featureUri, setting ); }
+	try
+        {
+            dbf.setFeature( featureUri, setting );
+            return true;
+        }
 	catch (ParserConfigurationException e)
 	{
 	    if ( logger.isLoggable( MLevel.FINE ) )
 		logger.log(MLevel.FINE, "Attempted but failed to set presumably unsupported feature '" + featureUri + "' to " + setting + ".");
+            return false;
+	}
+    }
+
+    private static boolean attemptSetAttribute( DocumentBuilderFactory dbf, String name, Object setting )
+    {
+	try
+        {
+            dbf.setAttribute( name, setting );
+            return true;
+        }
+	catch (Exception e)
+	{
+	    if ( logger.isLoggable( MLevel.FINE ) )
+		logger.log(MLevel.FINE, "Attempted but failed to set presumably unsupported attribute '" + name + "' to " + setting + ".");
+            return false;
 	}
     }
 
@@ -147,26 +169,36 @@ public final class C3P0ConfigXmlUtils
     private static void cautionDocumentBuilderFactory( DocumentBuilderFactory dbf )
     {
 	// the big one, if possible disable doctype declarations entirely
-	attemptSetFeature(dbf, "http://apache.org/xml/features/disallow-doctype-decl", true);
+	boolean doctypeDisabled = attemptSetFeature(dbf, "http://apache.org/xml/features/disallow-doctype-decl", true);
+        if (!doctypeDisabled && logger.isLoggable(MLevel.WARNING))
+          logger.log(MLevel.WARNING,
+              "Could not disable DOCTYPE declarations in the XML parser. This is the restriction that prevents " +
+              "external entity and entity expansion attacks against c3p0's XML configuration. Other restrictions " +
+              "remain in force, but if you do not control your c3p0 XML configuration file, treat it as untrusted.");
 
 	// for a varety of libraries, disable external general entities
-	attemptSetFeature(dbf, "http://xerces.apache.org/xerces-j/features.html#external-general-entities", false);
-	attemptSetFeature(dbf, "http://xerces.apache.org/xerces2-j/features.html#external-general-entities", false);
 	attemptSetFeature(dbf, "http://xml.org/sax/features/external-general-entities", false);
 
 	// for a variety of libraries, disable external parameter entities
-	attemptSetFeature(dbf, "http://xerces.apache.org/xerces-j/features.html#external-parameter-entities", false);
-	attemptSetFeature(dbf, "http://xerces.apache.org/xerces2-j/features.html#external-parameter-entities", false);
 	attemptSetFeature(dbf, "http://xml.org/sax/features/external-parameter-entities", false);
 
 	// if possible, disable external DTDs
 	attemptSetFeature(dbf, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
+        // generally restrict to secure features
+        attemptSetFeature(dbf, XMLConstants.FEATURE_SECURE_PROCESSING, true);
 
 	// disallow xinclude resolution
 	dbf.setXIncludeAware(false);
 
 	// disallow entity reference expansion in general
 	dbf.setExpandEntityReferences( false );
+
+        // disallow access to external DTDs
+        attemptSetAttribute(dbf, XMLConstants.ACCESS_EXTERNAL_DTD, ""); // empty, none. would be a list of permitted protocols (might be e.g. file, http, etc.)
+
+        // disallow access to external schemas
+        attemptSetAttribute(dbf, XMLConstants.ACCESS_EXTERNAL_SCHEMA, ""); // empty, none. would be a list of permitted protocols (might be e.g. file, http, etc.)
     }
 
     public static C3P0Config extractXmlConfigFromInputStream(InputStream is, boolean usePermissiveParser) throws Exception
