@@ -176,7 +176,7 @@ public final class C3P0ConfigXmlUtils
               "external entity and entity expansion attacks against c3p0's XML configuration. Other restrictions " +
               "remain in force, but if you do not control your c3p0 XML configuration file, treat it as untrusted.");
 
-	// for a varety of libraries, disable external general entities
+	// for a variety of libraries, disable external general entities
 	attemptSetFeature(dbf, "http://xml.org/sax/features/external-general-entities", false);
 
 	// for a variety of libraries, disable external parameter entities
