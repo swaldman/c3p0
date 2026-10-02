@@ -144,7 +144,20 @@ public final class C3P0Registry
 
     public static void markConfigRefreshed()
     {
-	resetConnectionTesterCache();
+        // we no longer need to do this,
+        // Connection-tester instances of any class should be,
+        // and now are, equivalent to one another.
+        //
+        // this used to not be true of our own DefaultConnectionTester
+        //
+        // in any case, resetting the cache failed to propagate the update
+        // to existing pools, as pools retain a reference to their ConnectionTester
+        //
+        // now config refreshes are / should be / must be noticed and handled
+        // identically by all instances of a ConnectionTester implementation,
+        // if (unusually) the ConnectionTester relies upon configuration
+
+	// resetConnectionTesterCache();
     }
 
     public static ConnectionTester getConnectionTester( String className )

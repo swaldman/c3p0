@@ -13,6 +13,7 @@ import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v1.db.sql.ResultSetUtils;
 import com.mchange.v1.db.sql.StatementUtils;
 
+import com.mchange.v2.cfg.PropertiesConfig;
 import com.mchange.v2.cfg.SealedSystemPropertiesStringProperty;
 import com.mchange.v2.reflect.ByNameInstantiationUtils;
 
@@ -22,8 +23,6 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
     private final static String IS_VALID_TIMEOUT_KEY      = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
 
     final static MLogger logger = MLog.getLogger( DefaultConnectionTester.class );
-
-    final static int    IS_VALID_TIMEOUT; // see static initializer
 
     final static String CONNECTION_TESTING_URL   = "http://www.mchange.com/projects/c3p0/#configuring_connection_testing";
 
@@ -103,15 +102,16 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 	@Override
 	public int activeCheckConnectionNoQuery(Connection c,  Throwable[] rootCauseOutParamHolder)
 	{
+            CachedState cachedState = getUpdateCachedState();
 	    try
 	    {
-		boolean okay = c.isValid( IS_VALID_TIMEOUT );
+		boolean okay = c.isValid( cachedState.isValidTimeout );
 		if (okay)
 		    return CONNECTION_IS_OKAY;
 		else
 		{
 		    if (rootCauseOutParamHolder != null)
-			rootCauseOutParamHolder[0] = new SQLException("Connection.isValid(" + IS_VALID_TIMEOUT + ") returned false.");
+			rootCauseOutParamHolder[0] = new SQLException("Connection.isValid(" + cachedState.isValidTimeout + ") returned false.");
 		    return CONNECTION_IS_INVALID;
 		}
 	    }
@@ -196,11 +196,80 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
         //temp.add("08S01"); //SQL State "Communication link failure"
 
         INVALID_DB_STATES = Collections.unmodifiableSet( temp );
+    }
 
+    private static class CachedState
+    {
+        final PropertiesConfig    config;
+        final QuerylessTestRunner querylessTestRunner;
+        final int                 isValidTimeout;
+
+        CachedState( PropertiesConfig config, QuerylessTestRunner querylessTestRunner, int isValidTimeout )
+        {
+            this.config = config;
+            this.querylessTestRunner = querylessTestRunner;
+            this.isValidTimeout = isValidTimeout;
+        }
+    }
+
+    //MT: protected by class' lock
+    private static CachedState cachedState = null;
+
+    private static CachedState getUpdateCachedState()
+    {
+        // The config is read before we take our own monitor, deliberately: holding this class'
+        // lock while acquiring C3P0Config's would invert the order that config refresh already
+        // takes (C3P0Config -> C3P0Registry -> construct a tester). The cost is that two threads
+        // racing a refresh may briefly leave the superseded config cached; the next call sees the
+        // mismatch and rebuilds, and the two settings involved tolerate a stale reading.
+        PropertiesConfig currentConfig = C3P0Config.getMultiPropertiesConfig();
+
+        synchronized (DefaultConnectionTester.class)
+        {
+            if (cachedState == null || cachedState.config != currentConfig) // identity test is on-purpose here
+            {
+                PropertiesConfig config = currentConfig;
+                QuerylessTestRunner querylessTestRunner = chooseQuerylessTestRunner(config);
+                int isValidTimeout = chooseIsValidTimeout(config);
+                cachedState = new CachedState(config,querylessTestRunner,isValidTimeout);
+            }
+
+            return cachedState;
+        }
+    }
+
+    private static QuerylessTestRunner chooseQuerylessTestRunner(PropertiesConfig pcfg)
+    {
+        QuerylessTestRunner out;
+
+	// we prefer SWITCH to THREAD_LOCAL for now only because it has less overhead in the expected code path.
+	//
+	// when modifying this default, don't forget to also modify the log message in reflectTestRunner(...)
+	//
+	QuerylessTestRunner defaultQuerylessTestRunner = SWITCH;
+
+	// Adding a new config parameter for this is useless overkill, I think.
+	// Both THREAD_LOCAL and SWITCH work very well, extra overhead from resolving
+	// to METADATA_TABLESEARCH or IS_VALID does not seem to be significant.
+
+        String prop = querylessTestRunnerProperty.getValue( pcfg, logger );
+	if ( prop == null )
+	    out = defaultQuerylessTestRunner;
+	else
+	{
+	    QuerylessTestRunner reflected = reflectTestRunner( prop.trim() );
+	    out = ( reflected != null ? reflected : defaultQuerylessTestRunner );
+	}
+
+        return out;
+    }
+
+    private static int chooseIsValidTimeout(PropertiesConfig pcfg)
+    {
 	int isValidTimeout = -1;
 
-	String timeoutStr = C3P0Config.getMultiPropertiesConfig().getProperty( IS_VALID_TIMEOUT_KEY );
-	try { if (timeoutStr != null ) isValidTimeout = Integer.parseInt( timeoutStr );	}
+	String timeoutStr = pcfg.getProperty( IS_VALID_TIMEOUT_KEY );
+	try { if (timeoutStr != null ) isValidTimeout = Integer.parseInt( timeoutStr.trim() );	}
 	catch( NumberFormatException e )
 	{
 	    if ( logger.isLoggable( MLevel.WARNING ) )
@@ -215,32 +284,7 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 		logger.log( MLevel.INFO, "Connection.isValid(...) based Connection tests will timeout and fail after " + isValidTimeout + " seconds." );
 	}
 
-	IS_VALID_TIMEOUT = isValidTimeout;
-    }
-
-    //MT: final reference, internally threadsafe
-    private final QuerylessTestRunner querylessTestRunner;
-
-    public DefaultConnectionTester()
-    {
-	// we prefer SWITCH to THREAD_LOCAL for now only because it has less overhead in the expected code path.
-	//
-	// when modifying this default, don't forget to also modify the log message in reflectTestRunner(...)
-	//
-	QuerylessTestRunner defaultQuerylessTestRunner = SWITCH;
-
-	// Adding a new config parameter for this is useless overkill, I think.
-	// Both THREAD_LOCAL and SWITCH work very well, extra overhead from resolving
-	// to METADATA_TABLESEARCH or IS_VALID does not seem to be significant.
-
-        String prop = querylessTestRunnerProperty.getValue( C3P0Config.getMultiPropertiesConfig(), logger );
-	if ( prop == null )
-	    this.querylessTestRunner = defaultQuerylessTestRunner;
-	else
-	{
-	    QuerylessTestRunner reflected = reflectTestRunner( prop.trim() );
-	    this.querylessTestRunner = ( reflected != null ? reflected : defaultQuerylessTestRunner );
-	}
+	return isValidTimeout;
     }
 
     @Override
@@ -250,7 +294,10 @@ public final class DefaultConnectionTester extends AbstractConnectionTester
 //      logger.finer("Entering DefaultConnectionTester.activeCheckConnection(Connection c, String query). [query=" + query + "]");
 
         if (query == null)
-            return querylessTestRunner.activeCheckConnectionNoQuery( c, rootCauseOutParamHolder);
+        {
+            CachedState cachedState = getUpdateCachedState();
+            return cachedState.querylessTestRunner.activeCheckConnectionNoQuery( c, rootCauseOutParamHolder);
+        }
         else
         {
             Statement stmt = null;

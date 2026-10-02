@@ -57,7 +57,9 @@ public final class C3P0Config
 	warnOnUnknownProperties( MAIN() );
     }
 
-    private static synchronized MultiPropertiesConfig MPCONFIG()
+    // it's important that we return this directly, no defensive copies or anything
+    // it's unmodifiable, and elsewhere we use simple identity tests to ensure cache freshness
+    private static synchronized MultiPropertiesConfig MPCONFIG() 
     { return _MPCONFIG; }
 
     private static synchronized C3P0Config MAIN()
@@ -608,6 +610,8 @@ public final class C3P0Config
 	return out;
     }
 
+    // it's important that we return _MPCONFIG directly, no defensive copies or anything
+    // it's unmodifiable, and elsewhere we use simple identity tests to ensure cache freshness
     public static MultiPropertiesConfig getMultiPropertiesConfig()
     { return MPCONFIG(); }
 
