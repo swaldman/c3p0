@@ -136,6 +136,8 @@ public final class C3P0Config
 
         PropertiesConfig pcfg = MPCONFIG();
 
+        // note: this has the side-effect of sealing SealedSystemProperties
+        //       if they have not already been sealed.
 	String cname = cfgFinderClassname.getValue(pcfg, logger);
 
 	C3P0ConfigFinder cfgFinder = null;
