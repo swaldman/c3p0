@@ -36,10 +36,13 @@
            both SecurelyStringifiable.constructSecurelyStringified(...) and the duck-typed
            constructSecurelyStringified(...) method expected on classes that conform to
            the SecurelyStringifiable protocol accept a PropertiesConfig object, so
-           that we can apply the by-name-instantiation whitelist to reconstructing
-           objects serialized via SecurelyStringifiable. Absent this, tampering with
-           stringified representations might lead applications to instantiate
-           classes specified by an attacker. This is an incompatible change from
+           that we can apply a new whitelist to reconstructing objects serialized via
+           SecurelyStringifiable, under com.mchange.v2.naming.securelyStringifiable.whitelist
+           and its subkeys. Absent this, tampering with stringified representations
+           might lead applications to instantiate classes specified by an attacker.
+           This whitelist is enforced already, unlike the by-name-instantiation
+           whitelist which (temporarily!) only warns to give deployments time to
+           whitelist custom classes. This is an incompatible change from
            prior versions, but we believe SecurelyStringifiable is not widely used
            outside of mchange-commons-java and c3p0, so few installations should be
            affected. (Although the method signature has only changed for reading
