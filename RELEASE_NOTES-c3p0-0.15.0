@@ -1,0 +1,270 @@
+RELEASE NOTES, c3p0-0.15.0
+==========================
+
+This is a major new release of c3p0.
+
+Most deployments will find it a drop-in replacement for prior versions
+(the "Incompatible changes", see below, will not affect most users),
+but there are a lot of changes and improvements under the cover.
+
+Security-related updates
+------------------------
+
+* JndiRefForwardingDataSource, an internal utility of the public JndiRefConnectionPoolDataSource,
+  permitted deserialization / dereferencing of JNDI InitialContext environment
+  properties which would be used for JNDI lookups without filtering or gating.
+  Although prior mitigations dramatically limit how easily an attacker can use
+  a malicious InitialContext to do harm, at the very least it can yield
+  unexpected outbound network connections from the application and potential
+  SSRF attacks. Construction of any InitialContext that even *might*
+  derive from deserialization or dereferencing is now gated behind a new
+  by-name instantiated policy interface UnsafeInitialContextEnvFilter.
+  The default implementation refuses construction of an InitialContext with
+  potentially untrustworthy environment. Deployments can provide their own
+  more permissive policy via new config parameter
+
+     com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName
+
+* Some of c3p0's security-sensitive parameters can come in via System properties.
+  System properties are conventional and convenient for setting JVM-application config,
+  but, used naively, they are an inherently insecure mechanism, since any Java code
+  anywhere can alter System properties. (Once upon a time, this was supposed to be
+  gated by a SecurityManager, but no more. We are still reeling from the traditional
+  Java security model being excised from underneath us.) mchange-commons-java now
+  introduces SealedSystemProperties, a snapshot of System properties intended to be
+  taken very early in the life of an application, and never changeable thereafter.
+  c3p0 reads security-sensitive system properties from this sealed snapshot, so
+  changes at runtime cannot compromise values set as "-D<prop-name>=value" on start.
+
+* c3p0-0.13.0 introduced a whitelist for which javax.naming.ObjectFactory
+  classes c3p0's javax.naming.Reference resolution utilities would construct
+  to generate Objects from references. c3p0-0.14.0 introduced a whitelist
+  restricting what JavaBean-style classes our own built in JavaBeanObjectFactory
+  and C3P0JavaBeanObjectFactory would be willing to construct. Here in c3p0-0.15.0
+  we introduce two new whitelists, for by-name-instantiation of classes whose fully
+  qualified names we acquired from potentially untrustworthy sources, and a
+  whitelist of classes our safer alternative to Java serialization,
+  SecurelyStringifiable, is willing to construct. The four current whitelists are
+
+      com.mchange.v2.naming.objectFactory.whitelist
+      com.mchange.v2.naming.referenceableJavaBeanClass.whitelist
+      com.mchange.v2.naming.securelyStringifiable.whitelist
+      com.mchange.v2.reflect.byNameInstantiation.whitelist
+
+  Prior releases used different, now deprecated keys
+
+      com.mchange.v2.naming.objectFactoryWhitelist
+      com.mchange.v2.naming.referenceableJavaBeanClassWhitelist
+
+  If those keys are found, they remain accepted and continue to be used
+  in preference to any others, but with a warning to transition to the new names.
+  (Thanks to @manus-use on github for suggesting whitelisting by-name instantiation!)
+
+* Fully-qualified classname whitelists -- we now have four of them! --
+  have been standardized in implementation and behavior:
+
+  - Each whitelist is specified by a key called "<some-long-prefix>.whitelist".
+    That key, and also its subkeys like "<some-long-prefix>.whitelist.something-else",
+    expect comma-separated lists of fully-qualified classnames. The union
+    of classnames from the top-level whitelist and its subkeys make up
+    the whitelist.
+
+  - If the final whitelist contains uniquely the entry "*", whitelist
+    enforcement is disabled, and anything goes.
+
+  - If anywhere in the whitelist the token "[]" is found, the whitelist is
+    forced empty and the list will always deny whatever it gates.
+
+  - The parent / subkey scheme exists so that different libraries can include
+    their own internal classes in the whitelist without application deployers
+    having to scan their libraries and collect the library-intended uses.
+    However, more neurotic deployments can supersede that more complicated
+    and convenient mechanism by using "<some-long-prefix>.overrideWhitelist"
+    instead, in which case the whole ".whitelist" and subkey hierarchy is
+    ignored, and the whitelist is precisely what is specified (or a unique
+    "*" to disable the whitelist, or an "[]" entry anywhere in the list to
+    deny all).
+
+  - All whitelist keys and subkeys can be provided both via System properties
+    and other configuration. For any given key or subkey, if there are conflicts
+    between values derived from System properties and other config, the
+    *intersection* of the elements in the conflicting lists becomes the value
+    for that key. (If an intersection of lists, at least one of which contained
+    more elements, would yield the token "*", however, that result is dropped, it is
+    not accepted as an allow-all wildcard.)
+
+* XML is parsed more cautiously should a JVM delegate to a parser that fails to
+  support http://apache.org/xml/features/disallow-doctype-decl. We now also
+  warn if that is the case. (For installations that support,
+  http://apache.org/xml/features/disallow-doctype-decl, which in practice, should
+  be nearly all installations, there is no change in c3p0's default, very cautious
+  XML parse. (All caution is thrown to the wind, of course, if a deployment explicitly
+  sets "com.mchange.v2.c3p0.cfg.xml.usePermissiveParser=true".)
+
+* Some potential security issues within disused portions of mchange-commons-java
+  are addressed (often by deprecating the disused functionality).
+  (Thanks @chennbnbnb on github!)
+
+Other updates
+-------------
+
+* The build is reorganized in the fashion of a proper mill build.
+  c3p0-0.10.0 transitioned the library from ant to mill, but the structure
+  of the build was awkwardly hand-ported from ant-style, which used only
+  timestamp comparisons to decide whether artifacts needed to be rebuilt.
+  mill, more modernly, prefers to cache and hash artifacts, and decides
+  what needs to be rebuilt on the basis of those hashes.
+  c3p0-0.15.0's build is organized in modern mill style.
+
+* c3p0's statement cache is dramatically improved. Over the years,
+  Statements accumulated methods that could potentially affect
+  Statement state that c3p0's Statement cache had not been updated
+  to revert and reset. The statement cache now properly ensures that
+  all of this state is reverted before Statements are made available
+  to new clients (or where state cannot be reverted, the statement
+  is dropped from the cache). (Thanks Fredrik Jeppson!)
+
+* Thanks to the tools of our brave new world (hi Claude!), we now
+  have extensive utilities in the test module for instrumenting and
+  exercising the Statement cache.
+
+* The Statement cache is now robust to a "dueling Statement caches"
+  condition, where (presumably accidentally), a driver's native Statement
+  cache is enabled while c3p0's Statement caching is also enabled, so
+  that when c3p0 calls conn.prepareStatement(...) or conn.prepareCall(...)
+  it might see instances it has encountered before and is already tracking.
+  (Thanks @Devil2-O on github.)
+
+* Miscellaneous rare bugs and leaks are addressed in the Statement cache.
+
+* The codebase is somewhat modernized from its original Java 1.3 style. We
+  now utilize, and in the build insist upon, @Override annotations, in both
+  c3p0 and mchange-commons-java. The mchange-commons-java has largely been
+  upgraded to use generic rather than raw types.
+
+* For config specified via properties-style ClassLoader resources (like
+  the standard "/c3p0.properties"), we now merge values from all such
+  resources discovered in the classpath, rather than taking only the first
+  resource found. The full union of keys is brought into the final config.
+  If conflicting values are found for the same key in different variants of
+  the resource, the value found on the resource earliest in the CLASSPATH
+  is accepted and other values are ignored (with a warning).
+
+
+
+New Configuration Parameters
+----------------------------
+
+com.mchange.v2.reflect.byNameInstantiation.whitelist (and subkeys)
+com.mchange.v2.reflect.byNameInstantiation.overrideWhitelist
+com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist
+
+com.mchange.v2.naming.securelyStringifiable.whitelist (and subkeys)
+com.mchange.v2.naming.securelyStringifiable.overrideWhitelist
+
+com.mchange.v2.naming.referenceableJavaBeanClass.whitelist (and subkeys)
+com.mchange.v2.naming.referenceableJavaBeanClass.overrideWhitelist
+(Replaces deprecated com.mchange.v2.naming.referenceableJavaBeanClassWhitelist)
+
+com.mchange.v2.naming.objectFactory.whitelist (and subkeys)
+com.mchange.v2.naming.objectFactory.overrideWhitelist
+(Replaces deprecated com.mchange.v2.naming.objectFactoryWhitelist)
+
+com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName
+
+Incompatible changes
+--------------------
+
+This is a major release, that does include some incompatible changes.
+However, the VAST majority of installations are unlikely to directly
+use any of the incompatibly modified API.
+
+FOR NEARLY ALL DEPLOYMENTS, c3p0-0.15.0 WILL BE A DROP-IN REPLACEMENT
+OF PRIOR VERSIONS.
+
+We work hard to ensure this. (Let us know if we've screwed up.)
+
+You may see warnings in your logs asking you to add any
+custom ConnectionCustomizer, ConnectionTester, etc implementations to
+com.mchange.v2.reflect.byNameInstantiation.whitelist (or any subkey),
+and to switch from deprecated whitelist property keys to the new,
+more standardized key. Please heed those warnings! In particular,
+expect com.mchange.v2.reflect.byNameInstantiation.whitelist to
+enforce rather than warn in the next major version of c3p0.
+Consider setting
+com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist=true
+now for added safety!
+
+Here are the incompatible changes:
+
+(1) c3p0 uses a construct called SecurelyStringifiable internally as an alternative
+    to often unsafe Java serialization. All of these internal uses have been updated
+    to a new API, in order to allow imposition of a whitelist so that an attacker
+    can't provoke construction of an unexpected class. All of the SecurityStringifiables
+    c3p0 uses internally have been to get past the new gate, so these changes should
+    be invisible to most installations. Here are the details:
+
+    The duck-typed contract for a "SecurelyStringifiable" used to
+    be defined by a class (let's call it `Thing`) implementing
+    the following two static methods:
+
+      public static String securelyStringify(Thing thing) throws Exception
+      public static Thing constructSecurelyStringified( String stringified ) throws Exception
+
+    The contract has been modified to require
+
+      public static String securelyStringify(Thing thing) throws Exception
+      public static Thing constructSecurelyStringified( String stringified, PropertiesConfig pcfg ) throws Exception
+
+    So that we can apply a whitelist defined by configuration to gate which
+    classes we construct.
+
+    The securelyStringify(...) method and the serialization format are entirely unchanged.
+
+    Unless you have written your own classes to SecurelyStringifiable's duck-typed
+    contract, this change should not affect you.
+
+    (If, a bit shockingly, you *have* written custom SecurelyStringifiables, you'll
+    need to update the signature of constructSecurelyStringified and add your class to
+    "com.mchange.v2.naming.securelyStringifiable.whitelist" or a subkey. You are
+    unlikely to need to modify your implementation. SecurelyStringifiable applies
+    the whitelist gating prior to the per-class methods; the updated method signature
+    is just to make configuration available on reconstruction should implementers
+    desire it, since it must be provided anyway for the whitelist gating.)
+
+(2) Construction of InitialContext instances against environments that may not be
+    trustworthy -- because they might have resulted from deserializing objects or
+    dereferencing javax.naming.Reference instances that may be subject to
+    tampering -- is always gated now by an instance of UnsafeInitialContextEnvFilter.
+    In particular, lookups against a non-default InitialContext environment to
+    JndiRefConnectionPoolDataSource will always be gated. The default implementation
+    of the gate refuses everything. You can supply your own more permissive
+    policy by implementing the single-method UnsafeInitialContextEnvFilter interface
+    and deploying it via com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName
+    in your config.
+
+(3) Although this was kind-of sort-of implicitly expected previously, we now formally
+    insist that by-name-instantiated policy classes, including ConnectionTesters,
+    ConnectionCustomizers, NameGuards, UnsafeInitialContextEnvFilters, etc that are
+    instantiated via their public, no-arg constructor must be stateless, such that any
+    instance is interchangeable with any other. (We tend to cache these instances rather
+    than recreating them all the time.) Previously we reset the ConnectionTester cache
+    on (very rare) runtime refreshes of c3p0's configuration
+    [via C3P0Config.refreshMainConfig(...)]. We no longer do so, since ConnectionTester
+    implementations are now required to be stateless (and c3p0's internal
+    com.mchange.v2.c3p0.impl.DefaultConnectionTester now conforms)
+
+(4) In the unusual event that an installation relied upon changing configuration via
+    System properties at runtime, after c3p0's configuration had been initialized,
+    c3p0's use of SealedSystemProperties for security-sensitive configuration may be a
+    breaking change.
+
+(5) Since, until this release, only the first "/c3p0.properties" resource found in a
+    CLASSPATH was used, it has been rare for libraries to ship their own c3p0 config,
+    so in practice this is very unlikely to bite. But, should an installation have
+    "/c3p0.properties" or other classloader-resource properties configuration
+    sources that c3p0 reads (which include also "/mchange-commons.properties",
+    "/mchange-log.properties", and "/c3p0-default.properties"), you might experience
+    unexpected introduction of new configuration keys, since multiple instances of
+    the same resource path in config are now merged, rather than all but the first
+    found being ignored.
