@@ -343,12 +343,24 @@
         on <tt>DataSource</tt> instances configured with maliciously-crafted JDBC URLs.
       </p>
       <p>
-        Although it remains possible to resurrect and make use of the dangerous
-        functionality, it requires new, affirmative configuration, and very few contemporary applications
-        should do so.
+        c3p0-0.15.0, with mchange-commons-java-0.7.0, locks down a remaining path by which a potentially dangerous
+        JNDI InitiaContext might be consulted, via a maliciously crafted reference to or serialized instance of
+        JndiRefForwardingDataSource. It also hardens security-related configuration (locking down security-sensitive
+        system properties as soon as c3p0's config is first consulted, preventing attackers that might seek to
+        ovewrite those properties at runtime), defines a whitelist to limit construction via the SecurelyStringifiable
+        mechanism to known, trusted classes, and adds whitelist to restrict by-name-instantiation of untrusted names
+        (e.g. implementations of ConnectionCustomizer, ConnectionTester, TaskRunnerFactory) to known classes.
+        (The by-name-instantiatiation whitelist is not enforced by default in 0.15.0, but simply warns. It will be
+        enforced in the next major release of c3p0. Please add any custom <tt>ConnectionCustomizer</tt>, <tt>ConnectionTester</tt>,
+        and <tt>TaskRunnerFactory</tt> implementations to the whitelist, and manually enable enforcement now via
+        <tt>com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist=true</tt>.)
       </p>
       <p>
-        Most installations will not, but if you experience breaking changes when migrating from earlier versions to c3p0-0.14.0,
+        Although it remains possible to resurrect and make use of all the dangerous functionality c3p0 once supported,
+        doing so requires affirmative configuration, and very few contemporary applications should want or need to.
+      </p>
+      <p>
+        Most installations will not, but if you experience breaking changes when migrating from earlier versions to c3p0-0.15.0,
         you may need to customize security configuration
         for your deployment.
       </p>
@@ -357,7 +369,8 @@
         background on the security issues.
       </p>
       <p>
-        Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about this issue.
+        Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about the JNDI
+        injection issue recent releases of c3p0 have strived to eliminate.
       </p>
       <hr>
       <p>
@@ -803,7 +816,7 @@ else
 	<p>
 	  The first method will hand you the Set of all live c3p0
 	  <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a>. If you are sure
-	  your application only makes only one <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources/a>,
+	  your application only makes only one <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a>,
 	  or you can distinguish between the DataSources by their configuration properties (inspected via "getters"), the
 	  first method may be sufficient. Because this will not always be the case, c3p0
 	  <a href="apidocs/com/mchange/v2/c3p0/PooledDataSource.html">PooledDataSources</a> have a special property called
@@ -1042,7 +1055,7 @@ CLOB oracleCLOB = (CLOB) castCon.rawConnectionOperation(m, null, args);
         You can also set multiple configuration properties from a Map after your DataSource has been constructed.
         Use <a href="apidocs/com/mchange/v2/c3p0/DataSources.html#overwriteJavaBeanProperties(javax.sql.DataSource,java.util.Map,boolean)"><tt>DataSources.overwriteJavaBeanProperties(...)</tt></a>.
       </p>
-      </p>
+      <p>
        After a DataSource has been constructed,
        you can overwrite multiple configuration properties from a <tt>Properties</tt> object, containing <a href="#c3p0_properties">c3p0.properties</a>-like
        c3p0-prefixed configuration properties. This is useful for allowing applications to take c3p0 configuration from nonstandard sources. So if an application has
@@ -1177,9 +1190,10 @@ c3p0.maxPoolSize=20
 	<li><a class="cfg_param" href="#testConnectionOnCheckin">testConnectionOnCheckin</a></li>
 	<li><a class="cfg_param" href="#testConnectionOnCheckout">testConnectionOnCheckout</a></li>
       </ul>
+      <p>
 	<b><tt>idleConnectionTestPeriod</tt></b>, <b><tt>testConnectionOnCheckout</tt></b>, and <b><tt>testConnectionOnCheckin</tt></b> control <u>when</u> Connections will be tested.
 	<b><tt>connectionIsValidTimeout</tt></b> affects <u>how</u> they will be tested.
-      </ul>
+      </p>
       <p>
 	The most reliable time to test Connections is on check-out. But this is also means clients experience a
 	(usually very modest!) performance hit from the test.
@@ -1983,6 +1997,16 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         on deserialization. This functionality also is now disabled by default.
       </p>
       <p>
+        This indirect serialization mechanism, as well as <tt>JndiRefForwardingDataSource</tt> (which is used by the public
+        <tt>JndiRefConnectionPoolDataSource</tt>) potentially acquire the environment used to construct a JNDI <tt>InitialContext</tt>
+        via deserialization or by resolving a <tt>javax.naming.Reference</tt>. Maliciously crafted serialized objects or
+        <tt>Reference</tt> instances could engender lookups against unexpected protocols and name services (and so unexpected
+        TCP/IP connections from potentially trusted applications), and yield arbitrary values supportable within the application's
+        CLASSPATH. Use of potentially deserialized or dereferenced <tt>InitialContext</tt> environment is now gated by a
+        UnsafeInitialContextEnvFilter. The default implementation -- <tt>AlwaysForbidUnsafeInitialContextEnvFilter</tt> --
+        denies construction of <tt>InitialContext</tt> based on potentially dangerous environment, by throwing a ForbiddenInitialContextException.
+      </p>
+      <p>
         The JDBC specification contains an inherent, inadvertent vulnerability in that <tt>javax.sql.DataSource</tt>
         and <tt>javax.sql.ConnectionPoolDataSource</tt> expose their live, perishable, potentially-dangerous-to-construct resources using methods that conform
         to "Java Beans" property naming conventions (<tt>getConnection()</tt> and <tt>getPooledConnection()</tt> respectively).
@@ -2008,48 +2032,75 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         as CSV, rather than in a Java-serialization-based format.)
       </p>
       <p>
+        Security-sensitive System properties are "sealed" the first time C3P0 configuration is consulted, very early
+        in an application's lifecycle. An immutable snapshot of the System properties is retained, and security-sensitive
+        properties are checked against that snapshot, rather than "live" System properties, which an attacker might
+        overwrite at any time via <tt>System.setProperty(...)</tt> or <tt>System.setProperties(...)</tt>. Deployments,
+        if they wish, can ensure the snapshot is taken and sealed as early as they wish in their application's lifecycle
+        by explicitly calling <tt>com.mchange.v2.cfg.SealedSystemProperties.seal()</tt>.
+      </p>
+      <p>
         The following properties can be configured as System properties, in <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>, or
-        in <a href="#c3p0_conf">HOCON</a> configuration files. The <tt>boolean</tt> properties are <i>false biased</i>.
-        Their values are <tt>false</tt> by default, if the properties do not appear in config or as System properties.
-        Any values provided other than <tt>true</tt> get interpreted as <tt>false</tt>. If any of these properties are set as <tt>false</tt>
-        in System properties, that will override any potentially conflicting configuration elsewhere.
+        in <a href="#c3p0_conf">HOCON</a> configuration files.
       </p>
       <p>
         <b><i>Most applications should not change these properties from their restrictive defaults!</i></b>
+      </p>
+      <h4>
+	<a name="configuring_security_boolean_properties">Boolean properties</a>
+      </h4>
+      <p>
+        Most <tt>boolean</tt> properties are <i>false biased</i>.
+        Their values are <tt>false</tt> by default, if the properties do not appear in config or as System properties.
+        Any values provided other than <tt>true</tt> get interpreted as <tt>false</tt>. If any of these properties are set as <tt>false</tt>
+        in System properties, that will override any potentially conflicting configuration elsewhere.
       </p>
       <dl class="log_properties">
 	<a name="security_properties_box"></a>
 	<dt><a name="com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment"></a>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</dt>
 	<dd>
 	  <div class="propdesc">
-            <tt>false</tt> by default. If reset to <tt>true</tt>, objects serialized as JNDI references may also include a serialized "environment",
+            <tt>false</tt> by default, <i>false biased</i>. If reset to <tt>true</tt>, objects serialized as JNDI references may also include a serialized "environment",
             that is, a serialized mapping of key-value pairs that configure the lookup. That in turn can configure several dangerous parameters, including
             <tt>java.naming.factory.initial</tt>, which specifies a class that will be reflexively instantiated to handle the lookup, and <tt>java.naming.provider.url</tt>
-            which may specify the URL of an unsafe or malicious name service. (c3p0's supporting libraries only potentially deserialize a <tt>Reference</tt>'s
-            environment when the indirect serialization mechanism is used, which is now disabled by default.
-            See <a href="#com.mchange.v2.naming.allowIndirectSerializationViaReference">com.mchange.v2.naming.allowIndirectSerializationViaReference</a> just below.)
+            which may specify the URL of an unsafe or malicious name service.<br><br>
+            <b>Note:</b> Even if this property is reset to true, deserialized <tt>InitialContext</tt> environments are now gated by
+            <a href="#com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName">com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName</a>, whose default value
+            points to a class that always fails. If you want to fully restore c3p0's old (and dangerous!) <tt>IndirectlySerialized</tt> functionality, you'll need
+            to set <a href="#com.mchange.v2.naming.allowIndirectSerializationViaReference">com.mchange.v2.naming.allowIndirectSerializationViaReference</a> to <tt>true</tt>,
+            set this property <tt>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</tt> to <tt>true</tt>, and provide a permissive implementation of
+            <a href="https://github.com/swaldman/mchange-commons-java/blob/master/src/main/java/com/mchange/v2/naming/UnsafeInitialContextEnvFilter.java"><tt>UnsafeInitialContextEnvFilter</tt></a>
+            via <a href="#com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName">com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName</a>.
+            (But don't do this!)
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.allowIndirectSerializationViaReference"></a>com.mchange.v2.naming.allowIndirectSerializationViaReference</dt>
 	<dd>
 	  <div class="propdesc">
-            <tt>false</tt> by default. If reset to <tt>true</tt>, the now-disabled
+            <tt>false</tt> by default, <i>false biased</i>. If reset to <tt>true</tt>, the now-disabled
             <a href="https://github.com/swaldman/mchange-commons-java/blob/master/src/main/java/com/mchange/v2/naming/ReferenceIndirector.java">mechanism</a>
             whereby <tt>Referenceable</tt> objects can be serialized
             via a wrapped <tt>Reference</tt> which is automatically dereferenced by c3p0's supporting libraries upon deserialization will be restored.
-            This has its uses, but risks an attacker crafting a malicious wrapped <tt>Reference</tt>. (c3p0 now adopts a "defense-in-depth" ethos; the
+            This has its uses, but risks an attacker crafting a malicious wrapped <tt>Reference</tt>.<br><br>(c3p0 now adopts a "defense-in-depth" ethos; the
             other disabled-by-default settings here dramatically decrease the likelihood that dereferencing of a maliciously crafted <tt>Reference</tt>
-            will do harm. Nevertheless, this is rarely used functionality that has been a vector for attacks, so it too is disabled by default.)
+            will do harm. Nevertheless, this is rarely used functionality that has been a vector for attacks, so it too is disabled by default.)<br><br>
+            If this setting alone is enabled, only references serialized to lookup against an <tt>InitialContext</tt> constructed with its default
+            environment will be constructed. If you (dangerously!) want <tt>Reference</tt> instances serialized alongside a custom <tt>InitialContext</tt>
+            environment to dereference against that context, you will have to also reset this property
+            <tt>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</tt> to <tt>true</tt>, and provide a permissive implementation of
+            <a href="https://github.com/swaldman/mchange-commons-java/blob/master/src/main/java/com/mchange/v2/naming/UnsafeInitialContextEnvFilter.java"><tt>UnsafeInitialContextEnvFilter</tt></a>
+            via <a href="#com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName">com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName</a>.
+            But don't do this!
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr"></a>com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr</dt>
 	<dd>
 	  <div class="propdesc">
-            <tt>false</tt> by default. If reset to <tt>true</tt>, when <tt>javax.naming.Reference</tt> instances are constructed, if they contain
+            <tt>false</tt> by default, <i>false biased</i>. If reset to <tt>true</tt>, when <tt>javax.naming.Reference</tt> instances are constructed, if they contain
             properties that cannot otherwise be represented or serialized, Java serialization may be used to store the value of these properties.
             <b><tt>c3p0</tt> no longer uses or relies upon this capablility.</b> Only users building custom extensions with unusual references
             would ever have use for this capability, and they should avoid it given how dangerous a vector for malware Java serialization
-            has proven to be.<br><br>If you do wish to construct <tt>Reference</tt> instances containing Serialized objects, keep in mind that c3p0's
+            has proven to be.<br><br>If you do wish to construct <tt>Reference</tt> instances containing Java-serialized objects, keep in mind that c3p0's
             (and mchange-commons-java's) ObjectFactory instances no longer <i>deserialize</i> these properties by default. You'd need to
             <ol>
               <li>Subclass <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt> or <tt>com.mchange.v2.naming.JavaBeanObjectFactory</tt></li>
@@ -2059,12 +2110,43 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
                 which is to fail with a warning.
               </li>
               <li>
-                Make sure your setting for <a href="#com.mchange.v2.naming.objectFactoryWhitelist"><tt>com.mchange.v2.naming.objectFactoryWhitelist</tt></a>
+                Make sure your setting for <a href="#com.mchange.v2.naming.objectFactory.whitelist"><tt>com.mchange.v2.naming.objectFactory.whitelist</tt></a> (or any subkey)
                 includes the fully-qualified-name of your new <tt>ObjectFactory</tt> implementation. If you will be referencing/dereferencing c3p0 DataSources,
                 your whitelist must also include <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>.
               </li>
+            </ol>
 	  </div>
 	</dd>
+	<dt><a name="com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation"></a>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</dt>
+	<dd>
+	  <div class="propdesc">
+            <tt>false</tt> by default, <i>false biased</i>. If reset to <tt>true</tt>, lookups of <tt>javax.naming.Reference</tt> that download remote
+            code will be permitted. This is very, very dangerous.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist"></a>com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist</dt>
+	<dd>
+            <b>Temporarily</b> <tt>false</tt> by default, <i>true biased</i>. If reset to <tt>true</tt>, the by-name-instantiation whitelist
+            (see <a href="#com.mchange.v2.reflect.byNameInstantiation.whitelist"><tt>com.mchange.v2.reflect.byNameInstantiation.whitelist</tt></a> below) will be enforced. For now, if left unset, by-name-instantiation of untrusted classes warns, but is allowed. Please
+            add your <tt>ConnectionCustomizer</tt>, <tt>ConnectionTester</tt>, and <tt>TaskRunnerFactory</tt> classes to the by-name-instantiation
+            whitelist, then set this key to <tt>true</tt> for maximum safety. This key will default to <tt>true</tt> in the next major release of c3p0.
+        </dd>
+      </dl>
+      <h4>
+	<a name="configuring_security_classname_properties">Classname properties</a>
+      </h4>
+      <p>
+        The following properties can be set to fully qualified class names that help implement a security policy you define.
+        The classes must have public no-arg constructors. They must also be stateless, such that each instance of the class is
+        interchangeable with any other.
+      </p>
+      <p>
+        Although these classes are instantiated by name, you do <i>not</i> need to include these classes in
+        <a href="#com.mchange.v2.reflect.byNameInstantiation.whitelist"><tt>com.mchange.v2.reflect.byNameInstantiation.whitelist</tt></a>,
+        because they are named here, in trusted configuration, rather than set as properties on DataSources or other objects that may have
+        been deserialized or dereferenced from untrusted sources. By-name instantiation of trusted classes is not gated.
+      </p>
+      <dl class="log_properties">
 	<dt><a name="com.mchange.v2.naming.nameGuardClassName"></a>com.mchange.v2.naming.nameGuardClassName</dt>
 	<dd>
 	  <div class="propdesc">
@@ -2099,39 +2181,200 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
             </ul>
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.naming.objectFactoryWhitelist"></a>com.mchange.v2.naming.objectFactoryWhitelist</dt>
+	<dt><a name="com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName">com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName</a></dt>
 	<dd>
 	  <div class="propdesc">
-            By default it's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>, the <tt>ObjectFactory</tt>
-            c3p0 uses when constructing its own references.
-            In general, it's comma separated list of fully qualified class name expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
-            If you want to live very dangerously (not recommended!), setting this property simply to "*" will disable enforcement of any whitelist of what <tt>ObjectFactory</tt>
-            implementations c3p0's supporting libraries will permit to resolve <tt>Reference</tt> instances.
-            <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
-            will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
-            value and the library config value should be very rare. Such differences might result if System properties are changed at runtime, after c3p0 config has been read
-            and cached.)</i>
+            <tt>com.mchange.v2.naming.AlwaysForbidUnsafeInitialContextEnvFilter</tt> by default. If left as <tt>com.mchange.v2.naming.AlwaysForbidUnsafeInitialContextEnvFilter</tt>,
+            the default behavior is to throw a <tt>ForbiddenInitialContextException</tt> when asked to filter an untrusted, non-default <tt>InitialContext</tt> environment.
+            You can define your own, more permissive implementations of <a href="https://github.com/swaldman/mchange-commons-java/blob/master/src/main/java/com/mchange/v2/naming/UnsafeInitialContextEnvFilter.java"><tt>com.mchange.v2.naming.UnsafeInitialContextEnvFilter</tt></a>
+            if you wish. c3p0 also ships with <tt>com.mchange.v2.naming.AlwaysReplaceWithDefaultUnsafeInitialContextEnvFilter</tt>,
+            which simply ignores the untrusted <tt>InitialContext</tt> environment and use's the installation's default JNDI environment.
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.naming.referenceableJavaBeanClassWhitelist"></a>com.mchange.v2.naming.referenceableJavaBeanClassWhitelist</dt>
+      </dl>
+      <h4>
+	<a name="configuring_security_whitelist_properties">Whitelist properties</a>
+      </h4>
+      <p>
+        Although there are now four distinct whitelists, their format is uniform. Whitelists are specified as comma-separated lists.
+        Each whitelist is defined by a base key ending in <tt>.whitelist</tt>. You can specify whitelist entries in the base key,
+        <i>or in any subkey</i> of that base key. This permits libraries to whitelist their own classes, while still leaving the base key
+        available for configuration of the final application. The final whitelist is the <i>union</i> of all the entries on the base key or
+        any subkey.
+      </p>
+      <p>
+        As with all of the security properties, whitelist entries, whether specified on the base key or a subkey, can be defined in System
+        properties or in other configuration, such as a <tt>c3p0.properties</tt> file. Because c3p0 <a href="#configuration_precedence">includes System properties</a>
+        in its configuration, System properties and other configuration of these properties nearly always agree. But it is possible for them to
+        diverge. For example, security-sensitive System properties get "sealed" early in an application lifecycle, maintaining an immutable snapshot,
+        while c3p0's main config can be programmatically refreshed, in which case it will capture "live" System properties which may have been
+        modified at runtime from the JVM's initial configuration.
+      </p>
+      <p>
+        Even though each whitelist is made up of the <i>union</i> of the lists specified on its base key and subkeys,
+        the effective value of any single key or subkey is the <i>intersection</i> of items specified in sealed System
+        properties and current configuration. So the final whitelist will be the <i>union</i> (across the whitelist base key
+        and subkeys) of <i>intersections</i> (within each base key or subkey, across sealed System properties and current config).
+        The rationale is that, for any key, System properties and other config are not intended to be set to distinct values,
+        so when that putative misconfiguration occurs, we interpret it as restrictively as possible.
+      </p>
+      <p>
+        The union of subkey behavior is convenient because it permits each library to add its own whitelist entries with
+        clobbering one another. But if an attacker is able both to add new System properties and then force a call to
+        <tt>C3P0Config.refreshMainConfig()</tt>, they could expand the whitelist. If they can do all of that, they can
+        probably do anything else they wish. It seems like an unlikely attack. But deployments concerned about the
+        "flexibility" inherent in the union of subkeys can set the <i>override whitelist</i>, which is just the same
+        as the whitelist key, but ending in <tt>.overrideWhitelist</tt> rather than <tt>.whitelist</tt>. If the override
+        whitelist is set, the <tt>.whitelist</tt> base key and its subkeys will be ignored, only the <tt>.overrideWhitelist</tt>
+        will take effect. <tt>.overrideWhitelist</tt> also is the most restrictive of values between early System properties and
+        current configuration, so a very cautious installation can set <div class="example"><tt>-Dcom.mchange.v2.somepackage.someKey.overrideWhitelist=com.foo.a,com.foo.b</tt></div>
+        and that two-entry list will be the widest whitelist the installation ever will tolerate. However, if you wish to do
+        this, you must include all elements all libraries of your application might require in the <tt>.overrideWhitelist</tt>,
+        since subkeys of <tt>.whitelist</tt> various libraries might set will be ignored.
+      </p>
+      <p>
+        There are two special-case whitelist entries, <tt>*</tt> and <tt>[]</tt>. If the sole entry of an effective whitelist is <tt>*</tt>,
+        then whitelist enforcement is disabled, anything will be permitted. However, if a whitelist contains <tt>[]</tt> anywhere
+        it might have looked for whitelist entries, including the <tt>.whitelist</tt> base key, its subkeys, the <tt>.overrideWhitelist</tt>
+        key, or even a deprecated key for the same whitelist, the whitelist will be considered empty and deny everything.
+      </p>
+      <p>
+        As a special case, if <tt>*</tt> is the sole entry in a whitelist only because of System properties / other config intersection behavior,
+        the <tt>*</tt> will be dropped and the whitelist will deny everything. That is, if the sealed System property
+        <tt>com.mchange.v2.somepackage.someKey.whitelist=*,foo</tt> in the other config we have <tt>com.mchange.v2.somepackage.someKey.whitelist=bar,*</tt>
+        the usual intersection-within-key logic would leave a whitelist of <tt>*</tt>, but we don't allow such an intersection to disable enforcement,
+        and instead we enforce an empty whitelist and deny everything. Only a genuinely unique <tt>*</tt> disables the whitelist.
+      </p>
+      <h5 style="margin-bottom: 0;">
+	<a name="configuring_security_whitelist_properties_base_whitelist_keys">Base whitelist keys</a>
+      </h5>
+      <dl class="log_properties">
+	<dt><a name="com.mchange.v2.naming.objectFactory.whitelist"></a>com.mchange.v2.naming.objectFactory.whitelist (and all subkeys)</dt>
 	<dd>
 	  <div class="propdesc">
-            By default this contains all of the c3p0-provided concrete <tt>Referenceable</tt> resources (including some used by c3p0 only for testing), and only those.
-            If you are customizing c3p0 and require some alternative <tt>DataSource</tt> or <tt>ConnectionPoolDataSource</tt> implementations to be materialized from <tt>Reference</tt> objects by c3p0,
-            append the fully-qualified class name of your implementation to the existing default list. (If you replace the list rather than appending, you will break <tt>Referenceable</tt> support of
-            the c3p0-built-in resources.) If you want to live very dangerously (not recommended!), setting this property simply to "*" will disable enforcement of any whitelist of what classes can be
-            materialized from <tt>Reference</tt>s.
-            <br><br><i>(Note: If this property is defined distinctly in System properties and in other config, only the <i>intersection</i> of the two provided whitelists
-            will be permitted. Under c3p0, System properties are incorporated into and override other library config, so differences between the System properties
-            value and the library config value should be very rare. Such differences might result if System properties are changed at runtime, after c3p0 config has been read
-            and cached.)</i>
+            <p style="margin-top:0;margin-bottom:0;">
+              A comma separated list of fully qualified class names expected to be implementations of <tt>javax.naming.spi.ObjectFactory</tt>.
+              c3p0 (and other clients of mchange-commons-java's ReferenceableUtils) will only resolve references which specify one of the whitelisted
+              <tt>ObjectFactory</tt> class names.
+            </p>
+            <p style="margin-top:0.3em;margin-bottom:0;">
+              If c3p0/mchange-commons-java libraries
+              are asked to dereference a <tt>javax.naming.Reference</tt> that name an <tt>ObjectFactory</tt> not in this whitelist, the attempt will
+              fail with a <tt>NamingException</tt>.
+            </p>
+            <p style="margin-top:0.3em;margin-bottom:0;">
+              <i>
+                <b>Note:</b> The subkey <tt>com.mchange.v2.naming.objectFactory.whitelist.c3p0-internal</tt> is
+                reserved and is used by c3p0 to whitelist the <tt>ObjectFactory</tt> c3p0 requires, <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>.
+              </i>
+            </p>
 	  </div>
 	</dd>
-	<dt><a name="com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation"></a>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</dt>
+	<dt><a name="com.mchange.v2.naming.referenceableJavaBeanClass.whitelist"></a>com.mchange.v2.naming.referenceableJavaBeanClass.whitelist (and all subkeys)</dt>
+	<dd>
+          <p style="margin-top:0;margin-bottom:0;">
+            A comma separated list of fully qualified class names that c3p0's <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt> (or its parent, mchange-commons-java's <tt>JavaBeanObjectFactory</tt>) will
+            consent to construct.
+          </p>
+          <p style="margin-top:0.3em;margin-bottom:0;">
+            If these <tt>ObjectFactory</tt>s
+            are asked to construct a class not in this whitelist, the attempt will
+            fail with a <tt>NamingException</tt>.
+          </p>
+          <p style="margin-top:0.3em;margin-bottom:0;">
+            <i>
+              <b>Note:</b> The subkey <tt>com.mchange.v2.naming.referenceableJavaBeanClass.whitelist.c3p0-internal</tt> is
+              reserved and is used by c3p0 to whitelist the several <tt>Referenceable</tt> java-bean-style classes that c3p0 itself defines.
+            </i>
+          </p>
+        </dd>
+	<dt><a name="com.mchange.v2.naming.securelyStringifiable.whitelist"></a>com.mchange.v2.naming.securelyStringifiable.whitelist (and all subkeys)</dt>
+	<dd>
+          <p style="margin-top:0;margin-bottom:0;">
+            A comma separated list of fully qualified class names that <tt>com.mchange.v2.naming.SecurelyStringifiable</tt> will
+            consent to construct from stringified representations.
+          </p>
+          <p style="margin-top:0.3em;margin-bottom:0;">
+            If a class is not present in this whitelist, an attempt to construct an object via
+            <tt>SecurelyStringifiable.constructSecurelyStringified(...)</tt> will fail with a <tt>SecurelyStringifiableConstructionForbiddenException</tt>.
+            However, in practice c3p0 uses this path when reconstructing objects from <tt>javax.naming.Reference</tt> lookups, inside <tt>com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory</tt>.
+            Its parent, <tt>JavaBeanObjectFactory</tt>, is tolerant of individual JavaBean properties failing to reconstruct, so the Exception is caught. Failures provoke a warning in the logs,
+            but object construction proceeds. All of c3p0's internal classes that might get reconstructed in this way are whitelisted, but if you forget to whitelist a class
+            that you define, you'll see the warning, then likely a <tt>NullPointerException</tt> down the line, when something tries to use what could not be reconstructed.
+          </p>
+          <p style="margin-top:0.3em;margin-bottom:0;">
+            <i>
+              <b>Note:</b> The subkey <tt>com.mchange.v2.naming.securelyStringifiable.whitelist.c3p0-internal</tt> is
+              reserved and is used by c3p0 to whitelist the classes that c3p0 itself defined that conform to the
+              <tt>SecurelyStringifiable</tt> contract.
+            </i>
+          </p>
+        </dd>
+	<dt><a name="com.mchange.v2.reflect.byNameInstantiation.whitelist"></a>com.mchange.v2.reflect.byNameInstantiation.whitelist (and all subkeys)</dt>
+	<dd>
+          <p style="margin-top:0;margin-bottom:0;">
+            A comma separated list of fully qualified class names that will be instantiated by name when class names
+            are acquired from potentially untrustworthy sources.
+          </p>
+          <p style="margin-top:0.3em;margin-bottom:0;">
+            As of c3p0-0.15.0, if a class is not present in this whitelist and
+            <tt>com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist</tt> is not explicitly set to <tt>true</tt>, instantiation
+            will proceed with a warning. THIS IS TEMPORARY. If, <tt>com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist=true</tt>,
+            or by default in future releases, a gated by-name instantiation will fail with an <tt>InstantiationNotPermittedException</tt>
+            if a name is not present in the whitelist.
+          </p>
+          <p style="margin-top:0.3em;margin-bottom:0;">
+            <i>
+              <b>Note:</b> The subkey <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-internal</tt> is
+              reserved and is used by c3p0 to whitelist <tt>ConnectionTester</tt>, <tt>ConnectionCustomizer</tt>, and
+              <tt>TaskRunnerFactory</tt> implementations that c3p0 itself defines. The subkey
+              <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-loom-internal</tt> is used by c3p0-loom
+              to whitelist that library's <tt>TaskRunnerFactory</tt> implementations.
+            </i>
+          </p>
+        </dd>
+      </dl>
+      <h5 style="margin-bottom: 0;">
+	<a name="configuring_security_whitelist_properties_override_whitelist_keys">Override whitelist keys</a>
+      </h5>
+      <dl class="log_properties">
+	<dt><a name="com.mchange.v2.naming.objectFactory.overrideWhitelist"></a>com.mchange.v2.naming.objectFactory.overrideWhitelist</dt>
 	<dd>
 	  <div class="propdesc">
-            <tt>false</tt> by default. If reset to <tt>true</tt>, lookups of <tt>javax.naming.Reference</tt> that download remote
-            code will be permitted. This is very dangerous.
+            The override of <tt>com.mchange.v2.naming.objectFactory.whitelist</tt> (See discussion of override keys above.) Most installations will not set this.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.referenceableJavaBeanClass.overrideWhitelist"></a>com.mchange.v2.naming.referenceableJavaBeanClass.overrideWhitelist (and all subkeys)</dt>
+	<dd>
+            The override of <tt>com.mchange.v2.naming.referenceableJavaBeanClass.whitelist</tt> (See discussion of override keys above.) Most installations will not set this.
+        </dd>
+	<dt><a name="com.mchange.v2.naming.securelyStringifiable.overrideWhitelist"></a>com.mchange.v2.naming.securelyStringifiable.overrideWhitelist</dt>
+	<dd>
+            The override of <tt>com.mchange.v2.naming.securelyStringifiable.whitelist</tt> (See discussion of override keys above.) Most installations will not set this.
+        </dd>
+	<dt><a name="com.mchange.v2.reflect.byNameInstantiation.overrideWhitelist"></a>com.mchange.v2.reflect.byNameInstantiation.overrideWhitelist</dt>
+	<dd>
+            The override of <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist</tt> (See discussion of override keys above.) Most installations will not set this.
+        </dd>
+      </dl>
+      <h5 style="margin-bottom: 0;">
+	<a name="configuring_security_whitelist_properties_deprecated_whitelist_keys">Deprecated whitelist keys</a>
+      </h5>
+      <dl class="log_properties">
+	<dt><a name="com.mchange.v2.naming.objectFactoryWhitelist"></a><s>com.mchange.v2.naming.objectFactoryWhitelist</s></dt>
+	<dd>
+	  <div class="propdesc">
+            A deprecated property that used to specify the <tt>ObjectFactory</tt> whitelist. If set, this property will be honored to the exclusion
+            of <tt>com.mchange.v2.naming.objectFactory.whitelist</tt>, its subkeys, and even <tt>com.mchange.v2.naming.objectFactory.overrideWhitelist</tt>.
+            Please migrate from this key.
+	  </div>
+	</dd>
+	<dt><a name="com.mchange.v2.naming.referenceableJavaBeanClassWhitelist"></a><s>com.mchange.v2.naming.referenceableJavaBeanClassWhitelist</s></dt>
+	<dd>
+	  <div class="propdesc">
+            A deprecated property that used to specify the referenceable JavaBean class whitelist. If set, this property will be honored to the exclusion
+            of <tt>com.mchange.v2.naming.referenceableJavaBeanClass.whitelist</tt>, its subkeys, and even <tt>com.mchange.v2.naming.referenceableJavaBeanClass.overrideWhitelist</tt>.
+            Please migrate from this key.
 	  </div>
 	</dd>
       </dl>
@@ -2235,6 +2478,7 @@ c3p0 {
 	You can define overrides of default or named configurations that apply only
 	to pools of Connections authenticated for a particular user. Not all configuration parameters
 	support per-user overrides. See <a href="appendix_a">Appendix A</a> for details.
+      </p>
       <p>
 	To define per-user configurations...
       </p>
@@ -2350,7 +2594,7 @@ c3p0 {
       <p>
 	To find the extensions defined for a <tt>PooledDataSource</tt>, you must have access to its
 	<tt>identityToken</tt>, which is supplied as an argument to all
-	<a href="#connection_customizer"><tt>ConnectionCustomizer</tt></a> methods. Given an <tt>identityToken</tt>,
+	<a href="#connection_customizers"><tt>ConnectionCustomizer</tt></a> methods. Given an <tt>identityToken</tt>,
 	you can use the method
 	<a href="apidocs/com/mchange/v2/c3p0/C3P0Registry.html#extensionsForToken(java.lang.String)"><tt>C3P0Registry.extensionsForToken(...)</tt></a> to access the extensions <tt>Map</tt>.
       </p>
@@ -2578,7 +2822,7 @@ c3p0 {
 	    <a href="#autoCommitOnClose">autoCommitOnClose</a><br/>
 	    <a href="#automaticTestTable">automaticTestTable</a><br/>
 	    <a href="#breakAfterAcquireFailure">breakAfterAcquireFailure</a><br/>
-	    <a href="#cancelAutomaticallyClosedConnections">cancelAutomaticallyClosedConnections</a><br/>
+	    <a href="#cancelAutomaticallyClosedStatements">cancelAutomaticallyClosedStatements</a><br/>
 	    <a href="#checkoutTimeout">checkoutTimeout</a><br/>
 	    <a href="#connectionCustomizerClassName">connectionCustomizerClassName</a><br/>
 	    <a href="#connectionIsValidTimeout">connectionIsValidTimeout</a><br/>
@@ -2899,7 +3143,7 @@ c3p0 {
 	  </div>
 	  <div class="per-user">Does Not Support Per-User Overrides.</div>
 	</dd>
-	<dt><a name="idleConnectionTestPeriod"/>idleConnectionTestPeriod</dt>
+	<dt><a name="idleConnectionTestPeriod"></a>idleConnectionTestPeriod</dt>
 	<dd>
 	  <div class="default">Default: 0</div>
 	  <div class="propdesc">
@@ -2907,7 +3151,7 @@ c3p0 {
 	    every this number of seconds. [See <a href="#configuring_connection_testing">"Configuring Connection Testing"</a>]
 	  </div>
 	</dd>
-	<dt><a name="initialPoolSize"/>initialPoolSize</dt>
+	<dt><a name="initialPoolSize"></a>initialPoolSize</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	  <div class="propdesc">
@@ -2916,7 +3160,7 @@ c3p0 {
 	    [See <a href="#basic_pool_configuration">"Basic Pool Configuration"</a>]
 	  </div>
 	</dd>
-	<dt><a name="jdbcUrl"/>jdbcUrl</dt>
+	<dt><a name="jdbcUrl"></a>jdbcUrl</dt>
 	<dd>
 	  <div class="default">Default: null</div>
 	  <div class="propdesc">
@@ -3000,7 +3244,7 @@ c3p0 {
                 [See <a href="#managing_pool_size">Managing Pool Size and Connection Age</a>]
 	  </div>
 	</dd>
-	<dt><a name="maxPoolSize"/>maxPoolSize</dt>
+	<dt><a name="maxPoolSize"></a>maxPoolSize</dt>
 	<dd>
 	  <div class="default">Default: 15</div>
 	  <div class="propdesc">
@@ -3040,7 +3284,7 @@ c3p0 {
 	    [See <a href="#configuring_statement_pooling">"Configuring Statement Pooling"</a>]
 	  </div>
 	</dd>
-	<dt><a name="minPoolSize"/>minPoolSize</dt>
+	<dt><a name="minPoolSize"></a>minPoolSize</dt>
 	<dd>
 	  <div class="default">Default: 3</div>
 	  <div class="propdesc">
@@ -3409,6 +3653,7 @@ c3p0 {
 	  and define your own behavior, whatever you'd like to do. Your class should be public, have a public no argument constructor, and be Thread-safe and sharable. (A c3p0
 	  pool typically uses just one ConnectionTester to test all of its Connections, often concurrently.)
 	  For examples, see the <a href="https://github.com/swaldman/c3p0/blob/master/src/java/com/mchange/v2/c3p0/impl/DefaultConnectionTester.java">built-in implementations</a> in c3p0's source code.
+        </p>
         <p>
 	  <i>The default value is <tt>SWITCH</tt>, which should be fine almost always.</i>
 	</p>
@@ -3448,10 +3693,19 @@ c3p0 {
 	  environment variable. For a typical web-application, the file should be placed in
 	  <tt>WEB-INF/classes</tt>. In general, the file must be available as a classloader
 	  resource under the name <tt>/c3p0.properties</tt>, in the classloader that loaded
-	  c3p0's jar file. Review the API docs (especilly <tt>getResource...</tt> methods) of
+	  c3p0's jar file. Review the API docs (especially <tt>ClassLoader.getResources(...)</tt> method) of
 	  <tt>java.lang.Class</tt>, <tt>java.lang.ClassLoader</tt>, and <tt>java.util.ResourceBundle</tt>
 	  if this is unfamiliar.
 	</p>
+        <p>
+          It is possible, and sometimes desirable, for there to be multiple <tt>/c3p0.properties</tt>
+          in an application <tt>CLASSPATH</tt>. If c3p0 discovers multiple of <tt>c3p0.properties</tt>
+          (or any of the <a href="#configuration_precedence">properties resources it reads</a>), it merges
+          them. The resulting configuration includes the full union of distinct keys. Where two properties
+          files specify the same key, the key from the earliest location in the <tt>CLASSPATH</tt> is accepted,
+          and any conflicting values for that key from resources scanned later are ignored (with a warning in
+          the logs).
+        </p>
 	<p>
 	  The format of <tt>c3p0.properties</tt> should be a normal Java Properties file format,
 	  whose keys are c3p0 configurable properties. See <a href="#configuration_properties">Appendix A</a>.
@@ -3555,8 +3809,8 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	  <a name="c3p0-config.xml">Overriding c3p0 defaults via <tt>c3p0-config.xml</tt></a>
 	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
 	</h3>
-	<p>
 <!--
+	<p>
 	  As of c3p0-0.9.1, you can define multiple configurations in an XML configuration file, and specify in your code which
 	  configuration to use. For any configurations (including the unnamed default configuration), you can define overrides
 	  for a particular database user. For example, if several applications access your database under different authentication
@@ -3624,12 +3878,6 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
   &lt;/named-config&gt;
 &lt;/c3p0-config&gt;
 	</div>
-<!--
-	<h3>
-	  <a name="programmatic_configuration">Programmatic configuration of DataSource instances</a>
-	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
-	</h3>
-  -->
 	<h3>
 	  <a name="configuration_precedence">Precedence of Configuration Settings</a>
 	  <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -3649,11 +3897,11 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Configuration values set in system properties.</li>
 	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
 	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
-	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
-	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
-	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
-	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
-	    <li>Configuration values in a <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
+	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>Configuration values in a <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
@@ -3679,9 +3927,9 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
 	    <li>System property setting of configuration value.</li>
 	    <li>Non-user-specific values taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
-	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
+	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
-	    <li>Configuration values in a  <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</i></a></li>
+	    <li>Configuration values in a  <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>Configuration values in a  <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
@@ -3849,13 +4097,14 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
 	    above.
 	  </li>
 	</ol>
-    <p>
+      </p>
+      <p>
         <div id="showDeprecatedJbossConfigName" style="display: block">
         <b>Note:</b> <a href="#" onClick="return toggleDisplay('showDeprecatedJbossConfigName', 'DeprecatedJbossConfigName');">
         Users of c3p0 jboss support prior to c3p0-0.9.1 please click here!</a>
         </div>
-	</p>
-	<div class="deprecated" id="DeprecatedJbossConfigName">
+      </p>
+      <div class="deprecated" id="DeprecatedJbossConfigName">
 	<p>
 	   <b>Please note: As of c3p0-0.9.1, the class name of the jboss configuration mbean has changed
 	      to <tt>com.mchange.v2.c3p0.jboss.C3P0PooledDataSource</tt> (from <tt>com.mchange.v2.c3p0.mbean.C3P0PooledDataSource</tt>),
@@ -3863,20 +4112,20 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
 	      support.</b>
 	</p>
 	<p>
-	      The old jboss config mbeans are deprecated, but will still work. However, support for new configuration
-	      parameters will only be added under the new name. Updating requires a one-word change to your <tt>c3p0-service.xml</tt>,
-	      change "mbean" to "jboss" where your old file says 'code="com.mchange.v2.c3p0.mbean.C3P0PooledDataSource"'. Just do it!
+	  The old jboss-specific config mbeans, which confusingly lived under the very generically named package <tt>com.mchange.v2.c3p0.mbean</tt>, are deprecated.
+          They still work, but support for new configuration
+	  parameters will only be added under the new package name, <tt>com.mchange.v2.c3p0.jboss</tt>. Updating requires a one-word change to your <tt>c3p0-service.xml</tt>,
+	  change "mbean" to "jboss" where your old file says 'code="com.mchange.v2.c3p0.mbean.C3P0PooledDataSource"'. Just do it!
 	</p>
 	<p>
-		<a id="hideDataSourcesWithJbossConfigName"
-	   	href="#"
-	   	onClick="return toggleDisplay('showDeprecatedJbossConfigName', 'DeprecatedJbossConfigName');"
-	   	>Hide box.</a>
-	 <p>
+	  <a id="hideDataSourcesWithJbossConfigName"
+	     href="#"
+	     onClick="return toggleDisplay('showDeprecatedJbossConfigName', 'DeprecatedJbossConfigName');"
+	     >Hide box.</a>
+	</p>
       </div>
-
-	</div>
-      <div class="example">
+    </div>
+    <div class="example">
 &lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;!DOCTYPE server&gt;
 
@@ -3928,7 +4177,6 @@ DataSource ds = (DataSource) ic.lookup("java:comp/env/jdbc/pooledDS");
 
 &lt;/server&gt;
       </div>
-      </p>
     </div>
     <hr/>
     <h2><a name="oracle-specific">Appendix F: Oracle-specific API: createTemporaryBLOB() and createTemporaryCLOB()</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>

@@ -99,12 +99,12 @@
         -- Gate behind a whitelist by-name-instantiation of fully-qualified class names
            that may have come from dereferenced or deserialized objects. For now,
            instantiation of non-white-listed class names succeeds, but with a warning.
-           Enforcement can be enabled via a setting, see "Configuring Security" in the
-           docs. THE CURRENT DEFAULT OF PERMISSIVENESS IS TEMPORARY. Future releases
-           will default to enforcement rather than warning. Deployments that explicitly
-           enable enforcement of the whitelist will enjoy greater security and avoid
-           a potentially disruptive change during future releases. Many thanks to
-           @manus-use on github for suggesting this addition. (mchange-commons-java)
+           Enforcement can be enabled via com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist,
+           see "Configuring Security" in the docs. THE CURRENT DEFAULT OF PERMISSIVENESS IS
+           TEMPORARY. Future releases will default to enforcement rather than warning. Deployments
+           that explicitly enable enforcement of the whitelist will enjoy greater security and avoid
+           a potentially disruptive change during future releases. Many thanks to @manus-use on github
+           for suggesting this addition. (mchange-commons-java)
         -- In JndiRefForwardingDataSource, refuse to look up JNDI references from
            InitialContext instances with non-default environment, because we can't guarantee
            those environments haven't been constructed by deserialization or dereferencing
