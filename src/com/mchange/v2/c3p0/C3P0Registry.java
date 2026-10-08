@@ -6,6 +6,7 @@ import com.mchange.v2.coalesce.*;
 import com.mchange.v2.log.*;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
+import com.mchange.v2.c3p0.cfg.DefaultC3P0ConfigFinder;
 import com.mchange.v2.c3p0.impl.*;
 
 import java.sql.SQLException;
@@ -16,7 +17,11 @@ import com.mchange.v2.util.DoubleWeakHashMap;
 
 import com.mchange.v2.c3p0.management.*;
 
+import com.mchange.v2.cfg.PropertiesConfig;
 import com.mchange.v2.cfg.SealedSystemPropertiesStringProperty;
+import com.mchange.v2.naming.ReferenceableUtils;
+import com.mchange.v2.naming.SecurityConfigKey;
+import com.mchange.v2.naming.SecurelyStringifiable;
 import com.mchange.v2.reflect.ByNameInstantiationUtils;
 
 /*
@@ -58,11 +63,17 @@ public final class C3P0Registry
 
     private final static String OLD_SCHOOL_DEFAULT_CONNECTION_TESTER_CLASS_NAME = "com.mchange.v2.c3p0.impl.DefaultConnectionTester";
 
+    private final static String SEP = System.lineSeparator();
+    private final static String IND = "    ";
+
     //MT: thread-safe
     final static MLogger logger = MLog.getLogger( C3P0Registry.class );
 
     //MT: protected by class' lock
     static boolean banner_printed = false;
+
+    //MT: protected by class' lock
+    static boolean current_config_info_printed = false;
 
     //MT: protected by class' lock
     static boolean registry_mbean_registered = false;
@@ -158,6 +169,16 @@ public final class C3P0Registry
         // if (unusually) the ConnectionTester relies upon configuration
 
 	// resetConnectionTesterCache();
+
+        // we already log the reftesh in C3P0Config. No need also to do it here.
+        // if (logger.isLoggable(MLevel.INFO))
+        //    logger.info("c3p0 configuration has been refreshed.");
+
+        synchronized (C3P0Registry.class)
+        {
+            current_config_info_printed = false;
+            currentConfigInfo();
+        }
     }
 
     public static ConnectionTester getConnectionTester( String className )
@@ -297,12 +318,70 @@ public final class C3P0Registry
     {
         if (! banner_printed )
         {
-            if (logger.isLoggable( MLevel.INFO ) )
+            if ( logger.isLoggable( MLevel.INFO ) )
                 logger.info("Initializing c3p0-" + C3P0Substitutions.VERSION + " [built " + C3P0Substitutions.TIMESTAMP +
                                 "; debug? " + C3P0Substitutions.DEBUG +
                                 "; trace: " + C3P0Substitutions.TRACE
                                 +']');
             banner_printed = true;
+        }
+    }
+
+    // must be called from a static sync'ed method
+    private static void currentConfigInfo()
+    {
+        if (! current_config_info_printed )
+        {
+            PropertiesConfig pcfg = C3P0Config.getMultiPropertiesConfig();
+            boolean aisvr  = ReferenceableUtils.allowIndirectSerializationViaReference( pcfg );
+            boolean gsobra = ReferenceableUtils.generateSerializedObjectBinaryRefAddr( pcfg );
+            boolean srrfcl = ReferenceableUtils.supportReferenceRemoteFactoryClassLocation( pcfg );
+            boolean adice  = ReferenceableUtils.acceptDeserializedInitialContextEnvironment( pcfg );
+            boolean bniew  = ByNameInstantiationUtils.isEnforcingWhitelist( pcfg );
+
+            if ( logger.isLoggable( MLevel.WARNING ) && (aisvr || gsobra || srrfcl || adice /* || !bniew */) ) // already warns elsewhere on !bniew
+            {
+                if (adice)
+                    logger.warning("Configuration permits constructing JNDI InitialContexts using an environment deserialized from a potentially untrustworthy source. This is dangerous. Consider setting '" +
+                                   SecurityConfigKey.ACCEPT_DESERIALIZED_INITIAL_CONTEXT_ENVIRONMENT + "' to false.");
+                if (aisvr)
+                    logger.warning("Configuration permits indirect serialization via reference, which is dangerous. Consider setting '" +
+                                   SecurityConfigKey.ALLOW_INDIRECT_SERIALIZATION_VIA_REFERENCE + "' to false.");
+
+                // Already warns in ByNameInstantiationUtils, so we'll skip the duplicative warning
+                //
+                //if (!bniew)
+                //    logger.warning("Configuration fails to enforce the by-name instantiation whitelist. This is dangerous. Consider setting '" +
+                //                   ByNameInstantiationUtils.ENFORCE_WHITELIST_KEY + " to true.");
+
+                if (gsobra)
+                    logger.warning("Configuration permits generation of BinaryRefAddr that include Java-serialized objects. This is dangerous. Consider setting '" +
+                                   SecurityConfigKey.GENERATE_SERIALIZED_OBJECT_BINARY_REF_ADDR + "' to false.");
+                if (srrfcl)
+                    logger.warning("Configuration permits resolving references by downloading code from a reference-specified remote location. This is very, very dangerous. Consider setting '" +
+                                   SecurityConfigKey.SUPPORT_REFERENCE_REMOTE_FACTORY_CLASS_LOCATION + "' to false.");
+            }
+
+
+            if ( logger.isLoggable( MLevel.FINE ) )
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Selected DataSource-independent config dump." + SEP);
+                sb.append("Security status: " + SEP );
+                sb.append(IND + "Accept deserialized InitialContext environment? " + adice + SEP);
+                sb.append(IND + "Allow indirect Java-serialization via reference? " + aisvr + SEP);
+                sb.append(IND + "Enforce by-name instantiation whitelist? " + bniew + SEP);
+                sb.append(IND + "Generate Java serializedObjects as BinaryRefAddrs? " + gsobra + SEP);
+                sb.append(IND + "Support (very dangerously) remote factoryClassLocation when resolving references? " + srrfcl + SEP);
+                sb.append(IND + "Deployment-specified XML non-default location: " + DefaultC3P0ConfigFinder.externalXmlConfigFileForConfig(pcfg) + SEP);
+                sb.append(IND + "Permissive, potentially dangerous, parsing of XML config? " + DefaultC3P0ConfigFinder.findUsePermissiveParser(pcfg,false) + SEP);
+                sb.append(IND + "ByNameInstantiation " + ByNameInstantiationUtils.currentWhitelistInfo(pcfg) + SEP);
+                sb.append(IND + "ObjectFactory " + ReferenceableUtils.objectFactoryWhitelistInfo(pcfg) + SEP);
+                sb.append(IND + "ReferenceableJavaBeanClass " + ReferenceableUtils.referenceableJavaBeanClassWhitelistInfo(pcfg) + SEP);
+                sb.append(IND + "SecurelyStringifiable " + SecurelyStringifiable.whitelistInfo(pcfg));
+                logger.fine( sb.toString() );
+            }
+            current_config_info_printed = true;
         }
     }
 
@@ -355,6 +434,7 @@ public final class C3P0Registry
         if (idt instanceof PooledDataSource)
         {
             banner();
+            currentConfigInfo();
             attemptRegisterRegistryMBean();
         }
 

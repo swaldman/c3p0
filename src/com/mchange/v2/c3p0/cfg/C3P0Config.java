@@ -74,47 +74,53 @@ public final class C3P0Config
     public static synchronized void setMainConfig( C3P0Config protoMain )
     { _MAIN = protoMain; }
 
-    public static synchronized void refreshMainConfig()
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we delegate
+    public static void refreshMainConfig()
     { refreshMainConfig( null, null ); }
 
     // later overrides take precedence over earlier ones
-    public static synchronized void refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription )
+    // we synchronize internally to avoid unnecessarily nesting locks when we call C3P0Registry.markConfigRefreshed()
+    public static void refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription )
     {
-	MultiPropertiesConfig libMpc = findLibraryMultiPropertiesConfig();
-	if ( overrides != null )
-	{
-	    int olen = overrides.length;
-	    MultiPropertiesConfig[] combineMe = new MultiPropertiesConfig[ olen + 1 ];
-	    combineMe[0] = libMpc;
-	    for ( int i = 0; i < olen; ++i )
-		combineMe[ i + 1 ] = overrides[i];
+        synchronized (C3P0Config.class)
+        {
+            MultiPropertiesConfig libMpc = findLibraryMultiPropertiesConfig();
+            if ( overrides != null )
+            {
+                int olen = overrides.length;
+                MultiPropertiesConfig[] combineMe = new MultiPropertiesConfig[ olen + 1 ];
+                combineMe[0] = libMpc;
+                for ( int i = 0; i < olen; ++i )
+                    combineMe[ i + 1 ] = overrides[i];
 
-	    MultiPropertiesConfig  overriddenMpc = MConfig.combine( combineMe );
-	    setLibraryMultiPropertiesConfig( overriddenMpc );
-	    setMainConfig( findLibraryC3P0Config( true ) );
+                MultiPropertiesConfig  overriddenMpc = MConfig.combine( combineMe );
+                setLibraryMultiPropertiesConfig( overriddenMpc );
+                setMainConfig( findLibraryC3P0Config( true ) );
 
-	    if ( logger.isLoggable( MLevel.INFO ) )
-		logger.log( MLevel.INFO, 
-			    "c3p0 main configuration was refreshed, with overrides specified" + (overridesDescription == null ? "." : " - " + overridesDescription ) );
-	}
-	else
-	{
-	    setLibraryMultiPropertiesConfig( libMpc );
-	    setMainConfig( findLibraryC3P0Config( false ) );
+                if ( logger.isLoggable( MLevel.INFO ) )
+                    logger.log( MLevel.INFO, 
+                                "c3p0 main configuration was refreshed, with overrides specified" + (overridesDescription == null ? "." : " - " + overridesDescription ) );
+            }
+            else
+            {
+                setLibraryMultiPropertiesConfig( libMpc );
+                setMainConfig( findLibraryC3P0Config( false ) );
 
-	    if ( logger.isLoggable( MLevel.INFO ) )
-		logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides specified (and any previous overrides removed)." );
-	}
+                if ( logger.isLoggable( MLevel.INFO ) )
+                    logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides specified (and any previous overrides removed)." );
+            }
 
-	/*
-	System.err.println("All properties...");
-	Properties props = libMpc.getPropertiesByPrefix("");
-	Map<Object,Object> m = new TreeMap<Object,Object>();
-	m.putAll( (Map<Object,Object>) props );
-	for ( Map.Entry<Object,Object> entry : m.entrySet() )
-	    System.err.println( entry.getKey() + " --> " + entry.getValue() );
-	*/
-
+            /*
+            System.err.println("All properties...");
+            Properties props = libMpc.getPropertiesByPrefix("");
+            Map<Object,Object> m = new TreeMap<Object,Object>();
+            m.putAll( (Map<Object,Object>) props );
+            for ( Map.Entry<Object,Object> entry : m.entrySet() )
+                System.err.println( entry.getKey() + " --> " + entry.getValue() );
+            */
+        }
+        // let's not unnecessarily nest locks
 	C3P0Registry.markConfigRefreshed();
     }
 

@@ -31,9 +31,16 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
     public DefaultC3P0ConfigFinder() 
     { this( false ); }
 
+    public static String externalXmlConfigFileForConfig(PropertiesConfig pcfg)
+    { return xmlCfgFileProperty.getValue( pcfg, logger ); }
+
     @Override
     public C3P0Config findConfig() throws Exception
     {
+        // we can hit C3P0Config.getMultiPropertiesConfig(), because the basic MultiPropertiesConfig is
+        // independent of and gets built prior to the C3P0Config in whose construction we are particating
+        PropertiesConfig pcfg = C3P0Config.getMultiPropertiesConfig();
+
 	C3P0Config out;
 
 	HashMap flatDefaults = C3P0ConfigUtils.extractHardcodedC3P0Defaults();
@@ -43,10 +50,8 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	// properties in the XML
 	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
 
-        // we can hit C3P0Config.getMultiPropertiesConfig(), because the basic MultiPropertiesConfig is
-        // independent of and gets built prior to the C3P0Config in whose construction we are particating
-	String cfgFile = xmlCfgFileProperty.getValue( C3P0Config.getMultiPropertiesConfig(), logger );
-	boolean usePermissiveParser = findUsePermissiveParser();
+	String cfgFile = externalXmlConfigFileForConfig( pcfg );
+	boolean usePermissiveParser = findUsePermissiveParser(pcfg, true);
 
 	if (cfgFile == null)
 	    {
@@ -123,16 +128,14 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	    logger.log( MLevel.WARNING, "Configuation defined in " + srcType + "'" + srcName + "' overrides all other c3p0 config." );
     }
 
-    private boolean findUsePermissiveParser()
+    public static boolean findUsePermissiveParser(PropertiesConfig pcfg, boolean warn)
     {
-        PropertiesConfig pcfg = C3P0Config.getMultiPropertiesConfig();
-
 	boolean deprecatedExpandEntityRefs = expandEntityRefsProperty.getValue( pcfg, logger );
 	boolean usePermissiveParser        = permissiveParserProperty.getValue( pcfg, logger );
 
 	boolean out = usePermissiveParser || deprecatedExpandEntityRefs;
 
-	if ( out && logger.isLoggable( MLevel.WARNING ) )
+	if ( out && warn && logger.isLoggable( MLevel.WARNING ) )
 	{
 	    String warningKey;
 	    if ( deprecatedExpandEntityRefs )
@@ -148,7 +151,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 	    }
 	    else
 		warningKey = "Configuration property '" + XML_CFG_USE_PERMISSIVE_PARSER_KEY + "'";
-	    
+
 	    logger.log( MLevel.WARNING,
 			warningKey + " is set to 'true'. " +
 			"Entity references will be resolved in XML c3p0 configuration files, doctypes and xml includes will be permitted, the file will in general be parsed very permissively. " +
@@ -158,7 +161,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 			"See also https://github.com/OWASP/CheatSheetSeries/blob/31c94f233c40af4237432008106f42a9c4bff05e/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.md / " +
 			"See also https://vsecurity.com//download/papers/XMLDTDEntityAttacks.pdf" );
 	}
-	
+
 	return out;
     }
 }
