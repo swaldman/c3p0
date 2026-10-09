@@ -697,6 +697,15 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
     def c3p0StmtCacheFullStack() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.stmt.StatementCacheFullStackHarness")()
     }
+    // Config-refresh lock ordering. No database needed; exits nonzero if the contended
+    // workload stalls. A harness rather than a JUnit test because a lock cycle cannot be
+    // recovered from in-process -- see the class comment.
+    //
+    //   mill test.c3p0ConfigLockOrdering
+    //
+    def c3p0ConfigLockOrdering() = Task.Command {
+      this.runMain("com.mchange.v2.c3p0.ConfigRefreshLockOrderingHarness")()
+    }
     def c3p0StmtCacheIssue196() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.stmt.Issue196Demo")()
     }
