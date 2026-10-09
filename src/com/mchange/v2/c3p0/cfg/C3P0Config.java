@@ -75,32 +75,92 @@ public final class C3P0Config
     { _MAIN = protoMain; }
 
     // we don't synchronize at the method level to respect
-    // the fine-grained sync'ing of the overload to which we delegate
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
     public static void refreshMainConfig()
-    { refreshMainConfig( null, null ); }
+    { refreshMainConfig( (MultiPropertiesConfig[]) null, null ); }
 
-    // later overrides take precedence over earlier ones
-    // we synchronize internally to avoid unnecessarily nesting locks when we call C3P0Registry.markConfigRefreshed()
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfig( Properties overrides, String overridesDescription )
+    { refreshMainConfig(overrides, overridesDescription, null, null); }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfig( Properties overrides, String overridesDescription, Properties backstops, String backstopsDescription )
+    {
+        refreshMainConfig(
+            overrides == null ? null : MultiPropertiesConfig.fromProperties( "PROGRAMMATICALLY_SUPPLIED_OVERRIDES", overrides ),
+            overridesDescription,
+            backstops == null ? null : MultiPropertiesConfig.fromProperties( "PROGRAMMATICALLY_SUPPLIED_BACKSTOPS", backstops ),
+            backstopsDescription
+        );
+    }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription )
+    { refreshMainConfig(overrides, overridesDescription, null, null); }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription, MultiPropertiesConfig backstops, String backstopsDescription )
+    { refreshMainConfig( overrides == null ? null : new MultiPropertiesConfig[]{ overrides }, overridesDescription, backstops == null ? null : new MultiPropertiesConfig[]{ backstops }, backstopsDescription ); }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
     public static void refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription )
+    { refreshMainConfig(overrides, overridesDescription, null, null); }
+
+    private final static MultiPropertiesConfig[] EMPTY_MPC_ARRAY = new MultiPropertiesConfig[0];
+
+    // later elements of overrides take precedence over earlier ones, later elements of backstops take precedence over earlier ones
+    // we synchronize internally to avoid unnecessarily nesting locks when we call C3P0Registry.markConfigRefreshed()
+    public static void refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription, MultiPropertiesConfig[] backstops, String backstopsDescription )
     {
         synchronized (C3P0Config.class)
         {
             MultiPropertiesConfig libMpc = findLibraryMultiPropertiesConfig();
-            if ( overrides != null )
+            if ( overrides != null || backstops != null)
             {
-                int olen = overrides.length;
-                MultiPropertiesConfig[] combineMe = new MultiPropertiesConfig[ olen + 1 ];
-                combineMe[0] = libMpc;
-                for ( int i = 0; i < olen; ++i )
-                    combineMe[ i + 1 ] = overrides[i];
+                MultiPropertiesConfig[] nullsafeBackstops = backstops == null ? EMPTY_MPC_ARRAY : backstops;
+                MultiPropertiesConfig[] nullsafeOverrides = overrides == null ? EMPTY_MPC_ARRAY : overrides;
+                int blen = nullsafeBackstops.length;
+                int olen = nullsafeOverrides.length;
+                MultiPropertiesConfig[] combineMe = new MultiPropertiesConfig[ blen + 1 + olen ];
+                System.arraycopy(nullsafeBackstops,0,combineMe,0,blen);
+                combineMe[blen] = libMpc;
+                System.arraycopy(nullsafeOverrides,0,combineMe,blen+1,olen);
 
-                MultiPropertiesConfig  overriddenMpc = MConfig.combine( combineMe );
-                setLibraryMultiPropertiesConfig( overriddenMpc );
+                MultiPropertiesConfig  newMpc = MConfig.combine( combineMe );
+                setLibraryMultiPropertiesConfig( newMpc );
                 setMainConfig( findLibraryC3P0Config( true ) );
 
                 if ( logger.isLoggable( MLevel.INFO ) )
-                    logger.log( MLevel.INFO, 
-                                "c3p0 main configuration was refreshed, with overrides specified" + (overridesDescription == null ? "." : " - " + overridesDescription ) );
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("c3p0 main configuration was refreshed");
+                    if (olen > 0)
+                    {
+                        sb.append(", with overrides specified");
+                        if (overridesDescription != null)
+                            sb.append(" -- " + overridesDescription);
+                    }
+                    if (blen > 0)
+                    {
+                        sb.append(", with backstops specified");
+                        if (backstopsDescription != null)
+                            sb.append(" -- " + backstopsDescription);
+                    }
+                    sb.append(".");
+
+                    // NOTE: older callers might end up with double periods, given that the prior format
+                    //       maybe encouraged ending descriptions with a period. The older format was
+                    //       (overridesDescription == null ? "." : " - " + overridesDescription), with
+                    //       no terminating period applied to the description, and a single rather than
+                    //       double '-' functioning as an em-dash.
+
+                    logger.log( MLevel.INFO, sb.toString() );
+                }
             }
             else
             {
@@ -108,7 +168,7 @@ public final class C3P0Config
                 setMainConfig( findLibraryC3P0Config( false ) );
 
                 if ( logger.isLoggable( MLevel.INFO ) )
-                    logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides specified (and any previous overrides removed)." );
+                    logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides or backstops specified (and any previous overrides or backstops removed)." );
             }
 
             /*
