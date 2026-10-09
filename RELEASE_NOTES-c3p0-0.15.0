@@ -268,3 +268,14 @@ Here are the incompatible changes:
     unexpected introduction of new configuration keys, since multiple instances of
     the same resource path in config are now merged, rather than all but the first
     found being ignored.
+
+(6) Although binary compatibility is maintained, any applications that called
+    the two-argument overload of C3P0Config.refreshMainConfig(...) and supplied
+    a literal null as the first argument will see compiler errors, as that is now
+    ambiguous between several convenience overloads. It's unlikely, we hope, that
+    clients called e.g. refreshMainConfig(null, null), since for callers supplying
+    no overrides there already existed the no-arg overload refreshMainConfig(),
+    which remains fine. If for whatever reason you did call two-arg
+    refreshMainConfig(null, ...), just replace it with refreshMainConfig(). The
+    second argument would always have been ignored if the first argument is null.
+
