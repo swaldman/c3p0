@@ -279,3 +279,21 @@ Here are the incompatible changes:
     refreshMainConfig(null, ...), just replace it with refreshMainConfig(). The
     second argument would always have been ignored if the first argument is null.
 
+(7) In mchange-commons-java, MultiPropertiesConfig.fromProperties( Properties properties )
+    reliably and uniformly produced a MultiPropertiesConfig with a single notional
+    resource path 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES'. To our knowledge, no client
+    relies upon this notional resource path, but it's not inconceivable one might.
+    However, it turns out it's not great for the method to consistently yield one,
+    constant, resource path. When MultiPropertiesConfig objects are combined,
+    they ordinarily merge all the keysets, but where keys conflict, later elements
+    in the combination "win": values from later elements shadow values from earlier
+    elements. However, we require all elements associated with a single resource path
+    (notional or otherwise) to have one, unique precedence. So, it's not great if
+    a MultiPropertiesConfig is constructed from several elements which include the
+    same resource path name at multiple locations. What should that resource path's
+    precedence be? It's undefined. MultiPropertiesConfig.fromProperties(...)
+    emitting the same notional resource path name with every call made it easy to
+    accidentally construct combinations where the precedence of some resources would
+    not be well defined. We now append a UID to 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES',
+    e.g. 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES-1dk7rmubl9xvtkn1bhyx5t#3', rendering
+    collisions impossible (within a JVM, and vanishingly unlikely across JVMs).
