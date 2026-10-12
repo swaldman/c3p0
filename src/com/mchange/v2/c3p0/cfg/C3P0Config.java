@@ -29,13 +29,15 @@ public final class C3P0Config
     final static String PROP_STYLE_EXTENSIONS_PFX         = "c3p0." + PROP_STYLE_EXTENSIONS_PART;
     final static int    PROP_STYLE_EXTENSIONS_PFX_LEN     = PROP_STYLE_EXTENSIONS_PFX.length();
 
-    public final static String CFG_FINDER_CLASSNAME_KEY = "com.mchange.v2.c3p0.cfg.finder";
+    public final static String CFG_FINDER_CLASSNAME_KEY    = "com.mchange.v2.c3p0.cfg.finder";
+    public final static String OVERRIDE_REFRESH_LOG_CONFIG = "com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig";
 
     public final static String DEFAULT_CONFIG_NAME = "default";
 
     public final static String PROPS_FILE_RSRC_PATH = "/c3p0.properties";
 
     private final static SealedSystemPropertiesStringProperty cfgFinderClassname = new SealedSystemPropertiesStringProperty( CFG_FINDER_CLASSNAME_KEY );
+    private final static SealedSystemPropertiesBooleanProperty overrideRefreshLogConfig = new SealedSystemPropertiesBooleanProperty( OVERRIDE_REFRESH_LOG_CONFIG, false );
 
     final static MLogger logger;
 
@@ -171,6 +173,9 @@ public final class C3P0Config
                     logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides or backstops specified (and any previous overrides or backstops removed)." );
             }
 
+            if (overrideRefreshLogConfig.getValue(MPCONFIG(), logger))
+                MLog.refreshConfig( new MultiPropertiesConfig[] {MPCONFIG()}, "refreshed c3p0 config overrides prior log settings." );
+
             /*
             System.err.println("All properties...");
             Properties props = libMpc.getPropertiesByPrefix("");
@@ -192,7 +197,7 @@ public final class C3P0Config
 	String[] defaults = {"/mchange-commons.properties", "/mchange-log.properties"};
 	String[] preempts = {"hocon:/reference,/application,/c3p0,/","/c3p0.properties", "/"};
 
-	return MConfig.WithTraditionalDefaultSources.readCachedClassloaderResourceConfig( defaults, preempts );
+	return MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
     }
 
     // _MPCONFIG must be set first!
