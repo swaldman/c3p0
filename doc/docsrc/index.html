@@ -435,6 +435,7 @@
 	  <li><a href="#per-user_configurations">Per-user configurations</a></li>
 	  <li><a href="#user_extensions_to_configurations">User extensions to configuration</a></li>
 	  <li><a href="#mixing_named_per-user_extensions">Mixing named, per-user, and user-defined configuration extensions</a></li>
+          <li><a href="#augmenting_and_refreshing_configuration">Augmenting and Refreshing Configuration</a></li>
 	</ol>
       </li>
       <li><a href="#performance">Performance</a></li>
@@ -2031,7 +2032,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         parameter, are eliminated, but in ways that require no new configuration. (For example, <tt>userOverridesAsString</tt> is now stored
         as CSV, rather than in a Java-serialization-based format.)
       </p>
-      <p>
+      <p><a name="sealed-system-properties"></a>
         Security-sensitive System properties are "sealed" the first time C3P0 configuration is consulted, very early
         in an application's lifecycle. An immutable snapshot of the System properties is retained, and security-sensitive
         properties are checked against that snapshot, rather than "live" System properties, which an attacker might
@@ -2470,6 +2471,8 @@ c3p0 {
 &lt;/c3p0-config&gt;
 	</div>
       </div>
+    </div>
+      
       <h3>
 	<a name="per-user_configurations">Per-user configurations</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -2544,6 +2547,7 @@ c3p0 {
 
 &lt;/c3p0-config&gt;
 	</div>
+
       <h3>
 	<a name="user_extensions_to_configurations">User extensions to configuration</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -2712,7 +2716,145 @@ c3p0 {
 &lt;/c3p0-config&gt;
 	</div>
 
-    </div>
+      <h3>
+	<a name="augmenting_and_refreshing_configuration">Augmenting and Refreshing Configuration</a>
+	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+      </h3>
+      <p>
+        Often it is useful to augment c3p0's built-in configuration from other sources.
+        For example, you may have an application whose native configuration is a Java properties
+        file. It may be convenient to provide c3p0 configuration there, rather than in c3p0's native
+        ClassLoader resources.
+      </p>
+      <h4>Augmenting DataSource-specific configuration only</h4>
+      <p>
+        A very simple approach to augmenting c3p0's configuration is simply to apply
+        configuration from another source to c3p0 <tt>DataSource</tt>s as you construct
+        them. c3p0's <a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>DataSources</tt></a> class provides <tt>overwriteC3P0PrefixedProperties(...)</tt>
+        to make this easy:
+      </p>
+      <div class="example">
+        Properties myAppConfig = ...;
+        ComboPooledDataSource nascent = new ComboPooledDataSource()
+        DataSources.overwriteC3P0PrefixedProperties( nascent, myAppConfig )
+      </div>
+      <p>
+        This allows all of the <tt>DataSource</tt>-specific, c3p0 configured properties to
+        be applied from your application's configuration directly onto the <tt>DataSource</tt>
+        instance your application creates, including <tt>c3p0.user</tt> and <tt>c3p0.password</tt>.
+      </p>
+      <p>
+        However, this will apply only basic, top-level config (i.e. no named or per-user configurations
+        are supported), and does not support <a href="#other-properties">general, non-<tt>DataSource</tt>-specific configuration</a>.
+      </p>
+      <h4>Merely refreshing configuration</h4>
+      <p>
+        You can ask c3p0 to refresh its configuration at any time, via
+        <a href="apidocs/com/mchange/v2/c3p0/DataSources.html"><tt>C3P0Config</tt></a>'s static <tt>refreshMainConfig()</tt>
+        method. This will fully refresh c3p0's config based on the current state of all of the library's configuration
+        sources. Changes to System properties will be reflected in the new configuration, but please note that, for security-sensitive
+        settings, in addition to its own config, c3p0 refers to a snapshot of System properties taken early in a JVM's lifecycle,
+        and these <a href="#sealed-system-properties">"sealed" System properties</a> will not be affected.
+      </p>
+      <p>
+        <i>
+          <b>Note:</b> Refreshing configuration will not change the properties of existing <tt>DataSource</tt> instances that had
+          already been constructed prior to the refresh.
+        </i>
+      </p>
+      <h4>Augmenting and refreshing configuration</h4>
+      <p>
+        The most complete way to augment configuration is to call any of...
+      </p>
+      <ul>
+        <li><tt>C3P0Config.refreshMainConfig( Properties overrides, String overridesDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfig( Properties overrides, String overridesDescription, Properties backstops, String backstopsDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription, MultiPropertiesConfig backstops, String backstopsDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription, MultiPropertiesConfig[] backstops, String backstopsDescription )</tt></li>
+      </ul>
+        <p>
+          Hopefully it is straightforward how one might use the methods defined in terms of standard <tt>Properties</tt> objects. The description arguments are
+          optional. You can supply <tt>null</tt> if you like. If you do supply a value, the description you provide will appear in a log message at <tt>INFO</tt>.
+        </p>
+        <p>
+          <tt>MultiPropertiesConfig</tt> represents the core configuration data structure of mchange-commons-java's <tt>com.mchange.v2.cfg</tt> library.
+          Conceptually it is just a sequence of merged <tt>Properties</tt> objects, where later elements in the sequence shadow former elements in the sequence
+          when values confict, and where each element in the sequence is associated with a "resource path", which may be purely notional, or may represent the path
+          by which a resource was actually located. You can create a <tt>MultiPropertiesConfig</tt> from a <tt>Properties</tt> object with
+        </p>
+        <ul>
+          <li><tt>MultiPropertiesConfig.fromProperties(String notionalResourcePath, Properties props)</tt></li>
+          <li><tt>MultiPropertiesConfig.fromProperties(Properties props) // generates a unique notional resource path</tt></li>
+        </ul>
+        <p>
+          When one does want to look up configuration resources, in order to augment c3p0's existing config, consider using one of the following
+          two methods:
+        </p>
+        <ul>
+          <li><tt>MConfig.AsProvided.readUncachedResourceConfig( String[] resourcePaths ) // for classloader resource paths only</tt></li>
+          <li><tt>MConfig.AsProvidedVetoable.readUncachedResourceConfig( String[] resourcePaths ) // for arrays including file URL paths</tt></li>
+        </ul>
+        <p>
+          Paths beginning with a '/' character are interpreted as classloader resource paths. Paths beginning "file:" are interpreted as file URLs.
+          File URLs can optionally include query strings, on which two keys are supported:
+        </p>
+        <ul>
+          <li><tt>permissions</tt>, whose only supported value is currently <tt>useronly</tt></li>
+          <li><tt>required</tt>, which can be <tt>true</tt> or <tt>false</tt></li>
+        </ul>
+        <p>
+          ClassLoader resource paths are not "vetoable". They will be taken if found, ignored otherwise. If multiple classloader resources are found under the same
+          resource path, the properties associated with that resource path will be a merger of all keys. Should keys conflict, the value from the earliest <tt>CLASSPATH</tt>
+          entry that contains that resource and key will take effect.
+        </p>
+        <p>
+          <i>
+            <b>Note:</b> This is legit a bit confusing. When multiple resource paths, or multiple <tt>MultiPropertiesConfig</tt> items are provided, and values for the same
+            key conflict, <b>later elements shadow earlier elements</b>. However, <b>within a single resource path</b>, the long-standing Java convention, which we support is
+            to <b>privilege earlier entries in a <tt>CLASSPATH</tt> over later entries</b>.
+          </i>
+        </p>
+        <p>
+          File URLs <i>are</i> "vetoable". A file URL with no query string will behave similarly to a ClassLoader resource path. If the file is not found,
+          the path will simply be skipped and ignored. But if <tt>required</tt> is set to <tt>true</tt> in the query string and the file is not present,
+          the caller of <tt>MConfig.AsProvidedVetoable.readUncachedResourceConfig( String[] resourcePaths )</tt> will receive a <tt>ConfigVetoedException</tt>.
+          If in the query string <tt>permissions=useronly</tt>, the file will be checked to ensure that only the owner has permission to read, write, or execute
+          the file, and will throw a <tt>ConfigVetoedException</tt> otherwise. When <tt>permissions=useronly</tt>, if the file is within (directly or indirectly)
+          a directory writable by users other than the owner or root, a warning will be emitted pointing out that the config might be deletable by untrusted users,
+          but the config won't be vetoed.
+        </p>
+        <h4>Augmenting and refreshing log configuration</h4>
+        <p>
+          For the library's initial configuration, users can treat logging configuration and other c3p0 configuration as identical. But in fact,
+          the mlog library that c3p0 logs to maintains its own, independent configuration. It just so happens that the initial configuration of the logging
+          library is identical to the initial configuration of c3p0.
+        </p>
+        <p>
+          However, if you augment and refresh c3p0's configuration, that will <i>not</i> automatically augment the log configuration.
+          If you want also to augment the log configuration, your final configuration must include the setting <tt>com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig=true</tt>.
+          This will cause c3p0 to <i>override</i> the existing log config with your new c3p0 configuration.
+        </p>
+        <h4>Putting all this together</h4>
+        <p>
+          Suppose you want users to be able to configure c3p0 from an external file, in addition to traditional <tt>ClassLoader</tt> resources. You do want users
+          to also be able to configure logging parameters there. You might, very early in your application lifecycle, do something like this:
+        </p>
+        <div class="example">
+ import java.util.Properties;
+ import com.mchange.v2.cfg.MultiPropertiesConfig;
+ import com.mchange.v2.cfg.MConfig;
+ import com.mchange.v2.c3p0.cfg.C3P0Config;
+
+ ...
+
+ Properties props = new Properties();
+ props.setProperty("com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig","true");
+ MultiPropertiesConfig refreshLogConfigProps = MultiPropertiesConfig.fromProperties(props); // we'll override log config too, unless the user explicitly disables that
+ MultiPropertiesConfig appConfig = MConfig.AsProvidedVetoable.readUncachedResourceConfig( new String[] {"file:///etc/myapp.properties?required=true&permissions=useronly"} );
+ C3P0Config.refreshMainConfig( new MultiPropertiesConfig[] {refreshLogConfigProps,appConfig}, "Bring c3p0 config in from /etc/myapp.properties" );
+        </div>
     <h2><a name="performance">Performance</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
@@ -3534,17 +3676,39 @@ c3p0 {
 	  <li>com.mchange.v2.log.NameTransformer</li>
 	  <li>com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL</li>
 	</ul>
+        <p>
+          See also, in <a href="#augmenting_and_refreshing_configuration">Augmenting and Refreshing Configuration</a>:
+          <ul class="other_props_list">
+            <li>com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig</li>
+          </ul>
+        </p>
 	<h4>Security-related properties</h4>
 	<p>
 	  The following properties help lock c3p0 down and prevent misuse of its libraries. Please see <a href="#configuring_security">Configuring Security</a>
 	  above for specific information.
 	</p>
 	<ul class="other_props_list">
-	  <li>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</li>
 	  <li>com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment</li>
-	  <li>com.mchange.v2.naming.objectFactoryWhitelist</li>
+          <li>com.mchange.v2.naming.allowIndirectSerializationViaReference</li>
+          <li>com.mchange.v2.naming.generateSerializedObjectBinaryRefAddr</li>
+          <li>com.mchange.v2.naming.objectFactory.overrideWhitelist</li>
+	  <li>com.mchange.v2.naming.objectFactory.whitelist (and all subkeys)</li>
 	  <li>com.mchange.v2.naming.nameGuardClassName</li>
+          <li>com.mchange.v2.naming.referenceableJavaBeanClass.overrideWhitelist</li>
+          <li>com.mchange.v2.naming.referenceableJavaBeanClass.whitelist (and all subkeys)</li>
+          <li>com.mchange.v2.naming.securelyStringifiable.overrideWhitelist</li>
+          <li>com.mchange.v2.naming.securelyStringifiable.whitelist (and all subkeys)</li>
+	  <li>com.mchange.v2.naming.supportReferenceRemoteFactoryClassLocation</li>
+          <li>com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName</li>
+          <li>com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist</li>
+          <li>com.mchange.v2.reflect.byNameInstantiation.overrideWhitelist</li>
+          <li>com.mchange.v2.reflect.byNameInstantiation.whitelist (and all subkeys)</li>
 	</ul>
+        <p>The following security-related properties have been deprecated:</p>
+        <ul class="other_props_list">
+          <li><s>com.mchange.v2.naming.objectFactoryWhitelist</s></li>
+          <li><s>com.mchange.v2.naming.referenceableJavaBeanClassWhitelist</s></li>
+        </ul>
 	<h4>Configuring JMX</h4>
 	<p>
 	  The following properties affect c3p0's JMX management interface. Plese see

@@ -172,6 +172,8 @@ com.mchange.v2.naming.objectFactory.overrideWhitelist
 
 com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName
 
+com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig
+
 Incompatible changes
 --------------------
 
