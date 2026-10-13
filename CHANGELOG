@@ -1,3 +1,27 @@
+        -- Improve, and add much better documentation for, the API permitting
+           refreshes, augmentations, and therefore customization of c3p0 config at
+           runtime. Make it configurable whether MLog config should also be
+           updated on such a refresh. Allow augmenting with "backstops" as well
+           as with "overrides" when refreshing config. Backstops only take effect
+           if nothing else in config sets the value. Overrides override values
+           set within standard c3p0 configuration.
+        -- Make security configuration a bit more visible in the logs.
+           At library initialization, warn on certain weaker security settings.
+           If logger com.mchange.v2.c3p0.C3P0Registry is loggable at FINE/DEBUG,
+           dump security-relevant config to the log at that level.
+        -- Previously, using MultiPropertiesConfig.fromProperties(Properties props)
+           gave a single, constant, notional resource path. Since we've formalized
+           a requirement that each notional resource path have a unique precedence
+           level in a MultiPropertiesConfig, that invited collisions and config
+           with uncertain precedence (if two elements with the same resource path
+           are combined at distinct precedence levels). Now we include a unique ID
+           in each generated notional resource path to prevent path name
+           collisions. (mchange-commons-java)
+        -- Stop uselessly making a network call (getLocalHost()) in order
+           to establish a VMID. (getLocalHost() is expensive, brittle, and
+           what it supplied is far from reliably unique to a VM.) Fix VMID
+           computation logic, which worked before, but primarily via a backstop
+           to a quietly broken path. (mchange-commons-java)
         -- Gate the potentially unsafe InitialContext environment used by
            JndiRefForwardingDataSource behind our new
            com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName,
@@ -50,17 +74,14 @@
            classes that still implement the old read method signature, as
            SecurelyStringifiable methods gate on conformance to a duck-type based
            on both signatures.) (mchange-commons-java)
-        -- For configuration defined as properties files in classloader resources,
-           accept ALL resources with a given resource path, if different jar files
-           or CLASSPATH entries contain files with the same path. Following Java
-           conventions, if there are conflicts, the first resource encountered in the
-           CLASSPATH wins, with a warning. Note that when we define configuration via
-           com.mchange.v2.cfg.MConfig, later elements -- which may include properties
-           resource paths, or file URLs, or HOCON resources -- take precedence over
-           configuration defined in earlier elements explicitly in code. But within
-           a single ClassLoader resource path, where resolution order is determined
-           by CLASSPATH, we follow Java CLASSPATH conventions and let the first entry
-           "win". (mchange-commons-java)
+        -- When resolving properties-format ClassLoader resources into
+           MultiPropertiesConfigs, previously if there were multiple resources
+           in the CLASSPATH that matched the same resource path, we simply took
+           the first item in the CLASSPATH. Now we take all matching paths
+           from the CLASSPATH and merge. But if there are conflicts, following
+           Java CLASSPATH conventions (in CONTRAST to the usual convention of
+           com.mchange.v2.cfg), the value found in the earliest CLASSPATH
+           resource to define the key is retained. (mchange-commons-java)
         -- Add config key com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName,
            which should refer to a class implementing UnsafeInitialContextEnvFilter,
            which inspects any Hashtable<?,?> that may have been derived from untrustworthy
