@@ -4060,13 +4060,18 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Configuration values programmatically set.</li>
 	    <li>Configuration values set in system properties.</li>
 	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
-	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
-	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>Configuration values in a <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>Configuration values in a <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0-default.properties</tt> file.</li>
+	    <li>Configuration values in a <tt>mchange-log.properties</tt> file.</li>
+	    <li>Configuration values in a <tt>mchange-commons.properties</tt> file.</li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
 	</div>
@@ -4089,12 +4094,21 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>User-specific overrides taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
 	    <li>Non-user-specific values programmatically set.</li>
 	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in properties format, with precedence there determined by the ordering of <i>properties-format</i> sources below)</li>
 	    <li>System property setting of configuration value.</li>
 	    <li>Non-user-specific values taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values specified in a <tt>c3p0.properties</tt> file</li>
-	    <li>Configuration values in a  <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a  <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0-default.properties</tt> file.</li>
+	    <li>Configuration values in a <tt>mchange-log.properties</tt> file.</li>
+	    <li>Configuration values in a <tt>mchange-commons.properties</tt> file.</li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
 	</div>
