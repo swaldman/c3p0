@@ -709,6 +709,30 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
     def c3p0StmtCacheIssue196() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.stmt.Issue196Demo")()
     }
+    // Configuration precedence, as documented under "Precedence of Configuration Settings"
+    // in the manual. No database needed; exits nonzero on any mismatch. A harness rather
+    // than a JUnit test because MConfig reads classloader resources and takes no
+    // ClassLoader, so every data point needs its own JVM with a synthetic CLASSPATH -- see
+    // the class comment.
+    //
+    //   mill test.c3p0ConfigPrecedence
+    //
+    def c3p0ConfigPrecedence() = Task.Command {
+      val sep = java.io.File.pathSeparator
+      val all = runClasspath().map( _.path.toString )
+      // mchange-commons-java declares com.typesafe:config as an *optional* dependency, so it
+      // is already on this classpath. The no-HOCON regime is therefore produced by removing
+      // it, not by adding it -- and the harness fails if the removal matched nothing, so the
+      // scenario cannot quietly become a no-op.
+      val withHocon    = all.mkString( sep )
+      val withoutHocon = all.filterNot( p => p.contains("typesafe") && p.endsWith(".jar") ).mkString( sep )
+      val javaBin = os.Path( System.getProperty("java.home") ) / "bin" / "java"
+      // Not runMain: mill's macro will not let a Task-applying call take values computed
+      // inside the block, and the child CLASSPATHs can only be computed here.
+      os.proc( javaBin, "-cp", withHocon, "com.mchange.v2.c3p0.cfg.ConfigPrecedenceHarness", withHocon, withoutHocon )
+        .call( cwd = Task.dest, stdout = os.Inherit, stderr = os.Inherit, check = true )
+      ()
+    }
     override def pomSettings = Task {
       PomSettings(
         description = "Tests of c3p0, a mature JDBC3+ Connection pooling library",
