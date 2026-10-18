@@ -191,13 +191,37 @@ public final class C3P0Config
 
     private static MultiPropertiesConfig findLibraryMultiPropertiesConfig()
     {
-	// these should be specified in /mchange-config-resource-paths
-	// but just in case that is overridden or omitted...
+        MultiPropertiesConfig out;
 
-	String[] defaults = {"/mchange-commons.properties", "/mchange-log.properties"};
-	String[] preempts = {"hocon:/reference,/application,/c3p0,/","/c3p0.properties", "/"};
+        if (MConfig.WithTraditionalDefaultSources.traditionalPathFileSourcedPathsFound())
+        {
+            // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
+            String[] defaults = MLogConfig.mlogC3p0Defaults();
+            String[] preempts = MLogConfig.mlogC3p0Preempts();
+            out = MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
 
-	return MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
+            if ( logger.isLoggable( MLevel.WARNING ) )
+            {
+                logger.log(MLevel.WARNING,
+                           "At least one of the following resources " + MConfig.WithTraditionalDefaultSources.traditionalPathFileResourcesSearched() +
+                           " has been found, so c3p0 will configure itself using the traditional mechanism that honored these files. " +
+                           "However, c3p0 is transitioning from this mechanism, which is fragile and obscure. The supported way to customize configuration " +
+                           "sources for c3p0 is to augment a now hardcoded list when calling an overload of refreshMainConfig(...).");
+            }
+        }
+        else
+        {
+            // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
+            String[] resources = MLogConfig.mlogC3p0Unified();
+            out = MConfig.AsProvided.readCachedResourceConfig(resources);
+        }
+
+        if (logger.isLoggable(MLevel.INFO))
+            logger.log(MLevel.INFO,
+                       "c3p0 properties-style config is now drawn from the following configuration sources: " +
+                       Arrays.toString(out.getPropertiesResourcePaths()) +
+                       " Later paths shadow earlier paths where values conflict.");
+        return out;
     }
 
     // _MPCONFIG must be set first!
