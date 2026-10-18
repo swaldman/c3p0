@@ -123,6 +123,7 @@ public class ConfigPrecedenceHarness
         xmlDefaultConfigOutranksEveryFile();
         namedConfigPrecedence();
         aCollapsedHoconBlobIsSurvivable();
+        pathFileDispatch();
 
         System.out.println();
         if ( failures.isEmpty() )
@@ -265,6 +266,98 @@ public class ConfigPrecedenceHarness
             fail( "a collapsed HOCON blob should drop out of the resource paths, but they were: " + paths );
         else
             pass( "a collapsed HOCON blob drops out of the resource paths" );
+    }
+
+    // ----------------------------------------------------------------- path-file dispatch
+
+    /**
+     *  c3p0 no longer ships a /mchange-config-resource-paths.txt. It decides between the
+     *  traditional path-file mechanism and its hardcoded source list by asking whether the
+     *  path files YIELD PATHS -- deliberately not whether one exists, because a path file that
+     *  is empty or wholly commented out exists and yields nothing, and the traditional pathway
+     *  then falls back to a hardcoded backstop whose ordering is NOT c3p0's.
+     *
+     *  <p>That combination was reachable for a while: it put /mchange-commons.properties above
+     *  /c3p0-default.properties, so an end-user file could silently replace c3p0's own shipped
+     *  securelyStringifiable whitelist. These scenarios are the regression guard. The three
+     *  "yields nothing" shapes must be indistinguishable from having no path file at all.</p>
+     */
+    private void pathFileDispatch() throws Exception
+    {
+        clean();
+        // Every ordinary source present, so no path is dropped merely for being absent and the
+        // lists below are comparable.
+        write( "mchange-commons.properties", PROBE_KEY + "=1" );
+        write( "mchange-log.properties",     PROBE_KEY + "=2" );
+        write( "c3p0.properties",            PROBE_KEY + "=3" );
+
+        List<String> noPathFile = resourcePaths();
+
+        writePathFile( "" );
+        check( "a zero-byte path file resolves exactly as no path file does",
+               noPathFile, resourcePaths() );
+
+        writePathFile( "#\n# every line commented out\n#\n" );
+        check( "a wholly commented-out path file resolves exactly as no path file does",
+               noPathFile, resourcePaths() );
+
+        // A path file that really does supply a path takes the traditional branch, and the
+        // path it supplies has to land where the traditional mechanism puts it: above
+        // c3p0-default.properties, below the hocon group.
+        write( "my-extra.properties", PROBE_KEY + "=4" );
+        writePathFile( "/my-extra.properties\n" );
+        List<String> withExtra = resourcePaths();
+
+        if ( !withExtra.contains( "/my-extra.properties" ) )
+            fail( "a path file supplying /my-extra.properties should put it in the resolved list, got: " + withExtra );
+        else if ( noPathFile.contains( "/my-extra.properties" ) )
+            fail( "/my-extra.properties should not appear without a path file naming it" );
+        else
+        {
+            pass( "a path file that supplies a path takes the traditional branch" );
+
+            int extra  = withExtra.indexOf( "/my-extra.properties" );
+            int dflt   = withExtra.indexOf( "/c3p0-default.properties" );
+            int hocon  = indexOfHocon( withExtra );
+            check( "the supplied path outranks c3p0-default.properties", true, extra > dflt );
+            check( "...and is outranked by the hocon group", true, hocon > extra );
+        }
+
+        // A path file naming its own hocon: specification overlaps c3p0's, which is the
+        // legitimate route into ensureHoconInterresolvability. Two hocon paths result, each
+        // rewritten to fall back to the other. Each must still END in "/", or system
+        // properties would stop being last-wins inside that blob.
+        writePathFile( "hocon:/myref,/application,/\n" );
+        List<String> twoHocons = resourcePaths();
+        int hoconCount = 0;
+        boolean allEndInSystemProperties = true;
+        for ( String path : twoHocons )
+            if ( path.startsWith( "hocon:" ) )
+            {
+                ++hoconCount;
+                if ( !path.endsWith( ",/" ) ) allEndInSystemProperties = false;
+            }
+        check( "two overlapping hocon specifications yield two hocon paths", 2, hoconCount );
+        check( "every rewritten hocon path must still end in system properties: " + twoHocons,
+               true, allEndInSystemProperties );
+    }
+
+    private void writePathFile( String contents ) throws IOException
+    { write( "mchange-config-resource-paths.txt", contents ); }
+
+    private static int indexOfHocon( List<String> paths )
+    {
+        for ( int i = 0, len = paths.size(); i < len; ++i )
+            if ( paths.get(i).startsWith( "hocon:" ) ) return i;
+        return -1;
+    }
+
+    /** The resolved resource paths, lowest preference first. */
+    private List<String> resourcePaths() throws Exception
+    {
+        String joined = ask( new String[] { "paths" }, true );
+        // '|' separated by the probe precisely because hocon identifiers contain commas.
+        return Arrays.asList( joined.split( "\\|" ) );
     }
 
     // ----------------------------------------------------------------- ranking engine
