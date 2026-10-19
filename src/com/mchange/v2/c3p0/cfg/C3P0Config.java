@@ -121,11 +121,11 @@ public final class C3P0Config
     {
         synchronized (C3P0Config.class)
         {
-            MultiPropertiesConfig libMpc = findLibraryMultiPropertiesConfig();
+            MultiPropertiesConfig libMpc = findLibraryMultiPropertiesConfig(); // always has sealed and then snapshot of System properties as its highest precedence elements
             if ( overrides != null || backstops != null)
             {
                 MultiPropertiesConfig[] nullsafeBackstops = backstops == null ? EMPTY_MPC_ARRAY : backstops;
-                MultiPropertiesConfig[] nullsafeOverrides = overrides == null ? EMPTY_MPC_ARRAY : overrides;
+                MultiPropertiesConfig[] nullsafeOverrides = overrides == null ? EMPTY_MPC_ARRAY : new MultiPropertiesConfig[] { SealedSystemProperties.capCurrentThenSealAndCombine(overrides) };
                 int blen = nullsafeBackstops.length;
                 int olen = nullsafeOverrides.length;
                 MultiPropertiesConfig[] combineMe = new MultiPropertiesConfig[ blen + 1 + olen ];
@@ -197,7 +197,7 @@ public final class C3P0Config
         {
             // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
             String[] defaults = MLogConfig.mlogC3p0Defaults();
-            String[] preempts = MLogConfig.mlogC3p0Preempts();
+            String[] preempts = SealedSystemProperties.capCurrentThenSealed(MLogConfig.mlogC3p0Preempts());
             out = MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
 
             if ( logger.isLoggable( MLevel.WARNING ) )
@@ -213,14 +213,14 @@ public final class C3P0Config
         {
             // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
             String[] resources = MLogConfig.mlogC3p0Unified();
-            out = MConfig.AsProvided.readCachedResourceConfig(resources);
+            out = MConfig.AsProvided.readCachedResourceConfig(SealedSystemProperties.capCurrentThenSealed(resources));
         }
 
         if (logger.isLoggable(MLevel.INFO))
             logger.log(MLevel.INFO,
                        "c3p0 properties-style config is now drawn from the following configuration sources: " +
                        Arrays.toString(out.getPropertiesResourcePaths()) +
-                       " Later paths shadow earlier paths where values conflict.");
+                       ". Later paths shadow earlier paths where values conflict.");
         return out;
     }
 
