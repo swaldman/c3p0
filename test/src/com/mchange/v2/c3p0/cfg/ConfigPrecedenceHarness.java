@@ -70,6 +70,9 @@ public class ConfigPrecedenceHarness
     /** c3p0's compiled-in default for maxPoolSize; what we see when no source supplies one. */
     private final static String HARDCODED_DEFAULT = "15";
 
+    /** Must match com.mchange.v2.cfg.SealedSystemProperties.NOTIONAL_RESOURCE_PATH. */
+    private final static String SEALED_SYSTEM_PROPERTIES = "SEALED_SYSTEM_PROPERTIES";
+
     private final static String JAVA =
         System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
 
@@ -124,6 +127,7 @@ public class ConfigPrecedenceHarness
         namedConfigPrecedence();
         aCollapsedHoconBlobIsSurvivable();
         pathFileDispatch();
+        systemPropertiesCapTheConfig();
 
         System.out.println();
         if ( failures.isEmpty() )
@@ -266,6 +270,58 @@ public class ConfigPrecedenceHarness
             fail( "a collapsed HOCON blob should drop out of the resource paths, but they were: " + paths );
         else
             pass( "a collapsed HOCON blob drops out of the resource paths" );
+    }
+
+    // --------------------------------------------- system properties cap the config
+
+    /**
+     *  c3p0 resolves configuration by two routes with different machinery, and they have to
+     *  agree about precedence or the manual's table is only half true.
+     *
+     *  <ul>
+     *    <li>Through <code>C3P0Config</code> and the bean layer, where
+     *        <code>DefaultC3P0ConfigFinder</code> re-applies actual System properties on top of
+     *        everything derived from the MultiPropertiesConfig.</li>
+     *    <li>Directly off <code>C3P0Config.getMultiPropertiesConfig()</code>, which a handful
+     *        of settings use -- the legacy isValidTimeout, the JMX RegistryName and
+     *        ExcludeIdentityToken, every MLog setting carried in by overrideRefreshLogConfig,
+     *        and anything an application reads for itself.</li>
+     *  </ul>
+     *
+     *  <p>On the second route a refresh preempt once outranked a System property, because
+     *  overrides sit after libMpc in the combine. c3p0 now caps every resolved path list with
+     *  live System properties and then the sealed snapshot above them, so both routes agree.
+     *  These scenarios are what keeps them agreeing.</p>
+     */
+    private void systemPropertiesCapTheConfig() throws Exception
+    {
+        clean();
+        write( "c3p0.properties", PROBE_KEY + "=111" );
+
+        List<String> paths = resourcePaths();
+        int len = paths.size();
+        check( "the resolved path list ends in the sealed System properties snapshot",
+               SEALED_SYSTEM_PROPERTIES, paths.get( len - 1 ) );
+        check( "...directly above a live read of System properties",
+               "/", paths.get( len - 2 ) );
+
+        // The bean-layer route: long-standing behaviour, and the table's top rung.
+        check( "a system property outranks a refresh preempt, through the bean layer",
+               "999", ask( plain(), true, "-D" + PROBE_KEY + "=999" ) );
+
+        // The direct route. RegistryName is read straight off the MultiPropertiesConfig, with
+        // no SealedSystemProperties wrapper of its own to protect it.
+        String jmxKey = "com.mchange.v2.c3p0.management.RegistryName";
+        check( "a system property outranks a refresh preempt, read directly off the config",
+               "from-system",
+               ask( new String[] { "rawAfterPreempt", jmxKey, "from-preempt" }, true,
+                    "-D" + jmxKey + "=from-system" ) );
+
+        // And with no system property in play the preempt must still take effect, or the cap
+        // would have cost the refresh its purpose.
+        check( "a refresh preempt still wins where no system property claims the key",
+               "from-preempt",
+               ask( new String[] { "rawAfterPreempt", jmxKey, "from-preempt" }, true ) );
     }
 
     // ----------------------------------------------------------------- path-file dispatch

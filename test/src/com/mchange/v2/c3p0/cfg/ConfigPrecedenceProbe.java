@@ -20,6 +20,11 @@ import com.mchange.v2.cfg.MultiPropertiesConfig;
  *        named configuration.</li>
  *    <li><code>paths</code> &mdash; the resource paths actually in play, in increasing order
  *        of preference.</li>
+ *    <li><code>rawAfterPreempt &lt;key&gt; &lt;value&gt;</code> &mdash; refreshes the main
+ *        config with a preempt setting <i>key</i> to <i>value</i>, then reports what a direct
+ *        read of the MultiPropertiesConfig makes of <i>key</i>. This is the lookup path that
+ *        bypasses the bean layer, and so the one where a preempt could once outrank a System
+ *        property.</li>
  *  </ul>
  */
 public class ConfigPrecedenceProbe
@@ -40,6 +45,15 @@ public class ConfigPrecedenceProbe
                 answer( C3P0Config.getUnspecifiedUserProperty( PROBE_PROPERTY, null ) );
             else if ( "named".equals( query ) )
                 answer( C3P0Config.getUnspecifiedUserProperty( PROBE_PROPERTY, argv[1] ) );
+            else if ( "rawAfterPreempt".equals( query ) )
+            {
+                Properties preempt = new Properties();
+                preempt.setProperty( argv[1], argv[2] );
+                C3P0Config.refreshMainConfig(
+                    new MultiPropertiesConfig[] { MultiPropertiesConfig.fromProperties( preempt ) },
+                    "ConfigPrecedenceProbe rawAfterPreempt" );
+                answer( C3P0Config.getMultiPropertiesConfig().getProperty( argv[1] ) );
+            }
             else if ( "paths".equals( query ) )
             {
                 MultiPropertiesConfig mpc = C3P0Config.getMultiPropertiesConfig();
