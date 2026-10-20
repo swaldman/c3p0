@@ -153,6 +153,10 @@
            at runtime by malicious code. The early snapshot can be taken explicitly by
            calling SealedSystemProperties.seal(), or is taken implicitly the first time
            a security-sensitive SealedSystemProperty is consulted. (mchange-commons-java)
+        -- In classname whitelists, if BOTH a deprecated whitelist key AND one of the
+           current, supported forms of configuring a whitelist are set, the resulting
+           whitelist becomes conservatively the INTERSECTION of the two potentially
+           conflicting lists, and we emit a lot of warnings.
         -- Standardize classname whitelists, allow specification across multiple subkeys
            of a base whitelist key (so different libraries can whitelist what they need
            without conflicting). Old whitelist keys com.mchange.v2.naming.objectFactoryWhitelist

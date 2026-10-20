@@ -2235,10 +2235,19 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         since subkeys of <tt>.whitelist</tt> various libraries might set will be ignored.
       </p>
       <p>
+        Nothing in configuration can widen an <tt>.overrideWhitelist</tt>. That is deliberate.
+        A <a href="#configuring_security_whitelist_properties_deprecated_whitelist_keys">deprecated whitelist key</a>
+        appearing elsewhere in configuration cannot displace it, it can only narrow it by intersection. So an installation that pins
+        an <tt>.overrideWhitelist</tt> in early System properties has named the widest whitelist it will ever tolerate, whatever
+        else later arrives in configuration.
+      </p>
+      <p>
         There are two special-case whitelist entries, <tt>*</tt> and <tt>[]</tt>. If the sole entry of an effective whitelist is <tt>*</tt>,
         then whitelist enforcement is disabled, anything will be permitted. However, if a whitelist contains <tt>[]</tt> anywhere
         it might have looked for whitelist entries, including the <tt>.whitelist</tt> base key, its subkeys, the <tt>.overrideWhitelist</tt>
-        key, or even a deprecated key for the same whitelist, the whitelist will be considered empty and deny everything.
+        key, or a deprecated key for the same whitelist, the whitelist will be considered empty and deny everything. <tt>[]</tt> is
+        a denial rather than a permission, so unlike ordinary entries it is honored from any key, in either source, and is never
+        dropped by an intersection.
       </p>
       <p>
         As a special case, if <tt>*</tt> is the sole entry in a whitelist only because of System properties / other config intersection behavior,
@@ -2366,17 +2375,21 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	<dt><a name="com.mchange.v2.naming.objectFactoryWhitelist"></a><s>com.mchange.v2.naming.objectFactoryWhitelist</s></dt>
 	<dd>
 	  <div class="propdesc">
-            A deprecated property that used to specify the <tt>ObjectFactory</tt> whitelist. If set, this property will be honored to the exclusion
-            of <tt>com.mchange.v2.naming.objectFactory.whitelist</tt>, its subkeys, and even <tt>com.mchange.v2.naming.objectFactory.overrideWhitelist</tt>.
-            Please migrate from this key.
+            A deprecated property that used to specify the <tt>ObjectFactory</tt> whitelist. If this is the only whitelist configuration present, it
+            remains the whole whitelist, exactly as in prior releases. If <tt>com.mchange.v2.naming.objectFactory.whitelist</tt>, its subkeys,
+            or <tt>com.mchange.v2.naming.objectFactory.overrideWhitelist</tt> are <i>also</i> set, then this key <i>narrows</i> what they
+            specify: the effective whitelist becomes the <i>intersection</i> of the two, and may be empty if they share no entries.
+            This key can therefore only ever subtract from a whitelist, never add to one. Please migrate from this key.
 	  </div>
 	</dd>
 	<dt><a name="com.mchange.v2.naming.referenceableJavaBeanClassWhitelist"></a><s>com.mchange.v2.naming.referenceableJavaBeanClassWhitelist</s></dt>
 	<dd>
 	  <div class="propdesc">
-            A deprecated property that used to specify the referenceable JavaBean class whitelist. If set, this property will be honored to the exclusion
-            of <tt>com.mchange.v2.naming.referenceableJavaBeanClass.whitelist</tt>, its subkeys, and even <tt>com.mchange.v2.naming.referenceableJavaBeanClass.overrideWhitelist</tt>.
-            Please migrate from this key.
+            A deprecated property that used to specify the referenceable JavaBean class whitelist. If this is the only whitelist configuration present, it
+            remains the whole whitelist, exactly as in prior releases. If <tt>com.mchange.v2.naming.referenceableJavaBeanClass.whitelist</tt>, its subkeys,
+            or <tt>com.mchange.v2.naming.referenceableJavaBeanClass.overrideWhitelist</tt> are <i>also</i> set, then this key <i>narrows</i> what they
+            specify: the effective whitelist becomes the <i>intersection</i> of the two, and may be empty if they share no entries.
+            This key can therefore only ever subtract from a whitelist, never add to one. Please migrate from this key.
 	  </div>
 	</dd>
       </dl>

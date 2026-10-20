@@ -57,9 +57,12 @@ Security-related updates
       com.mchange.v2.naming.objectFactoryWhitelist
       com.mchange.v2.naming.referenceableJavaBeanClassWhitelist
 
-  If those keys are found, they remain accepted and continue to be used
-  in preference to any others, but with a warning to transition to the new names.
-  (Thanks to @manus-use on github for suggesting whitelisting by-name instantiation!)
+  If those keys are found, they remain accepted, but with a warning to transition
+  to the new names. If the deprecated keys and any of the new keys are both present,
+  we compute both whitelists -- the one contemporary keys would specify and the
+  one the deprecated key would specify -- and narrow the two specifications
+  conservatively to their *intersection*. (Thanks to @manus-use on github for
+  suggesting whitelisting by-name instantiation!)
 
 * Fully-qualified classname whitelists -- we now have four of them! --
   have been standardized in implementation and behavior:
