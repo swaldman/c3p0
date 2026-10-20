@@ -242,6 +242,14 @@ public final class C3P0Config
                 {
                     // since cname had to have been explicitly specified in config, we do not gate this
 		    cfgFinder = (C3P0ConfigFinder) ByNameInstantiationUtils.instantiateByNameUngated( cname );
+                    if (logger.isLoggable(MLevel.WARNING))
+                        logger.log(MLevel.WARNING,
+                                   "A deployment-specified C3P0ConfigFinder has been installed, '" + cname +
+                                   "'. This is unsupported and potentially dangerous. " +
+                                   "If this is intended, please let c3p0's developers know what you are up to, " +
+                                   "so that whatever it is can be better supported. " +
+                                   "Unless users make a case to keep it, support for deployment-specified C3P0ConfigFinders may be removed from a future release."
+                                   );
                 }
 	    }
 	catch (Exception e)
