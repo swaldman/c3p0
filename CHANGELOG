@@ -1,3 +1,48 @@
+        -- The never-really-documented feature of permitting user-specified
+           "C3P0ConfigFinder" implementations is deprecated and warns on use.
+           There's now a lot of flexibility to augment c3p0's config (albeit
+           not what C3P0ConfigFinder offers, accepting config in whole new
+           formats). Fundamentally there's an issue that c3p0 consults its
+           config in two views, as a com.mchange.v2.cfg.PropertiesConfig,
+           and via c3p0's own C3P0Config. We can ensure that these views
+           are consistent when we use c3p0's DefaultC3P0ConfigFinder, but
+           they risk becoming inconsistent with user-defined config finders.
+           If users express support for the feature, we'll try to address
+           without removing the feature entirely, but for now it doesn't
+           seem worth the work.
+        -- Documentation of c3p0's properties-based configuration
+           precedence ordering has been updated, and we now test to
+           verify that the documented preference ordering holds.
+        -- We've unified the initial configuration sources of c3p0
+           and the mlog library, so c3p0 now sees config from classloader
+           resource com/mchange/v2/log/default-mchange-log.properties.
+           That's intended for mchange-commons-java internal-use only,
+           but we've documented the addition.
+        -- Migrate both c3p0 and mchange-commons-java away from
+           mchange-commons-java's traditional resource-based source of
+           configuration resources to examine. That mechanism served us fine
+           for many years, but it's complicated, more difficult to reason
+           about than simply hardcoding config sources into code. We offer
+           (and now document) API by which users who wish to alter config
+           sources that c3p0 and mchange-commons-java's logging library
+           consult may do so. This approach seems preferable to adding or
+           modifying classloader resources to perform this kind of alteration.
+           We now warn if we find old-school resources naming config sources
+           (and we continue to support those if we do find them), but users
+           should consider that mechanism deprecated. We also log at info
+           level the sources both c3p0 and the mlog libraries are consulting
+           for properties-based config. The classloader resource
+           mchange-config-resource-paths.txt no longer ships with c3p0,
+           and it should not be replaced.
+        -- Add to MConfig an AsProvidedIgnoreVetoed facade, which continues
+           rather than fails if a vetoable config resource does veto. The
+           vetoing resource is ignored with a warning. (Users of this facade
+           should remain cognizant that an ignored config source might contain
+           config that would tighten security arrangements, in which case
+           ignoring rather than failing might reduce security. Ideally,
+           applications are designed to be extremely secure by default, with
+           relaxations requiring overt config, which mitigates this concern.)
+           (mchange-commons-java)
         -- Improve, and add much better documentation for, the API permitting
            refreshes, augmentations, and therefore customization of c3p0 config at
            runtime. Make it configurable whether MLog config should also be
@@ -94,6 +139,11 @@
            'com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment=true'.
            You must also define and configure a more permissive UnsafeInitialContextEnvFilter
            than AlwaysForbidUnsafeInitialContextEnvFilter. (mchange-commons-java and c3p0)
+        -- SealedSystemProperties are now in-line and of higher precedence in c3p0's config
+           than "live" mutable System properties. Config specified as -Dkey=value will be
+           effectively immutable as far as c3p0 is concerned, as long as it has not been
+           messed with prior to initialization of C3P0's configuration (that is, almost any
+           use of a c3p0 DataSource).
         -- Modify security sensitive string properties, boolean properties, and whitelists
            to consult sealed system properties rather than current system properties
            for security-sensitive config (mchange-commons-java and c3p0).

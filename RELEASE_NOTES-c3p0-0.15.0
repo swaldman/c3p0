@@ -33,8 +33,9 @@ Security-related updates
   Java security model being excised from underneath us.) mchange-commons-java now
   introduces SealedSystemProperties, a snapshot of System properties intended to be
   taken very early in the life of an application, and never changeable thereafter.
-  c3p0 reads security-sensitive system properties from this sealed snapshot, so
-  changes at runtime cannot compromise values set as "-D<prop-name>=value" on start.
+  c3p0 reads early-set system properties from this sealed snapshot in preference to
+  "live" System properties, so changes at runtime cannot compromise values set on
+  start as "-D<prop-name>=value".
 
 * c3p0-0.13.0 introduced a whitelist for which javax.naming.ObjectFactory
   classes c3p0's javax.naming.Reference resolution utilities would construct
@@ -299,3 +300,9 @@ Here are the incompatible changes:
     not be well defined. We now append a UID to 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES',
     e.g. 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES-1dk7rmubl9xvtkn1bhyx5t#3', rendering
     collisions impossible (within a JVM, and vanishingly unlikely across JVMs).
+
+(8) c3p0 now places higher precedence on a "sealed" snapshot of System properties taken
+    early in an application lifecycle over "live" System properties in its config.
+    If you were relying on altering c3p0 config by changing System properties which
+    had been initially set on JVM startup by modifying those properties at runtime
+    and refreshing config, that will no longer work.

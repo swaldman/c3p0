@@ -412,7 +412,7 @@
             <ul class="box">
               <li><a href="#configuration_security_box">Warning: c3p0 trusts its CLASSPATH and configuration!</a></li>
             </ul>
-          </li>            
+          </li>
 	  <li><a href="#basic_pool_configuration">Basic Pool Configuration</a></li>
 	  <li><a href="#managing_pool_size">Managing Pool Size and Connection Age</a></li>
 	  <li><a href="#configuring_connection_testing">Configuring Connection Testing</a>
@@ -2206,10 +2206,10 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
       <p>
         As with all of the security properties, whitelist entries, whether specified on the base key or a subkey, can be defined in System
         properties or in other configuration, such as a <tt>c3p0.properties</tt> file. Because c3p0 <a href="#configuration_precedence">includes System properties</a>
-        in its configuration, System properties and other configuration of these properties nearly always agree. But it is possible for them to
-        diverge. For example, security-sensitive System properties get "sealed" early in an application lifecycle, maintaining an immutable snapshot,
-        while c3p0's main config can be programmatically refreshed, in which case it will capture "live" System properties which may have been
-        modified at runtime from the JVM's initial configuration.
+        in its configuration, System properties and other configuration of these properties nearly always agree. As of c3p0-0.15.0, it is no
+        longer even possible for them to diverge, unless you resort to providing a custom C3P0ConfigFinder (via an undocumented API).
+        c3p0 places "sealed" System property values at a higher precedence in its own config than
+        "live" System properties or user-specified sources, so even a config refresh will not displace sealed properties.
       </p>
       <p>
         Even though each whitelist is made up of the <i>union</i> of the lists specified on its base key and subkeys,
@@ -2217,7 +2217,8 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         properties and current configuration. So the final whitelist will be the <i>union</i> (across the whitelist base key
         and subkeys) of <i>intersections</i> (within each base key or subkey, across sealed System properties and current config).
         The rationale is that, for any key, System properties and other config are not intended to be set to distinct values,
-        so when that putative misconfiguration occurs, we interpret it as restrictively as possible.
+        so when that putative misconfiguration occurs, we interpret it as restrictively as possible. (Again, in c3p0, c3p0 config
+        and sealed System properties should always agree, so this discussion is hypothetical).
       </p>
       <p>
         The union of subkey behavior is convenient because it permits each library to add its own whitelist entries with
@@ -2849,10 +2850,19 @@ c3p0 {
 
  ...
 
+ // we'll override log config too, unless the user explicitly disables that
  Properties props = new Properties();
  props.setProperty("com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig","true");
- MultiPropertiesConfig refreshLogConfigProps = MultiPropertiesConfig.fromProperties(props); // we'll override log config too, unless the user explicitly disables that
+ MultiPropertiesConfig refreshLogConfigProps = MultiPropertiesConfig.fromProperties(props);
+
+ // as written, this can throw a ConfigVetoedException, which can cause the app
+ // to abort until /etc/myapp.properties is provided at appropriate permissions.
+ //
+ // alternatively, if you want /etc/myapp.properties to simply be ignored (with a
+ // warning) if its permissions are bad, you could use
+ // MConfig.AsProvidedIgnoreVetoed.readUncachedResourceConfig(...)
  MultiPropertiesConfig appConfig = MConfig.AsProvidedVetoable.readUncachedResourceConfig( new String[] {"file:///etc/myapp.properties?required=true&permissions=useronly"} );
+
  C3P0Config.refreshMainConfig( new MultiPropertiesConfig[] {refreshLogConfigProps,appConfig}, "Bring c3p0 config in from /etc/myapp.properties" );
         </div>
     <h2><a name="performance">Performance</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
@@ -4058,8 +4068,10 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	<div align="center">
 	  <ol class="precedence">
 	    <li>Configuration values programmatically set.</li>
+	    <li>Configuration values set in "sealed" system properties (read on library first-use, when c3p0's configuration was initialized).</li>
 	    <li>Configuration values set in system properties.</li>
 	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
+	    <li>Preempts <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
@@ -4073,6 +4085,7 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Configuration values in a <tt>mchange-log.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>mchange-commons.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>com/mchange/v2/log/default-mchange-log.properties</tt> file (intended only for library-internal use).</li>
+	    <li>Backstops <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
 	</div>
@@ -4096,8 +4109,10 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Non-user-specific values programmatically set.</li>
 	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
 	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in properties format, with precedence there determined by the ordering of <i>properties-format</i> sources below)</li>
-	    <li>System property setting of configuration value.</li>
+	    <li>Configuration values set in "sealed" system properties (read on library first-use, when c3p0's configuration was initialized).</li>
+	    <li>Configuration values set in system properties.</li>
 	    <li>Non-user-specific values taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>Preempts <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
 	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
@@ -4111,6 +4126,7 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Configuration values in a <tt>mchange-log.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>mchange-commons.properties</tt> file.</li>
 	    <li>Configuration values in a <tt>com/mchange/v2/log/default-mchange-log.properties</tt> file (intended only for library-internal use).</li>
+	    <li>Backstops <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	    <li>c3p0's hard-coded default values.</li>
 	  </ol>
 	</div>
