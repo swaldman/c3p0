@@ -41,10 +41,10 @@ public final class C3P0Config
 
     final static MLogger logger;
 
-    //MT: the value of the ConfigRec is informally immutable (TBD: enforce?)
-    //    the (mutable) reference mainConfigRec is protected by class' lock
+    //MT: protected by class' lock
     private static MultiPropertiesConfig _MPCONFIG;
     private static C3P0Config _MAIN;
+    private static C3P0ConfigFinder _CFG_FINDER = null;
 
     static
     {
@@ -235,21 +235,34 @@ public final class C3P0Config
         //       if they have not already been sealed.
 	String cname = cfgFinderClassname.getValue(pcfg, logger);
 
-	C3P0ConfigFinder cfgFinder = null;
 	try
 	    {
 		if (cname != null)
                 {
-                    // since cname had to have been explicitly specified in config, we do not gate this
-		    cfgFinder = (C3P0ConfigFinder) ByNameInstantiationUtils.instantiateByNameUngated( cname );
-                    if (logger.isLoggable(MLevel.WARNING))
+                    if (_CFG_FINDER == null)
+                    {
+                        // since cname had to have been explicitly specified in config, we do not gate this
+                        _CFG_FINDER = (C3P0ConfigFinder) ByNameInstantiationUtils.instantiateByNameUngated( cname );
+                        if (logger.isLoggable(MLevel.WARNING))
+                            logger.log(MLevel.WARNING,
+                                       "A deployment-specified C3P0ConfigFinder has been installed, '" + cname +
+                                       "'. This is unsupported and potentially dangerous. " +
+                                       "If this is intended, please let c3p0's developers know what you are up to, " +
+                                       "so that whatever it is can be better supported. " +
+                                       "Unless users make a case to keep it, support for deployment-specified C3P0ConfigFinders may be removed from a future release."
+                                       );
+                    }
+                    else if (!_CFG_FINDER.getClass().getName().equals(cname) && logger.isLoggable(MLevel.WARNING))
+                    {
+                        String theConfigFinder = _CFG_FINDER.getClass().equals(DefaultC3P0ConfigFinder.class) ? "The default C3P0ConfigFinder" : "C3P0ConfigFinder '" + _CFG_FINDER.getClass().getName() + "'";
                         logger.log(MLevel.WARNING,
-                                   "A deployment-specified C3P0ConfigFinder has been installed, '" + cname +
-                                   "'. This is unsupported and potentially dangerous. " +
-                                   "If this is intended, please let c3p0's developers know what you are up to, " +
-                                   "so that whatever it is can be better supported. " +
-                                   "Unless users make a case to keep it, support for deployment-specified C3P0ConfigFinders may be removed from a future release."
-                                   );
+                                   "For security reasons, an attempt to install C3P0ConfigFinder '" +
+                                   cname +
+                                   "' will be IGNORED! " +
+                                   theConfigFinder +
+                                   " has already been installed and will continue to be used on configuration refreshes. " +
+                                   "c3p0 does not support changing the C3P0ConfigFinder instance of a live application.");
+                    }
                 }
 	    }
 	catch (Exception e)
@@ -263,13 +276,22 @@ public final class C3P0Config
 
 	try
 	    { 
-		if (cfgFinder == null)
+		if (_CFG_FINDER == null)
 		    {
 			Class.forName("org.w3c.dom.Node");
 			Class.forName("com.mchange.v2.c3p0.cfg.C3P0ConfigXmlUtils"); //fail nicely if we don't have XML libs
-			cfgFinder = new DefaultC3P0ConfigFinder( warn_on_conflicting_overrides );
+			_CFG_FINDER = new DefaultC3P0ConfigFinder( warn_on_conflicting_overrides );
 		    }
-		protoMain = cfgFinder.findConfig(); 
+
+                // this is just an ugly hack. the built-in DefaultC3P0ConfigFinder expected to be
+                // rebuilt on any refresh so warn_on_conflicting_overrides could become a constructor
+                // override. User-supplied C3P0ConfigFinder classes should be immutable and stateless,
+                // and can carry no constructor args
+                //
+                // for our inelegant special case, we'll just reconstruct the thing
+                if (_CFG_FINDER.getClass().equals(DefaultC3P0ConfigFinder.class))
+                    _CFG_FINDER = new DefaultC3P0ConfigFinder( warn_on_conflicting_overrides );
+
 	    }
 	catch (Exception e)
 	    { 
@@ -281,16 +303,35 @@ public final class C3P0Config
 		else
 		{
 		    if ( logger.isLoggable(MLevel.SEVERE) )
-		    {
-			logger.log( MLevel.SEVERE, "An error occurred while trying to parse the XML configuration!" );
-			logger.log( MLevel.SEVERE, "XML CONFIGURATION IGNORED!", e);
-		    }
+			logger.log( MLevel.SEVERE, "An unexpected error occurred while trying to check for XML libraries. XML config will likely be ignored!", e );
 		}
 
-		HashMap flatDefaults = C3P0ConfigUtils.extractHardcodedC3P0Defaults();
-		flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
-		protoMain = C3P0ConfigUtils.configFromFlatDefaults( flatDefaults );
+                _CFG_FINDER = new MConfigOnlyC3P0ConfigFinder();
 	    }
+
+        try { protoMain = _CFG_FINDER.findConfig(); }
+        catch (Exception e)
+        {
+            if (_CFG_FINDER.getClass().equals(DefaultC3P0ConfigFinder.class))
+            {
+                if (logger.isLoggable(MLevel.SEVERE))
+                    logger.log(MLevel.SEVERE,
+                               "c3p0's default configuration finder threw an unexpected Exception while trying to load XML configuration. " +
+                               "Any configuration it would have found -- c3p0-config.xml in particular -- IS BEING IGNORED. " +
+                               "c3p0's configuration will be constructed only from its properties/hocon-based configuration.", e);
+            }
+            else
+            {
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING,
+                               "C3P0ConfigFinder '" + _CFG_FINDER.getClass().getName() + "' threw an Exception while trying to locate configuration. " +
+                               "c3p0's configuration will be constructed only from its properties/hocon-based configuration.", e);
+            }
+
+            // this is the most likely to succeed source of config we have.
+            // if it fails with some unchecked Exception, we give up
+            protoMain = new MConfigOnlyC3P0ConfigFinder().findConfig();
+        }
 
 	HashMap propStyleConfigNamesToNamedScopes = findPropStyleNamedScopes();
 	HashMap cfgFoundConfigNamesToNamedScopes = protoMain.configNamesToNamedScopes;

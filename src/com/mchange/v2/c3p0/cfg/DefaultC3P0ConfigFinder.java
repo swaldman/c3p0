@@ -125,7 +125,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
     private void mbOverrideWarning( String srcType, String srcName )
     {
 	if ( warn_of_xml_overrides && logger.isLoggable( MLevel.WARNING ) )
-	    logger.log( MLevel.WARNING, "Configuation defined in " + srcType + "'" + srcName + "' overrides all other c3p0 config." );
+	    logger.log( MLevel.WARNING, "Configuration defined in " + srcType + "'" + srcName + "' overrides all other c3p0 config." );
     }
 
     public static boolean findUsePermissiveParser(PropertiesConfig pcfg, boolean warn)
