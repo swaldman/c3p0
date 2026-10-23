@@ -1,3 +1,16 @@
+        -- Take greater care that items that might contain passwords or
+           credentials are masked before appearing in logs. LOOSEN restriction
+           on usernames appearing in logs. They can be helpful for debugging
+           (particularly in deployments where the user-overrides feature is used)
+           and are not properly secrets.
+        -- The never-really-documented feature of permitting user-specified
+           "C3P0ConfigFinder" implementations now permits installation only
+           once, when c3p0's configuration is first initialized. Previously,
+           one could refresh config and load a new C3P0ConfigFinder, which
+           opens more doors to mischief than it solves likely problems. (In
+           the unlikely case you actually had a reason to update to a new
+           C3P0ConfigFinder after startup with a different C3P0ConfigFinder,
+           please let us know about it.)
         -- The never-really-documented feature of permitting user-specified
            "C3P0ConfigFinder" implementations is deprecated and warns on use.
            There's now a lot of flexibility to augment c3p0's config (albeit
@@ -159,18 +172,20 @@
            conflicting lists, and we emit a lot of warnings.
         -- Standardize classname whitelists, allow specification across multiple subkeys
            of a base whitelist key (so different libraries can whitelist what they need
-           without conflicting). Old whitelist keys com.mchange.v2.naming.objectFactoryWhitelist
-           and com.mchange.v2.naming.referenceableJavaBeanClassWhitelist still work, but
-           are deprecated and warned in favor of new-style com.mchange.v2.naming.objectFactory.whitelist
-           and com.mchange.v2.naming.referenceableJavaBeanClass.whitelist, which also support
-           subkeys. Whitelists are the union of the <prefix>.whitelist key and its subkeys,
+           without conflicting). Whitelists are the union of the <prefix>.whitelist key and its subkeys,
            though if any one key or subkey is specified in both system properties and other
            configuration, only the intersection of the settings comes through. Each whitelist
            has a <prefix>.overrideWhitelist key that, if set, supersedes the key + subkeys union
            with just the single specified list. A whitelist that contains only the single entry "*"
            means disable enforcement, accept anything. A whitelist entry "[]" anywhere in a
-           whitelist, its subkeys, its deprecated prior key, or its override key renders the whitelist
-           DENY ALL. (mchange-commons-java)
+           whitelist, its subkeys, its override key, or a deprecated prior key renders the whitelist
+           DENY ALL. Old whitelist keys com.mchange.v2.naming.objectFactoryWhitelist
+           and com.mchange.v2.naming.referenceableJavaBeanClassWhitelist still work, but
+           are deprecated and warned in favor of new-style com.mchange.v2.naming.objectFactory.whitelist
+           and com.mchange.v2.naming.referenceableJavaBeanClass.whitelist, which also support
+           subkeys. If deprecated keys and contemporary config are both present, the computed whitelist
+           is the union of those two sources (which will probably be broken and hopefully
+           encourage moving towards contemporary config). (mchange-commons-java)
         -- Gate behind a whitelist by-name-instantiation of fully-qualified class names
            that may have come from dereferenced or deserialized objects. For now,
            instantiation of non-white-listed class names succeeds, but with a warning.

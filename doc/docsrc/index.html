@@ -126,6 +126,7 @@
          border-bottom-width: 2;
          border-bottom-color: black;
          border-bottom-style: solid;
+         overflow-x: scroll;
       /*
          doesn't show under Firefox
          border-top: 2 solid black;
@@ -369,8 +370,8 @@
         background on the security issues.
       </p>
       <p>
-        Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about the JNDI
-        injection issue recent releases of c3p0 have strived to eliminate.
+        Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about the
+        JNDI-injection and deserialization-gadget issues that recent releases of c3p0 have strived to eliminate.
       </p>
       <hr>
       <p>
@@ -430,7 +431,11 @@
 	  <li><a href="#other_ds_configuration">Other DataSource Configuration</a></li>
 	  <li><a href="#jmx_configuration_and_management">Configuring and Managing c3p0 via JMX</a></li>
 	  <li><a href="#configuring_logging">Configuring Logging</a></li>
-	  <li><a href="#configuring_security">Configuring Security</a></li>
+	  <li><a href="#configuring_security">Configuring Security</a>
+	    <ul class="box">
+	      <li><a href="#inspecting_security_configuration">Box: Inspecting security configuration </a></li>
+	    </ul>
+          </li>
 	  <li><a href="#named_configurations">Named configurations</a></li>
 	  <li><a href="#per-user_configurations">Per-user configurations</a></li>
 	  <li><a href="#user_extensions_to_configurations">User extensions to configuration</a></li>
@@ -442,7 +447,7 @@
       <li><a href="#known_shortcomings">Known shortcomings</a></li>
       <li><a href="#feedback_and_support">Feedback and support</a></li>
       <li><a href="#configuration_properties">Appendix A: Configuration Properties</a></li>
-      <li><a href="#configuration_files">Appendix B: Configuation Files, etc.</a>
+      <li><a href="#configuration_files">Appendix B: Configuration Files, etc.</a>
 	<ol class="level2">
 	  <li><a href="#c3p0_properties">Overriding c3p0 defaults with a c3p0.properties file</a></li>
 	  <li><a href="#c3p0_conf">Overriding c3p0 defaults with "HOCON" (typesafe-config) configuration files</a></li>
@@ -2039,6 +2044,12 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         overwrite at any time via <tt>System.setProperty(...)</tt> or <tt>System.setProperties(...)</tt>. Deployments,
         if they wish, can ensure the snapshot is taken and sealed as early as they wish in their application's lifecycle
         by explicitly calling <tt>com.mchange.v2.cfg.SealedSystemProperties.seal()</tt>.
+        The net effect is that System properties set on JVM initialization via <tt>-Dkey=value</tt> or set immediately
+        upon application start and not modified before <tt>com.mchange.v2.cfg.SealedSystemProperties.seal()</tt> is called
+        (explicitly or more usually implicitly) become immutable in c3p0's configuration, even if an application later tries to refresh the config.
+        (This is only circumventable if, very unusually, you install your own custom, undocumented, deprecated <tt>C3P0ConfigFinder</tt> at
+        application start-up that does not honor sealed system properties). Note, however, that properties are only "sealed" if they are actually
+        present. Properties for which <tt>System.getProperty(...)</tt> yields null are considered unset, and so are not sealed.
       </p>
       <p>
         The following properties can be configured as System properties, in <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>, or
@@ -2207,7 +2218,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         As with all of the security properties, whitelist entries, whether specified on the base key or a subkey, can be defined in System
         properties or in other configuration, such as a <tt>c3p0.properties</tt> file. Because c3p0 <a href="#configuration_precedence">includes System properties</a>
         in its configuration, System properties and other configuration of these properties nearly always agree. As of c3p0-0.15.0, it is no
-        longer even possible for them to diverge, unless you resort to providing a custom C3P0ConfigFinder (via an undocumented API).
+        longer even possible for them to diverge, unless you resort to providing a custom C3P0ConfigFinder (via an undocumented, tentatively deprecated API).
         c3p0 places "sealed" System property values at a higher precedence in its own config than
         "live" System properties or user-specified sources, so even a config refresh will not displace sealed properties.
       </p>
@@ -2393,6 +2404,34 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
 	  </div>
 	</dd>
       </dl>
+      <div class="boxed">
+	<a name="inspecting_security_configuration"></a>
+	<h4>Inspecting security configuration</h4>
+	<p>
+          On initialization, c3p0 will warn about some less-stringent security configuration.
+          But it can be useful to see a summary of that configuration, and particularly to see how
+          the whitelists, which can be constituted from multiple keys and subkeys, have ended up.
+	</p>
+        <p>
+          To see a dump of security configuration in the logs, just set the logger <tt>com.mchange.v2.c3p0.C3P0Registry</tt>
+          to <tt>DEBUG</tt> or <tt>FINE</tt>. The result will be something like this:
+        </p>
+        <div class="example">
+2026-10-22@22:08:10 [FINE] [com.mchange.v2.c3p0.C3P0Registry] Selected DataSource-independent config dump.
+Security status: 
+    Accept deserialized InitialContext environment? false
+    Allow indirect Java-serialization via reference? false
+    Enforce by-name instantiation whitelist? false
+    Generate Java serializedObjects as BinaryRefAddrs? false
+    Support (very dangerously) remote factoryClassLocation when resolving references? false
+    Deployment-specified XML non-default location: null
+    Permissive, potentially dangerous, parsing of XML config? false
+    ByNameInstantiation whitelist: [com.mchange.v2.c3p0.impl.DefaultTaskRunnerFactory, com.mchange.v2.c3p0.test.junit.DriverClassResolutionFailuresJUnitTestCase$NoNoArgConstructorDriver, com.mchange.v2.c3p0.test.junit.DriverClassResolutionFailuresJUnitTestCase$ExplodingConstructorDriver, com.mchange.v2.c3p0.test.junit.MockDriver, no.such.driver.DoesNotExist, com.mchange.v2.c3p0.test.AlwaysFailConnectionTester, com.mchange.v2.c3p0.test.ThreadPerTaskRunnerFactory, com.mchange.v2.c3p0.impl.DefaultConnectionTester, com.mchange.v2.c3p0.example.InitSqlConnectionCustomizer, com.mchange.v2.c3p0.test.fakedriver.FakeDriver, com.mchange.v2.c3p0.test.junit.DriverClassResolutionFailuresJUnitTestCase$NotADriverAtAll, com.mchange.v2.c3p0.test.junit.DriverClassResolutionFailuresJUnitTestCase$RegisteredMarkerDriver, com.mchange.v2.c3p0.test.junit.DriverClassResolutionFailuresJUnitTestCase$UnregisteredMarkerDriver, com.mchange.v2.c3p0.test.Percent20FailConnectionTester, com.mchange.v2.c3p0.example.IsValidOnlyConnectionTester30, com.mchange.v2.c3p0.FixedThreadPoolExecutorTaskRunnerFactory, com.mchange.v2.c3p0.test.LogCreationTaskRunnerFactory, org.postgresql.Driver] (computed from keys: [com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-internal, com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-test, com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-test-drivers])
+    ObjectFactory whitelist: [com.mchange.v2.c3p0.impl.C3P0JavaBeanObjectFactory] (computed from keys: [com.mchange.v2.naming.objectFactory.whitelist.c3p0-internal])
+    ReferenceableJavaBeanClass whitelist: [com.mchange.v2.c3p0.DriverManagerDataSource, com.mchange.v2.c3p0.test.AlwaysFailDataSource, com.mchange.v2.c3p0.JndiRefConnectionPoolDataSource, com.mchange.v2.c3p0.JndiRefForwardingDataSource, com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource, com.mchange.v2.c3p0.test.FreezableDriverManagerDataSource, com.mchange.v2.c3p0.PoolBackedDataSource, com.mchange.v2.c3p0.debug.ConstructionLoggingComboPooledDataSource, com.mchange.v2.c3p0.WrapperConnectionPoolDataSource, com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource, com.mchange.v2.c3p0.ComboPooledDataSource] (computed from keys: [com.mchange.v2.naming.referenceableJavaBeanClass.whitelist.c3p0-test, com.mchange.v2.naming.referenceableJavaBeanClass.whitelist.c3p0-internal])
+    SecurelyStringifiable whitelist: [com.mchange.v2.c3p0.impl.AuthMaskingProperties, com.mchange.v2.c3p0.DriverManagerDataSource, com.mchange.v2.c3p0.JndiRefForwardingDataSource, com.mchange.v2.c3p0.PoolBackedDataSource, com.mchange.v2.c3p0.WrapperConnectionPoolDataSource] (computed from keys: [com.mchange.v2.naming.securelyStringifiable.whitelist.c3p0-internal]) 
+        </div>
+      </div>
       <h3>
 	<a name="named_configurations">Named configurations</a>
 	<span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
@@ -4082,7 +4121,7 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	  <ol class="precedence">
 	    <li>Configuration values programmatically set.</li>
 	    <li>Configuration values set in "sealed" system properties (read on library first-use, when c3p0's configuration was initialized).</li>
-	    <li>Configuration values set in system properties.</li>
+	    <li>Configuration values set in system properties (when the config was last read or refreshed).</li>
 	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
 	    <li>Preempts <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
@@ -4123,7 +4162,7 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
 	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in properties format, with precedence there determined by the ordering of <i>properties-format</i> sources below)</li>
 	    <li>Configuration values set in "sealed" system properties (read on library first-use, when c3p0's configuration was initialized).</li>
-	    <li>Configuration values set in system properties.</li>
+	    <li>Configuration values set in system properties (when the config was last read or refreshed).</li>
 	    <li>Non-user-specific values taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
 	    <li>Preempts <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
