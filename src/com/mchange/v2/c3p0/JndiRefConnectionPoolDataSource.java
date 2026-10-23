@@ -10,6 +10,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.logging.Logger;
 import javax.naming.NamingException;
 import javax.naming.Reference;
@@ -28,7 +29,7 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 {
     final static MLogger logger = MLog.getLogger( JndiRefConnectionPoolDataSource.class );
 
-    final static Collection IGNORE_PROPS = Arrays.asList( new String[] {"reference", "pooledConnection"} );
+    final static Collection IGNORE_PROPS = Arrays.asList( new String[] {"reference", "pooledConnection", "parentLogger", "logWriter","loginTimeout", "userOverridesAsString" } );
 
     JndiRefForwardingDataSource     jrfds;
     WrapperConnectionPoolDataSource wcpds;
@@ -389,13 +390,26 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
 	throws SQLException
     { return wcpds.getLoginTimeout(); }
 
+    private final static BeansUtils.ValueTransformer vtmr =
+        new BeansUtils.ValueTransformer()
+        {
+            @Override
+            public Object transformValue(String key, Object value)
+            {
+                if ("jndiEnv".equals(key))
+                    return C3P0ImplUtils.maskedMap( (Map) value );
+                else
+                    return value;
+            }
+        };
+
     @Override
     public String toString()
     {
 	StringBuffer sb = new StringBuffer(512);
 	sb.append( super.toString() );
 	sb.append(" [");
-	try { BeansUtils.appendPropNamesAndValues( sb, this, IGNORE_PROPS ); }
+	try { BeansUtils.appendPropNamesAndValues( sb, this, IGNORE_PROPS, vtmr ); }
 	catch (Exception e)
 	    {
 		//e.printStackTrace();
@@ -411,5 +425,5 @@ public final class JndiRefConnectionPoolDataSource extends IdentityTokenResolvab
     // JDK7 add-on
     @Override
     public Logger getParentLogger() throws SQLFeatureNotSupportedException
-    { throw new SQLFeatureNotSupportedException("javax.sql.DataSource.getParentLogger() is not currently supported by " + this.getClass().getName());}
+    { return C3P0ImplUtils.PARENT_LOGGER; }
 }

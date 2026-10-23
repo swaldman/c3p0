@@ -93,9 +93,11 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 	rebind();
     }
 
+    /*
     @Override
     public String getJdbcUrl()
     { return combods.getJdbcUrl(); }
+    */
 
     @Override
     public void setJdbcUrl( String jdbcUrl ) throws NamingException
@@ -116,9 +118,11 @@ public class C3P0PooledDataSource implements C3P0PooledDataSourceMBean
 	rebind();
     }
 
+    /*
     @Override
     public String getPassword()
     { return combods.getPassword(); }
+    */
 
     @Override
     public void setPassword( String password ) throws NamingException

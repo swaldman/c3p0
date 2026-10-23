@@ -12,7 +12,9 @@ import com.mchange.v2.c3p0.impl.*;
 import javax.sql.DataSource;
 import com.mchange.v2.beans.BeansUtils;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.util.MaskUtils;
 import com.mchange.v2.lang.ObjectUtils;
+import com.mchange.v2.util.PropertiesMasker;
 
 /**
  * <p>For the meaning of most of these properties, please see c3p0's top-level documentation!</p>
@@ -72,14 +74,12 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
                     "threadPoolNumTasksPending",
                     "threadPoolStackTraces",
                     "threadPoolStatus",
-                    "overrideDefaultUser",
                     "overrideDefaultPassword",
                     "password",
                     "reference",
                     "upTimeMillisDefaultUser",
-                    "user",
                     "userOverridesAsString",
-                    "allUsers",
+                    "allUsers", // we need to omit not for security reasons, but so toString() doesn't initialize the pool manager
                     "connectionPoolDataSource",
 		    "propertyChangeListeners",
 		    "vetoableChangeListeners"
@@ -754,6 +754,23 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	}
     }
 
+    private final static BeansUtils.ValueTransformer vtmr =
+        new BeansUtils.ValueTransformer()
+        {
+            @Override
+            public Object transformValue(String key, Object value)
+            {
+                if ("jdbcUrl".equals(key))
+                    return C3P0ImplUtils.maskedUrl( (String) value );
+                else if ("extensions".equals(key))
+                    return C3P0ImplUtils.maskedMap( (Map) value );
+                else if ("userOverrides".equals(key))
+                    return C3P0ImplUtils.maskedUserOverrides( (Map) value );
+                else
+                    return value;
+            }
+        };
+
     @Override
     public String toString() { return toString( false ); }
 
@@ -763,11 +780,11 @@ public abstract class AbstractComboPooledDataSource extends AbstractPoolBackedDa
 	if ( show_config )
 	{
 	    //System.err.println("ComboPooledDataSource.toString()");
-	    
+
 	    StringBuffer sb = new StringBuffer(512);
 	    sb.append( this.getClass().getName() );
 	    sb.append(" [ ");
-	    try { BeansUtils.appendPropNamesAndValues(sb, this, TO_STRING_IGNORE_PROPS); }
+	    try { BeansUtils.appendPropNamesAndValues(sb, this, TO_STRING_IGNORE_PROPS, vtmr); }
 	    catch (Exception e)
 	    { 
 		sb.append( e.toString() ); 

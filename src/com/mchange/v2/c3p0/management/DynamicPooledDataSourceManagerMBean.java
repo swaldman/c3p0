@@ -55,7 +55,6 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         hpTmp.add("nestedDataSource");
         hpTmp.add("reference");
         hpTmp.add("connection");
-        hpTmp.add("password");
         hpTmp.add("pooledConnection");
         hpTmp.add("properties");
         hpTmp.add("logWriter");
@@ -64,8 +63,32 @@ public class DynamicPooledDataSourceManagerMBean implements DynamicMBean
         hpTmp.add("lastCheckinFailureDefaultUser");
         hpTmp.add("lastIdleTestFailureDefaultUser");
         hpTmp.add("lastConnectionTestFailureDefaultUser");
+
+        // the following are hidden for security, but there's a real
+        // trade-off between letting administrators have "live" inspectability
+        // and ability to change these properties vs perhaps overcautious
+        // concern about parties typically trusted and close to an application,
+        // if they are accessing its mbeans.
+        //
+        // for now we err on the side of caution (except with respect to user extensions,
+        // which could contain sensitive data or not, and for now we err on the side of
+        // administrator accessibility).
+        //
+        // however, if we get reports that deployers find these restrictions annoying,
+        // a good case can be made that mbeans are fundamentally a trusted domain.
+        //
+        // of these, before c3p0-0.15.0, we hid only password
+        // and this is not anything we received complaints about.
+        // we're being proactive. (too proactive?)
+
+        hpTmp.add("jdbcUrl");
+        hpTmp.add("password");
+        hpTmp.add("overrideDefaultPassword");
+        hpTmp.add("userOverridesAsString");
+        hpTmp.add("userOverrides");
+
         HIDE_PROPS = Collections.unmodifiableSet( hpTmp );
-        
+
 	Class[] userPassArgs = new Class[] { String.class, String.class };
         Set hoTmp = new HashSet();
         try

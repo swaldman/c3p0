@@ -10,6 +10,16 @@ but there are a lot of changes and improvements under the cover.
 Security-related updates
 ------------------------
 
+* In general we've tightened security. But there is one intentional loosening:
+  c3p0 used to mask usernames as well as passwords in log messages. We no longer
+  do. Usernames can be helpful at debugging issues, particularly for deployments
+  that make use of c3p0's userOverrides feature.
+
+* Other than usernames, we've dramatically expanded and tightened where we mask
+  potentially sensitive information in logs, and removed some access to potentially
+  sensitive information from mbeans. For example, when we log JDBC urls, we scan for
+  query string elements like 'password=my-deepest-secret' and mask them to 'password=******'
+
 * JndiRefForwardingDataSource, an internal utility of the public JndiRefConnectionPoolDataSource,
   permitted deserialization / dereferencing of JNDI InitialContext environment
   properties which would be used for JNDI lookups without filtering or gating.
@@ -309,3 +319,19 @@ Here are the incompatible changes:
     If you were relying on altering c3p0 config by changing System properties which
     had been initially set on JVM startup by modifying those properties at runtime
     and refreshing config, that will no longer work.
+
+(9) We've withdrawn accessors to several properties from exposure by c3p0's mbean implementations.
+    jdbcUrl, overrideDefaultPassword, password, userOverridesAsString, userOverrides
+    are no longer exposed, if implementations exposed them previously.
+
+    This is arguably a bad call -- mbean clients are trusted users, and the debugging
+    and administration value of these properties may be higher than the cost of
+    potentially leaking sensitive information. (jdbcUrl is sensitive because credentials
+    like password are sometimes included as query strings.) Please provide feedback
+    if you think these properties should be restored. It's a judgment call!
+
+    If you have code that statically links to the mbean implementations, these represent
+    incompatible change as getters that used to be present no longer are.
+
+    In the dynamic mbean implementation (which is not typically used to configure new
+    beans), setters are removed as well.

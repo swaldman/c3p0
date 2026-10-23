@@ -21,6 +21,12 @@ public final class DbAuth implements Serializable
     public String getPassword()
     { return password; }
 
+    /*
+    // as of c3p0-0.15.0, we're intentionally not masking
+    // users, letting them log for informational purposes
+    // while continuing to mask passwords and other credentials
+    // as much as possible
+
     public String getMaskedUserString()
     { return getMaskedUserString(2, 8); }
 
@@ -41,6 +47,7 @@ public final class DbAuth implements Serializable
 	    return sb.toString();
 	 }
     }
+    */
 
     @Override
     public boolean equals(Object o)
@@ -91,7 +98,7 @@ public final class DbAuth implements Serializable
 	    }
     }
 }
-								
+
 
 
 

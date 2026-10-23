@@ -103,8 +103,13 @@ public class BeangenDataSourceGenerator
 
 		gen.addExtension( new C3P0ImplUtilsParentLoggerGeneratorExtension() );
 
+                Map<String,String> maskers = new HashMap<String,String>();
+                maskers.put( "jdbcUrl",    "com.mchange.v2.c3p0.impl.C3P0ImplUtils.maskedUrl( %s )" );
+                maskers.put( "extensions", "com.mchange.v2.c3p0.impl.C3P0ImplUtils.maskedMap( %s )" );
+
 		PropsToStringGeneratorExtension tsge = new PropsToStringGeneratorExtension();
-		tsge.setExcludePropertyNames( Arrays.asList( new String[] {"userOverridesAsString","overrideDefaultUser","overrideDefaultPassword"} ) );
+                tsge.setValueExpressions( maskers );
+		tsge.setExcludePropertyNames( Arrays.asList( new String[] {"userOverridesAsString","overrideDefaultPassword"} ) );
 		gen.addExtension( tsge );
 
 		PropertyReferenceableExtension prex = new PropertyReferenceableExtension();

@@ -32,6 +32,8 @@ import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.ser.SerializableUtils;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.uid.UidUtils;
+import com.mchange.v2.util.MaskUtils;
+import com.mchange.v2.util.PropertiesMasker;
 
 public final class C3P0ImplUtils
 {
@@ -463,6 +465,46 @@ public final class C3P0ImplUtils
 
     //public static NamingException jndiCantResolveNonlocalNamingException( Object name )
     //{ return new NamingException("Could not find DataSource by JNDI name; '" + SecurityConfigKey.PERMIT_NONLOCAL_JNDI_NAMES + "' is false and we are unsure '" + name + "' is local."); }
+
+    public static Properties maskedMap(Map map)
+    {
+        if (map != null)
+        {
+            Properties props = new Properties();
+            for (Object k : map.keySet())
+                props.setProperty(k.toString(), String.valueOf(map.get(k)));
+            return PropertiesMasker.DEFAULT.masked(props);
+        }
+        else
+            return null;
+    }
+
+    public static String maskedUrl(String unmasked)
+    {
+        String masked = unmasked == null ? null : MaskUtils.maskUrlCredentials(unmasked);
+        if (masked == null) // previously returned if the value didn't seem to look like a URL, just in case
+            return unmasked;
+        else
+            return masked;
+    }
+
+    public static Map maskedUserOverrides(Map userOverrides)
+    {
+        Map out;
+        if (userOverrides == null)
+            out = null;
+        else
+        {
+            out = new HashMap();
+            for( Object user : userOverrides.keySet() )
+            {
+                Object maskable = userOverrides.get(user);
+                assert maskable instanceof Map : "User overrides should always be a Map of String keys to Map of String key/vals. Eventually we'll genericify our types so we don't need this kind of doublecheck.";
+                out.put( user, C3P0ImplUtils.maskedMap( (Map) maskable ) );
+            }
+        }
+        return out;
+    }
 
     private C3P0ImplUtils()
     {}

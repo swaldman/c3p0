@@ -15,12 +15,14 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 import com.mchange.v2.cfg.PropertiesConfig;
 import com.mchange.v2.sql.SqlUtils;
+import com.mchange.v2.lang.ObjectUtils;
 import com.mchange.v2.log.MLevel;
 import com.mchange.v2.log.MLog;
 import com.mchange.v2.log.MLogger;
 import com.mchange.v2.reflect.ByNameInstantiationUtils;
 import com.mchange.v2.reflect.InstantiationNotPermittedException;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
 import com.mchange.v2.c3p0.impl.DriverManagerDataSourceBase;
 
 public final class DriverManagerDataSource extends DriverManagerDataSourceBase implements DataSource
@@ -160,8 +162,30 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
         Connection out = driver().connect( jdbcUrl, properties ); 
         if (out == null)
-            throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
-                            "driver [" + driver() + "].");
+            throw badJdbcUrl(jdbcUrl);
+        else
+            return out;
+    }
+
+    private SQLException badJdbcUrl(String jdbcUrl)
+    {
+        String masked = C3P0ImplUtils.maskedUrl(jdbcUrl);
+        String rawExpr = "jdbcUrl '" + masked + "'";
+        String expr = ObjectUtils.eqOrBothNull(masked, jdbcUrl) ? rawExpr : "(masked) " + rawExpr;
+        Throwable suppressed = null;
+        String driverSpecifier;
+        try { driverSpecifier = "[" + driver().toString() + "]"; }
+        catch (SQLException e)
+        {
+            if (logger.isLoggable(MLevel.WARNING))
+                logger.log(MLevel.WARNING, "An Exception occured while trying to resolve the driver.", e);
+            suppressed = e;
+            driverSpecifier = "(unresolvable JDBC driver!)";
+        }
+
+        SQLException out = new SQLException("Apparently, " + expr + " is not valid for the underlying driver " + driverSpecifier + ".");
+        if (suppressed != null)
+            out.addSuppressed(suppressed);
         return out;
     }
 
@@ -173,11 +197,11 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     { 
         ensureIfPossibleDriverClassLoaded();
 
-        Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );  
+        Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );
         if (out == null)
-            throw new SQLException("Apparently, jdbc URL '" + jdbcUrl + "' is not valid for the underlying " +
-                            "driver [" + driver() + "].");
-        return out;
+            throw badJdbcUrl(jdbcUrl);
+        else
+            return out;
     }
 
     @Override
@@ -300,7 +324,12 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
                         {
                             jdbcUrlBasedLookupException = e;
                             if (logger.isLoggable(MLevel.WARNING))
-                                logger.log(MLevel.WARNING, "Failed to look up JDBC driver via JDBC URL: " + jdbcUrl, e);
+                            {
+                                String masked = C3P0ImplUtils.maskedUrl(jdbcUrl);
+                                String rawExpr = "JDBC URL: " + masked;
+                                String expr = ObjectUtils.eqOrBothNull(jdbcUrl,masked) ? rawExpr : "(masked) " + rawExpr;
+                                logger.log(MLevel.WARNING, "Failed to look up JDBC driver via " + expr, e);
+                            }
                         }
 
 			if (driver == null)

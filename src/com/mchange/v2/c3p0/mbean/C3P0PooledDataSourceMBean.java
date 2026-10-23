@@ -25,7 +25,9 @@ public interface C3P0PooledDataSourceMBean
 
     public void setDriverClass( String driverClass ) throws PropertyVetoException, NamingException;
 
+    /*
     public String getJdbcUrl();
+    */
 
     public void setJdbcUrl( String jdbcUrl ) throws NamingException;
 
@@ -34,7 +36,9 @@ public interface C3P0PooledDataSourceMBean
 
     public void setUser( String user ) throws NamingException;
 
+    /*
     public String getPassword();
+    */
 
     public void setPassword( String password ) throws NamingException;
 

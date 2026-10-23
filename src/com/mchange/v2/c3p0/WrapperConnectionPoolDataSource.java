@@ -46,8 +46,10 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 	    { this.setUserOverrides( C3P0ImplUtils.parseUserOverridesAsString( this.getUserOverridesAsString() ) ); } // an unmodifiable map
 	catch (Exception e)
 	    {
-		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. " + this.getUserOverridesAsString(), e );
+                if ( logger.isLoggable( MLevel.FINEST ) )
+		    logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides: " + this.getUserOverridesAsString(), e );
+                else if ( logger.isLoggable( MLevel.WARNING ) )
+		    logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. Stringified userOverrides may contain sensitive data. Set this logger's level to FINEST/TRACE to dump.", e );
 	    }
     }
 
@@ -71,10 +73,12 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
 			{ setUserOverrides( C3P0ImplUtils.parseUserOverridesAsString( (String) value ) ); } // an unmodifiable map
 		    catch (Exception e)
 			{
-			    if ( logger.isLoggable( MLevel.WARNING ) )
-				logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. " + value, e );
+			    if ( logger.isLoggable( MLevel.FINEST ) )
+				logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides: " + value, e );
+			    else if ( logger.isLoggable( MLevel.WARNING ) )
+				logger.log( MLevel.WARNING, "Failed to parse stringified userOverrides. Stringified userOverrides may contain sensitive data. Set this logger's level to FINEST/TRACE to dump.", e );
 
-			    throw new PropertyVetoException("Failed to parse stringified userOverrides. " + value, evt);
+			    throw new PropertyVetoException("Failed to parse stringified userOverrides. (Log com.mchange.v2.c3p0.WrapperConnectionPoolDataSource at FINEST/TRACE to see security-sensitive unparsable values.)", evt);
 			}
 		}
 		else if ("contextClassLoaderSource".equals( propName ))
@@ -339,7 +343,7 @@ public final class WrapperConnectionPoolDataSource extends WrapperConnectionPool
     protected synchronized String extraToStringInfo()
     {
 	if (userOverrides != null)
-	    return "; userOverrides: " + userOverrides.toString();
+	    return "; userOverrides: " + String.valueOf( C3P0ImplUtils.maskedUserOverrides(userOverrides) );
 	else
 	    return null;
     }

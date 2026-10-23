@@ -7,9 +7,24 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 import com.mchange.v2.cfg.PropertiesConfig;
+import com.mchange.v2.util.PropertiesMasker;
+//import com.mchange.v2.util.MaskUtils;
 
 public class AuthMaskingProperties extends Properties
 {
+    /*
+    // we're intentionally no longer masking user
+    private final static PropertiesMasker MASKER = new PropertiesMasker()
+    {
+        @Override
+        public boolean shouldMaskValue(String key)
+        {
+            if ("user".equalsIgnoreCase(key)) return true;
+            else return super.shouldMaskValue(key);
+        }
+    };
+    */
+
     public static String securelyStringify( AuthMaskingProperties amp ) throws IOException
     {
         try (StringWriter sw = new StringWriter())
@@ -46,24 +61,7 @@ public class AuthMaskingProperties extends Properties
 	return out;
     }
 
-    private String normalToString()
-    { return super.toString(); }
-
     @Override
     public String toString()
-    {
-	boolean hasUser = (this.get("user") != null);
-	boolean hasPassword = (this.get("password") != null);
-	if ( hasUser || hasPassword )
-	    {
-		AuthMaskingProperties clone = (AuthMaskingProperties) this.clone();
-		if (hasUser)
-		    clone.put("user", "******");
-		if (hasPassword)
-		    clone.put("password", "******");
-		return clone.normalToString();
-	    }
-	else
-	    return this.normalToString();
-    }
+    { return PropertiesMasker.DEFAULT.masked( this ).toString(); }
 }

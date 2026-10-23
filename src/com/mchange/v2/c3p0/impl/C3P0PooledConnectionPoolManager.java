@@ -414,7 +414,7 @@ public final class C3P0PooledConnectionPoolManager
                 if ( auth.equals(C3P0ImplUtils.NULL_AUTH) )
                     logger.log( MLevel.FINE, "Created new pool for NULL_AUTH." );
                 else
-                    logger.log( MLevel.FINE, "Created new pool for auth, username (masked): '" + auth.getMaskedUserString() + "'." );
+                    logger.log( MLevel.FINE, "Created new pool for auth, username: '" + auth.getUser() + "'." );
             }
         }
         return out;
