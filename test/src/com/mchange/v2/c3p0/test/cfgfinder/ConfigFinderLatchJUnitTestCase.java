@@ -2,18 +2,13 @@ package com.mchange.v2.c3p0.test.cfgfinder;
 
 import junit.framework.TestCase;
 
-import java.io.BufferedReader;
+import com.mchange.v2.c3p0.test.junit.ChildJvmProbeRunner;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  *  A C3P0ConfigFinder sees c3p0's whole configuration and may return anything it likes in place
@@ -43,11 +38,6 @@ import java.util.concurrent.TimeUnit;
  */
 public final class ConfigFinderLatchJUnitTestCase extends TestCase
 {
-    private final static String PROBE_CLASS = ConfigFinderLatchProbe.class.getName();
-
-    /** Generous: a child JVM has to initialize c3p0's config from scratch. */
-    private final static int TIMEOUT_SECONDS = 120;
-
     // ------------------------------------------------------------- installation
 
     /** The supported case: named in configuration before anything has loaded, and honored. */
@@ -196,58 +186,8 @@ public final class ConfigFinderLatchJUnitTestCase extends TestCase
 
     // ------------------------------------------------------------------ forking
 
-    /**
-     *  Runs the probe in a child JVM and returns its answers. The child inherits this JVM's
-     *  classpath but none of its system properties, which is the point: each case controls
-     *  exactly the configuration it names.
-     */
     private static Map<String,String> probe( String query, String... jvmArgs ) throws Exception
-    {
-        List<String> command = new ArrayList<String>();
-        command.add( new File( new File( System.getProperty( "java.home" ), "bin" ), "java" ).getAbsolutePath() );
-        command.add( "-cp" );
-        command.add( System.getProperty( "java.class.path" ) );
-        // Jdk14MLog so the probe's own java.util.logging Handler can see what c3p0 logs.
-        command.add( "-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.jdk14logging.Jdk14MLog" );
-        for ( int i = 0; i < jvmArgs.length; ++i )
-            command.add( jvmArgs[i] );
-        command.add( PROBE_CLASS );
-        command.add( query );
-
-        ProcessBuilder pb = new ProcessBuilder( command );
-        pb.redirectErrorStream( true );   // keep the child's diagnostics for failure messages
-        Process p = pb.start();
-
-        StringBuilder all = new StringBuilder();
-        Map<String,String> answers = new HashMap<String,String>();
-        BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream(), Charset.forName( "UTF-8" ) ) );
-        try
-        {
-            for ( String line = br.readLine(); line != null; line = br.readLine() )
-            {
-                all.append( line ).append( '\n' );
-                if ( line.startsWith( ConfigFinderLatchProbe.ANSWER_PFX ) )
-                {
-                    String kv = line.substring( ConfigFinderLatchProbe.ANSWER_PFX.length() );
-                    int eq = kv.indexOf( '=' );
-                    if ( eq >= 0 ) answers.put( kv.substring( 0, eq ), kv.substring( eq + 1 ) );
-                }
-            }
-        }
-        finally
-        { br.close(); }
-
-        if ( ! p.waitFor( TIMEOUT_SECONDS, TimeUnit.SECONDS ) )
-        {
-            p.destroyForcibly();
-            fail( "probe '" + query + "' did not finish within " + TIMEOUT_SECONDS + "s. Output:\n" + all );
-        }
-
-        assertNull( "probe '" + query + "' threw. Output:\n" + all, answers.get( "threw" ) );
-        assertFalse( "probe '" + query + "' answered nothing. Output:\n" + all, answers.isEmpty() );
-
-        return answers;
-    }
+    { return ChildJvmProbeRunner.run( ConfigFinderLatchProbe.class, query, jvmArgs ); }
 
     private static void deleteQuietly( Path p )
     { try { Files.deleteIfExists( p ); } catch ( IOException e ) { /* best effort */ } }

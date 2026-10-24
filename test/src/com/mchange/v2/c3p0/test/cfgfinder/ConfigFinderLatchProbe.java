@@ -1,6 +1,7 @@
 package com.mchange.v2.c3p0.test.cfgfinder;
 
 import com.mchange.v2.c3p0.cfg.C3P0Config;
+import com.mchange.v2.c3p0.test.junit.ChildJvmProbeRunner;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,9 +31,6 @@ import java.util.logging.Logger;
  */
 public class ConfigFinderLatchProbe
 {
-    /** Prefix on every answer, so the parent can pick it out of the log noise. */
-    public final static String ANSWER_PFX = "@@PROBE@@ ";
-
     public final static String FINDER_KEY  = "com.mchange.v2.c3p0.cfg.finder";
     public final static String XML_CFG_KEY = "com.mchange.v2.c3p0.cfg.xml";
 
@@ -192,13 +190,10 @@ public class ConfigFinderLatchProbe
     { C3P0Config.getMultiPropertiesConfig(); }
 
     private static void answer( String key, int value )
-    { answer( key, String.valueOf( value ) ); }
+    { ChildJvmProbeRunner.answer( key, value ); }
 
     private static void answer( String key, String value )
-    {
-        System.out.println( ANSWER_PFX + key + "=" + value );
-        System.out.flush();
-    }
+    { ChildJvmProbeRunner.answer( key, value ); }
 
     /** Collects log records so the probe can report on what c3p0 said. */
     private final static class Capture extends Handler
