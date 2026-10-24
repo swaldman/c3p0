@@ -20,6 +20,8 @@ import com.mchange.v2.reflect.InstantiationNotPermittedException;
 
 public final class C3P0Config
 {
+    public final static String FREEZE_CONFIG_KEY = "com.mchange.v2.c3p0.freezeConfig";
+
     final static String PROP_STYLE_NAMED_CFG_PFX          = "c3p0.named-configs";
     final static int    PROP_STYLE_NAMED_CFG_PFX_LEN      = PROP_STYLE_NAMED_CFG_PFX.length();
     final static String PROP_STYLE_USER_OVERRIDES_PART    = "user-overrides";
@@ -36,8 +38,9 @@ public final class C3P0Config
 
     public final static String PROPS_FILE_RSRC_PATH = "/c3p0.properties";
 
-    private final static SealedSystemPropertiesStringProperty cfgFinderClassname = new SealedSystemPropertiesStringProperty( CFG_FINDER_CLASSNAME_KEY );
+    private final static SealedSystemPropertiesStringProperty  cfgFinderClassname = new SealedSystemPropertiesStringProperty( CFG_FINDER_CLASSNAME_KEY );
     private final static SealedSystemPropertiesBooleanProperty overrideRefreshLogConfig = new SealedSystemPropertiesBooleanProperty( OVERRIDE_REFRESH_LOG_CONFIG, false );
+    private final static SealedSystemPropertiesBooleanProperty freezeConfigProperty = new SealedSystemPropertiesBooleanProperty(FREEZE_CONFIG_KEY, true, false, false);
 
     final static MLogger logger;
 
@@ -45,6 +48,7 @@ public final class C3P0Config
     private static MultiPropertiesConfig _MPCONFIG;
     private static C3P0Config _MAIN;
     private static C3P0ConfigFinder _CFG_FINDER = null;
+    private static boolean refreshDebugWarned = false;
 
     static
     {
@@ -73,7 +77,7 @@ public final class C3P0Config
     public static Properties allCurrentProperties()
     { return MPCONFIG().getPropertiesByPrefix(""); }
 
-    public static synchronized void setMainConfig( C3P0Config protoMain )
+    static synchronized void setMainConfig( C3P0Config protoMain )
     { _MAIN = protoMain; }
 
     // we don't synchronize at the method level to respect
@@ -121,6 +125,25 @@ public final class C3P0Config
     {
         synchronized (C3P0Config.class)
         {
+            boolean configFrozen = freezeConfigProperty.getValue(MPCONFIG(), logger);
+            if (configFrozen)
+            {
+                Throwable debugStackTrace;
+                if (refreshDebugWarned)
+                    debugStackTrace = null;
+                else
+                {
+                    debugStackTrace = new Exception("DEBUG STACK TRACE, attempted refresh of frozen c3p0 config (" + FREEZE_CONFIG_KEY + "=true)");
+                    refreshDebugWarned = true;
+                }
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING,
+                               "An attempt to refresh c3p0 config will be ignored, because the configuration has been frozen (" + FREEZE_CONFIG_KEY + "=true)",
+                               debugStackTrace );
+
+                return;
+            }
+
             MultiPropertiesConfig libMpc = findLibraryMultiPropertiesConfig(); // always has sealed and then snapshot of System properties as its highest precedence elements
             if ( overrides != null || backstops != null)
             {
