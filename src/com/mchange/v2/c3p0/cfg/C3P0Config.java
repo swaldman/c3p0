@@ -23,14 +23,16 @@ public final class C3P0Config
     public final static String FREEZE_CONFIG_KEY = "com.mchange.v2.c3p0.freezeConfig";
 
     public final static String CFG_FINDER_CLASSNAME_KEY    = "com.mchange.v2.c3p0.cfg.finder";
-    public final static String OVERRIDE_REFRESH_LOG_CONFIG = "com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig";
+    public final static String SYNC_REFRESH_LOG_CONFIG = "com.mchange.v2.c3p0.cfg.syncRefreshLogConfig";
 
     public final static String DEFAULT_CONFIG_NAME = "default";
 
     public final static String PROPS_FILE_RSRC_PATH = "/c3p0.properties";
 
+    private final static String C3P0_CONFIG_FINDER_ADDITIONS_PFX = "C3P0_CONFIG_FINDER_ADDITIONS-";
+
     private final static SealedSystemPropertiesStringProperty  cfgFinderClassname = new SealedSystemPropertiesStringProperty( CFG_FINDER_CLASSNAME_KEY );
-    private final static SealedSystemPropertiesBooleanProperty overrideRefreshLogConfig = new SealedSystemPropertiesBooleanProperty( OVERRIDE_REFRESH_LOG_CONFIG, false );
+    private final static SealedSystemPropertiesBooleanProperty syncRefreshLogConfig = new SealedSystemPropertiesBooleanProperty( SYNC_REFRESH_LOG_CONFIG, false );
     private final static SealedSystemPropertiesBooleanProperty freezeConfigProperty = new SealedSystemPropertiesBooleanProperty(FREEZE_CONFIG_KEY, true, false, false);
 
     final static MLogger logger;
@@ -73,7 +75,7 @@ public final class C3P0Config
 
     // it's important that we return this directly, no defensive copies or anything
     // it's unmodifiable, and elsewhere we use simple identity tests to ensure cache freshness
-    private static synchronized MultiPropertiesConfig MPCONFIG() 
+    private static synchronized MultiPropertiesConfig MPCONFIG()
     { return _MPCONFIG; }
 
     private static synchronized C3P0Config MAIN()
@@ -100,45 +102,70 @@ public final class C3P0Config
     // we don't synchronize at the method level to respect
     // the fine-grained sync'ing of the overload to which we ultimately delegate
     public static void refreshMainConfig()
-    { refreshMainConfig( (MultiPropertiesConfig[]) null, null ); }
+    { refreshMainConfigWithBackstopsAndOverrides( (MultiPropertiesConfig[]) null, null, null, null ); }
 
     // we don't synchronize at the method level to respect
     // the fine-grained sync'ing of the overload to which we ultimately delegate
-    public static void refreshMainConfig( Properties overrides, String overridesDescription )
-    { refreshMainConfig(overrides, overridesDescription, null, null); }
+    public static void refreshMainConfigWithOverrides( Properties overrides, String overridesDescription )
+    { refreshMainConfigWithBackstopsAndOverrides(null, null, overrides, overridesDescription); }
 
     // we don't synchronize at the method level to respect
     // the fine-grained sync'ing of the overload to which we ultimately delegate
-    public static void refreshMainConfig( Properties overrides, String overridesDescription, Properties backstops, String backstopsDescription )
+    public static void refreshMainConfigWithBackstops( Properties backstops, String backstopsDescription )
+    { refreshMainConfigWithBackstopsAndOverrides(backstops, backstopsDescription, null, null); }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfigWithBackstopsAndOverrides( Properties backstops, String backstopsDescription, Properties overrides, String overridesDescription )
     {
-        refreshMainConfig(
-            overrides == null ? null : MultiPropertiesConfig.fromProperties( "PROGRAMMATICALLY_SUPPLIED_OVERRIDES", overrides ),
-            overridesDescription,
+        refreshMainConfigWithBackstopsAndOverrides(
             backstops == null ? null : MultiPropertiesConfig.fromProperties( "PROGRAMMATICALLY_SUPPLIED_BACKSTOPS", backstops ),
-            backstopsDescription
+            backstopsDescription,
+            overrides == null ? null : MultiPropertiesConfig.fromProperties( "PROGRAMMATICALLY_SUPPLIED_OVERRIDES", overrides ),
+            overridesDescription
         );
     }
 
     // we don't synchronize at the method level to respect
     // the fine-grained sync'ing of the overload to which we ultimately delegate
-    public static void refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription )
-    { refreshMainConfig(overrides, overridesDescription, null, null); }
+    public static void refreshMainConfigWithOverrides( MultiPropertiesConfig overrides, String overridesDescription )
+    { refreshMainConfigWithBackstopsAndOverrides(null, null, overrides, overridesDescription); }
 
     // we don't synchronize at the method level to respect
     // the fine-grained sync'ing of the overload to which we ultimately delegate
-    public static void refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription, MultiPropertiesConfig backstops, String backstopsDescription )
-    { refreshMainConfig( overrides == null ? null : new MultiPropertiesConfig[]{ overrides }, overridesDescription, backstops == null ? null : new MultiPropertiesConfig[]{ backstops }, backstopsDescription ); }
+    public static void refreshMainConfigWithBackstops( MultiPropertiesConfig backstops, String backstopsDescription )
+    { refreshMainConfigWithBackstopsAndOverrides(backstops, backstopsDescription, null, null); }
 
     // we don't synchronize at the method level to respect
     // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfigWithBackstopsAndOverrides( MultiPropertiesConfig backstops, String backstopsDescription, MultiPropertiesConfig overrides, String overridesDescription )
+    { refreshMainConfigWithBackstopsAndOverrides( backstops == null ? null : new MultiPropertiesConfig[]{ backstops }, backstopsDescription, overrides == null ? null : new MultiPropertiesConfig[]{ overrides }, overridesDescription ); }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    /**
+     * @deprecated Please use <code>refreshMainConfigWithOverrides( MultiPropertiesConfig[] overrides, String overridesDescription )</code>.
+     *             It's clearer.
+     */
+    @Deprecated
     public static void refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription )
-    { refreshMainConfig(overrides, overridesDescription, null, null); }
+    { refreshMainConfigWithBackstopsAndOverrides(null, null, overrides, overridesDescription); }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfigWithOverrides( MultiPropertiesConfig[] overrides, String overridesDescription )
+    { refreshMainConfigWithBackstopsAndOverrides(null, null, overrides, overridesDescription); }
+
+    // we don't synchronize at the method level to respect
+    // the fine-grained sync'ing of the overload to which we ultimately delegate
+    public static void refreshMainConfigWithBackstops( MultiPropertiesConfig[] backstops, String backstopsDescription )
+    { refreshMainConfigWithBackstopsAndOverrides(backstops, backstopsDescription, null, null); }
 
     private final static MultiPropertiesConfig[] EMPTY_MPC_ARRAY = new MultiPropertiesConfig[0];
 
     // later elements of overrides take precedence over earlier ones, later elements of backstops take precedence over earlier ones
     // we synchronize internally to avoid unnecessarily nesting locks when we call C3P0Registry.markConfigRefreshed()
-    public static void refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription, MultiPropertiesConfig[] backstops, String backstopsDescription )
+    public static void refreshMainConfigWithBackstopsAndOverrides( MultiPropertiesConfig[] backstops, String backstopsDescription, MultiPropertiesConfig[] overrides, String overridesDescription )
     {
         synchronized (C3P0Config.class)
         {
@@ -227,17 +254,40 @@ public final class C3P0Config
                     logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides or backstops specified (and any previous overrides or backstops removed)." );
             }
 
-            if (overrideRefreshLogConfig.getValue(MPCONFIG(), logger))
-                MLog.refreshConfig( new MultiPropertiesConfig[] {MPCONFIG()}, "refreshed c3p0 config overrides prior log settings." );
+            // support log config placed in XML or other C3P0ConfigFinder-found data
+            MultiPropertiesConfig[] logOverrides;
+            List<String> finderFoundResourcePaths = new ArrayList<>();
+            for( String rp : MPCONFIG().getPropertiesResourcePaths() )
+                if (rp.startsWith(C3P0_CONFIG_FINDER_ADDITIONS_PFX))
+                    finderFoundResourcePaths.add(rp);
+            int sz = finderFoundResourcePaths.size();
+            if (sz == 0)
+                logOverrides = overrides;
+            else
+            {
+                String lastPath = finderFoundResourcePaths.get(sz - 1);
+                Properties addProps = MPCONFIG().getPropertiesByResourcePath(lastPath);
+                MultiPropertiesConfig addConfig = MultiPropertiesConfig.fromProperties(lastPath, addProps);
+                if (overrides != null)
+                {
+                    logOverrides = new MultiPropertiesConfig[overrides.length+1];
+                    System.arraycopy(overrides,0,logOverrides,0,overrides.length);
+                    logOverrides[overrides.length] = addConfig;
+                }
+                else
+                    logOverrides = new MultiPropertiesConfig[]{ addConfig };
 
-            /*
-            System.err.println("All properties...");
-            Properties props = initial.getPropertiesByPrefix("");
-            Map<Object,Object> m = new TreeMap<Object,Object>();
-            m.putAll( (Map<Object,Object>) props );
-            for ( Map.Entry<Object,Object> entry : m.entrySet() )
-                System.err.println( entry.getKey() + " --> " + entry.getValue() );
-            */
+                if (logger.isLoggable(MLevel.WARNING) && sz > 1)
+                    logger.log(MLevel.WARNING,
+                               "Found more than one resource path in properties-based config that appears to be the result of a C3P0ConfigFinder " +
+                               "(usually though not always from XML config). " +
+                               "That is unexpected. We are supplying log configuration only with config from the last such resource path. " +
+                               "The only way we know this could happen is if a user explicitly named a resource path with the prefix c3p0 internally uses for C3P0ConfigFinder-found config. " +
+                               "Resource paths: " + finderFoundResourcePaths);
+            }
+
+            if (syncRefreshLogConfig.getValue(MPCONFIG(), logger))
+                MLog.refreshConfigWithBackstopsAndOverrides( backstops, backstopsDescription, logOverrides, overridesDescription );
         }
         // let's not unnecessarily nest locks
 	C3P0Registry.markConfigRefreshed();
@@ -335,7 +385,7 @@ public final class C3P0Config
 	    }
 
 	try
-	    { 
+	    {
 		if (_CFG_FINDER == null)
 		    {
 			Class.forName("org.w3c.dom.Node");
@@ -354,7 +404,7 @@ public final class C3P0Config
 
 	    }
 	catch (Exception e)
-	    { 
+	    {
 		if ( e instanceof ClassNotFoundException )
 		{
 		    if ( logger.isLoggable(MLevel.WARNING) )
@@ -376,7 +426,7 @@ public final class C3P0Config
             if (_CFG_FINDER.getClass().equals(DefaultC3P0ConfigFinder.class))
                 configFinderIdSuffix = "Standard-XML-Config";
             else
-                configFinderIdSuffix = _CFG_FINDER.getClass().getName(); 
+                configFinderIdSuffix = _CFG_FINDER.getClass().getName();
         }
         catch (Exception e)
         {
@@ -420,14 +470,14 @@ public final class C3P0Config
 		mergedConfigNamesToNamedScopes.put( cfgName, cfgFound );
 	    else if ( cfgFound == null && propStyle != null )
 		mergedConfigNamesToNamedScopes.put( cfgName, propStyle );
-	    else 
+	    else
 		throw new AssertionError("Huh? allConfigNames is the union, every name should be in one of the two maps.");
 	}
 
 	HashMap propStyleUserOverridesDefaultConfig = C3P0ConfigUtils.findPropStyleUserOverrides(mpcfg);
 	HashMap propStyleExtensionsDefaultConfig = C3P0ConfigUtils.findPropStyleExtensions(mpcfg);
-	NamedScope mergedDefaultConfig = new NamedScope( protoMain.defaultConfig.props, 
-							 NamedScope.mergeUserNamesToOverrides( protoMain.defaultConfig.userNamesToOverrides, propStyleUserOverridesDefaultConfig ), 
+	NamedScope mergedDefaultConfig = new NamedScope( protoMain.defaultConfig.props,
+							 NamedScope.mergeUserNamesToOverrides( protoMain.defaultConfig.userNamesToOverrides, propStyleUserOverridesDefaultConfig ),
 							 NamedScope.mergeExtensions( protoMain.defaultConfig.extensions, propStyleExtensionsDefaultConfig ) );
 
         C3P0Config normative = new C3P0Config( mergedDefaultConfig, mergedConfigNamesToNamedScopes );
@@ -473,7 +523,7 @@ public final class C3P0Config
         MultiPropertiesConfig out;
         if (normativeAdditions.size() > 0)
         {
-            MultiPropertiesConfig extra = MultiPropertiesConfig.fromProperties( "C3P0_CONFIG_FINDER_ADDITIONS-" + configFinderIdSuffix, normativeAdditions );
+            MultiPropertiesConfig extra = MultiPropertiesConfig.fromProperties( C3P0_CONFIG_FINDER_ADDITIONS_PFX + configFinderIdSuffix, normativeAdditions );
             out = MConfig.combine(new MultiPropertiesConfig[]{mpcfg,extra});
         }
         else
@@ -516,7 +566,7 @@ public final class C3P0Config
         for (Object rawKey : source.keySet())
         {
             String key = (String) rawKey;
-            
+
             String propsKey;
             if (key.startsWith(C3P0ConfigUtils.PROPS_FILE_PROP_PFX) && key.lastIndexOf('.') == C3P0ConfigUtils.PROPS_FILE_PROP_PFX_LEN - 1) // two-part c3p0.xxx key
             {
@@ -680,7 +730,7 @@ public final class C3P0Config
 		  if (out == null)
 		      out = (String) MAIN().defaultConfig.props.get( propKey );
 	      }
-	  
+
 	  return out;
     }
 
@@ -762,9 +812,9 @@ public final class C3P0Config
 	Map union = new HashMap();
 	union.putAll( defaultUserProps );
 	union.put( "extensions", extensions );
-	BeansUtils.overwriteAccessiblePropertiesFromMap( union, 
-							 bean, 
-							 false, 
+	BeansUtils.overwriteAccessiblePropertiesFromMap( union,
+							 bean,
+							 false,
 							 SKIP_BIND_PROPS,
 							 true,
 							 MLevel.FINEST,
@@ -773,17 +823,17 @@ public final class C3P0Config
 	try
 	    {
 		if ( shouldBindUserOverridesAsString )
-		    bindUserOverridesToBean( bean, configName ); 
+		    bindUserOverridesToBean( bean, configName );
 	    }
 	catch (NoSuchMethodException e)
 	    {
 		e.printStackTrace();
-		/* ignore */ 
+		/* ignore */
 	    }
 	catch (Exception e)
 	    {
 		if (logger.isLoggable( MLevel.WARNING ))
-		    logger.log( MLevel.WARNING, 
+		    logger.log( MLevel.WARNING,
 				"An exception occurred while trying to bind user overrides " +
 				"for named config '" + configName + "'. Only default user configs " +
 				"will be used."
@@ -841,8 +891,8 @@ public final class C3P0Config
 	String outStr = getUnspecifiedUserProperty( propKey, null );
 	if (outStr != null)
 	    {
-		try 
-		    { 
+		try
+		    {
 			out = Integer.parseInt( outStr.trim() );
 			set = true;
 		    }
@@ -868,9 +918,9 @@ public final class C3P0Config
 	String outStr = getUnspecifiedUserProperty( propKey, null );
 	if (outStr != null)
 	    {
-		try 
-		    { 
-			out = BooleanUtils.parseBoolean( outStr.trim() ); 
+		try
+		    {
+			out = BooleanUtils.parseBoolean( outStr.trim() );
 			set = true;
 		    }
 		catch (IllegalArgumentException e)
