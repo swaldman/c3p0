@@ -2717,7 +2717,7 @@ c3p0.extensions.initSql=SET SCHEMA 'default'
 
 c3p0.named-configs.intergalactoApp.maxPoolSize=1000
 c3p0.named-configs.intergalactoApp.extensions.initSql=SET SCHEMA 'intergalacto'
-c3p0.named-configs.user-overrides.steve.maxPoolSize=20
+c3p0.named-configs.intergalactoApp.user-overrides.steve.maxPoolSize=20
 	</div>
 	<p>
 	  In a <a href="#c3p0_conf">HOCON config file</a>...
@@ -2758,7 +2758,7 @@ c3p0 {
 
   &lt;named-config name="intergalactoApp"&gt;
     &lt;property name="maxPoolSize"&gt;1000&lt;/property&gt;
-    &lt;user-overrides name="steve"&gt;
+    &lt;user-overrides user="steve"&gt;
       &lt;property name="maxPoolSize"&gt;20&lt;/property&gt;
     &lt;/user-overrides&gt;
     &lt;extensions&gt;

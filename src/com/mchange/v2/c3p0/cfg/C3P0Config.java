@@ -22,15 +22,6 @@ public final class C3P0Config
 {
     public final static String FREEZE_CONFIG_KEY = "com.mchange.v2.c3p0.freezeConfig";
 
-    final static String PROP_STYLE_NAMED_CFG_PFX          = "c3p0.named-configs";
-    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN      = PROP_STYLE_NAMED_CFG_PFX.length();
-    final static String PROP_STYLE_USER_OVERRIDES_PART    = "user-overrides";
-    final static String PROP_STYLE_USER_OVERRIDES_PFX     = "c3p0." + PROP_STYLE_USER_OVERRIDES_PART;
-    final static int    PROP_STYLE_USER_OVERRIDES_PFX_LEN = PROP_STYLE_USER_OVERRIDES_PFX.length();
-    final static String PROP_STYLE_EXTENSIONS_PART        = "extensions";
-    final static String PROP_STYLE_EXTENSIONS_PFX         = "c3p0." + PROP_STYLE_EXTENSIONS_PART;
-    final static int    PROP_STYLE_EXTENSIONS_PFX_LEN     = PROP_STYLE_EXTENSIONS_PFX.length();
-
     public final static String CFG_FINDER_CLASSNAME_KEY    = "com.mchange.v2.c3p0.cfg.finder";
     public final static String OVERRIDE_REFRESH_LOG_CONFIG = "com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig";
 
@@ -50,6 +41,12 @@ public final class C3P0Config
     private static C3P0ConfigFinder _CFG_FINDER = null;
     private static boolean refreshDebugWarned = false;
 
+    private static class MultiPropertiesConfigMainConfig
+    {
+        MultiPropertiesConfig multiPropertiesConfig;
+        C3P0Config mainConfig;
+    }
+
     static
     {
 	logger = MLog.getLogger( C3P0Config.class );
@@ -57,10 +54,21 @@ public final class C3P0Config
 	// if ( logger.isLoggable( MLevel.FINE ) )
 	//     logger.log( MLevel.INFO, "Updated main c3p0 cofiguration." );
 
-	setLibraryMultiPropertiesConfig( findLibraryMultiPropertiesConfig() );
-	setMainConfig( findLibraryC3P0Config( false ) );
+        MultiPropertiesConfig initial = findInitialMultiPropertiesConfig();
 
-	warnOnUnknownProperties( MAIN() );
+        // temporary, ugly, because config finders
+        // don't accept initial as an argument to findConfig()
+        // so they expect to find the initial config set
+        setLibraryMultiPropertiesConfig( initial );
+
+        MultiPropertiesConfigMainConfig mm = findLibraryC3P0Config( false, initial );
+
+	setLibraryMultiPropertiesConfig( mm.multiPropertiesConfig );
+	setMainConfig( mm.mainConfig );
+
+        // we now warn within findLibraryConfig(...),
+        // when reconciling C3P0Config and MultiPropertiesConfig views
+	//warnOnUnknownProperties( MAIN() );
     }
 
     // it's important that we return this directly, no defensive copies or anything
@@ -74,10 +82,19 @@ public final class C3P0Config
     private static synchronized void setLibraryMultiPropertiesConfig( MultiPropertiesConfig mpc )
     { _MPCONFIG = mpc; }
 
+    /**
+     *  This will include System properties, and
+     *  sensitive values like c3p0.password (even if they
+     *  are supplied by XML config or a C3P0ConfigFinder).
+     *
+     *  The return value should not be promiscuously printed
+     *  or dumped. If you do want to print it, consider
+     *  <code>com.mchange.v2.util.PropertiesMasker.DEFAULT.masked(...)</code> first.
+     */
     public static Properties allCurrentProperties()
     { return MPCONFIG().getPropertiesByPrefix(""); }
 
-    static synchronized void setMainConfig( C3P0Config protoMain )
+    private static synchronized void setMainConfig( C3P0Config protoMain )
     { _MAIN = protoMain; }
 
     // we don't synchronize at the method level to respect
@@ -144,7 +161,7 @@ public final class C3P0Config
                 return;
             }
 
-            MultiPropertiesConfig libMpc = findLibraryMultiPropertiesConfig(); // always has sealed and then snapshot of System properties as its highest precedence elements
+            MultiPropertiesConfig initial = findInitialMultiPropertiesConfig(); // always has sealed and then snapshot of System properties as its highest precedence elements
             if ( overrides != null || backstops != null)
             {
                 MultiPropertiesConfig[] nullsafeBackstops = backstops == null ? EMPTY_MPC_ARRAY : backstops;
@@ -153,12 +170,19 @@ public final class C3P0Config
                 int olen = nullsafeOverrides.length;
                 MultiPropertiesConfig[] combineMe = new MultiPropertiesConfig[ blen + 1 + olen ];
                 System.arraycopy(nullsafeBackstops,0,combineMe,0,blen);
-                combineMe[blen] = libMpc;
+                combineMe[blen] = initial;
                 System.arraycopy(nullsafeOverrides,0,combineMe,blen+1,olen);
 
                 MultiPropertiesConfig  newMpc = MConfig.combine( combineMe );
+
+                // temporary, ugly, because config finders
+                // don't accept initial as an argument to findConfig()
+                // so they expect to find an initial config set
                 setLibraryMultiPropertiesConfig( newMpc );
-                setMainConfig( findLibraryC3P0Config( true ) );
+
+                MultiPropertiesConfigMainConfig mm = findLibraryC3P0Config( true, newMpc );
+                setLibraryMultiPropertiesConfig( mm.multiPropertiesConfig );
+                setMainConfig( mm.mainConfig );
 
                 if ( logger.isLoggable( MLevel.INFO ) )
                 {
@@ -189,8 +213,15 @@ public final class C3P0Config
             }
             else
             {
-                setLibraryMultiPropertiesConfig( libMpc );
-                setMainConfig( findLibraryC3P0Config( false ) );
+                // temporary, ugly, because config finders
+                // don't accept initial as an argument to findConfig()
+                // so they expect to find an initial config set
+                setLibraryMultiPropertiesConfig( initial );
+
+                MultiPropertiesConfigMainConfig mm = findLibraryC3P0Config( false, initial );
+
+                setLibraryMultiPropertiesConfig( mm.multiPropertiesConfig );
+                setMainConfig( mm.mainConfig );
 
                 if ( logger.isLoggable( MLevel.INFO ) )
                     logger.log( MLevel.INFO, "c3p0 main configuration was refreshed, with no overrides or backstops specified (and any previous overrides or backstops removed)." );
@@ -201,7 +232,7 @@ public final class C3P0Config
 
             /*
             System.err.println("All properties...");
-            Properties props = libMpc.getPropertiesByPrefix("");
+            Properties props = initial.getPropertiesByPrefix("");
             Map<Object,Object> m = new TreeMap<Object,Object>();
             m.putAll( (Map<Object,Object>) props );
             for ( Map.Entry<Object,Object> entry : m.entrySet() )
@@ -212,16 +243,17 @@ public final class C3P0Config
 	C3P0Registry.markConfigRefreshed();
     }
 
-    private static MultiPropertiesConfig findLibraryMultiPropertiesConfig()
+    private static MultiPropertiesConfig findInitialMultiPropertiesConfig()
     {
         MultiPropertiesConfig out;
 
+        MultiPropertiesConfig withoutDefaults;
         if (MConfig.WithTraditionalDefaultSources.traditionalPathFileSourcedPathsFound())
         {
             // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
             String[] defaults = MLogConfig.mlogC3p0Defaults();
             String[] preempts = SealedSystemProperties.capCurrentThenSealed(MLogConfig.mlogC3p0Preempts());
-            out = MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
+            withoutDefaults = MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
 
             if ( logger.isLoggable( MLevel.WARNING ) )
             {
@@ -236,27 +268,32 @@ public final class C3P0Config
         {
             // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
             String[] resources = MLogConfig.mlogC3p0Unified();
-            out = MConfig.AsProvided.readCachedResourceConfig(SealedSystemProperties.capCurrentThenSealed(resources));
+            withoutDefaults = MConfig.AsProvided.readCachedResourceConfig(SealedSystemProperties.capCurrentThenSealed(resources));
         }
 
-        if (logger.isLoggable(MLevel.INFO))
-            logger.log(MLevel.INFO,
-                       "c3p0 properties-style config is now drawn from the following configuration sources: " +
+        Properties unprefixedDefaults = C3P0ConfigUtils.extractHardcodedC3P0DefaultsStringCoercedOnly();
+        Properties prefixedDefaults = new Properties();
+        for (String unprefixed : unprefixedDefaults.stringPropertyNames())
+            prefixedDefaults.put("c3p0." + unprefixed, unprefixedDefaults.getProperty(unprefixed));
+        MultiPropertiesConfig defaults = MultiPropertiesConfig.fromProperties("C3P0_HARDCODED_DEFAULTS",prefixedDefaults);
+        out = MConfig.combine(new MultiPropertiesConfig[]{defaults,withoutDefaults});
+
+        if (logger.isLoggable(MLevel.FINE))
+            logger.log(MLevel.FINE,
+                       "Initial c3p0 properties-style config is drawn from the following configuration sources: " +
                        Arrays.toString(out.getPropertiesResourcePaths()) +
                        ". Later paths shadow earlier paths where values conflict.");
+
         return out;
     }
 
-    // _MPCONFIG must be set first!
-    private static C3P0Config findLibraryC3P0Config( boolean warn_on_conflicting_overrides )
+    private static MultiPropertiesConfigMainConfig findLibraryC3P0Config( boolean warn_on_conflicting_overrides, MultiPropertiesConfig mpcfg )
     {
 	C3P0Config protoMain;
 
-        PropertiesConfig pcfg = MPCONFIG();
-
         // note: this has the side-effect of sealing SealedSystemProperties
         //       if they have not already been sealed.
-	String cname = cfgFinderClassname.getValue(pcfg, logger);
+	String cname = cfgFinderClassname.getValue(mpcfg, logger);
 
 	try
 	    {
@@ -332,7 +369,15 @@ public final class C3P0Config
                 _CFG_FINDER = new MConfigOnlyC3P0ConfigFinder();
 	    }
 
-        try { protoMain = _CFG_FINDER.findConfig(); }
+        String configFinderIdSuffix;
+        try
+        {
+            protoMain = _CFG_FINDER.findConfig();
+            if (_CFG_FINDER.getClass().equals(DefaultC3P0ConfigFinder.class))
+                configFinderIdSuffix = "Standard-XML-Config";
+            else
+                configFinderIdSuffix = _CFG_FINDER.getClass().getName(); 
+        }
         catch (Exception e)
         {
             if (_CFG_FINDER.getClass().equals(DefaultC3P0ConfigFinder.class))
@@ -354,9 +399,10 @@ public final class C3P0Config
             // this is the most likely to succeed source of config we have.
             // if it fails with some unchecked Exception, we give up
             protoMain = new MConfigOnlyC3P0ConfigFinder().findConfig();
+            configFinderIdSuffix = null; // we should not see any non-name-scoped config not already in _MPCONFIG
         }
 
-	HashMap propStyleConfigNamesToNamedScopes = findPropStyleNamedScopes();
+	HashMap propStyleConfigNamesToNamedScopes = C3P0ConfigUtils.findPropStyleNamedScopes(mpcfg);
 	HashMap cfgFoundConfigNamesToNamedScopes = protoMain.configNamesToNamedScopes;
 	HashMap mergedConfigNamesToNamedScopes = new HashMap();
 
@@ -378,17 +424,210 @@ public final class C3P0Config
 		throw new AssertionError("Huh? allConfigNames is the union, every name should be in one of the two maps.");
 	}
 
-	HashMap propStyleUserOverridesDefaultConfig = findPropStyleUserOverridesDefaultConfig();
-	HashMap propStyleExtensionsDefaultConfig = findPropStyleExtensionsDefaultConfig();
+	HashMap propStyleUserOverridesDefaultConfig = C3P0ConfigUtils.findPropStyleUserOverrides(mpcfg);
+	HashMap propStyleExtensionsDefaultConfig = C3P0ConfigUtils.findPropStyleExtensions(mpcfg);
 	NamedScope mergedDefaultConfig = new NamedScope( protoMain.defaultConfig.props, 
 							 NamedScope.mergeUserNamesToOverrides( protoMain.defaultConfig.userNamesToOverrides, propStyleUserOverridesDefaultConfig ), 
 							 NamedScope.mergeExtensions( protoMain.defaultConfig.extensions, propStyleExtensionsDefaultConfig ) );
 
-	return new C3P0Config( mergedDefaultConfig, mergedConfigNamesToNamedScopes );
+        C3P0Config normative = new C3P0Config( mergedDefaultConfig, mergedConfigNamesToNamedScopes );
+        MultiPropertiesConfigMainConfig out = new MultiPropertiesConfigMainConfig();
+        out.multiPropertiesConfig = reconcileMultiPropertiesConfig(normative, mpcfg, configFinderIdSuffix);
+        out.mainConfig = normative;
+
+        if (logger.isLoggable(MLevel.INFO))
+            logger.log(MLevel.INFO,
+                       "c3p0 properties-style config is now drawn from the following configuration sources: " +
+                       Arrays.toString(out.multiPropertiesConfig.getPropertiesResourcePaths()) +
+                       ". Later paths shadow earlier paths where values conflict.");
+
+	return out;
     }
 
+    private static MultiPropertiesConfig reconcileMultiPropertiesConfig(C3P0Config normative, MultiPropertiesConfig mpcfg, String configFinderIdSuffix)
+    {
+        Properties normativeAdditions = new Properties();
+        addDefaultScopePropertiesIfNewOrDifferent(mpcfg, normativeAdditions, normative.defaultConfig.props);
+        for (Object rawUser : normative.defaultConfig.userNamesToOverrides.keySet())
+        {
+            String user = (String) rawUser;
+            Map userOverrides = (Map) normative.defaultConfig.userNamesToOverrides.get(rawUser);
+            addUserOverridesPropertiesWithPrefixIfNewOrDifferent(mpcfg, normativeAdditions, "c3p0.user-overrides." + user + ".", userOverrides, user, null);
+        }
+        addExtensionsPropertiesWithPrefixIfNewOrDifferent(mpcfg, normativeAdditions, "c3p0.extensions.", normative.defaultConfig.extensions);
 
+        for (Object rawConfigName : normative.configNamesToNamedScopes.keySet())
+        {
+            String configName = (String) rawConfigName;
+            NamedScope scope  = (NamedScope) normative.configNamesToNamedScopes.get(rawConfigName);
+            addNamedScopePropertiesIfNewOrDifferent(mpcfg, normativeAdditions, "c3p0.named-configs." + configName + ".", scope.props, configName);
+            for (Object rawUser : scope.userNamesToOverrides.keySet())
+            {
+                String user = (String) rawUser;
+                Map userOverrides = (Map) scope.userNamesToOverrides.get(rawUser);
+                addUserOverridesPropertiesWithPrefixIfNewOrDifferent(mpcfg, normativeAdditions, "c3p0.named-configs." + configName + ".user-overrides." + user + ".", userOverrides, user, configName);
+            }
+            addExtensionsPropertiesWithPrefixIfNewOrDifferent(mpcfg, normativeAdditions, "c3p0.named-configs." + configName + ".extensions.", scope.extensions);
+        }
 
+        MultiPropertiesConfig out;
+        if (normativeAdditions.size() > 0)
+        {
+            MultiPropertiesConfig extra = MultiPropertiesConfig.fromProperties( "C3P0_CONFIG_FINDER_ADDITIONS-" + configFinderIdSuffix, normativeAdditions );
+            out = MConfig.combine(new MultiPropertiesConfig[]{mpcfg,extra});
+        }
+        else
+            out = mpcfg;
+
+        return out;
+    }
+
+    private static void addDefaultScopePropertiesIfNewOrDifferent(MultiPropertiesConfig base, Properties dest, Map source)
+    {
+        for (Object rawKey : source.keySet())
+        {
+            String key = (String) rawKey;
+            String val = asPropertyValue(key, source.get(rawKey));
+            if (val != null)
+            {
+                String propsKey;
+                if (key.indexOf('.') >= 0)
+                    propsKey = key;
+                else if (C3P0Defaults.isKnownProperty(key))
+                    propsKey = C3P0ConfigUtils.PROPS_FILE_PROP_PFX + key;
+                else // unexpected noncompoundKey
+                {
+                    String prefixed = C3P0ConfigUtils.PROPS_FILE_PROP_PFX + key;
+                    if (logger.isLoggable(MLevel.WARNING))
+                        logger.log(MLevel.WARNING,
+                                   "Found unexpected (non-compound) key in C3P0Config: " + key +
+                                   ". Perhaps it is a misspelling? In the properties-based config, it will appear as '"
+                                   + prefixed + "'.");
+                    propsKey = prefixed;
+                }
+
+                addPropertyIfNewOrDifferent(base,dest,propsKey,val);
+            }
+        }
+    }
+
+    private static void addNamedScopePropertiesIfNewOrDifferent(MultiPropertiesConfig base, Properties dest, String prefix, Map source, String scopeName)
+    {
+        for (Object rawKey : source.keySet())
+        {
+            String key = (String) rawKey;
+            
+            String propsKey;
+            if (key.startsWith(C3P0ConfigUtils.PROPS_FILE_PROP_PFX) && key.lastIndexOf('.') == C3P0ConfigUtils.PROPS_FILE_PROP_PFX_LEN - 1) // two-part c3p0.xxx key
+            {
+                propsKey = key.substring(C3P0ConfigUtils.PROPS_FILE_PROP_PFX_LEN);
+                if (logger.isLoggable(MLevel.WARNING) && !C3P0Defaults.isKnownProperty(propsKey))
+                    logger.log(MLevel.WARNING, "Found unexpected c3p0-prefixed, two-part key in C3P0Config, in named scope '" + scopeName  + "': " + key);
+            }
+            else if (key.indexOf('.') >= 0)
+            {
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING, "Found unexpected compound key in C3P0Config, in named scope '" + scopeName  + "': " + key);
+                propsKey = key;
+            }
+            else
+            {
+                if (logger.isLoggable(MLevel.WARNING) && !C3P0Defaults.isKnownProperty(key))
+                    logger.log(MLevel.WARNING,
+                               "Found unexpected (noncompound) key in C3P0Config, in named scope '" + scopeName  + "': " + key +
+                               ". In the properties-based config, it will appear as '" + prefix + key + "'.");
+                propsKey = key;
+            }
+
+            String val = asPropertyValue(propsKey, source.get(rawKey));
+            if (val != null)
+                addPropertyIfNewOrDifferent(base,dest,prefix+propsKey,val);
+        }
+    }
+
+    // include the '.' in the prefix!
+    private static void addUserOverridesPropertiesWithPrefixIfNewOrDifferent(MultiPropertiesConfig base, Properties dest, String prefix, Map source, String userName, String scopeName)
+    {
+        for (Object rawKey : source.keySet())
+        {
+            String key = (String) rawKey;
+
+            String propsKey;
+            if (key.startsWith(C3P0ConfigUtils.PROPS_FILE_PROP_PFX) && key.lastIndexOf('.') == C3P0ConfigUtils.PROPS_FILE_PROP_PFX_LEN - 1) // two-part c3p0.xxx key
+            {
+                propsKey = key.substring(C3P0ConfigUtils.PROPS_FILE_PROP_PFX_LEN);
+                if (logger.isLoggable(MLevel.WARNING) && !C3P0Defaults.isKnownProperty(propsKey))
+                    logger.log(MLevel.WARNING,
+                               "Found unexpected c3p0-prefixed, two-part key in C3P0Config, in a user-override for user '" + userName +
+                               (scopeName == null ? "' of the default scope" : "' of named scope '" + scopeName + "'") +
+                               ": " + key + ". Perhaps it is a misspelling? It will become '" + prefix+propsKey +
+                               "' in the properties-based config.");
+            }
+            else if (key.indexOf('.') >= 0)
+            {
+                if (logger.isLoggable(MLevel.WARNING))
+                {
+                    String msg;
+                    if (scopeName == null)
+                        msg = "Found unexpected key in C3P0Config, in a user-override for user '" + userName + "' of the default scope: " + key;
+                    else
+                        msg = "Found unexpected key in C3P0Config, in a user-override for user '" + userName + "' of named scope '" + scopeName + "': " + key;
+                    logger.log(MLevel.WARNING, msg);
+                }
+                propsKey = key;
+            }
+            else
+            {
+                propsKey = key;
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING,
+                               "Found unexpected (non-compound) key in C3P0Config, in a user-override for user '" + userName +
+                               (scopeName == null ? "' of the default scope" : "' of named scope '" + scopeName + "'") +
+                               ": " + key + ". Perhaps it is a misspelling? It will become '" + prefix+propsKey +
+                               "' in the properties-based config.");
+            }
+
+            String val = asPropertyValue(prefix + propsKey, source.get(rawKey));
+            if (val != null)
+                addPropertyIfNewOrDifferent(base,dest,prefix+propsKey,val);
+        }
+    }
+
+    private static void addExtensionsPropertiesWithPrefixIfNewOrDifferent(MultiPropertiesConfig base, Properties dest, String prefix, Map source)
+    {
+        for (Object rawKey : source.keySet())
+        {
+            String key = (String) rawKey;
+
+            // we pass throigh extensions exactly as provided. we don't presume
+            // or know of what we should warn
+
+            String val = asPropertyValue(prefix + key, source.get(rawKey));
+            if (val != null)
+                addPropertyIfNewOrDifferent(base,dest,prefix+key,val);
+        }
+    }
+
+    private static String asPropertyValue(String describeKey, Object rawVal)
+    {
+        if (rawVal instanceof String) return (String) rawVal;
+        if (logger.isLoggable(MLevel.WARNING))
+            logger.log(MLevel.WARNING, "'" + describeKey + "' has non-String value, not reflected in properties-style config.");
+        return null;
+    }
+
+    private static void addPropertyIfNewOrDifferent(MultiPropertiesConfig base, Properties dest, String key, String value)
+    {
+        String checkVal = base.getProperty(key);
+        if (checkVal == null || !checkVal.equals(value))
+        {
+            // System.err.println("Adding " + key + " -> " + value + "; checkVal: " + checkVal + "; value: " + value);
+            dest.setProperty(key,value);
+        }
+    }
+
+    /*
+    // we now warn when reconciling C3P0Config and MultiPropertiesConfig views
     private static void warnOnUnknownProperties( C3P0Config cfg )
     {
 	warnOnUnknownProperties( cfg.defaultConfig );
@@ -412,6 +651,7 @@ public final class C3P0Config
 		    logger.log( MLevel.WARNING, "Unknown c3p0-config property: " + prop);
 	    }
     }
+    */
 
     /**
      *  @deprecated In general, try to use com.mchange.v2.cfg.SealedSystemPropertiesStringProperty with C3P0Config.getMultiPropertiesConfig() as its argument.
@@ -420,141 +660,8 @@ public final class C3P0Config
     public static String getPropsFileConfigProperty( String prop )
     { return MPCONFIG().getProperty( prop ); }
 
-    static Properties findResourceProperties()
-    { return MPCONFIG().getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }
-
-    static Properties findAllOneLevelC3P0Properties()
-    { 
-	Properties out =  MPCONFIG().getPropertiesByPrefix("c3p0"); 
-	for (Iterator ii = out.keySet().iterator(); ii.hasNext(); )
-	    if (((String) ii.next()).lastIndexOf('.') > 4) ii.remove();
-	return out;
-    }
-
-    static HashMap findPropStyleUserOverridesDefaultConfig()
-    {
-	HashMap userNamesToOverrides = new HashMap();
-
-	Properties props =  MPCONFIG().getPropertiesByPrefix(PROP_STYLE_USER_OVERRIDES_PFX);
-	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.user-overrides.xxx subproperties
-	{
-	    String fullKey  = (String) ii.next();
-	    String userProp = fullKey.substring( PROP_STYLE_USER_OVERRIDES_PFX_LEN + 1 ); //expect <username>.<property>, e.g. swaldman.maxPoolSize
-	    int dot_index = userProp.indexOf('.');
-	    if ( dot_index < 0 ) // if there is no dot
-	    {
-		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log(MLevel.WARNING, 
-			       "Bad specification of user-override property '" + fullKey + 
-			       "', propfile key should look like '" + PROP_STYLE_USER_OVERRIDES_PFX + 
-			       ".<user>.<property>'. Ignoring.");
-		continue; 
-	    }
-
-	    String user = userProp.substring( 0, dot_index );
-	    String propName = userProp.substring( dot_index + 1 );
-
-	    HashMap userOverridesMap = (HashMap) userNamesToOverrides.get( user );
-	    if (userOverridesMap == null)
-	    {
-		userOverridesMap = new HashMap();
-		userNamesToOverrides.put( user, userOverridesMap );
-	    }
-	    userOverridesMap.put( propName, props.get( fullKey ) );
-	}
-
-	return userNamesToOverrides;
-    }
-
-    static HashMap findPropStyleExtensionsDefaultConfig()
-    {
-	HashMap extensions = new HashMap();
-
-	Properties props =  MPCONFIG().getPropertiesByPrefix(PROP_STYLE_EXTENSIONS_PFX);
-	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.extensions.xxx subproperties
-	{
-	    String fullKey  = (String) ii.next();
-	    String extensionsKey = fullKey.substring( PROP_STYLE_EXTENSIONS_PFX_LEN + 1 ); 
-	    extensions.put( extensionsKey, props.get( fullKey ) );
-	}
-
-	return extensions;
-    }
-
-
-    static HashMap findPropStyleNamedScopes()
-    { 
-	HashMap namesToNamedScopes = new HashMap();
-
-	Properties props =  MPCONFIG().getPropertiesByPrefix(PROP_STYLE_NAMED_CFG_PFX);
-	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.named-config.xxx subproperties
-	{
-	    String fullKey  = (String) ii.next();
-	    String nameProp = fullKey.substring( PROP_STYLE_NAMED_CFG_PFX_LEN + 1 ); //expect <cfgname>.<property>, e.g. myconfig.maxPoolSize
-	    int dot_index = nameProp.indexOf('.');
-	    if ( dot_index < 0 ) // if there is no dot
-	    {
-		if ( logger.isLoggable( MLevel.WARNING ) )
-		    logger.log(MLevel.WARNING, 
-			       "Bad specification of named config property '" + fullKey + 
-			       "', propfile key should look like '" + PROP_STYLE_NAMED_CFG_PFX + 
-			       ".<cfgname>.<property>' or '" + PROP_STYLE_NAMED_CFG_PFX + ".<cfgname>.user-overrides.<user>.<property>'. Ignoring.");
-		continue; 
-	    }
-
-	    String configName = nameProp.substring( 0, dot_index );
-	    String propName   = nameProp.substring( dot_index + 1 );
-
-	    // System.err.println( "********** " + PROP_STYLE_NAMED_CFG_PFX_LEN + "|" + nameProp + "|" + configName + "|" + propName );
-
-	    NamedScope scope = (NamedScope) namesToNamedScopes.get( configName );
-	    if ( scope == null )
-	    {
-		scope = new NamedScope();
-		namesToNamedScopes.put( configName, scope );
-	    }
-
-	    int second_dot_index = propName.indexOf('.');
-
-	    if ( second_dot_index >= 0 ) //compound property
-	    {
-		if ( propName.startsWith( PROP_STYLE_USER_OVERRIDES_PART ) )
-		{
-		    int third_dot_index = propName.substring( second_dot_index + 1 ).indexOf('.');
-		    if ( third_dot_index < 0 )
-		    {
-			if ( logger.isLoggable( MLevel.WARNING ) )
-			    logger.log( MLevel.WARNING, "Misformatted user-override property; missing user or property name: " + propName );
-		    }
-
-		    String user = propName.substring( second_dot_index + 1, third_dot_index );
-		    String userPropName = propName.substring( third_dot_index + 1 );
-
-		    HashMap userOverridesMap = (HashMap) scope.userNamesToOverrides.get( user );
-		    if (userOverridesMap == null)
-		    {
-			userOverridesMap = new HashMap();
-			scope.userNamesToOverrides.put( user, userOverridesMap );
-		    }
-		    userOverridesMap.put( userPropName, props.get( fullKey ) );
-		}
-		else if ( propName.startsWith( PROP_STYLE_EXTENSIONS_PART ) )
-		{
-		    String extensionsKey = propName.substring( second_dot_index + 1 );
-		    scope.extensions.put( extensionsKey, props.get( fullKey ) );
-		}
-		else
-		{
-		    if ( logger.isLoggable( MLevel.WARNING ) )
-			logger.log( MLevel.WARNING, "Unexpected compound property, ignored: " + propName );
-		}
-	    }
-	    else 
-		scope.props.put( propName, props.get( fullKey ) );
-	}    
-	
-	return namesToNamedScopes;
-    }
+    // static Properties findResourceProperties()
+    // { return MPCONFIG().getPropertiesByResourcePath(PROPS_FILE_RSRC_PATH); }
 
     public static String getUnspecifiedUserProperty( String propKey, String configName )
     {
@@ -791,6 +898,32 @@ public final class C3P0Config
     {
 	this.defaultConfig = defaultConfig;
 	this.configNamesToNamedScopes = configNamesToNamedScopes;
+    }
+
+    public static void debugMain() { MAIN().debug(); }
+
+    public void debug()
+    {
+        System.err.println("defaultConfig:");
+        debugNamedScope( this.defaultConfig );
+        for (Object o : configNamesToNamedScopes.keySet())
+        {
+            System.err.println();
+            System.err.println("namedScope '" + o + "':");
+            debugNamedScope((NamedScope) configNamesToNamedScopes.get(o));
+        }
+    }
+
+    public void debugNamedScope(NamedScope scope)
+    {
+        System.err.println( "props:" );
+        System.err.println( scope.props );
+        System.err.println();
+        System.err.println( "userNamesToOverrides:" );
+        System.err.println( scope.userNamesToOverrides );
+        System.err.println();
+        System.err.println( "extensions:" );
+        System.err.println( scope.extensions );
     }
 
 //     C3P0Config()

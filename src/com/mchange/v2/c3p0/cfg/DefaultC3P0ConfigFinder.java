@@ -4,6 +4,7 @@ import java.io.*;
 import com.mchange.v2.log.*;
 
 import com.mchange.v2.cfg.PropertiesConfig;
+import com.mchange.v2.cfg.MultiPropertiesConfig;
 import com.mchange.v2.cfg.SealedSystemPropertiesBooleanProperty;
 import com.mchange.v2.cfg.SealedSystemPropertiesStringProperty;
 
@@ -39,19 +40,19 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
     {
         // we can hit C3P0Config.getMultiPropertiesConfig(), because the basic MultiPropertiesConfig is
         // independent of and gets built prior to the C3P0Config in whose construction we are particating
-        PropertiesConfig pcfg = C3P0Config.getMultiPropertiesConfig();
+        MultiPropertiesConfig mpcfg = C3P0Config.getMultiPropertiesConfig();
 
 	C3P0Config out;
 
-	HashMap flatDefaults = C3P0ConfigUtils.extractHardcodedC3P0Defaults();
+	HashMap flatDefaults = new HashMap(C3P0ConfigUtils.extractHardcodedC3P0DefaultsStringCoercedOnly());
 
 	// this includes System properties, but we have to check for System properties
 	// again, since we want system properties to override unspecified user, default-config
 	// properties in the XML
-	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources() );
+	flatDefaults.putAll( C3P0ConfigUtils.extractC3P0PropertiesResources(mpcfg) );
 
-	String cfgFile = externalXmlConfigFileForConfig( pcfg );
-	boolean usePermissiveParser = findUsePermissiveParser(pcfg, true);
+	String cfgFile = externalXmlConfigFileForConfig( mpcfg );
+	boolean usePermissiveParser = findUsePermissiveParser(mpcfg, true);
 
 	if (cfgFile == null)
 	    {
@@ -60,7 +61,7 @@ public class DefaultC3P0ConfigFinder implements C3P0ConfigFinder
 		    {
 			insertDefaultsUnderNascentConfig( flatDefaults, xmlConfig );
 			out = xmlConfig;
-			
+
 			mbOverrideWarning("resource", C3P0ConfigXmlUtils.XML_CONFIG_RSRC_PATH);
 		    }
 		else

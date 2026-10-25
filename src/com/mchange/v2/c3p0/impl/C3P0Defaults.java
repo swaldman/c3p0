@@ -130,6 +130,7 @@ public final class C3P0Defaults
     public static int checkoutTimeout()
     { return CHECKOUT_TIMEOUT; }
 
+    /*
     // special case
     private final static String LEGACY_IS_VALID_TIMEOUT_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
     private static boolean _connectionIsValidTimeoutSet     = false; // MT: protected by class' lock
@@ -168,6 +169,10 @@ public final class C3P0Defaults
 	}
 	return _connectionIsValidTimeout;
     }
+    */
+
+    public static synchronized int connectionIsValidTimeout()
+    { return CONNECTION_IS_VALID_TIMEOUT; }
 
     public static int statementCacheNumDeferredCloseThreads()
     { return STATEMENT_CACHE_NUM_DEFERRED_CLOSE_THREADS; }

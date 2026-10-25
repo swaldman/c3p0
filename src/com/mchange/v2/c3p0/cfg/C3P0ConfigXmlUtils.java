@@ -255,6 +255,13 @@ public final class C3P0ConfigXmlUtils
         {
             Element perUserConfigElem = (Element) nl.item(i);
             String userName = perUserConfigElem.getAttribute("user");
+            if (userName == null || userName.length() == 0)
+            {
+                userName = perUserConfigElem.getAttribute("name"); // an example in the manual mistakenly used a "name" attribute. we'll support it if no "user" is present
+                if (userName != null && userName.length() > 0)
+                    logger.warning("Configuration XML contained user-overrides element with a 'name' rather than 'user' attribute. We know what you mean, but it should be 'user': " + LINESEP + perUserConfigElem);
+
+            }
             if (userName != null && userName.length() > 0)
             {
                 HashMap userProps = extractPropertiesFromLevel( perUserConfigElem );
@@ -276,12 +283,15 @@ public final class C3P0ConfigXmlUtils
         for (int i = 0, len = nl.getLength(); i < len; ++i)
         {
             Element extensionsElem = (Element) nl.item(i);
-	    out.putAll( extractPropertiesFromLevel( extensionsElem ) );
+	    out.putAll( extractPropertiesFromLevel( extensionsElem, true ) );
         }
 	return out;
     }
 
     private static HashMap extractPropertiesFromLevel(Element elem)
+    { return extractPropertiesFromLevel( elem, false ); }
+    
+    private static HashMap extractPropertiesFromLevel(Element elem, boolean isExtensionsLevel)
     {
         // System.err.println( "extractPropertiesFromLevel()" );
 
@@ -298,7 +308,20 @@ public final class C3P0ConfigXmlUtils
                 if (propName != null && propName.length() > 0)
                 {
                     String propVal = DomParseUtils.allText(propertyElem, true);
-                    out.put( propName, propVal );
+                    String correctedName;
+                    if (!isExtensionsLevel && propName.startsWith(C3P0ConfigUtils.PROPS_FILE_PROP_PFX) && propName.lastIndexOf('.') == C3P0ConfigUtils.PROPS_FILE_PROP_PFX_LEN - 1) // two-part c3p0.xxx key
+                    {
+                        correctedName = propName.substring(C3P0ConfigUtils.PROPS_FILE_PROP_PFX_LEN);
+                        if (logger.isLoggable(MLevel.WARNING))
+                            logger.log(MLevel.WARNING,
+                                       "In a property element of an XML config, property name '" + propName +
+                                       "' was corrected to '" + correctedName +
+                                       "'. Please don't c3p0-prefix property names in XML-based configuration.");
+
+                    }
+                    else
+                        correctedName = propName;
+                    out.put( correctedName, propVal );
                     //System.err.println( propName + " -> " + propVal );
                 }
                 else
