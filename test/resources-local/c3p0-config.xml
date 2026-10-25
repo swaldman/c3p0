@@ -1,0 +1,20 @@
+<c3p0-config>
+
+  <default-config>
+    <property name="maxPoolSize">30</property>
+    <extensions>
+      <property name="initSql">SET SCHEMA 'default'</property>
+    </extensions>
+  </default-config>
+
+  <named-config name="intergalactoApp">
+    <property name="maxPoolSize">1000</property>
+    <user-overrides user="steve">
+      <property name="maxPoolSize">20</property>
+    </user-overrides>
+    <extensions>
+      <property name="initSql">SET SCHEMA 'intergalacto'</property>
+    </extensions>
+  </named-config>
+
+</c3p0-config>

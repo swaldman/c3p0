@@ -40,8 +40,16 @@ public class ConfigFreezeProbe
      */
     public final static String PROBE_KEY = "com.mchange.v2.c3p0.test.freezeProbe";
 
-    /** And one that is, so the bean-level view is covered too. */
-    public final static String POOL_SIZE_KEY = "c3p0.maxPoolSize";
+    /**
+     *  And one that is, so the bean-level view is covered too.
+     *
+     *  <p>minPoolSize rather than maxPoolSize because test/resources-local/c3p0-config.xml sets
+     *  maxPoolSize, and a pool property declared in c3p0-config.xml beats a programmatic refresh
+     *  override -- deliberately; the finder layers the XML on top of everything else and says so
+     *  ("overrides all other c3p0 config"). So maxPoolSize can no longer show whether a refresh
+     *  landed. Anything the XML does not name still can.</p>
+     */
+    public final static String POOL_SIZE_KEY = "c3p0.minPoolSize";
 
     private final static String REFUSAL = "has been frozen";
 
@@ -239,7 +247,7 @@ public class ConfigFreezeProbe
 
     /** The bean-level view of the same configuration. Hardcoded defaults always answer this. */
     private static String poolSize()
-    { return String.valueOf( C3P0Config.getUnspecifiedUserProperty( "maxPoolSize", null ) ); }
+    { return String.valueOf( C3P0Config.getUnspecifiedUserProperty( "minPoolSize", null ) ); }
 
     private static void answer( String key, int value )
     { ChildJvmProbeRunner.answer( key, value ); }
