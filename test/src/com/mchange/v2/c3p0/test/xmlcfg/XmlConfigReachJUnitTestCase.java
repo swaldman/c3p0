@@ -315,6 +315,76 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
                       "30", a.get( "mpconfigAfter" ) );
     }
 
+    // ------------------------------------------------------------- and the other library that reads it
+
+    /**
+     *  Once fully-qualified keys work in <code>default-config</code>,
+     *  <code>com.mchange.v2.log.*</code> is one of the namespaces a deployment can reach that
+     *  way. So with <code>syncRefreshLogConfig</code> set, log configuration written in
+     *  c3p0-config.xml must arrive in MLog's configuration and not merely in c3p0's -- otherwise
+     *  the compound-key support stops at the library boundary, for the one namespace whose whole
+     *  purpose is to configure something else.
+     *
+     *  <p>The contested key is the assertion that earns its keep. c3p0 documents XML as beating
+     *  programmatic config, so the forwarded XML layer has to go in ABOVE the forwarded
+     *  overrides; forward it below them and every other assertion here still passes. The two
+     *  views are checked against each other as well, since the point is that MLog ends up
+     *  agreeing with c3p0 rather than merely receiving something.</p>
+     *
+     *  <p>Two c3p0 pool properties are reported, and they answer differently, which is worth
+     *  knowing rather than tidying away. Only ONE layer is forwarded, so a hardcoded default
+     *  never travels -- that is the improvement over pushing c3p0's whole resolved config, which
+     *  duplicated resource paths in MLog's source list and left
+     *  <code>C3P0_HARDCODED_DEFAULTS</code> reported as MLog's weakest source. But a pool
+     *  property the XML itself sets DOES travel, because it rides in the same finder-additions
+     *  layer as the log keys. MLog ignores it; it shows up in a config dump. Pinned so that if
+     *  the forwarded layer is ever narrowed to a namespace, the change is deliberate.</p>
+     */
+    public void testLogConfigDeclaredInXmlReachesMLog() throws Exception
+    {
+        Map<String,String> a = probe( "logConfigFromXml",
+                                      "-D" + XmlConfigReachProbe.SYNC_REFRESH_LOG_CONFIG + "=true" );
+
+        assertEquals( "precondition: the sync is enabled", "true", a.get( "syncEnabled" ) );
+
+        assertEquals( "a log key only the XML sets must reach MLog", "from-xml", a.get( "mlogXmlOnly" ) );
+        assertEquals( "and a programmatic override must still reach it too",
+                      "from-override", a.get( "mlogOverrideOnly" ) );
+
+        assertEquals( "precondition: XML beats programmatic config in c3p0, as documented",
+                      "xml-wins", a.get( "c3p0Contested" ) );
+        assertEquals( "so it must beat it in MLog as well -- the forwarded XML layer outranks "
+                          + "the forwarded overrides",
+                      "xml-wins", a.get( "mlogContested" ) );
+
+        assertEquals( "a hardcoded c3p0 default must not travel -- only the finder layer is forwarded",
+                      "null", a.get( "mlogHardcodedDefault" ) );
+        assertEquals( "though a pool property the XML sets does, riding the same forwarded layer",
+                      "47", a.get( "mlogXmlSetPoolProp" ) );
+    }
+
+    /**
+     *  The layer c3p0 forwards to MLog is found by resource-path prefix, so a caller can name an
+     *  override layer with that prefix and offer it as finder-found config. That is the only way
+     *  to reach the "more than one such resource path" warning, which makes the warning testable
+     *  rather than untested defence -- and makes it worth stating what happens: the impostor is
+     *  reported and ignored.
+     *
+     *  <p>It holds because c3p0's own additions layer is combined last and so is last in the
+     *  path list, and the code takes the last such path. Nothing about that is obvious from
+     *  reading it, which is the argument for a test.</p>
+     */
+    public void testAnOverrideNamedLikeTheFinderLayerCannotDisplaceIt() throws Exception
+    {
+        Map<String,String> a = probe( "impostorFinderLayer",
+                                      "-D" + XmlConfigReachProbe.SYNC_REFRESH_LOG_CONFIG + "=true" );
+
+        assertFalse( "the collision must be reported", "0".equals( a.get( "warnings" ) ) );
+        assertEquals( "and c3p0's own view is unaffected", "xml-wins", a.get( "c3p0Contested" ) );
+        assertEquals( "as is what reaches MLog -- the impostor layer is not the one forwarded",
+                      "xml-wins", a.get( "mlogContested" ) );
+    }
+
     // ------------------------------------------------------------- what c3p0 says about all this
 
     /**

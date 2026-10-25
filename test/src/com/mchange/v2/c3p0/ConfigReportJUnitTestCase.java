@@ -176,19 +176,19 @@ public class ConfigReportJUnitTestCase extends TestCase
 
         try ( Capture cap = new Capture( CONFIG_LOGGER ) )
         {
-            C3P0Config.refreshMainConfig( p, "overridesOnly" );
+            C3P0Config.refreshMainConfigWithOverrides( p, "overridesOnly" );
             assertNoticeSays( cap, "overridesOnly", true, false );
         }
 
         try ( Capture cap = new Capture( CONFIG_LOGGER ) )
         {
-            C3P0Config.refreshMainConfig( (Properties) null, null, p, "backstopsOnly" );
+            C3P0Config.refreshMainConfigWithBackstops( p, "backstopsOnly" );
             assertNoticeSays( cap, "backstopsOnly", false, true );
         }
 
         try ( Capture cap = new Capture( CONFIG_LOGGER ) )
         {
-            C3P0Config.refreshMainConfig( p, "bothOverrides", p, "bothBackstops" );
+            C3P0Config.refreshMainConfigWithBackstopsAndOverrides( p, "bothBackstops", p, "bothOverrides" );
             assertNoticeSays( cap, "bothOverrides", true, true );
         }
     }

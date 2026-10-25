@@ -31,7 +31,7 @@ public class ConfigFreezeProbe
 {
     public final static String FREEZE_KEY = "com.mchange.v2.c3p0.freezeConfig";
 
-    public final static String OVERRIDE_REFRESH_LOG_CONFIG = "com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig";
+    public final static String SYNC_REFRESH_LOG_CONFIG = "com.mchange.v2.c3p0.cfg.syncRefreshLogConfig";
 
     /**
      *  Deliberately not a c3p0 property. What a freeze protects is the whole configuration, and
@@ -118,7 +118,7 @@ public class ConfigFreezeProbe
         Properties overrides = new Properties();
         overrides.setProperty( PROBE_KEY, "from-override" );
         overrides.setProperty( POOL_SIZE_KEY, "37" );
-        C3P0Config.refreshMainConfig( overrides, "ConfigFreezeProbe refreshWithOverrides" );
+        C3P0Config.refreshMainConfigWithOverrides( overrides, "ConfigFreezeProbe refreshWithOverrides" );
 
         answer( "probeAfter", probeValue() );
         answer( "poolSizeAfter", poolSize() );
@@ -175,7 +175,7 @@ public class ConfigFreezeProbe
         Properties establish = new Properties();
         establish.setProperty( FREEZE_KEY, "true" );
         establish.setProperty( PROBE_KEY, "first" );
-        C3P0Config.refreshMainConfig( establish, "ConfigFreezeProbe establishes the freeze" );
+        C3P0Config.refreshMainConfigWithOverrides( establish, "ConfigFreezeProbe establishes the freeze" );
 
         answer( "probeAfterEstablishing", probeValue() );
         answer( "refusalsAfterEstablishing", capture.countAtOrAbove( Level.WARNING, REFUSAL ) );
@@ -183,30 +183,36 @@ public class ConfigFreezeProbe
         Properties undo = new Properties();
         undo.setProperty( FREEZE_KEY, "false" );
         undo.setProperty( PROBE_KEY, "second" );
-        C3P0Config.refreshMainConfig( undo, "ConfigFreezeProbe tries to thaw" );
+        C3P0Config.refreshMainConfigWithOverrides( undo, "ConfigFreezeProbe tries to thaw" );
 
         answer( "probeAfterThawAttempt", probeValue() );
         answer( "refusalsAfterThawAttempt", capture.countAtOrAbove( Level.WARNING, REFUSAL ) );
     }
 
     /**
-     *  The composition worth pinning. c3p0 can push its own configuration into MLog's, when
-     *  com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig is set -- and logging configuration
-     *  decides what a running system records about what is happening to it. That push is the last
-     *  thing refreshMainConfig(..) does, so freezing c3p0's configuration closes the route into
-     *  MLog's as well: one flag, not two.
+     *  The composition worth pinning. c3p0 can keep MLog's configuration in step with its own,
+     *  when com.mchange.v2.c3p0.cfg.syncRefreshLogConfig is set -- and logging configuration
+     *  decides what a running system records about what is happening to it. The sync is the last
+     *  thing a refresh does, so freezing c3p0's configuration closes the route into MLog's as
+     *  well: one flag, not two.
      *
      *  <p>Answers the same way whether or not the freeze is set, so the parent can assert both
-     *  halves and the frozen case cannot pass vacuously.</p>
+     *  halves and the frozen case cannot pass vacuously -- which it did when the flag was
+     *  renamed and this probe went on naming the old key: with the sync never enabled, "nothing
+     *  reached MLog" was true for the wrong reason.</p>
      */
     private static void logConfigPropagation()
     {
         touchConfig();
         answer( "reachedMLogBefore", String.valueOf( MLog.getConfigProperty( PROBE_KEY ) ) );
 
+        // Reported so the frozen case can state its own precondition: with the sync disabled,
+        // "nothing reached MLog" is true no matter what the freeze did.
+        answer( "syncEnabled", String.valueOf( System.getProperty( SYNC_REFRESH_LOG_CONFIG ) != null ) );
+
         Properties overrides = new Properties();
         overrides.setProperty( PROBE_KEY, "from-override" );
-        C3P0Config.refreshMainConfig( overrides, "ConfigFreezeProbe logConfigPropagation" );
+        C3P0Config.refreshMainConfigWithOverrides( overrides, "ConfigFreezeProbe logConfigPropagation" );
 
         answer( "probeAfter", probeValue() );
         answer( "reachedMLogAfter", String.valueOf( MLog.getConfigProperty( PROBE_KEY ) ) );

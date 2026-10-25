@@ -47,7 +47,7 @@ import java.util.Map;
 public final class ConfigFreezeJUnitTestCase extends TestCase
 {
     private final static String FREEZE_ON  = "-D" + ConfigFreezeProbe.FREEZE_KEY + "=true";
-    private final static String PUSH_TO_LOG_ON = "-D" + ConfigFreezeProbe.OVERRIDE_REFRESH_LOG_CONFIG + "=true";
+    private final static String SYNC_TO_LOG_ON = "-D" + ConfigFreezeProbe.SYNC_REFRESH_LOG_CONFIG + "=true";
 
     private Map<String,String> probe( String query, String... jvmArgs ) throws Exception
     { return ChildJvmProbeRunner.run( ConfigFreezeProbe.class, query, jvmArgs ); }
@@ -157,12 +157,15 @@ public final class ConfigFreezeJUnitTestCase extends TestCase
      */
     public void testAFrozenConfigCanNoLongerPushConfigIntoMLog() throws Exception
     {
-        Map<String,String> a = probe( "logConfigPropagation", FREEZE_ON, PUSH_TO_LOG_ON );
+        Map<String,String> a = probe( "logConfigPropagation", FREEZE_ON, SYNC_TO_LOG_ON );
 
         assertEquals( "precondition: MLog had not seen the key", "null", a.get( "reachedMLogBefore" ) );
+        assertEquals( "precondition: the sync really is enabled -- otherwise nothing would reach MLog "
+                          + "whatever the freeze did, and this case would pass for the wrong reason",
+                      "true", a.get( "syncEnabled" ) );
         assertEquals( "the refresh itself is refused", "1", a.get( "refusals" ) );
         assertEquals( "so nothing lands in c3p0's config", "null", a.get( "probeAfter" ) );
-        assertEquals( "and nothing is pushed into MLog's", "null", a.get( "reachedMLogAfter" ) );
+        assertEquals( "and nothing reaches MLog's", "null", a.get( "reachedMLogAfter" ) );
     }
 
     /**
@@ -171,7 +174,7 @@ public final class ConfigFreezeJUnitTestCase extends TestCase
      */
     public void testAnUnfrozenConfigStillPushesConfigIntoMLog() throws Exception
     {
-        Map<String,String> a = probe( "logConfigPropagation", PUSH_TO_LOG_ON );
+        Map<String,String> a = probe( "logConfigPropagation", SYNC_TO_LOG_ON );
 
         assertEquals( "precondition: MLog had not seen the key", "null", a.get( "reachedMLogBefore" ) );
         assertEquals( "nothing refused", "0", a.get( "refusals" ) );

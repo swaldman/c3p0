@@ -118,7 +118,7 @@ public class ConfigFinderLatchProbe
 
         Properties overrides = new Properties();
         overrides.setProperty( FINDER_KEY, MARKER );
-        C3P0Config.refreshMainConfig( overrides, "ConfigFinderLatchProbe refreshViaOverrides" );
+        C3P0Config.refreshMainConfigWithOverrides( overrides, "ConfigFinderLatchProbe refreshViaOverrides" );
 
         answer( "markerCallsBefore", before );
         answer( "markerCallsAfter", MarkerC3P0ConfigFinder.calls() );
@@ -144,7 +144,7 @@ public class ConfigFinderLatchProbe
 
         Properties overrides = new Properties();
         overrides.setProperty( "maxPoolSize", "13" );
-        C3P0Config.refreshMainConfig( overrides, "ConfigFinderLatchProbe xmlOverrideWarning" );
+        C3P0Config.refreshMainConfigWithOverrides( overrides, "ConfigFinderLatchProbe xmlOverrideWarning" );
 
         answer( "warnAfterRefresh", capture.countAtOrAbove( Level.WARNING, "overrides all other c3p0 config" ) );
     }

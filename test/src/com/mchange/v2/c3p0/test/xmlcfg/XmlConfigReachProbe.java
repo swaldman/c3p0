@@ -3,6 +3,7 @@ package com.mchange.v2.c3p0.test.xmlcfg;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.test.junit.ChildJvmProbeRunner;
 import com.mchange.v2.cfg.MultiPropertiesConfig;
+import com.mchange.v2.log.MLog;
 import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.reflect.ByNameInstantiationUtils;
@@ -49,6 +50,16 @@ public class XmlConfigReachProbe
 
     public final static String NAMED_CONFIG = "nombre";
 
+    public final static String SYNC_REFRESH_LOG_CONFIG = "com.mchange.v2.c3p0.cfg.syncRefreshLogConfig";
+
+    /** c3p0's internal prefix for the layer reconciliation adds. Not public API; named here to impersonate it. */
+    public final static String FINDER_ADDITIONS_PFX = "C3P0_CONFIG_FINDER_ADDITIONS-";
+
+    /** Log-namespace probe keys. Nothing ships or tests these, so any value is one we put there. */
+    public final static String LOG_XML_ONLY_KEY      = "com.mchange.v2.log.c3p0XmlReachProbe.xmlOnly";
+    public final static String LOG_CONTESTED_KEY     = "com.mchange.v2.log.c3p0XmlReachProbe.contested";
+    public final static String LOG_OVERRIDE_ONLY_KEY = "com.mchange.v2.log.c3p0XmlReachProbe.overrideOnly";
+
     /** Not whitelisted anywhere, so a gated instantiation of it is refused iff we are enforcing. */
     public final static String UNWHITELISTED = "com.mchange.v2.c3p0.test.xmlcfg.NotWhitelistedAnywhere";
 
@@ -92,6 +103,10 @@ public class XmlConfigReachProbe
                 warningsByScope();
             else if ( "refreshOverrideShadowedByXml".equals( query ) )
                 refreshOverrideShadowedByXml();
+            else if ( "logConfigFromXml".equals( query ) )
+                logConfigFromXml();
+            else if ( "impostorFinderLayer".equals( query ) )
+                impostorFinderLayer();
             else
             {
                 System.err.println( "Unknown query '" + query + "'." );
@@ -229,7 +244,7 @@ public class XmlConfigReachProbe
 
         Properties overrides = new Properties();
         overrides.setProperty( "c3p0." + POOL_PROP, "37" );
-        C3P0Config.refreshMainConfig( overrides, "XmlConfigReachProbe freezeFromXml" );
+        C3P0Config.refreshMainConfigWithOverrides( overrides, "XmlConfigReachProbe freezeFromXml" );
 
         ChildJvmProbeRunner.answer( "poolPropAfterRefresh", poolProp( null ) );
         ChildJvmProbeRunner.answer( "refusals", capture.countAtOrAbove( Level.WARNING, REFUSAL ) );
@@ -410,10 +425,93 @@ public class XmlConfigReachProbe
 
         Properties overrides = new Properties();
         overrides.setProperty( "c3p0." + POOL_PROP, "37" );
-        C3P0Config.refreshMainConfig( overrides, "XmlConfigReachProbe refreshOverrideShadowedByXml" );
+        C3P0Config.refreshMainConfigWithOverrides( overrides, "XmlConfigReachProbe refreshOverrideShadowedByXml" );
 
         ChildJvmProbeRunner.answer( "mpconfigAfter", String.valueOf( mpconfig().getProperty( "c3p0." + POOL_PROP ) ) );
         ChildJvmProbeRunner.answer( "beanAfter", String.valueOf( C3P0Config.getUnspecifiedUserProperty( POOL_PROP, null ) ) );
+    }
+
+    /**
+     *  THE OTHER CONSUMER OF A FULLY-QUALIFIED KEY FROM XML: MLog. Once compound keys work in
+     *  <code>default-config</code>, <code>com.mchange.v2.log.*</code> is among the namespaces a
+     *  deployment can reach that way -- so with
+     *  <code>com.mchange.v2.c3p0.cfg.syncRefreshLogConfig</code> set, log configuration written
+     *  in c3p0-config.xml has to arrive in MLog's configuration, not merely in c3p0's.
+     *
+     *  <p>It arrives as a forwarded layer rather than as c3p0's whole resolved config, which is
+     *  what keeps MLog's own source list free of duplicated resource paths. The layer is
+     *  forwarded ABOVE any programmatic overrides, because that is c3p0's documented precedence:
+     *  XML beats programmatic config. So three keys are reported:</p>
+     *
+     *  <ul>
+     *    <li>one only the XML sets -- it must reach MLog at all;</li>
+     *    <li>one both the XML and a programmatic override set -- the XML must win, in MLog
+     *        exactly as in c3p0, or the forwarded layer went in at the wrong precedence;</li>
+     *    <li>one only the override sets -- it must still arrive, so a fix that forwarded the XML
+     *        by dropping the overrides would not pass.</li>
+     *  </ul>
+     *
+     *  <p>And a c3p0 pool property, which must NOT arrive: MLog has no use for
+     *  <code>c3p0.maxPoolSize</code>, and its presence would mean c3p0 had gone back to pushing
+     *  its entire configuration across.</p>
+     */
+    private static void logConfigFromXml() throws Exception
+    {
+        useXml( "<default-config>"
+                    + prop( LOG_XML_ONLY_KEY, "from-xml" )
+                    + prop( LOG_CONTESTED_KEY, "xml-wins" )
+                    + prop( POOL_PROP, "47" )
+                    + "</default-config>" );
+
+        ChildJvmProbeRunner.answer( "syncEnabled",
+                                    String.valueOf( System.getProperty( SYNC_REFRESH_LOG_CONFIG ) != null ) );
+
+        Properties overrides = new Properties();
+        overrides.setProperty( LOG_CONTESTED_KEY, "override-loses" );
+        overrides.setProperty( LOG_OVERRIDE_ONLY_KEY, "from-override" );
+        C3P0Config.refreshMainConfigWithOverrides( overrides, "XmlConfigReachProbe logConfigFromXml" );
+
+        ChildJvmProbeRunner.answer( "c3p0Contested",
+                                    String.valueOf( mpconfig().getProperty( LOG_CONTESTED_KEY ) ) );
+
+        ChildJvmProbeRunner.answer( "mlogXmlOnly", String.valueOf( MLog.getConfigProperty( LOG_XML_ONLY_KEY ) ) );
+        ChildJvmProbeRunner.answer( "mlogContested", String.valueOf( MLog.getConfigProperty( LOG_CONTESTED_KEY ) ) );
+        ChildJvmProbeRunner.answer( "mlogOverrideOnly", String.valueOf( MLog.getConfigProperty( LOG_OVERRIDE_ONLY_KEY ) ) );
+        // Two kinds of c3p0 key, because they arrive by different routes. The one the XML sets
+        // travels inside the forwarded finder-additions layer; a hardcoded default does not
+        // travel at all, since only that one layer is forwarded rather than c3p0's whole config.
+        ChildJvmProbeRunner.answer( "mlogXmlSetPoolProp", String.valueOf( MLog.getConfigProperty( "c3p0." + POOL_PROP ) ) );
+        ChildJvmProbeRunner.answer( "mlogHardcodedDefault", String.valueOf( MLog.getConfigProperty( "c3p0.acquireIncrement" ) ) );
+    }
+
+    /**
+     *  c3p0 finds the layer to forward by RESOURCE-PATH PREFIX, which means a caller can name an
+     *  override layer with that prefix and present it as finder-found config. The branch that
+     *  warns about more than one such path exists for exactly this, and this is the only way to
+     *  reach it -- so it is reachable, and worth pinning rather than leaving as untested defence.
+     *
+     *  <p>What must hold is that the impostor does not win. c3p0's own additions layer is
+     *  combined last, so it is last in the resource-path list, and "the last such path" is c3p0's
+     *  own. A caller who names the prefix gets a warning and no influence over which layer is
+     *  forwarded.</p>
+     */
+    private static void impostorFinderLayer() throws Exception
+    {
+        useXml( "<default-config>" + prop( LOG_CONTESTED_KEY, "xml-wins" ) + "</default-config>" );
+
+        Properties impostorProps = new Properties();
+        impostorProps.setProperty( LOG_CONTESTED_KEY, "impostor-wins" );
+        MultiPropertiesConfig impostor =
+            MultiPropertiesConfig.fromProperties( FINDER_ADDITIONS_PFX + "impostor", impostorProps );
+
+        C3P0Config.refreshMainConfigWithOverrides( impostor, "XmlConfigReachProbe impostorFinderLayer" );
+
+        ChildJvmProbeRunner.answer( "c3p0Contested",
+                                    String.valueOf( mpconfig().getProperty( LOG_CONTESTED_KEY ) ) );
+        ChildJvmProbeRunner.answer( "mlogContested",
+                                    String.valueOf( MLog.getConfigProperty( LOG_CONTESTED_KEY ) ) );
+        ChildJvmProbeRunner.answer( "warnings",
+                                    capture.countAtOrAbove( Level.WARNING, "more than one resource path" ) );
     }
 
     // ------------------------------------------------------------- and what c3p0 says about it

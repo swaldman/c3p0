@@ -47,6 +47,19 @@ public class BackstopConfigJUnitTestCase extends TestCase
     private static String value( String key )
     { return C3P0Config.getMultiPropertiesConfig().getProperty( key ); }
 
+    private static String[] paths()
+    { return C3P0Config.getMultiPropertiesConfig().getPropertiesResourcePaths(); }
+
+    /** Which configuration source a key's winning value came from, or null if nothing set it. */
+    private static String pathSupplying( String key )
+    {
+        String winner = null;
+        for ( String path : paths() ) // in precedence order, later wins
+            if ( C3P0Config.getMultiPropertiesConfig().getPropertiesByResourcePath( path ).getProperty( key ) != null )
+                winner = path;
+        return winner;
+    }
+
     private static Properties props( String key, String value )
     {
         Properties p = new Properties();
@@ -59,10 +72,16 @@ public class BackstopConfigJUnitTestCase extends TestCase
         assertNull( "Precondition: nothing should set " + UNSET_KEY + ", or this test proves nothing.",
                     value( UNSET_KEY ) );
 
-        C3P0Config.refreshMainConfig( (Properties) null, null, props( UNSET_KEY, "fromBackstop" ), "backstop only" );
+        C3P0Config.refreshMainConfigWithBackstops( props( UNSET_KEY, "fromBackstop" ), "backstop only" );
 
         assertEquals( "A backstop must supply a value where nothing else does.",
                       "fromBackstop", value( UNSET_KEY ) );
+
+        // An override would satisfy the assertion above just as well, so on its own it cannot
+        // tell the two layers apart -- which is exactly how a reversed argument order once left
+        // this test green while exercising the wrong one. The resource path can tell them apart.
+        assertEquals( "and must do so AS a backstop: " + Arrays.toString( paths() ),
+                      BACKSTOPS_PATH, pathSupplying( UNSET_KEY ) );
     }
 
     public void testABackstopLosesToTheLibraryConfiguration()
@@ -71,7 +90,7 @@ public class BackstopConfigJUnitTestCase extends TestCase
         assertNotNull( "Precondition: " + LIBRARY_SET_KEY + " should come from /c3p0-default.properties. " +
                        "If this is null the fixture is broken, not the behavior.", configured );
 
-        C3P0Config.refreshMainConfig( (Properties) null, null, props( LIBRARY_SET_KEY, "BACKSTOP_SHOULD_LOSE" ), "losing backstop" );
+        C3P0Config.refreshMainConfigWithBackstops( props( LIBRARY_SET_KEY, "BACKSTOP_SHOULD_LOSE" ), "losing backstop" );
 
         assertEquals( "A backstop must NOT displace a value the configuration already supplies -- " +
                       "that is the whole distinction from an override.",
@@ -80,8 +99,8 @@ public class BackstopConfigJUnitTestCase extends TestCase
 
     public void testOverridesBeatBackstops()
     {
-        C3P0Config.refreshMainConfig( props( UNSET_KEY, "fromOverride" ), "ov",
-                                      props( UNSET_KEY, "fromBackstop" ), "bs" );
+        C3P0Config.refreshMainConfigWithBackstopsAndOverrides( props( UNSET_KEY, "fromBackstop" ), "bs",
+                                                               props( UNSET_KEY, "fromOverride" ), "ov" );
 
         assertEquals( "Where both layers set a key, the override wins.",
                       "fromOverride", value( UNSET_KEY ) );
@@ -91,8 +110,8 @@ public class BackstopConfigJUnitTestCase extends TestCase
     public void testBackstopsAndOverridesComposeRatherThanReplace()
     {
         String otherKey = UNSET_KEY + "2";
-        C3P0Config.refreshMainConfig( props( UNSET_KEY, "fromOverride" ), "ov",
-                                      props( otherKey, "fromBackstop" ), "bs" );
+        C3P0Config.refreshMainConfigWithBackstopsAndOverrides( props( otherKey, "fromBackstop" ), "bs",
+                                                               props( UNSET_KEY, "fromOverride" ), "ov" );
 
         assertEquals( "fromOverride", value( UNSET_KEY ) );
         assertEquals( "Supplying overrides must not suppress the backstops.",
@@ -105,10 +124,10 @@ public class BackstopConfigJUnitTestCase extends TestCase
      */
     public void testOverridesAndBackstopsOccupyDistinctResourcePaths()
     {
-        C3P0Config.refreshMainConfig( props( UNSET_KEY, "fromOverride" ), "ov",
-                                      props( UNSET_KEY, "fromBackstop" ), "bs" );
+        C3P0Config.refreshMainConfigWithBackstopsAndOverrides( props( UNSET_KEY, "fromBackstop" ), "bs",
+                                                               props( UNSET_KEY, "fromOverride" ), "ov" );
 
-        String[] paths = C3P0Config.getMultiPropertiesConfig().getPropertiesResourcePaths();
+        String[] paths = paths();
         String   found = Arrays.toString( paths );
 
         assertTrue( "Programmatic overrides should occupy their own resource path: " + found,
