@@ -407,6 +407,17 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
         assertEquals( "a supported fully-qualified key must draw no warning naming it",
                       "0", a.get( "warningsNamingSupportedKey" ) );
 
+        // Both directions, in all three scopes. The first three are the half this case originally
+        // lacked, and lacking them is how an adder came to warn about every valid per-user pool
+        // property while the suite stayed green: "typos are reported" was asserted, "valid keys are
+        // not" was not, and the two are independent in three separate pieces of code.
+        assertEquals( "a valid pool property in the default scope must draw no warning",
+                      "0", a.get( "warningsNamingDefaultScopeValid" ) );
+        assertEquals( "nor one in a user override",
+                      "0", a.get( "warningsNamingUserOverrideValid" ) );
+        assertEquals( "nor one in a named scope",
+                      "0", a.get( "warningsNamingNamedScopeValid" ) );
+
         assertFalse( "a typo in the default scope must be reported",
                      "0".equals( a.get( "warningsNamingDefaultScopeTypo" ) ) );
         assertFalse( "a typo in a named scope must be reported",

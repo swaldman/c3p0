@@ -532,19 +532,34 @@ public class XmlConfigReachProbe
      */
     private static void warningsByScope() throws Exception
     {
+        // Junk names are deliberately NOT near-misses of the valid ones. warningsNaming(..) is a
+        // substring match, so "maxPoolSiz" as a typo for "maxPoolSize" would make the valid key's
+        // count match the typo's warning and the two assertions could not be told apart.
         useXml( "<default-config>"
                     + prop( ENFORCE_KEY, "true" )
-                    + prop( "maxPoolSiz", "12" )
-                    + "<user-overrides user=\"steve\">" + prop( "minPoolSiz", "9" ) + "</user-overrides>"
+                    + prop( "maxPoolSize", "47" )
+                    + prop( "notAPropertyAtAll", "x" )
+                    + "<user-overrides user=\"steve\">"
+                    +     prop( "minPoolSize", "4" )
+                    +     prop( "alsoNotAProperty", "x" )
+                    + "</user-overrides>"
                     + "</default-config>"
                     + "<named-config name=\"" + NAMED_CONFIG + "\">"
-                    + prop( "acquireIncremen", "7" )
+                    + prop( "acquireIncrement", "7" )
+                    + prop( "stillNotAProperty", "x" )
                     + "</named-config>" );
 
         ChildJvmProbeRunner.answer( "warningsNamingSupportedKey", capture.warningsNaming( ENFORCE_KEY ) );
-        ChildJvmProbeRunner.answer( "warningsNamingDefaultScopeTypo", capture.warningsNaming( "maxPoolSiz" ) );
-        ChildJvmProbeRunner.answer( "warningsNamingUserOverrideTypo", capture.warningsNaming( "minPoolSiz" ) );
-        ChildJvmProbeRunner.answer( "warningsNamingNamedScopeTypo", capture.warningsNaming( "acquireIncremen" ) );
+
+        // valid pool properties, one per scope -- all must be silent
+        ChildJvmProbeRunner.answer( "warningsNamingDefaultScopeValid", capture.warningsNaming( "maxPoolSize" ) );
+        ChildJvmProbeRunner.answer( "warningsNamingUserOverrideValid", capture.warningsNaming( "minPoolSize" ) );
+        ChildJvmProbeRunner.answer( "warningsNamingNamedScopeValid", capture.warningsNaming( "acquireIncrement" ) );
+
+        // and junk, one per scope -- all must be reported
+        ChildJvmProbeRunner.answer( "warningsNamingDefaultScopeTypo", capture.warningsNaming( "notAPropertyAtAll" ) );
+        ChildJvmProbeRunner.answer( "warningsNamingUserOverrideTypo", capture.warningsNaming( "alsoNotAProperty" ) );
+        ChildJvmProbeRunner.answer( "warningsNamingNamedScopeTypo", capture.warningsNaming( "stillNotAProperty" ) );
     }
 
     // ------------------------------------------------------------- plumbing
