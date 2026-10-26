@@ -629,7 +629,7 @@ public final class C3P0Config
             else
             {
                 propsKey = key;
-                if (logger.isLoggable(MLevel.WARNING))
+                if (logger.isLoggable(MLevel.WARNING) &&  !C3P0Defaults.isKnownProperty(key))
                     logger.log(MLevel.WARNING,
                                "Found unexpected (non-compound) key in C3P0Config, in a user-override for user '" + userName +
                                (scopeName == null ? "' of the default scope" : "' of named scope '" + scopeName + "'") +
