@@ -66,18 +66,31 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
      *  the XML's <code>default-config</code>, read back through both views. Whatever else is true,
      *  two views of one body of configuration must not disagree about what is in it.
      */
-    public void testTheTwoViewsOfConfigAgreeAboutWhatTheXmlDeclared() throws Exception
+    /**
+     *  A key declared in XML lands in the one view <b>at its own name</b>, and a fully-qualified
+     *  one is not reachable as a pool property.
+     *
+     *  <p>This case used to be about two views of configuration agreeing. There is one view now,
+     *  so what is left to pin is the shape of it: {@code com.mchange.*} keys mean themselves, and
+     *  {@code getUnspecifiedUserProperty} -- which prefixes what it is given -- cannot see them.
+     *  That asymmetry is the design, not a gap: a pool property is per-DataSource and a
+     *  {@code com.mchange.*} setting is read statically, with no DataSource in hand.</p>
+     */
+    public void testXmlDeclaredKeysLandAtTheirOwnNamesInTheOneView() throws Exception
     {
         Map<String,String> a = probe( "twoViews" );
 
         assertEquals( "precondition: the XML was read at all", "47", a.get( "poolViaDefaultConfig" ) );
-        assertEquals( "precondition: and so were its non-pool keys", "true", a.get( "securityViaDefaultConfig" ) );
-        assertEquals( "precondition: all of them", "17", a.get( "legacyViaDefaultConfig" ) );
+        assertEquals( "a pool property is also visible under its c3p0. spelling",
+                      "47", a.get( "poolViaMpconfigPrefixed" ) );
 
-        assertEquals( "a security control declared in XML must be visible to the config every reader of it consults",
+        assertEquals( "a security control declared in XML must be visible to every reader that consults the config",
                       "true", a.get( "securityViaMpconfig" ) );
-        assertEquals( "and so must an ordinary non-pool key",
-                      "17", a.get( "legacyViaMpconfig" ) );
+        assertEquals( "and so must an ordinary non-pool key", "17", a.get( "legacyViaMpconfig" ) );
+
+        assertEquals( "but a fully-qualified key is NOT a pool property, and must not be reachable as one",
+                      "null", a.get( "securityViaDefaultConfig" ) );
+        assertEquals( "nor this one", "null", a.get( "legacyViaDefaultConfig" ) );
     }
 
     /**
@@ -208,16 +221,37 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
      *  and is the same bug as the rest: the XML asks for the NARROWER setting and is still
      *  ignored.</p>
      */
-    public void testXmlCannotLoosenWhatASystemPropertyNarrowedButCanNarrowFurther() throws Exception
+    /**
+     *  A sealed System property outranks XML <b>in both directions</b>. CHANGED in 0.15.0.
+     *
+     *  <p>0.14.x honored an XML file that asked to <i>narrow</i> a security control the operator
+     *  had left loose: the XML-derived value sat in one representation and the System property in
+     *  another, and {@code SealedSystemPropertiesBooleanProperty}'s {@code strongest} arbitration
+     *  picked the safer of the two. With one view, precedence resolves before arbitration sees
+     *  anything, so the System property simply wins.</p>
+     *
+     *  <p>That is the invariant we want, and the simpler one to state: a sealed System property
+     *  wins, full stop. {@code -D...enforceWhitelist=true} brooks no exceptions, which was always
+     *  the intent -- arranging it under the old layering would have meant re-layering System
+     *  properties over whatever a C3P0ConfigFinder returned, and there was then no sealed variant
+     *  to re-layer. What changes is the loosening direction: an operator who sets a control to
+     *  false now gets false, where before an XML file could raise it.</p>
+     */
+    public void testASealedSystemPropertyOutranksXmlInBothDirections() throws Exception
     {
         Map<String,String> a = probe( "systemPropertyNarrowsOverXml",
                                       "-D" + XmlConfigReachProbe.ACCEPT_DESER_KEY + "=false",
                                       "-D" + XmlConfigReachProbe.ENFORCE_KEY + "=false" );
 
+        assertEquals( "the literal key spellings in the probe must still match their constants",
+                      "true", a.get( "enforceKeySpellingMatches" ) );
+        assertEquals( "the literal key spellings in the probe must still match their constants",
+                      "true", a.get( "acceptDeserKeySpellingMatches" ) );
+
         assertEquals( "an operator's refusal must stand against an XML file asking to relax it",
                       "false", a.get( "accepting" ) );
-        assertEquals( "but XML asking for the narrower setting must still be honored",
-                      "true", a.get( "enforcing" ) );
+        assertEquals( "and must stand equally against one asking to tighten it, which 0.14.x honored",
+                      "false", a.get( "enforcing" ) );
     }
 
     // ------------------------------------------------------------- the same divergence, by spelling
@@ -303,16 +337,24 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
      *  does enter the properties view on its way in, so without reconciliation on the way out that
      *  view would be left reporting 37 while the pool ran with 30. It used to. Now both say 30.</p>
      */
-    public void testBothViewsAgreeAfterARefreshWhoseOverrideTheXmlShadows() throws Exception
+    /**
+     *  A programmatic refresh override now <b>beats</b> c3p0-config.xml. CHANGED in 0.15.0.
+     *
+     *  <p>0.14.x put XML on top of everything -- {@code insertDefaultsUnderNascentConfig}, and
+     *  {@code mbOverrideWarning} promising it "overrides all other c3p0 config". Read as an
+     *  ordinary properties layer, XML now sits where its position in the source list puts it:
+     *  below programmatic overrides, and below System properties. Both readings must agree about
+     *  that, which is the part this case still has to assert.</p>
+     */
+    public void testARefreshOverrideNowOutranksXml() throws Exception
     {
         Map<String,String> a = probe( "refreshOverrideShadowedByXml" );
 
         assertEquals( "precondition: the XML value is in force to begin with", "30", a.get( "mpconfigBefore" ) );
         assertEquals( "30", a.get( "beanBefore" ) );
 
-        assertEquals( "the bean view keeps the XML value, as documented", "30", a.get( "beanAfter" ) );
-        assertEquals( "and the properties view must not be left reporting the discarded override",
-                      "30", a.get( "mpconfigAfter" ) );
+        assertEquals( "the override wins, where in 0.14.x the XML did", "37", a.get( "mpconfigAfter" ) );
+        assertEquals( "and the pool-property reading must agree with it", "37", a.get( "beanAfter" ) );
     }
 
     // ------------------------------------------------------------- and the other library that reads it
@@ -351,56 +393,62 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
         assertEquals( "and a programmatic override must still reach it too",
                       "from-override", a.get( "mlogOverrideOnly" ) );
 
-        assertEquals( "precondition: XML beats programmatic config in c3p0, as documented",
-                      "xml-wins", a.get( "c3p0Contested" ) );
-        assertEquals( "so it must beat it in MLog as well -- the forwarded XML layer outranks "
-                          + "the forwarded overrides",
-                      "xml-wins", a.get( "mlogContested" ) );
+        // CHANGED in 0.15.0: the override wins, in c3p0 and so in MLog. What this case is really
+        // for is that the two agree -- a key contested between XML and an override must not
+        // resolve one way for c3p0 and the other way for logging.
+        assertEquals( "the override beats XML in c3p0, where in 0.14.x the XML won",
+                      "override-wins", a.get( "c3p0Contested" ) );
+        assertEquals( "and MLog must resolve it the same way c3p0 did",
+                      "override-wins", a.get( "mlogContested" ) );
 
-        assertEquals( "a hardcoded c3p0 default must not travel -- only the finder layer is forwarded",
+        assertEquals( "a hardcoded c3p0 default must not travel into MLog's configuration",
                       "null", a.get( "mlogHardcodedDefault" ) );
-        assertEquals( "though a pool property the XML sets does, riding the same forwarded layer",
+        assertEquals( "though a pool property the XML sets does, since MLog reads the same resources",
                       "47", a.get( "mlogXmlSetPoolProp" ) );
     }
 
     /**
-     *  The layer c3p0 forwards to MLog is found by resource-path prefix, so a caller can name an
-     *  override layer with that prefix and offer it as finder-found config. That is the only way
-     *  to reach the "more than one such resource path" warning, which makes the warning testable
-     *  rather than untested defence -- and makes it worth stating what happens: the impostor is
-     *  reported and ignored.
+     *  Two c3p0-xml: sources both contributing should be announced once. RED pending the
+     *  C3P0Config change.
      *
-     *  <p>It holds because c3p0's own additions layer is combined last and so is last in the
-     *  path list, and the code takes the last such path. Nothing about that is obvious from
-     *  reading it, which is the argument for a test.</p>
+     *  <p>Under 0.14.x there was no point having both a classpath {@code /c3p0-config.xml} and a
+     *  file named by {@code com.mchange.v2.c3p0.cfg.xml}: only one was ever read. Both are read
+     *  now, the named file winning per key. That is a supported configuration and the warning is
+     *  meant to be temporary -- it is for the deployment that added the System property and
+     *  forgot to remove the resource, which used to get one file and now gets a merge.</p>
      */
-    public void testAnOverrideNamedLikeTheFinderLayerCannotDisplaceIt() throws Exception
+    public void testMoreThanOneXmlSourceIsAnnounced() throws Exception
     {
-        Map<String,String> a = probe( "impostorFinderLayer",
-                                      "-D" + XmlConfigReachProbe.SYNC_REFRESH_LOG_CONFIG + "=true" );
+        Map<String,String> a = probe( "xmlSourceCount" );
 
-        assertFalse( "the collision must be reported", "0".equals( a.get( "warnings" ) ) );
-        assertEquals( "and c3p0's own view is unaffected", "xml-wins", a.get( "c3p0Contested" ) );
-        assertEquals( "as is what reaches MLog -- the impostor layer is not the one forwarded",
-                      "xml-wins", a.get( "mlogContested" ) );
+        assertEquals( "precondition: the test classpath supplies a c3p0-config.xml and the probe " +
+                      "supplies a file, so two sources contributed",
+                      "2", a.get( "xmlSourcesRead" ) );
+        assertEquals( "precondition: the named file still wins per key", "47", a.get( "poolProp" ) );
+
+        assertEquals( "two XML sources should draw exactly one warning", 1,
+                      Integer.parseInt( a.get( "warningsNamingMultipleXml" ) ) );
     }
+
 
     // ------------------------------------------------------------- what c3p0 says about all this
 
     /**
-     *  Reconciliation is now the only channel that comments on config keys --
-     *  warnOnUnknownProperties(..) is gone, and it was the thing calling a supported
-     *  fully-qualified key "Unknown c3p0-config property", three times over, for a configuration
-     *  that works. So the supported case must now be silent.
+     *  A misspelled pool property must be reported, and a supported fully-qualified key must not
+     *  be. RED pending the C3P0Config change.
      *
-     *  <p>And the dubious case must not be. A misspelled pool property is the diagnostic's whole
-     *  reason to exist: the operator's setting does nothing, and only c3p0 is in a position to
-     *  say so. PARTLY FAILS TODAY -- the default and named scopes report it, a user override does
-     *  not, which is the one piece of warnOnUnknownProperties' coverage that was not replaced.
-     *  Silence in one scope and not another is worse than silence everywhere, because an operator
-     *  who has seen the warning fire for a sibling key reads its absence as confirmation.</p>
+     *  <p>The reconciler that used to say this is gone with the second representation, and the
+     *  c3p0-xml: source cannot replace it: living in mchange-commons-java, it has no list of
+     *  c3p0's configurable properties to check a name against, so it can only comment on shape.
+     *  Only C3P0Config has both the loaded configuration and C3P0Defaults, which is where the
+     *  check belongs -- after a load or a refresh.</p>
+     *
+     *  <p>The misspelling is the diagnostic's whole reason to exist: the operator's setting does
+     *  nothing, and only c3p0 is in a position to say so. All three scopes matter, because
+     *  silence in one and not another is worse than silence everywhere -- an operator who has
+     *  seen the warning fire for a sibling key reads its absence as confirmation.</p>
      */
-    public void testReconciliationIsQuietAboutSupportedKeysAndNotAboutTypos() throws Exception
+    public void testUnknownKeysAreReportedAndSupportedOnesAreNot() throws Exception
     {
         Map<String,String> a = probe( "warningsByScope" );
 

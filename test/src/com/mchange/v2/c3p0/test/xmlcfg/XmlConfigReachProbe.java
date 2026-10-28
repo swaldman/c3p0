@@ -41,8 +41,25 @@ public class XmlConfigReachProbe
 {
     public final static String XML_CFG_KEY   = "com.mchange.v2.c3p0.cfg.xml";
     public final static String FREEZE_KEY    = "com.mchange.v2.c3p0.freezeConfig";
-    public final static String ENFORCE_KEY   = ByNameInstantiationUtils.ENFORCE_WHITELIST_KEY;
-    public final static String ACCEPT_DESER_KEY = SecurityConfigKey.ACCEPT_DESERIALIZED_INITIAL_CONTEXT_ENVIRONMENT;
+    /*
+     *  SPELLED OUT, not read from the constants that define them, and that is load-bearing.
+     *
+     *  Reading ByNameInstantiationUtils.ENFORCE_WHITELIST_KEY or
+     *  SecurityConfigKey.ACCEPT_DESERIALIZED_INITIAL_CONTEXT_ENVIRONMENT initializes those
+     *  classes, which loads configuration, which SEALS the System properties snapshot. In a
+     *  static field initializer that happens before main() runs -- and so before useXml(..) can
+     *  point c3p0 at the file it just wrote. The seal would then hold no
+     *  com.mchange.v2.c3p0.cfg.xml, the identifier c3p0-xml:file:${com.mchange.v2.c3p0.cfg.xml}
+     *  would resolve to nothing, and every case here would silently read whatever
+     *  c3p0-config.xml happens to be on the test classpath instead of its own.
+     *
+     *  That is not a quirk of this probe. It is the behaviour: as of 0.15.0 the XML location is
+     *  resolved from the sealed snapshot, so it has to be set before anything seals -- in
+     *  practice, as a -D. 0.14.x read it from loaded configuration at c3p0's own load time, which
+     *  was later and more forgiving. assertKeySpellingsStillMatch() keeps these literals honest.
+     */
+    public final static String ENFORCE_KEY      = "com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist";
+    public final static String ACCEPT_DESER_KEY = "com.mchange.v2.naming.acceptDeserializedInitialContextEnvironment";
     public final static String LEGACY_TIMEOUT_KEY = "com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout";
 
     /** A plain pool property, so the cases can show the existing XML path still works. */
@@ -101,17 +118,20 @@ public class XmlConfigReachProbe
                 extensionsKeysArePreserved();
             else if ( "warningsByScope".equals( query ) )
                 warningsByScope();
+            else if ( "xmlSourceCount".equals( query ) )
+                xmlSourceCount();
             else if ( "refreshOverrideShadowedByXml".equals( query ) )
                 refreshOverrideShadowedByXml();
             else if ( "logConfigFromXml".equals( query ) )
                 logConfigFromXml();
-            else if ( "impostorFinderLayer".equals( query ) )
-                impostorFinderLayer();
             else
             {
                 System.err.println( "Unknown query '" + query + "'." );
                 System.exit( 2 );
             }
+
+            // late, when initializing these classes can no longer seal anything early
+            assertKeySpellingsStillMatch();
         }
         catch ( Throwable t )
         {
@@ -394,15 +414,18 @@ public class XmlConfigReachProbe
      */
     private static void extensionsKeysArePreserved() throws Exception
     {
+        // Names nothing else can supply. An external XML file no longer REPLACES a
+        // /c3p0-config.xml on the classpath -- it layers over it -- so a probe that used
+        // 'initSql' would read the test classpath's value and call it its own.
         useXml( "<default-config><extensions>"
-                    + prop( "c3p0.initSql", "SET SCHEMA 'prefixed'" )
-                    + prop( "plainKey", "plainValue" )
+                    + prop( "c3p0.probeInitSql", "SET SCHEMA 'prefixed'" )
+                    + prop( "probePlainKey", "plainValue" )
                     + "</extensions></default-config>" );
 
         Map extensions = C3P0Config.getExtensions( null );
-        ChildJvmProbeRunner.answer( "prefixedKey", String.valueOf( extensions.get( "c3p0.initSql" ) ) );
-        ChildJvmProbeRunner.answer( "correctedAwayTo", String.valueOf( extensions.get( "initSql" ) ) );
-        ChildJvmProbeRunner.answer( "plainKey", String.valueOf( extensions.get( "plainKey" ) ) );
+        ChildJvmProbeRunner.answer( "prefixedKey", String.valueOf( extensions.get( "c3p0.probeInitSql" ) ) );
+        ChildJvmProbeRunner.answer( "correctedAwayTo", String.valueOf( extensions.get( "probeInitSql" ) ) );
+        ChildJvmProbeRunner.answer( "plainKey", String.valueOf( extensions.get( "probePlainKey" ) ) );
     }
 
     /**
@@ -467,7 +490,7 @@ public class XmlConfigReachProbe
                                     String.valueOf( System.getProperty( SYNC_REFRESH_LOG_CONFIG ) != null ) );
 
         Properties overrides = new Properties();
-        overrides.setProperty( LOG_CONTESTED_KEY, "override-loses" );
+        overrides.setProperty( LOG_CONTESTED_KEY, "override-wins" );   // and it does, as of 0.15.0
         overrides.setProperty( LOG_OVERRIDE_ONLY_KEY, "from-override" );
         C3P0Config.refreshMainConfigWithOverrides( overrides, "XmlConfigReachProbe logConfigFromXml" );
 
@@ -478,8 +501,9 @@ public class XmlConfigReachProbe
         ChildJvmProbeRunner.answer( "mlogContested", String.valueOf( MLog.getConfigProperty( LOG_CONTESTED_KEY ) ) );
         ChildJvmProbeRunner.answer( "mlogOverrideOnly", String.valueOf( MLog.getConfigProperty( LOG_OVERRIDE_ONLY_KEY ) ) );
         // Two kinds of c3p0 key, because they arrive by different routes. The one the XML sets
-        // travels inside the forwarded finder-additions layer; a hardcoded default does not
-        // travel at all, since only that one layer is forwarded rather than c3p0's whole config.
+        // reaches MLog because MLog reads the same shared resource list c3p0 does -- not because
+        // anything is forwarded. A hardcoded c3p0 default is not in that list and so does not
+        // travel: it is c3p0's, and MLog has no business with it.
         ChildJvmProbeRunner.answer( "mlogXmlSetPoolProp", String.valueOf( MLog.getConfigProperty( "c3p0." + POOL_PROP ) ) );
         ChildJvmProbeRunner.answer( "mlogHardcodedDefault", String.valueOf( MLog.getConfigProperty( "c3p0.acquireIncrement" ) ) );
     }
@@ -495,41 +519,30 @@ public class XmlConfigReachProbe
      *  own. A caller who names the prefix gets a warning and no influence over which layer is
      *  forwarded.</p>
      */
-    private static void impostorFinderLayer() throws Exception
+    /**
+     *  How many c3p0-xml: sources actually contributed, and whether that was announced.
+     *
+     *  <p>Under 0.14.x there was no point having both a classpath /c3p0-config.xml and a
+     *  separately named file: only one was ever read. Both are read now, the named file winning
+     *  per key, which is a supported configuration -- but a deployment that added the System
+     *  property and forgot to remove the resource used to get one file and now gets a merge, so
+     *  it is worth saying so once. The test environment supplies a classpath c3p0-config.xml, so
+     *  this query has two sources without arranging anything.</p>
+     */
+    private static void xmlSourceCount() throws Exception
     {
-        useXml( "<default-config>" + prop( LOG_CONTESTED_KEY, "xml-wins" ) + "</default-config>" );
+        useXml( "<default-config>" + prop( POOL_PROP, "47" ) + "</default-config>" );
 
-        Properties impostorProps = new Properties();
-        impostorProps.setProperty( LOG_CONTESTED_KEY, "impostor-wins" );
-        MultiPropertiesConfig impostor =
-            MultiPropertiesConfig.fromProperties( FINDER_ADDITIONS_PFX + "impostor", impostorProps );
+        int read = 0;
+        for ( String path : mpconfig().getPropertiesResourcePaths() )
+            if ( path.startsWith( "c3p0-xml:" ) && mpconfig().wasRead( path ) ) ++read;
 
-        C3P0Config.refreshMainConfigWithOverrides( impostor, "XmlConfigReachProbe impostorFinderLayer" );
-
-        ChildJvmProbeRunner.answer( "c3p0Contested",
-                                    String.valueOf( mpconfig().getProperty( LOG_CONTESTED_KEY ) ) );
-        ChildJvmProbeRunner.answer( "mlogContested",
-                                    String.valueOf( MLog.getConfigProperty( LOG_CONTESTED_KEY ) ) );
-        ChildJvmProbeRunner.answer( "warnings",
-                                    capture.countAtOrAbove( Level.WARNING, "more than one resource path" ) );
+        ChildJvmProbeRunner.answer( "xmlSourcesRead", read );
+        ChildJvmProbeRunner.answer( "poolProp", String.valueOf( mpconfig().getProperty( "c3p0." + POOL_PROP ) ) );
+        ChildJvmProbeRunner.answer( "warningsNamingMultipleXml",
+                                    capture.countAtOrAbove( Level.WARNING, "more than one" ) );
     }
 
-    // ------------------------------------------------------------- and what c3p0 says about it
-
-    /**
-     *  What reconciliation warns about, now that it is the only channel. Three keys, all declared
-     *  in XML:
-     *
-     *  <ul>
-     *    <li>A supported fully-qualified key in <code>default-config</code>. This is what the
-     *        whole change exists to enable, so it must draw NOTHING. It used to draw two
-     *        warnings, one of which called it unexpected.</li>
-     *    <li>A misspelled pool property, in each of the three scopes that hold pool properties.
-     *        Each must draw something: an operator whose setting does nothing is the person this
-     *        diagnostic exists for, and silence in one scope but not another is worse than
-     *        silence everywhere, because it reads as confirmation.</li>
-     *  </ul>
-     */
     private static void warningsByScope() throws Exception
     {
         // Junk names are deliberately NOT near-misses of the valid ones. warningsNaming(..) is a
@@ -583,6 +596,20 @@ public class XmlConfigReachProbe
 
         // and only now
         mpconfig();
+    }
+
+    /**
+     *  Called AFTER configuration has loaded, when initializing these classes can no longer
+     *  seal anything prematurely. If a constant is ever renamed or respelled, the literals above
+     *  go stale silently -- every case would still pass, testing a key nothing reads. This is
+     *  what stops that.
+     */
+    private static void assertKeySpellingsStillMatch()
+    {
+        ChildJvmProbeRunner.answer( "enforceKeySpellingMatches",
+            String.valueOf( ENFORCE_KEY.equals( ByNameInstantiationUtils.ENFORCE_WHITELIST_KEY ) ) );
+        ChildJvmProbeRunner.answer( "acceptDeserKeySpellingMatches",
+            String.valueOf( ACCEPT_DESER_KEY.equals( SecurityConfigKey.ACCEPT_DESERIALIZED_INITIAL_CONTEXT_ENVIRONMENT ) ) );
     }
 
     private static String prop( String name, String value )
