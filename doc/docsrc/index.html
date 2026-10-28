@@ -300,6 +300,7 @@
 	<li>API docs for c3p0 are <a href="apidocs/index.html">here</a>.</li>
 	<li>Looking for the definition of <a href="#configuration_properties">configuration properties</a>?</li>
 	<li>Looking for advice in <a href="#hibernate-specific">using c3p0 with hibernate</a>?</li>
+	<li>Jump to <a href="#contents">Table of Contents</a>?</li>
       </ul>
       <ul class="pointerlist">
 	<li>Follow or fork <a href="https://github.com/swaldman/c3p0">c3p0 on GitHub</a>.</li>
@@ -435,12 +436,16 @@
 	    <ul class="box">
 	      <li><a href="#inspecting_security_configuration">Box: Inspecting security configuration </a></li>
 	    </ul>
+	    <ul class="box">
+	      <li><a href="#affirmative_security_configuration">Box: Affirmative security configuration </a></li>
+	    </ul>
           </li>
 	  <li><a href="#named_configurations">Named configurations</a></li>
 	  <li><a href="#per-user_configurations">Per-user configurations</a></li>
 	  <li><a href="#user_extensions_to_configurations">User extensions to configuration</a></li>
 	  <li><a href="#mixing_named_per-user_extensions">Mixing named, per-user, and user-defined configuration extensions</a></li>
           <li><a href="#augmenting_and_refreshing_configuration">Augmenting and Refreshing Configuration</a></li>
+          <li><a href="#freezing_configuration">Freezing Configuration</a></li>
 	</ol>
       </li>
       <li><a href="#performance">Performance</a></li>
@@ -2048,15 +2053,25 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         upon application start and not modified before <tt>com.mchange.v2.cfg.SealedSystemProperties.seal()</tt> is called
         (explicitly or more usually implicitly) become immutable in c3p0's configuration, even if an application later tries to refresh the config.
         (This is only circumventable if, very unusually, you install your own custom, undocumented, deprecated <tt>C3P0ConfigFinder</tt> at
-        application start-up that does not honor sealed system properties). Note, however, that properties are only "sealed" if they are actually
+        application start-up that does not honor sealed system properties).
+        Note, however, that properties are only "sealed" if they are actually
         present. Properties for which <tt>System.getProperty(...)</tt> yields null are considered unset, and so are not sealed.
+      </p>
+      <p>
+        Even for unsealed values, however, c3p0 does not draw configuration from "live" System properties. It only consults its own
+        configuration, which includes its own snapshot of System properties from when the configuration was initially loaded or last reloaded.
+        Changes to "live" system properties can only affect c3p0 if an application also thereafter <a href="#augmenting_and_refreshing_configuration">refreshes</a>
+        its configuration. You can render your deployment immune from changes to System properties by <a href="#freezing_configuration">freezing your configuration</a>.
+      </p>
+      <p>
+        <b><i>The default value of most security-sensitive properties is restrictive. Most applications should not change these properties from their defaults!</i></b>
+      </p>
+      <p>
+        (But there are a few <a href="#affirmative_security_configuration">exceptions</a>!)
       </p>
       <p>
         The following properties can be configured as System properties, in <a href="#c3p0_properties"><tt>c3p0.properties</tt></a>, or
         in <a href="#c3p0_conf">HOCON</a> configuration files.
-      </p>
-      <p>
-        <b><i>Most applications should not change these properties from their restrictive defaults!</i></b>
       </p>
       <h4>
 	<a name="configuring_security_boolean_properties">Boolean properties</a>
@@ -2431,6 +2446,90 @@ Security status:
     ReferenceableJavaBeanClass whitelist: [com.mchange.v2.c3p0.DriverManagerDataSource, com.mchange.v2.c3p0.test.AlwaysFailDataSource, com.mchange.v2.c3p0.JndiRefConnectionPoolDataSource, com.mchange.v2.c3p0.JndiRefForwardingDataSource, com.mchange.v2.c3p0.debug.CloseLoggingComboPooledDataSource, com.mchange.v2.c3p0.test.FreezableDriverManagerDataSource, com.mchange.v2.c3p0.PoolBackedDataSource, com.mchange.v2.c3p0.debug.ConstructionLoggingComboPooledDataSource, com.mchange.v2.c3p0.WrapperConnectionPoolDataSource, com.mchange.v2.c3p0.debug.AfterCloseLoggingComboPooledDataSource, com.mchange.v2.c3p0.ComboPooledDataSource] (computed from keys: [com.mchange.v2.naming.referenceableJavaBeanClass.whitelist.c3p0-test, com.mchange.v2.naming.referenceableJavaBeanClass.whitelist.c3p0-internal])
     SecurelyStringifiable whitelist: [com.mchange.v2.c3p0.impl.AuthMaskingProperties, com.mchange.v2.c3p0.DriverManagerDataSource, com.mchange.v2.c3p0.JndiRefForwardingDataSource, com.mchange.v2.c3p0.PoolBackedDataSource, com.mchange.v2.c3p0.WrapperConnectionPoolDataSource] (computed from keys: [com.mchange.v2.naming.securelyStringifiable.whitelist.c3p0-internal]) 
         </div>
+      </div>
+      <div class="boxed">
+	<a name="affirmative_security_configuration"></a>
+	<h4>Affirmative security configuration</h4>
+        <p>
+          Generally, c3p0 defaults to secure values for its settings. Configuration provides options to loosen security constraints,
+          in exchange for enhanced functionality.
+        </p>
+        <p>
+          However, a very few properties can be made more secure with affirmative, non-default settings.
+        </p>
+        <dl class="log_properties">
+	  <dt><a href="#com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist">com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist</a></dt>
+	  <dd>
+	    <div class="propdesc">
+              <p><b><i>default is false, more secure setting is true</i></b></p>
+              <p>
+                Because it would be disruptive to existing applications <tt>com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist</tt>, as of c3p0 version 0.15.0,
+                the by-name-instantiation whitelist is not enforced by default, because this would be disruptive to applcations that define their own
+                <tt>ConnectionCustomizer</tt>, <tt>ConnectionTester</tt>, or <tt>TaskRunnerFactory</tt> implementations. By default, as of version 0.15.0, the whitelist
+                merely warns where it would, and really should, refuse an instantiation.
+              </p>
+              <p>
+                Deployments are encouraged to add the fully-qualified classnames of any custom <tt>ConnectionCustomizer</tt>, <tt>ConnectionTester</tt>, or <tt>TaskRunnerFactory</tt>
+                classes they have defined, and add them to the existing whitelist. Set <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist</tt> or any subkey to a comma-separated
+                list of fully-qualified classnames. (You don't have to worry about c3p0's built-in implementations of these interfaces. They are already whitelisted under the subkeys
+                <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-internal</tt> and <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-loom-internal</tt>.)
+              </p>
+              <p>
+                Once you have added your custom implementations to the whitelist, or if your application uses no custom implementations, set <tt>com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist=true</tt>,
+                in order to prevent maliciously constructed seralized <tt>DataSource</tt>s or instances of <tt>javax.naming.Reference</tt> from provoking potentially mischievous
+                invocations of static initializers and no-arg constructors on your application's <tt>CLASSPATH</tt>.
+              </p>
+	    </div>
+	  </dd>
+	  <dt><a href="#com.mchange.v2.c3p0.freezeConfig">com.mchange.v2.c3p0.freezeConfig</a></dt>
+	  <dd>
+	    <div class="propdesc">
+              <p><b><i>default is false, more secure setting is true</i></b></p>
+              <p>
+                c3p0's configuration can be <a href="augmenting_and_refreshing_configuration">refreshed and augmented at runtime</a>.
+                Many applications do not need this functionality, and since much of c3p0's security is based on configuration settings,
+                the possibility of altering those settings presents a potential attack surface.
+              </p>
+              <p>
+                If your application does not need or use this functionality (that is, if it never calls a <tt>C3P0Config.refreshMainConfigXXX(...)</tt>
+                method, it is safest to simply disable this feature.
+              </p>
+              <p>
+                Most applications that <i>do</i> update config do so only upon application initialization, in order to augment c3p0's default
+                configuration sources. In this case, deployments should update this setting to <tt>true</tt> in the same refresh where
+                they perform their final augmentation, so that beyond this early initialization, c3p0's config is fixed. See <a href="#augment-example">an example</a>.
+              </p>
+              <p><b><i>
+                    Nearly always you will want to update this parameter along with <tt><a href="#com.mchange.v2.log.freezeConfig">com.mchange.v2.log.freezeConfig</a></tt>,
+                    which has the same effect on mlog library to which c3p0 logs.
+              </i></b></p>
+            </div>
+          </dd>
+	  <dt><a href="#com.mchange.v2.log.freezeConfig">com.mchange.v2.log.freezeConfig</a></dt>
+	  <dd>
+	    <div class="propdesc">
+              <p><b><i>default is false, more secure setting is true</i></b></p>
+              <p>
+                c3p0's configuration can be <a href="augmenting_and_refreshing_configuration">refreshed and augmented at runtime</a>.
+                Many applications do not need this functionality, and since much of c3p0's security is based on configuration settings,
+                the possibility of altering those settings presents a potential attack surface.
+              </p>
+              <p>
+                If your application does not need or use this functionality (that is, if it never calls a <tt>C3P0Config.refreshMainConfigXXX(...)</tt>
+                method or an <tt>MLog.refreshConfigXXX(...)</tt> method, it is safest to simply disable this feature.
+              </p>
+              <p>
+                Most applications that <i>do</i> update config do so only upon application initialization, in order to augment c3p0's default
+                configuration sources. In this case, deployments should update this setting to <tt>true</tt> in the same refresh where
+                they perform their final augmentation, so that beyond this early initialization, mlog's config is fixed. See <a href="#augment-example">an example</a>.
+              </p>
+              <p><b><i>
+                    Nearly always you will want to update this parameter along with <tt><a href="#com.mchange.v2.c3p0.freezeConfig">com.mchange.v2.c3p0.freezeConfig</a></tt>,
+                    which has the same effect on c3p0's main configuration.
+              </i></b></p>
+            </div>
+          </dd>
+        </dl>
       </div>
       <h3>
 	<a name="named_configurations">Named configurations</a>
@@ -2820,12 +2919,15 @@ c3p0 {
         The most complete way to augment configuration is to call any of...
       </p>
       <ul>
-        <li><tt>C3P0Config.refreshMainConfig( Properties overrides, String overridesDescription )</tt></li>
-        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription )</tt></li>
-        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription )</tt></li>
-        <li><tt>C3P0Config.refreshMainConfig( Properties overrides, String overridesDescription, Properties backstops, String backstopsDescription )</tt></li>
-        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig overrides, String overridesDescription, MultiPropertiesConfig backstops, String backstopsDescription )</tt></li>
-        <li><tt>C3P0Config.refreshMainConfig( MultiPropertiesConfig[] overrides, String overridesDescription, MultiPropertiesConfig[] backstops, String backstopsDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithOverrides( Properties overrides, String overridesDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithOverrides( MultiPropertiesConfig overrides, String overridesDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithOverrides( MultiPropertiesConfig[] overrides, String overridesDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithBackstops( Properties backstops, String backstopsDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithBackstops( MultiPropertiesConfig backstops, String backstopsDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithBackstops( MultiPropertiesConfig[] backstops, String backstopsDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithBackstopsAndOverrides( Properties backstops, String backstopsDescription, Properties overrides, String overridesDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithBackstopsAndOverrides( MultiPropertiesConfig overrides, String overridesDescription, MultiPropertiesConfig backstops, String backstopsDescription )</tt></li>
+        <li><tt>C3P0Config.refreshMainConfigWithBackstopsAndOverrides( MultiPropertiesConfig[] backstops, String backstopsDescription, MultiPropertiesConfig[] overrides, String overridesDescription )</tt></li>
       </ul>
         <p>
           Hopefully it is straightforward how one might use the methods defined in terms of standard <tt>Properties</tt> objects. The description arguments are
@@ -2886,37 +2988,100 @@ c3p0 {
         </p>
         <p>
           However, if you augment and refresh c3p0's configuration, that will <i>not</i> automatically augment the log configuration.
-          If you want also to augment the log configuration, your final configuration must include the setting <tt>com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig=true</tt>.
-          This will cause c3p0 to <i>override</i> the existing log config with your new c3p0 configuration.
+          If you want also to augment the log configuration, your final configuration must include the setting <tt>com.mchange.v2.c3p0.cfg.syncRefreshLogConfig=true</tt>.
+          This will cause c3p0 to update the existing log config to your new c3p0 configuration.
         </p>
         <h4>Putting all this together</h4>
         <p>
           Suppose you want users to be able to configure c3p0 from an external file, in addition to traditional <tt>ClassLoader</tt> resources. You do want users
           to also be able to configure logging parameters there. You might, very early in your application lifecycle, do something like this:
         </p>
-        <div class="example">
- import java.util.Properties;
- import com.mchange.v2.cfg.MultiPropertiesConfig;
- import com.mchange.v2.cfg.MConfig;
- import com.mchange.v2.c3p0.cfg.C3P0Config;
+        <div class="example" id="augment-example">
+import java.util.Properties;
+import com.mchange.v2.cfg.MultiPropertiesConfig;
+import com.mchange.v2.cfg.MConfig;
+import com.mchange.v2.c3p0.cfg.C3P0Config;
 
- ...
+...
 
- // we'll override log config too, unless the user explicitly disables that
- Properties props = new Properties();
- props.setProperty("com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig","true");
- MultiPropertiesConfig refreshLogConfigProps = MultiPropertiesConfig.fromProperties(props);
+/* We'll refresh and override log config too, unless the user explicitly diasables it */
 
- // as written, this can throw a ConfigVetoedException, which can cause the app
- // to abort until /etc/myapp.properties is provided at appropriate permissions.
- //
- // alternatively, if you want /etc/myapp.properties to simply be ignored (with a
- // warning) if its permissions are bad, you could use
- // MConfig.AsProvidedIgnoreVetoed.readUncachedResourceConfig(...)
- MultiPropertiesConfig appConfig = MConfig.AsProvidedVetoable.readUncachedResourceConfig( new String[] {"file:///etc/myapp.properties?required=true&permissions=useronly"} );
+Properties refreshLogConfigProps = new Properties();
+props.setProperty("com.mchange.v2.c3p0.cfg.syncRefreshLogConfig","true");
+MultiPropertiesConfig refreshLogConfig = MultiPropertiesConfig.fromProperties(refreshLogConfigProps);
 
- C3P0Config.refreshMainConfig( new MultiPropertiesConfig[] {refreshLogConfigProps,appConfig}, "Bring c3p0 config in from /etc/myapp.properties" );
-        </div>
+/*
+ * As written, this can throw a ConfigVetoedException, because we set 'required=true&permissions=useronly'.
+ * If the file does not meet these criteria (it exists, no group or other POSIX permissions)
+ * this work will abort until /etc/myapp.properties is provided with appropriate permissions.
+ *
+ * Alternatively, if you want /etc/myapp.properties to simply be ignored (with a warning)
+ * if its permissions are bad, you could use MConfig.AsProvidedIgnoreVetoed.readUncachedResourceConfig(...)
+ */
+
+MultiPropertiesConfig appConfig = MConfig.AsProvidedVetoable.readUncachedResourceConfig( new String[] {"file:///etc/myapp.properties?required=true&permissions=useronly"} );
+
+/*
+ *  After these augmentations, we'll freeze both log and c3p0 configuration.
+ *  See the next section of this manual, "Freezing Configuration'
+ */
+
+Properties freezeConfigProps = new Properties();
+props.setProperty("com.mchange.v2.log.freezeConfig","true");
+props.setProperty("com.mchange.v2.c3p0.freezeConfig","true");
+MultiPropertiesConfig freezeConfig = MultiPropertiesConfig.fromProperties(freezeProps);
+
+/*
+ *  We want the refresh/override of log config to be overridable by user-specified config.
+ *  We want config placed in myapp.properties to override other source of config.
+ *  We want to insist on the config freeze to simplify our reasoning about app security.
+ *  So we define...
+ */
+
+C3P0Config.refreshMainConfigWithBackstopsAndOverrides(
+    new MultiPropertiesConfig[] {refreshLogConfig},       "Let new config update log configuration",                                                // backstops
+    new MultiPropertiesConfig[] {appConfig,freezeConfig}, "Bring c3p0 config in from /etc/myapp.properties, then freeze c3p0 and log configuration" // overrides
+);
+       </div>
+       <h3>
+         <a name="freezing_configuration">Freezing Configuration</a>
+         <span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span>
+       </h3>
+        <p>
+          By default, c3p0's configuration can be refreshed and augmented at any time. This can be useful, but from
+          a security and simplicity perspective, sometimes you would prefer your configuration to be locked down.
+        </p>
+        <h4>Freezing configuration on first load</h4>
+        <p>
+          c3p0's configuration is really the configuration of two distinct libraries, c3p0 itself and the mlog
+          logging library. You can freeze the configuration of either or (much more usually) both by setting
+          the following keys in your initial configuration to <code>true</code>:
+        </p>
+        <ul>
+          <li><code>com.mchange.v2.c3p0.freezeConfig</code></li>
+          <li><code>com.mchange.v2.log.freezeConfig</code></li>
+        </ul>
+        <p>
+          Once config has been frozen, any attempts to refresh or augment the config will be no-ops.
+          They will do nothing but emit a warning.
+        </p>
+        <h4>Freezing configuration after augmenting config early in the application lifecycle</h4>
+        <p>
+          The most common reason ever to refresh config is in order to augment it with configuration
+          from new sources, or constructed programmatically, at the beginning of your application's
+          lifecycle. Once you have done that, however, it would be simpler and safer if your configuration
+          were frozen.
+        </p>
+        <p>
+          To achieve this, let c3p0 load its default, unfrozen config, <i>then</i> augmen the config
+          setting both <tt>com.mchange.v2.c3p0.freezeConfig</tt> and <tt>com.mchange.v2.log.freezeConfig</tt> to <tt>true</tt>.
+        </p>
+        <p>
+          The <a href="#augment-example">example</a>
+          at the end of the prior section shows exactly how to freeze configuration when refreshing
+          and augmenting config.
+        </p>
+
     <h2><a name="performance">Performance</a><span class="toplink"><a href="#contents"><img src="arrow_sm.png" width="20" alt="Go To Top"/></a></span></h2>
     <div class="sectiontext">
       <p>
@@ -3146,7 +3311,7 @@ c3p0 {
 	    any <tt>preferredTestQuery</tt> set will be ignored. You should not work with the named table after c3p0 creates
 	    it; it should be strictly for c3p0's use in testing your Connection. (If you define your own ConnectionTester, it
 	    must implement the <a href="apidocs/com/mchange/v2/c3p0/QueryConnectionTester.html">QueryConnectionTester</a>
-	    interface for this parameter to be useful.) 
+	    interface for this parameter to be useful.)
 	  </div>
 	</dd>
 	<dt><a name="breakAfterAcquireFailure"></a>breakAfterAcquireFailure</dt>
@@ -3189,7 +3354,9 @@ c3p0 {
 	    The fully qualified class-name of an implememtation of the <a href="apidocs/com/mchange/v2/c3p0/ConnectionCustomizer.html"><tt>ConnectionCustomizer</tt></a>
 	    interface, which users can implement to set up Connections when they are acquired from the database, or on check-out, and potentially
 	    to clean things up on check-in and Connection destruction. If standard Connection properties (holdability, readOnly, or transactionIsolation)
-	    are set in the ConnectionCustomizer's onAcquire() method, these will override the Connection default values.
+	    are set in the ConnectionCustomizer's onAcquire() method, these will override the Connection default values.<br/><br/>
+
+            <b><i>Instantiation of the named <tt>ConnectionCustomizer</tt> may be gated by <tt><a href="#com.mchange.v2.reflect.byNameInstantiation.whitelist">com.mchange.v2.reflect.byNameInstantiation.whitelist</a></tt></i></b>.
 	  </div>
 	</dd>
 	<dt><a name="connectionIsValidTimeout"></a>connectionIsValidTimeout</dt>
@@ -3216,7 +3383,9 @@ c3p0 {
 	    <b><i>This parameter is primarily useful for supporting
             ancient JDBC drivers that do not offer the <tt>Connection.isValid(int timeout)</tt> method introduced with Java 6.</i></b> Connection-testing used to
 	    be complicated, but now it is standardized and simplified. If you are using an ancient driver, you can set this this to the old-school <tt>com.mchange.v2.c3p0.impl.DefaultConnectionTester</tt>.
-	    Or you can just set <tt>preferredTestQuery</tt> or <tt>automaticTestTable</tt>, which will conjure that ghost if <tt>connectionTesterClassName</tt> is left as null. And, of course, you are free to roll your own.
+	    Or you can just set <tt>preferredTestQuery</tt> or <tt>automaticTestTable</tt>, which will conjure that ghost if <tt>connectionTesterClassName</tt> is left as null. And, of course, you are free to roll your own.<br/><br/>
+
+            <b><i>Instantiation of the named <tt>ConnectionTester</tt> may be gated by <tt><a href="#com.mchange.v2.reflect.byNameInstantiation.whitelist">com.mchange.v2.reflect.byNameInstantiation.whitelist</a></tt></i></b>.
 	  </div>
 	</dd>
 	<dt><a name="contextClassLoaderSource"></a>contextClassLoaderSource</dt>
@@ -3622,7 +3791,9 @@ c3p0 {
             which determines how c3p0's many, many asynchronous operations are posted and divided among threads.
             Most users will want to leave this at c3p0's default, or use published alternative implementations
             rather than roll your own. But of course you can roll your own!
-            [See <a href="#configuring_threading">"Configuring Threading"</a>]
+            [See <a href="#configuring_threading">"Configuring Threading"</a>]<br/><br/>
+
+            <b><i>Instantiation of the named <tt>TaskRunnerFactory</tt> may be gated by <tt><a href="#com.mchange.v2.reflect.byNameInstantiation.whitelist">com.mchange.v2.reflect.byNameInstantiation.whitelist</a></tt></i></b>.
 	    <div class="per-user">Does Not Support Per-User Overrides.</div>
 	  </div>
 	</dd>
@@ -3741,7 +3912,7 @@ c3p0 {
         <p>
           See also, in <a href="#augmenting_and_refreshing_configuration">Augmenting and Refreshing Configuration</a>:
           <ul class="other_props_list">
-            <li>com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig</li>
+            <li>com.mchange.v2.c3p0.cfg.syncRefreshLogConfig</li>
           </ul>
         </p>
 	<h4>Security-related properties</h4>
@@ -4122,27 +4293,29 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	    <li>Configuration values programmatically set.</li>
 	    <li>Configuration values set in "sealed" system properties (read on library first-use, when c3p0's configuration was initialized).</li>
 	    <li>Configuration values set in system properties (when the config was last read or refreshed).</li>
-	    <li>Configuration values taken from the default configuration of a <tt>c3p0-config.xml</tt> file.</li>
-	    <li>Preempts <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
-	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>reference.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>reference.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>c3p0-default.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>mchange-log.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>mchange-commons.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>com/mchange/v2/log/default-mchange-log.properties</tt> file (intended only for library-internal use).</li>
-	    <li>Backstops <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
+	    <li>Overrides <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
+	    <li>Configuration values taken from an XML config resource if specified by System property <tt>com.mchange.v2.c3p0.cfg.xml</tt>.</li>
+	    <li>Configuration values taken from a <tt>c3p0-config.xml</tt> resource.</li>
+	    <li>Configuration values in a <tt>c3p0.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>c3p0.conf</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0.json</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.conf</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.json</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.properties</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.conf</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.json</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.properties</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0-default.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>mchange-log.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>mchange-commons.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>com/mchange/v2/log/default-mchange-log.properties</tt> resource (intended only for library-internal use).</li>
 	    <li>c3p0's hard-coded default values.</li>
+	    <li>Backstops <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	  </ol>
 	</div>
 	<p>
-	  For applications that do use named and per-user configurations, here is the complete, normative precedence hierarchy:
+	  For applications that do use named and per-user configurations, the complete, normative precedence hierarchy follows below. Named and per-user configurations
+          can specify only <a href="#javabeans-style-properties">JavaBeans-style properties</a>, and not all of c3p0's JavaBeans-style properties support user overrides.
 	</p>
 	<div align="center">
 	  <ol class="precedence">
@@ -4156,32 +4329,64 @@ swaldman% java -Dc3p0.maxStatements=150 -Dc3p0.maxIdleTime=1800 example.MyC3P0Ap
 	      other sources. If you want to merge programmatic changes with preconfigured overrides, you'll have to use <tt>getUserOverridesAsString()</tt>
 	      and modify the original settings before replacing.
 	    </li>
-	    <li>User-specific overrides taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
-	    <li>User-specific overrides taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
+	    <li>User-specific overrides taken from a DataSource's named configuration.</li>
+	    <li>User-specific overrides taken from the default configuration.</li>
 	    <li>Non-user-specific values programmatically set.</li>
-	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in <tt>c3p0-config.xml</tt>)</li>
-	    <li>Non-user-specific values taken from a DataSource's named configuration (specified in properties format, with precedence there determined by the ordering of <i>properties-format</i> sources below)</li>
+	    <li>Non-user-specific values taken from a DataSource's named configuration.</li>
 	    <li>Configuration values set in "sealed" system properties (read on library first-use, when c3p0's configuration was initialized).</li>
 	    <li>Configuration values set in system properties (when the config was last read or refreshed).</li>
-	    <li>Non-user-specific values taken from the default configuration (specified in <tt>c3p0-config.xml</tt>)</li>
-	    <li>Preempts <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
-	    <li>Configuration values in a <tt>c3p0.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>c3p0.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>c3p0.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>application.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>reference.conf</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>reference.json</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>reference.properties</tt> file, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
-	    <li>Configuration values in a <tt>c3p0-default.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>mchange-log.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>mchange-commons.properties</tt> file.</li>
-	    <li>Configuration values in a <tt>com/mchange/v2/log/default-mchange-log.properties</tt> file (intended only for library-internal use).</li>
-	    <li>Backstops <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
+	    <li>Overrides <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
+	    <li>Configuration values taken from an XML config resource if specified by System property <tt>com.mchange.v2.c3p0.cfg.xml</tt>.</li>
+	    <li>Configuration values taken from a <tt>c3p0-config.xml</tt> resource.</li>
+	    <li>Configuration values in a <tt>c3p0.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>c3p0.conf</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0.json</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.conf</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.json</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>application.properties</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.conf</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.json</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>reference.properties</tt> resource, <a href="#c3p0_conf" class="small">if and only if Typesafe config libraries are available.</a></li>
+	    <li>Configuration values in a <tt>c3p0-default.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>mchange-log.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>mchange-commons.properties</tt> resource.</li>
+	    <li>Configuration values in a <tt>com/mchange/v2/log/default-mchange-log.properties</tt> resource (intended only for library-internal use).</li>
 	    <li>c3p0's hard-coded default values.</li>
+	    <li>Backstops <a href="#augmenting_and_refreshing_configuration">explicitly set via configuration refresh.</a></li>
 	  </ol>
 	</div>
+        <p>
+          In fact, the precedence of the configuration data itself is fully described by the "simplified" precedence order shown first. The apparent higher precedence
+          of named-config and user-override data derives from c3p0's libraries resolving a request for <tt>maxPoolSize</tt> for a <tt>DataSource</tt> whose config name
+          is <tt>intergalactoApp</tt> into a request for configuration key <tt>c3p0.named-configs.intergalactoApp.maxPoolSize</tt> rather than the usual
+          <tt>c3p0.maxPoolSize</tt> (and then reverting to the usual <tt>c3p0.maxPoolSize</tt> if no key called <tt>c3p0.named-configs.intergalactoApp.maxPoolSize</tt>
+          has been specified). The "precedence" of per-user overrides is implemented in the same way, by simply searching over different configuration keys
+          prior to reverting to the default key if the higher precedence key is not found. Most users will not have to care about this implementation detail, but it
+          can affect corner cases:
+        </p>
+        <p>
+          Suppose a JVM is run with <tt>-Dc3p0.named-configs.intergalactoApp.maxPoolSize</tt> set to <tt>30</tt>. A <tt>c3p0-config.xml</tt> resource specifies:
+        </p>
+        <div class="example">
+&lt;c3p0-config&gt;
+  &lt;named-config name="intergalactoApp"&gt;
+    &lt;property name="maxPoolSize"&gt;1000&lt;/property&gt;
+  &lt;/named-config&gt;
+&lt;/c3p0-config&gt;
+        </div>
+        <p>
+          Which value "wins"?
+        </p>
+        <p>
+          The XML document is really just a shortcut to setting the key <tt>c3p0.named-configs.intergalactoApp.maxPoolSize</tt>.
+          But (sealed) System properties have a higher precedence than a <tt>c3p0-config.xml</tt> resource. So the value will be <tt>30</tt>.
+        </p>
+        <p>
+          The claim above that
+          "Non-user-specific values taken from a DataSource's named configuration" take preference over a generic <tt>c3p0.maxPoolSize</tt>
+          is correct and does hold. But then there is a distinct question of <i>which specification</i> of that <i>non-user-specific
+          value taken from a DataSource's named configuration</i> governs. The "simplified" precedence ordering first shown resolves that question.
+        </p>
       </div>
       <h2>
 	<a name="hibernate-specific">Appendix C: Hibernate-specific notes</a>

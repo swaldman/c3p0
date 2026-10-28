@@ -213,125 +213,132 @@ now for added safety!
 
 Here are the incompatible changes:
 
-(1) c3p0 uses a construct called SecurelyStringifiable internally as an alternative
-    to often unsafe Java serialization. All of these internal uses have been updated
-    to a new API, in order to allow imposition of a whitelist so that an attacker
-    can't provoke construction of an unexpected class. All of the SecurityStringifiables
-    c3p0 uses internally have been to get past the new gate, so these changes should
-    be invisible to most installations. Here are the details:
+(1)  c3p0 uses a construct called SecurelyStringifiable internally as an alternative
+     to often unsafe Java serialization. All of these internal uses have been updated
+     to a new API, in order to allow imposition of a whitelist so that an attacker
+     can't provoke construction of an unexpected class. All of the SecurityStringifiables
+     c3p0 uses internally have been to get past the new gate, so these changes should
+     be invisible to most installations. Here are the details:
 
-    The duck-typed contract for a "SecurelyStringifiable" used to
-    be defined by a class (let's call it `Thing`) implementing
-    the following two static methods:
+     The duck-typed contract for a "SecurelyStringifiable" used to
+     be defined by a class (let's call it `Thing`) implementing
+     the following two static methods:
 
-      public static String securelyStringify(Thing thing) throws Exception
-      public static Thing constructSecurelyStringified( String stringified ) throws Exception
+       public static String securelyStringify(Thing thing) throws Exception
+       public static Thing constructSecurelyStringified( String stringified ) throws Exception
 
-    The contract has been modified to require
+     The contract has been modified to require
 
-      public static String securelyStringify(Thing thing) throws Exception
-      public static Thing constructSecurelyStringified( String stringified, PropertiesConfig pcfg ) throws Exception
+       public static String securelyStringify(Thing thing) throws Exception
+       public static Thing constructSecurelyStringified( String stringified, PropertiesConfig pcfg ) throws Exception
 
-    So that we can apply a whitelist defined by configuration to gate which
-    classes we construct.
+     So that we can apply a whitelist defined by configuration to gate which
+     classes we construct.
 
-    The securelyStringify(...) method and the serialization format are entirely unchanged.
+     The securelyStringify(...) method and the serialization format are entirely unchanged.
 
-    Unless you have written your own classes to SecurelyStringifiable's duck-typed
-    contract, this change should not affect you.
+     Unless you have written your own classes to SecurelyStringifiable's duck-typed
+     contract, this change should not affect you.
 
-    (If, a bit shockingly, you *have* written custom SecurelyStringifiables, you'll
-    need to update the signature of constructSecurelyStringified and add your class to
-    "com.mchange.v2.naming.securelyStringifiable.whitelist" or a subkey. You are
-    unlikely to need to modify your implementation. SecurelyStringifiable applies
-    the whitelist gating prior to the per-class methods; the updated method signature
-    is just to make configuration available on reconstruction should implementers
-    desire it, since it must be provided anyway for the whitelist gating.)
+     (If, a bit shockingly, you *have* written custom SecurelyStringifiables, you'll
+     need to update the signature of constructSecurelyStringified and add your class to
+     "com.mchange.v2.naming.securelyStringifiable.whitelist" or a subkey. You are
+     unlikely to need to modify your implementation. SecurelyStringifiable applies
+     the whitelist gating prior to the per-class methods; the updated method signature
+     is just to make configuration available on reconstruction should implementers
+     desire it, since it must be provided anyway for the whitelist gating.)
 
-(2) Construction of InitialContext instances against environments that may not be
-    trustworthy -- because they might have resulted from deserializing objects or
-    dereferencing javax.naming.Reference instances that may be subject to
-    tampering -- is always gated now by an instance of UnsafeInitialContextEnvFilter.
-    In particular, lookups against a non-default InitialContext environment to
-    JndiRefConnectionPoolDataSource will always be gated. The default implementation
-    of the gate refuses everything. You can supply your own more permissive
-    policy by implementing the single-method UnsafeInitialContextEnvFilter interface
-    and deploying it via com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName
-    in your config.
+(2)  Construction of InitialContext instances against environments that may not be
+     trustworthy -- because they might have resulted from deserializing objects or
+     dereferencing javax.naming.Reference instances that may be subject to
+     tampering -- is always gated now by an instance of UnsafeInitialContextEnvFilter.
+     In particular, lookups against a non-default InitialContext environment to
+     JndiRefConnectionPoolDataSource will always be gated. The default implementation
+     of the gate refuses everything. You can supply your own more permissive
+     policy by implementing the single-method UnsafeInitialContextEnvFilter interface
+     and deploying it via com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName
+     in your config.
 
-(3) Although this was kind-of sort-of implicitly expected previously, we now formally
-    insist that by-name-instantiated policy classes, including ConnectionTesters,
-    ConnectionCustomizers, NameGuards, UnsafeInitialContextEnvFilters, etc that are
-    instantiated via their public, no-arg constructor must be stateless, such that any
-    instance is interchangeable with any other. (We tend to cache these instances rather
-    than recreating them all the time.) Previously we reset the ConnectionTester cache
-    on (very rare) runtime refreshes of c3p0's configuration
-    [via C3P0Config.refreshMainConfig(...)]. We no longer do so, since ConnectionTester
-    implementations are now required to be stateless (and c3p0's internal
-    com.mchange.v2.c3p0.impl.DefaultConnectionTester now conforms)
+(3)  Although this was kind-of sort-of implicitly expected previously, we now formally
+     insist that by-name-instantiated policy classes, including ConnectionTesters,
+     ConnectionCustomizers, NameGuards, UnsafeInitialContextEnvFilters, etc that are
+     instantiated via their public, no-arg constructor must be stateless, such that any
+     instance is interchangeable with any other. (We tend to cache these instances rather
+     than recreating them all the time.) Previously we reset the ConnectionTester cache
+     on (very rare) runtime refreshes of c3p0's configuration
+     [via C3P0Config.refreshMainConfig(...)]. We no longer do so, since ConnectionTester
+     implementations are now required to be stateless (and c3p0's internal
+     com.mchange.v2.c3p0.impl.DefaultConnectionTester now conforms)
 
-(4) In the unusual event that an installation relied upon changing configuration via
-    System properties at runtime, after c3p0's configuration had been initialized,
-    c3p0's use of SealedSystemProperties for security-sensitive configuration may be a
-    breaking change.
+(4)  In the unusual event that an installation relied upon changing configuration via
+     System properties at runtime, after c3p0's configuration had been initialized,
+     c3p0's use of SealedSystemProperties for security-sensitive configuration may be a
+     breaking change.
 
-(5) Since, until this release, only the first "/c3p0.properties" resource found in a
-    CLASSPATH was used, it has been rare for libraries to ship their own c3p0 config,
-    so in practice this is very unlikely to bite. But, should an installation have
-    "/c3p0.properties" or other classloader-resource properties configuration
-    sources that c3p0 reads (which include also "/mchange-commons.properties",
-    "/mchange-log.properties", and "/c3p0-default.properties"), you might experience
-    unexpected introduction of new configuration keys, since multiple instances of
-    the same resource path in config are now merged, rather than all but the first
-    found being ignored.
+(5)  Since, until this release, only the first "/c3p0.properties" resource found in a
+     CLASSPATH was used, it has been rare for libraries to ship their own c3p0 config,
+     so in practice this is very unlikely to bite. But, should an installation have
+     "/c3p0.properties" or other classloader-resource properties configuration
+     sources that c3p0 reads (which include also "/mchange-commons.properties",
+     "/mchange-log.properties", and "/c3p0-default.properties"), you might experience
+     unexpected introduction of new configuration keys, since multiple instances of
+     the same resource path in config are now merged, rather than all but the first
+     found being ignored.
 
-(6) Although binary compatibility is maintained, any applications that called
-    the two-argument overload of C3P0Config.refreshMainConfig(...) and supplied
-    a literal null as the first argument will see compiler errors, as that is now
-    ambiguous between several convenience overloads. It's unlikely, we hope, that
-    clients called e.g. refreshMainConfig(null, null), since for callers supplying
-    no overrides there already existed the no-arg overload refreshMainConfig(),
-    which remains fine. If for whatever reason you did call two-arg
-    refreshMainConfig(null, ...), just replace it with refreshMainConfig(). The
-    second argument would always have been ignored if the first argument is null.
+(6)  Although binary compatibility is maintained, any applications that called
+     the two-argument overload of C3P0Config.refreshMainConfig(...) and supplied
+     a literal null as the first argument will see compiler errors, as that is now
+     ambiguous between several convenience overloads. It's unlikely, we hope, that
+     clients called e.g. refreshMainConfig(null, null), since for callers supplying
+     no overrides there already existed the no-arg overload refreshMainConfig(),
+     which remains fine. If for whatever reason you did call two-arg
+     refreshMainConfig(null, ...), just replace it with refreshMainConfig(). The
+     second argument would always have been ignored if the first argument is null.
 
-(7) In mchange-commons-java, MultiPropertiesConfig.fromProperties( Properties properties )
-    reliably and uniformly produced a MultiPropertiesConfig with a single notional
-    resource path 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES'. To our knowledge, no client
-    relies upon this notional resource path, but it's not inconceivable one might.
-    However, it turns out it's not great for the method to consistently yield one,
-    constant, resource path. When MultiPropertiesConfig objects are combined,
-    they ordinarily merge all the keysets, but where keys conflict, later elements
-    in the combination "win": values from later elements shadow values from earlier
-    elements. However, we require all elements associated with a single resource path
-    (notional or otherwise) to have one, unique precedence. So, it's not great if
-    a MultiPropertiesConfig is constructed from several elements which include the
-    same resource path name at multiple locations. What should that resource path's
-    precedence be? It's undefined. MultiPropertiesConfig.fromProperties(...)
-    emitting the same notional resource path name with every call made it easy to
-    accidentally construct combinations where the precedence of some resources would
-    not be well defined. We now append a UID to 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES',
-    e.g. 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES-1dk7rmubl9xvtkn1bhyx5t#3', rendering
-    collisions impossible (within a JVM, and vanishingly unlikely across JVMs).
+(7)  In mchange-commons-java, MultiPropertiesConfig.fromProperties( Properties properties )
+     reliably and uniformly produced a MultiPropertiesConfig with a single notional
+     resource path 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES'. To our knowledge, no client
+     relies upon this notional resource path, but it's not inconceivable one might.
+     However, it turns out it's not great for the method to consistently yield one,
+     constant, resource path. When MultiPropertiesConfig objects are combined,
+     they ordinarily merge all the keysets, but where keys conflict, later elements
+     in the combination "win": values from later elements shadow values from earlier
+     elements. However, we require all elements associated with a single resource path
+     (notional or otherwise) to have one, unique precedence. So, it's not great if
+     a MultiPropertiesConfig is constructed from several elements which include the
+     same resource path name at multiple locations. What should that resource path's
+     precedence be? It's undefined. MultiPropertiesConfig.fromProperties(...)
+     emitting the same notional resource path name with every call made it easy to
+     accidentally construct combinations where the precedence of some resources would
+     not be well defined. We now append a UID to 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES',
+     e.g. 'PROGRAMMATICALLY_SUPPLIED_PROPERTIES-1dk7rmubl9xvtkn1bhyx5t#3', rendering
+     collisions impossible (within a JVM, and vanishingly unlikely across JVMs).
 
-(8) c3p0 now places higher precedence on a "sealed" snapshot of System properties taken
-    early in an application lifecycle over "live" System properties in its config.
-    If you were relying on altering c3p0 config by changing System properties which
-    had been initially set on JVM startup by modifying those properties at runtime
-    and refreshing config, that will no longer work.
+(8)  c3p0 now places higher precedence on a "sealed" snapshot of System properties taken
+     early in an application lifecycle over "live" System properties in its config.
+     If you were relying on altering c3p0 config by changing System properties which
+     had been initially set on JVM startup by modifying those properties at runtime
+     and refreshing config, that will no longer work.
 
-(9) We've withdrawn accessors to several properties from exposure by c3p0's mbean implementations.
-    jdbcUrl, overrideDefaultPassword, password, userOverridesAsString, userOverrides
-    are no longer exposed, if implementations exposed them previously.
+(9)  We've withdrawn accessors to several properties from exposure by c3p0's mbean implementations.
+     jdbcUrl, overrideDefaultPassword, password, userOverridesAsString, userOverrides
+     are no longer exposed, if implementations exposed them previously.
 
-    This is arguably a bad call -- mbean clients are trusted users, and the debugging
-    and administration value of these properties may be higher than the cost of
-    potentially leaking sensitive information. (jdbcUrl is sensitive because credentials
-    like password are sometimes included as query strings.) Please provide feedback
-    if you think these properties should be restored. It's a judgment call!
+     This is arguably a bad call -- mbean clients are trusted users, and the debugging
+     and administration value of these properties may be higher than the cost of
+     potentially leaking sensitive information. (jdbcUrl is sensitive because credentials
+     like password are sometimes included as query strings.) Please provide feedback
+     if you think these properties should be restored. It's a judgment call!
 
-    If you have code that statically links to the mbean implementations, these represent
-    incompatible change as getters that used to be present no longer are.
+     If you have code that statically links to the mbean implementations, these represent
+     incompatible change as getters that used to be present no longer are.
 
-    In the dynamic mbean implementation (which is not typically used to configure new
-    beans), setters are removed as well.
+     In the dynamic mbean implementation (which is not typically used to configure new
+     beans), setters are removed as well.
+
+(10) The undocumented and now deprecated feature of a user-specified C3P0ConfigFinder
+     used to support refreshing config to a totally different C3P0ConfigFinder. It's
+     clear how this could be a source of mischief, and not clear how it would be used
+     for good. The choice of a C3P0ConfigFinder (in real life nearkly always c3p0's
+     build-in DefaultC3P0ConfigFinder) is now latched. A C3P0ConfigFinder is selected
+     once, and can no longer be changed via C3P0Config.refreshMainConfig(...)
