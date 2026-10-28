@@ -6,7 +6,6 @@ import com.mchange.v2.coalesce.*;
 import com.mchange.v2.log.*;
 import com.mchange.v2.c3p0.cfg.C3P0Config;
 import com.mchange.v2.c3p0.cfg.C3P0ConfigUtils;
-import com.mchange.v2.c3p0.cfg.DefaultC3P0ConfigFinder;
 import com.mchange.v2.c3p0.impl.*;
 
 import java.sql.SQLException;
@@ -373,8 +372,7 @@ public final class C3P0Registry
                 sb.append(IND + "Enforce by-name instantiation whitelist? " + bniew + SEP);
                 sb.append(IND + "Generate Java serializedObjects as BinaryRefAddrs? " + gsobra + SEP);
                 sb.append(IND + "Support (very dangerously) remote factoryClassLocation when resolving references? " + srrfcl + SEP);
-                sb.append(IND + "Deployment-specified XML non-default location: " + DefaultC3P0ConfigFinder.externalXmlConfigFileForConfig(pcfg) + SEP);
-                sb.append(IND + "Permissive, potentially dangerous, parsing of XML config? " + DefaultC3P0ConfigFinder.findUsePermissiveParser(pcfg,false) + SEP);
+                //sb.append(IND + "Permissive, potentially dangerous, parsing of XML config? " + DefaultC3P0ConfigFinder.findUsePermissiveParser(pcfg,false) + SEP); // fetch from
                 sb.append(IND + "ByNameInstantiation " + ByNameInstantiationUtils.currentWhitelistInfo(pcfg) + SEP);
                 sb.append(IND + "ObjectFactory " + ReferenceableUtils.objectFactoryWhitelistInfo(pcfg) + SEP);
                 sb.append(IND + "ReferenceableJavaBeanClass " + ReferenceableUtils.referenceableJavaBeanClassWhitelistInfo(pcfg) + SEP);

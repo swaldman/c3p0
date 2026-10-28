@@ -11,20 +11,22 @@ import com.mchange.v2.lang.Coerce;
 
 public final class C3P0ConfigUtils
 {
+    public final static String PROPS_FILE_BASE_PFX      = "c3p0";
     public final static String PROPS_FILE_RSRC_PATH     = "/c3p0.properties";
-    public final static String PROPS_FILE_PROP_PFX      = "c3p0.";
+    public final static String PROPS_FILE_PROP_PFX      = PROPS_FILE_BASE_PFX + ".";
     public final static int    PROPS_FILE_PROP_PFX_LEN  = 5;
 
     private final static String[] MISSPELL_PFXS = {"/c3pO", "/c3po", "/C3P0", "/C3PO"};
 
-    final static String PROP_STYLE_NAMED_CFG_PFX          = "c3p0.named-configs";
-    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN      = PROP_STYLE_NAMED_CFG_PFX.length();
-    final static String PROP_STYLE_USER_OVERRIDES_PART    = "user-overrides";
-    final static String PROP_STYLE_USER_OVERRIDES_PFX     = "c3p0." + PROP_STYLE_USER_OVERRIDES_PART;
-    final static int    PROP_STYLE_USER_OVERRIDES_PFX_LEN = PROP_STYLE_USER_OVERRIDES_PFX.length();
-    final static String PROP_STYLE_EXTENSIONS_PART        = "extensions";
-    final static String PROP_STYLE_EXTENSIONS_PFX         = "c3p0." + PROP_STYLE_EXTENSIONS_PART;
-    final static int    PROP_STYLE_EXTENSIONS_PFX_LEN     = PROP_STYLE_EXTENSIONS_PFX.length();
+    final static String PROP_STYLE_NAMED_CFG_PART                 = "named-configs";
+    final static String PROP_STYLE_NAMED_CFG_PFX                  = "c3p0." + PROP_STYLE_NAMED_CFG_PART;
+    final static int    PROP_STYLE_NAMED_CFG_PFX_LEN              = PROP_STYLE_NAMED_CFG_PFX.length();
+    final static String PROP_STYLE_USER_OVERRIDES_PART            = "user-overrides";
+    final static String PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX     = "c3p0." + PROP_STYLE_USER_OVERRIDES_PART;
+    final static int    PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX_LEN = PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX.length();
+    final static String PROP_STYLE_EXTENSIONS_PART                = "extensions";
+    final static String PROP_STYLE_EXTENSIONS_PFX                 = "c3p0." + PROP_STYLE_EXTENSIONS_PART;
+    final static int    PROP_STYLE_EXTENSIONS_PFX_LEN             = PROP_STYLE_EXTENSIONS_PFX.length();
 
     final static Set EXPECTED_NOT_COERCIBLE_DEFAULTS;
 
@@ -172,16 +174,6 @@ public final class C3P0ConfigUtils
 	return out;
     }
 
-    public static C3P0Config configFromFlatDefaults(HashMap flatDefaults)
-    {
-	NamedScope defaults = new NamedScope();
-	defaults.props.putAll( flatDefaults );
-	
-	HashMap configNamesToNamedScopes = new HashMap();
-	
-	return new C3P0Config( defaults, configNamesToNamedScopes ); 
-    }
-
     /**
      *  @deprecated In general, try to use com.mchange.v2.cfg.SealedSystemPropertiesStringProperty with C3P0Config.getMultiPropertiesConfig() as its argument.
      */
@@ -305,18 +297,18 @@ public final class C3P0ConfigUtils
     {
 	HashMap userNamesToOverrides = new HashMap();
 
-	Properties props =  mpcfg.getPropertiesByPrefix(PROP_STYLE_USER_OVERRIDES_PFX);
+	Properties props =  mpcfg.getPropertiesByPrefix(PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX);
 	for ( Iterator ii = props.keySet().iterator(); ii.hasNext(); ) // iterate through c3p0.user-overrides.xxx subproperties
 	{
 	    String fullKey  = (String) ii.next();
-	    String userProp = fullKey.substring( PROP_STYLE_USER_OVERRIDES_PFX_LEN + 1 ); //expect <username>.<property>, e.g. swaldman.maxPoolSize
+	    String userProp = fullKey.substring( PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX_LEN + 1 ); //expect <username>.<property>, e.g. swaldman.maxPoolSize
 	    int dot_index = userProp.indexOf('.');
 	    if ( dot_index < 0 ) // if there is no dot
 	    {
 		if ( logger.isLoggable( MLevel.WARNING ) )
 		    logger.log(MLevel.WARNING, 
 			       "Bad specification of user-override property '" + fullKey + 
-			       "', propfile key should look like '" + PROP_STYLE_USER_OVERRIDES_PFX + 
+			       "', propfile key should look like '" + C3P0ConfigUtils.PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX + 
 			       ".<user>.<property>'. Ignoring.");
 		continue; 
 	    }

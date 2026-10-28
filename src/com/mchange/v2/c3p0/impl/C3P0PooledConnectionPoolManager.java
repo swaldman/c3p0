@@ -553,7 +553,7 @@ public final class C3P0PooledConnectionPoolManager
     {
         Object out = null;
 
-            //userOverrides are usually config file defined, unless rarely used forceUserOverrides is supplied!
+        //userOverrides are usually config file defined, unless rarely used forceUserOverrides is supplied!
         if (userName != null)
 	    out = C3P0ConfigUtils.extractUserOverride( propName, userName, userOverrides );
 
