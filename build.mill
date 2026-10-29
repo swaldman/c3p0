@@ -643,7 +643,7 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
         s"-Dc3p0.jdbcUrl=${jdbcUrl}",
         "-Djava.rmi.server.hostname=localhost",
         s"""-Djava.util.logging.config.file=${moduleDir / "conf-logging" / "logging.properties"}"""
-      ) ++ credentials ++ extraArgs
+      ) ++ credentials ++ Some("-ea") ++ extraArgs
     }
     def c3p0Benchmark() = Task.Command {
       this.runMain("com.mchange.v2.c3p0.test.C3P0BenchmarkApp")()
