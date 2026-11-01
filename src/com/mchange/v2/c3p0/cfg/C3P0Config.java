@@ -240,16 +240,27 @@ public final class C3P0Config
 	C3P0Registry.markConfigRefreshed();
     }
 
+    // only for backwards compatability if, very unusually, legacy config files are found
+    private static String[] backstopHardcodedMLogC3P0Defaults()
+    { return new String[] {"/com/mchange/v2/log/default-mchange-log.properties","/mchange-commons.properties","/mchange-log.properties","/c3p0-default.properties"}; }
+
+    // only for backwards compatability if, very unusually, legacy config files are found
+    private static String[] backstopHardcodedMLogC3P0Preempts()
+    { return new String[] {"hocon:/reference,/application,/c3p0,/","/c3p0.properties","c3p0-xml:/c3p0-config.xml","c3p0-xml:file:${com.mchange.v2.c3p0.cfg.xml}","/",SealedSystemProperties.NOTIONAL_RESOURCE_PATH}; }
+
     private static MultiPropertiesConfig findInitialMultiPropertiesConfig()
     {
         MultiPropertiesConfig out;
 
         MultiPropertiesConfig withoutDefaults;
+
+        // this case is for compatability, to not break old behavior if deployments had customized the
+        // old-school config-libray configuring resorces that we now drop completely ftom the canonical distribution
         if (MConfig.WithTraditionalDefaultSources.traditionalPathFileSourcedPathsFound())
         {
             // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
-            String[] defaults = MLogConfig.mlogC3p0Defaults();
-            String[] preempts = SealedSystemProperties.capCurrentThenSealed(MLogConfig.mlogC3p0Preempts());
+            String[] defaults = backstopHardcodedMLogC3P0Defaults();
+            String[] preempts = backstopHardcodedMLogC3P0Preempts();
             withoutDefaults = MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
 
             if ( logger.isLoggable( MLevel.WARNING ) )
@@ -263,8 +274,7 @@ public final class C3P0Config
         }
         else
         {
-            // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
-            String[] resources = MLogConfig.mlogC3p0Unified();
+            String[] resources = MLogC3p0SharedResources.get();
             withoutDefaults = MConfig.AsProvidedIgnoreVetoed.readCachedResourceConfig(SealedSystemProperties.capCurrentThenSealed(resources));
         }
 

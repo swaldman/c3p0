@@ -323,6 +323,37 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
     //"com.mchange.v2.c3p0.test.AlwaysFailDataSource",
   )
 
+  val mlogC3P0SharedResourcePathsConfig = Seq(
+    "/com/mchange/v2/log/default-mchange-log.properties",
+    "/mchange-commons.properties",
+    "/mchange-log.properties",
+    "/c3p0-default.properties",
+    "hocon:/reference,/application,/c3p0,/",
+    "/c3p0.properties",
+    "c3p0-xml:/c3p0-config.xml",
+    "c3p0-xml:file:${com.mchange.v2.c3p0.cfg.xml}",
+    "/",
+    "SEALED_SYSTEM_PROPERTIES",
+  );
+
+  def genMlogC3P0SharedResources = Task:
+   val src =
+      s"""|package com.mchange.v2.c3p0.cfg;
+          |
+          |final class MLogC3p0SharedResources
+          |{
+          |    private final static String[] RESOURCES = new String[]{${mlogC3P0SharedResourcePathsConfig.map(r=>"\"" + r + "\"").mkString(",")}};
+          |
+          |    public static String[] get() { return (String[]) RESOURCES.clone(); }
+          |
+          |    private MLogC3p0SharedResources() {}
+          |}
+          |""".stripMargin
+   val destDir = Task.dest / "com" / "mchange" / "v2" / "c3p0" / "cfg"
+   os.makeDir.all(destDir)
+   os.write(destDir / "MLogC3p0SharedResources.java", src)
+   PathRef(Task.dest)
+
   // C3P0BeanInfoGen reflects over the compiled beans, which it reaches via beanInfo's moduleDep on
   // this module. That dependency is what makes an edited beangen-xml (or any change to a bean class)
   // regenerate the BeanInfos, so it must not be short-circuited by any staleness check of our own.
@@ -342,8 +373,16 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
   // note that beanInfoGen is NOT included here, because it must get built AFTER the root module
   // is built, requires code to be generated against reflection of the root build.
   override def generatedSources = Task {
-    super.generatedSources() ++ Seq(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen())
+    super.generatedSources() ++ Seq(genDebugSources(),genC3P0SubstitutionsSource(),beangen(),proxygen(),genMlogC3P0SharedResources())
   }
+
+  def genMlogCofigResourcePathsTxt = Task:
+    val src = mlogC3P0SharedResourcePathsConfig.mkString("","\n","\n")
+    os.write(Task.dest / "mlog-config-resource-paths.txt", src)
+    PathRef(Task.dest)
+
+  override def resources = Task:
+    super.resources() ++ Seq(genMlogCofigResourcePathsTxt())
 
   override def manifest = Task {
     val mainTups = JarManifest.MillDefault.main + Tuple2("Automatic-Module-Name","com.mchange.v2.c3p0")
