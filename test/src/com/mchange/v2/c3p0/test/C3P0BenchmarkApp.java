@@ -21,7 +21,7 @@ public final class C3P0BenchmarkApp
     final static String N_ENTRY_TABLE_SELECT = "SELECT * FROM n_entryyukyuk";
     final static String N_ENTRY_TABLE_DROP   = "DROP TABLE n_entryyukyuk";
 
-    final static int NUM_ITERATIONS = 2000;
+    final static int NUM_ITERATIONS = 4000;
 
     public static void main(String[] argv)
     {
