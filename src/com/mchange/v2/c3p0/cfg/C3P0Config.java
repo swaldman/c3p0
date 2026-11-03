@@ -166,6 +166,11 @@ public final class C3P0Config
     {
         _MPCONFIG = mpc;
         warnOnSet(_MPCONFIG);
+        if (logger.isLoggable(MLevel.INFO))
+            logger.log(MLevel.INFO,
+                       "c3p0 config is now drawn from the following configuration sources: " +
+                       Arrays.toString(_MPCONFIG.getPropertiesResourcePaths()) +
+                       ". Later paths shadow earlier paths where values conflict.");
     }
 
     /**
