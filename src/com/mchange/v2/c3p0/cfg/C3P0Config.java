@@ -29,6 +29,92 @@ import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROP_STYLE_USER_OVERRIDES_
 
 //all internal maps should be HashMaps (the implementation presumes HashMaps)
 
+/**
+ *  c3p0's configuration, as one body of properties-style keys.
+ *
+ *  <h3>One representation</h3>
+ *
+ *  <p>Configuration arrives from many places &mdash; {@code c3p0.properties}, HOCON,
+ *  {@code c3p0-config.xml}, System properties, programmatic overrides &mdash; and all of it is
+ *  read into a single {@link com.mchange.v2.cfg.MultiPropertiesConfig} of properties-style keys.
+ *  Every accessor here derives from that one view by key prefix. There is no second
+ *  representation to keep in step, which is the point: divergence between two views of one body
+ *  of configuration was a recurring source of bugs, where a setting would be visible to one
+ *  reader and invisible to another.</p>
+ *
+ *  <p>See the manual's <i>Precedence of Configuration Settings</i> for which source wins. In
+ *  brief: a sealed System property outranks everything, then live System properties, then
+ *  programmatic refresh overrides, then XML, then {@code c3p0.properties}, then HOCON, then the
+ *  shipped defaults, then c3p0's hard-coded defaults, and backstops below those.</p>
+ *
+ *  <h3>How c3p0-config.xml becomes properties</h3>
+ *
+ *  <p>The XML format is read by a {@link com.mchange.v2.cfg.PropertiesConfigSource} which
+ *  translates it into properties keys, so that XML layers with every other source by the
+ *  ordinary rules. mchange-commons-java knows nothing of the format: c3p0 declares
+ *  {@link C3P0ExtraPropertiesConfigSources} through a
+ *  {@code mcfg-extra-properties-config-sources.txt} resource, and that resolver claims
+ *  identifiers beginning {@code c3p0-xml:}. See
+ *  {@link com.mchange.v2.cfg.ExtraPropertiesConfigSources} for the mechanism and
+ *  {@link C3P0XmlPropertiesConfigSource} for the parser.</p>
+ *
+ *  <p>An identifier is {@code c3p0-xml:} followed by either a classloader resource path beginning
+ *  {@code /} &mdash; where <b>every</b> resource at that path is read and merged, earlier
+ *  classpath entries winning, just as for properties resources &mdash; or a {@code file:} URL,
+ *  which gets the full {@code file:} treatment including {@code ${system.property}} references,
+ *  {@code ?required=} and {@code ?permissions=useronly}. {@code c3p0-xml:/} alone names nothing
+ *  and is refused, as is a query string on the classloader form, which would otherwise be read
+ *  as part of the resource path and silently find nothing. Because the {@code file:} form can
+ *  refuse on permission grounds, the source is a {@link com.mchange.v2.cfg.VetoableConfig}:
+ *  plain {@code MConfig.AsProvided} will not read it.</p>
+ *
+ *  <p>Property names are mapped by <b>shape</b>, since the parser has no list of c3p0's
+ *  configurable properties to validate against. Within {@code <default-config>}, a bare name
+ *  takes a {@code c3p0.} prefix and a compound name is kept as written &mdash; so
+ *  {@code maxPoolSize} becomes {@code c3p0.maxPoolSize}, while
+ *  {@code com.mchange.v2.log.freezeConfig} means itself. Within
+ *  {@code <named-config name="X">}, names are prefixed {@code c3p0.named-configs.X.} and a
+ *  leading {@code c3p0.} is dropped first, so both spellings of a pool property arrive at one
+ *  key; a fully-qualified name is <b>refused with a warning</b> there, because a named config is
+ *  a per-DataSource scope while such settings are read globally, with no DataSource in hand.
+ *  {@code <user-overrides user="..."/>} maps the same way beneath
+ *  {@code c3p0.user-overrides.<user>.} or
+ *  {@code c3p0.named-configs.X.user-overrides.<user>.} &mdash; a {@code name} attribute is
+ *  accepted in place of {@code user}, with a warning, because a since-corrected error in c3p0's
+ *  own documentation showed it. {@code <extensions>} names are never processed, being names a
+ *  deployment invented for its own use, and are not read beneath a user override at all, since
+ *  extensions are per-config rather than per-user.</p>
+ *
+ *  <p>A named config's name and a user-override user name must not contain a {@code '.'}: these
+ *  become path segments in one flat key namespace, where a dot is the only separator there is.
+ *  A dotted {@code <named-config>} name is refused with a warning.</p>
+ *
+ *  <h3>A declared-but-empty named config</h3>
+ *
+ *  <p>Every named config additionally contributes the <b>bare scope key</b> with an empty value,
+ *  so {@code <named-config name="X"/>} yields {@code c3p0.named-configs.X=} even with nothing in
+ *  it. c3p0 distinguishes a scope declared empty &mdash; which falls through to lower-precedence
+ *  configuration &mdash; from one never declared, which reverts to the default scope; and a scope
+ *  with no properties would otherwise leave no trace at all. Since a key is a prefix of itself,
+ *  the mark reads as {@code containsKey(pfx)} on a by-prefix lookup. Note that <i>declared</i>
+ *  remains {@code size() > 0}: a scope declared in properties-style configuration carries no such
+ *  mark and is declared nonetheless. The mark is for named configs alone &mdash; for
+ *  {@code <user-overrides>} and {@code <extensions>}, declared-and-empty and undeclared mean the
+ *  same thing to c3p0.</p>
+ *
+ *  <h3>XML parsing is hardened, and stays hardened</h3>
+ *
+ *  <p>Doctypes, external entities, external DTDs and schemas, XInclude and entity expansion are
+ *  all disabled &mdash; see CVE-2018-20433. The single escape is the System property
+ *  {@code com.mchange.v2.c3p0.cfg.xml.usePermissiveParser}, read <b>only</b> from the sealed
+ *  snapshot of System properties and never from configuration: a flag that relaxes XML parsing
+ *  must not be settable by the documents whose parsing it relaxes. In practice it means a
+ *  {@code -D}. c3p0's deprecated
+ *  {@code com.mchange.v2.c3p0.cfg.xml.expandEntityReferences} is <b>not</b> honored; if it is
+ *  set, a warning points at {@code usePermissiveParser} instead, so that a deployment migrating
+ *  from older versions is told why its entity references stopped resolving rather than left to
+ *  discover it.</p>
+ */
 public final class C3P0Config
 {
     public final static String FREEZE_CONFIG_KEY = "com.mchange.v2.c3p0.freezeConfig";

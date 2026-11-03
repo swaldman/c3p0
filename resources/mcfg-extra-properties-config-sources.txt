@@ -1,0 +1,5 @@
+# we use this file to augment the mchange-config library's basic parsers.
+
+com.mchange.v2.c3p0.cfg.C3P0ExtraPropertiesConfigSources # we parse config in c3p0's tradition xml format into properties items
+
+
