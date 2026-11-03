@@ -331,7 +331,7 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
     "hocon:/reference,/application,/c3p0,/",
     "/c3p0.properties",
     "c3p0-xml:/c3p0-config.xml",
-    "c3p0-xml:file:${com.mchange.v2.c3p0.cfg.xml}",
+    "c3p0-xml:prop:${com.mchange.v2.c3p0.cfg.xml}",
     "/",
     "SEALED_SYSTEM_PROPERTIES",
   );

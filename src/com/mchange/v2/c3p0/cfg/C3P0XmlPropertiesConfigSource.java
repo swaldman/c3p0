@@ -158,6 +158,15 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
 
     private final static String C3P0_PFX = "c3p0.";
 
+    // prop subscheme, to accept URLs of the form c3p0-xml:prop:${var}
+    // where var's associated Sealed system property is interpreted as a file path, unless
+    // it begins with "classloader:", in which case it's a classloader resource with an optional
+    // leading '/'
+    private final static String PROP_SUBSCHEME = "prop:";
+    private final static String PROPERTY_REF_OPEN  = "${";
+    private final static String PROPERTY_REF_CLOSE = "}";
+    private final static String CLASSLOADER_PFX = "classloader:";
+
     public static boolean isC3P0XmlIdentifier( String identifier )
     { return identifier.toLowerCase().startsWith( C3P0_XML_SCHEME ); }
 
@@ -177,6 +186,8 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
 
         if ( FileUrlPropertiesConfigSource.isFileUrlIdentifier( spec ) )
             return fromFileUrl( identifier, spec, permissive, delayedLogItems );
+        else if (spec.toLowerCase().startsWith(PROP_SUBSCHEME))
+            return fromPropUrl( identifier, spec, permissive, delayedLogItems );
         else if ( spec.startsWith( "/" ) )
             return fromClassloaderResources( identifier, spec, permissive, delayedLogItems );
         else
@@ -185,7 +196,47 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
                 "or a file URL beginning 'file:', found '" + spec + "'", null, delayedLogItems );
     }
 
-    // ------------------------------------------------------------- the two identifier forms
+    // ------------------------------------------------------------- the three identifier forms
+
+    private Parse fromPropUrl( String identifier, String spec, boolean permissive, List<DelayedLogItem> delayedLogItems)
+        throws Exception
+    {
+        String subSpec = spec.substring(PROP_SUBSCHEME.length());
+        if (subSpec.startsWith(PROPERTY_REF_OPEN) && subSpec.endsWith(PROPERTY_REF_CLOSE))
+        {
+            String propName = subSpec.substring(PROPERTY_REF_OPEN.length(),subSpec.length()-PROPERTY_REF_CLOSE.length()).trim();
+            if (propName.length() > 0)
+            {
+                String propVal = SealedSystemProperties.initGet( delayedLogItems ).getProperty(propName);
+                if (propVal != null)
+                {
+                    if (propVal.toLowerCase().startsWith(CLASSLOADER_PFX))
+                    {
+                        String putativeResource = propVal.substring(CLASSLOADER_PFX.length());
+                        String resource = putativeResource.startsWith("/") ? putativeResource : "/" + putativeResource;
+                        return fromClassloaderResources( identifier, resource, permissive, delayedLogItems );
+                    }
+                    else
+                        return fromFileUrl( identifier, "file:" + subSpec, permissive, delayedLogItems );
+                }
+                else
+                    throw notFound(C3P0_XML_SCHEME + PROP_SUBSCHEME + "${<some-var-name>} resource paths locate resources " +
+                                   "via the sealed System property value associated with the var. " +
+                                   "Found var '" + propName + "' which has no associated sealed System property value and so " +
+                                   "cannot be resolved, is treated as absent.", null, delayedLogItems);
+            }
+            else
+                throw parseFailure( identifier,
+                                    "what follows '" + C3P0_XML_SCHEME + PROP_SUBSCHEME +
+                                    "' must be ${<some-var-name>}, no <some-var-name> found", null, delayedLogItems);
+        }
+        else
+            throw parseFailure( identifier,
+                                "what follows '" + C3P0_XML_SCHEME + PROP_SUBSCHEME +
+                                "' must be ${<some-var-name>}, with no whitespace before or after " +
+                                "(although whitespace is tolerated before or after <some-var-name> " +
+                                "within the curly braces)", null, delayedLogItems);
+    }
 
     private Parse fromFileUrl( String identifier, String spec, boolean permissive, List<DelayedLogItem> delayedLogItems )
         throws Exception
@@ -667,5 +718,12 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
         String msg = "Could not read c3p0 XML configuration for identifier '" + identifier + "': " + complaint + ".";
         delayedLogItems.add( new DelayedLogItem( Level.WARNING, msg, cause ) );
         return new ConfigParseException( msg, cause, delayedLogItems );
+    }
+
+    private static ConfigParseException notFound( String msg, Throwable cause,
+                                                  List<DelayedLogItem> delayedLogItems )
+    {
+        delayedLogItems.add( new DelayedLogItem( Level.FINE, msg, cause ) );
+        return new OwnLogCarryingMissingFileException( msg, cause, delayedLogItems );
     }
 }
