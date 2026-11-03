@@ -27,6 +27,14 @@ import com.mchange.v2.c3p0.test.cfglib.SealedSystemPropertiesTestSupport;
  *  the identifier as <code>c3p0-xml:file:${com.mchange.v2.c3p0.cfg.xml}</code>, it works, and the
  *  whole <code>file:</code> treatment comes along with it.</p>
  *
+ *  <p><b>c3p0 no longer declares that identifier itself.</b> The same property may instead hold a
+ *  value beginning <code>classloader:</code>, naming a ClassLoader resource rather than a file, so
+ *  what <code>build.mill</code> declares is <code>c3p0-xml:prop:${com.mchange.v2.c3p0.cfg.xml}</code>
+ *  &mdash; one identifier that reads the value and chooses the form, delegating the filesystem
+ *  case straight back to the machinery these cases cover. See
+ *  {@link C3P0XmlPropIdentifierJUnitTestCase}. The <code>file:${...}</code> form remains fully
+ *  supported, and remains how the filesystem case is actually reached.</p>
+ *
  *  <p>Moved here from mchange-commons-java's FileUrlPropertyReferenceInternalJUnitTestCase when
  *  the XML source moved into c3p0. The reference machinery itself still belongs to, and is still
  *  tested in, the config library; these two cases are about c3p0's use of it, and they are the

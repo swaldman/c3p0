@@ -1,0 +1,8 @@
+<c3p0-config>
+  <default-config>
+    <property name="maxPoolSize">4242</property>
+    <extensions>
+      <property name="probeKey">from-mixed-case</property>
+    </extensions>
+  </default-config>
+</c3p0-config>
