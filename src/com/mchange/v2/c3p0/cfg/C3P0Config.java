@@ -155,8 +155,10 @@ public final class C3P0Config
         cacheUserOverrides.clear();
     }
 
-    // it's important that we return this directly, no defensive copies or anything
+    // it's important that we return _MPCONFIG directly, no defensive copies or anything
     // it's unmodifiable, and elsewhere we use simple identity tests to ensure cache freshness
+    //
+    // see e.g. com.mchange.v2.c3p0.impl.DefaultConnectionTester
     private static synchronized MultiPropertiesConfig MPCONFIG()
     { return _MPCONFIG; }
 
@@ -918,6 +920,8 @@ public final class C3P0Config
 
     // it's important that we return _MPCONFIG directly, no defensive copies or anything
     // it's unmodifiable, and elsewhere we use simple identity tests to ensure cache freshness
+    //
+    // see e.g. com.mchange.v2.c3p0.impl.DefaultConnectionTester
     public static MultiPropertiesConfig getMultiPropertiesConfig()
     { return MPCONFIG(); }
 
