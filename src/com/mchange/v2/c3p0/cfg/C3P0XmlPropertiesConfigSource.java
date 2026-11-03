@@ -192,8 +192,8 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
     {
         // the whole of what a file: identifier means -- ${} references, required=,
         // permissions=useronly -- comes from one implementation, not a second one here
-        FileUrlPropertiesConfigSource.Resolved resolved =
-            FileUrlPropertiesConfigSource.resolve( this, spec, delayedLogItems );
+        FileUrlPropertiesConfigSource.Resolved resolved = FileUrlPropertiesConfigSource.resolve( this, spec, delayedLogItems );
+        
 
         try
         {
@@ -201,10 +201,13 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
             try (InputStream is = new BufferedInputStream( new FileInputStream( resolved.readPath.toFile() ) ))
             { props = parse( is, identifier, resolved.readPath.toString(), permissive, delayedLogItems ); }
 
+            if (resolved.enforceUserOnlyPermissions)
+                FileUrlPropertiesConfigSource.warnIfRemovableByOthers( identifier, resolved.readPath, resolved.requiredConfig, delayedLogItems );
+
             return new Parse( props, delayedLogItems );
         }
         catch (FileNotFoundException e)
-        { throw FileUrlPropertiesConfigSource.handleExceptionIndicatingFileNotFound( this, spec, resolved.requiredConfig, e, delayedLogItems ); }
+        { throw FileUrlPropertiesConfigSource.exceptionIndicatingFileNotFound( this, spec, resolved.requiredConfig, e, delayedLogItems );}
     }
 
     /**
