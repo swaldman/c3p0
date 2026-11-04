@@ -657,7 +657,7 @@ public final class C3P0Config
         return out;
     }
 
-    private final static Pattern USER_OVERRIDES_KEY_TAIL_PATTERN = Pattern.compile("^([^\\.]*)\\.(.*)$");
+    private final static Pattern USER_OVERRIDES_KEY_TAIL_PATTERN = Pattern.compile("^(.*)\\.([^\\.]*)$");
 
     // no equals()/hashcode(), identity is fine for us
     private final static class UserOverrideTriplet
@@ -965,69 +965,80 @@ public final class C3P0Config
             for( String key : c3p0Prefixed.stringPropertyNames() )
             {
                 String[] elements = key.split("\\.");
-                String second;
-                String fourth;
-                String last;
 
-                switch (elements.length)
+                // usernames are usually a single element, but we now suppport multipart names
+                // c3p0.user-overrides.firstname.middlename.lastname.jr.<prop-name> or c3p0.named-configs.intergalacto.useroverrides.firstname.middlename.lastname.jr.<prop-name>
+                if ((elements.length >= 4 && PROP_STYLE_USER_OVERRIDES_PART.equals(elements[1])) || (elements.length >= 6 && PROP_STYLE_NAMED_CFG_PART.equals(elements[1]) && PROP_STYLE_USER_OVERRIDES_PART.equals(elements[3])))
                 {
-                case 0:
-                    logger.severe("Huh?!? We should only see items with at least a 'c3p0' element here! key=" + key);
-                    unknown.add(key);
-                    break;
-                case 1:
-                    unknown.add(key); // just c3p0 is not an expected config key
-                    break;
-                case 2: // c3p0.xxx
-                    if (!C3P0Defaults.isKnownProperty(elements[1]))
+                    if (!C3P0Defaults.isKnownProperty(elements[elements.length-1]))
                         unknown.add(key);
-                    break;
-                case 3: // c3p0.named-configs.intergalacto (define scope without subkey) or c3p0.extensions.xxx (any xxx permitted)
-                    second = elements[1];
-                    if (!(PROP_STYLE_NAMED_CFG_PART.equals(second) || PROP_STYLE_EXTENSIONS_PART.equals(second)))
-                        unknown.add(key);
-                    break;
-                case 4: // c3p0.named-configs.intergalacto.xxx or c3p0.extensions.xxx.yyy (any xxx.yyy permitted) or c3p0.user-overrides.steve.xxx
-                    second = elements[1];
-                    last   = elements[3];
-                    if (!PROP_STYLE_EXTENSIONS_PART.equals(second))
+                }
+                else
+                {
+                    String second;
+                    String fourth;
+                    String last;
+
+                    switch (elements.length)
                     {
-                        if (PROP_STYLE_NAMED_CFG_PART.equals(second))
-                        { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
-                        else if (PROP_STYLE_USER_OVERRIDES_PART.equals(second))
-                        { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
-                        else
+                    case 0:
+                        logger.severe("Huh?!? We should only see items with at least a 'c3p0' element here! key=" + key);
+                        unknown.add(key);
+                        break;
+                    case 1:
+                        unknown.add(key); // just c3p0 is not an expected config key
+                        break;
+                    case 2: // c3p0.xxx
+                        if (!C3P0Defaults.isKnownProperty(elements[1]))
                             unknown.add(key);
-                    }
-                    break;
-                case 5:
-                    second = elements[1];
-                    fourth = elements[3];
-                    last   = elements[4];
-                    if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
-                    {
-                        unknown.add(key);
-                    }
-                    break;
-                case 6: // c3p0.named-configs.intergalacto.user-overrides.steve.xxx
-                    second = elements[1];
-                    fourth = elements[3];
-                    last   = elements[5];
-                    if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
-                    {
-                        if (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_USER_OVERRIDES_PART.equals(fourth))
-                        { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
-                        else
+                        break;
+                    case 3: // c3p0.named-configs.intergalacto (define scope without subkey) or c3p0.extensions.xxx (any xxx permitted)
+                        second = elements[1];
+                        if (!(PROP_STYLE_NAMED_CFG_PART.equals(second) || PROP_STYLE_EXTENSIONS_PART.equals(second)))
                             unknown.add(key);
+                        break;
+                    case 4: // c3p0.named-configs.intergalacto.xxx or c3p0.extensions.xxx.yyy (any xxx.yyy permitted) or c3p0.user-overrides.steve.xxx (now we've shortcircuit this last one above, in order to accommodate dotty usernames)
+                        second = elements[1];
+                        last   = elements[3];
+                        if (!PROP_STYLE_EXTENSIONS_PART.equals(second))
+                        {
+                            if (PROP_STYLE_NAMED_CFG_PART.equals(second))
+                            { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
+                            else if (PROP_STYLE_USER_OVERRIDES_PART.equals(second))
+                            { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
+                            else
+                                unknown.add(key);
+                        }
+                        break;
+                    case 5:
+                        second = elements[1];
+                        fourth = elements[3];
+                        last   = elements[4];
+                        if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
+                        {
+                            unknown.add(key);
+                        }
+                        break;
+                    case 6: // c3p0.named-configs.intergalacto.user-overrides.steve.xxx, though now we've shortcircuited this above, in order to accommodate dotty usernames
+                        second = elements[1];
+                        fourth = elements[3];
+                        last   = elements[5];
+                        if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
+                        {
+                            if (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_USER_OVERRIDES_PART.equals(fourth))
+                            { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
+                            else
+                                unknown.add(key);
+                        }
+                        break;
+                    default: // c3p0.extensions.xxx.yyy.zzz or c3p0.named-configs.intergalacto.extensions.xxx.yyy.zzz
+                        second = elements[1];
+                        fourth = elements[3];
+                        last   = elements[elements.length-1];
+                        if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
+                            unknown.add(key);
+                        break;
                     }
-                    break;
-                default: // c3p0.extensions.xxx.yyy.zzz or c3p0.named-configs.intergalacto.extensions.xxx.yyy.zzz
-                    second = elements[1];
-                    fourth = elements[3];
-                    last   = elements[elements.length-1];
-                    if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
-                        unknown.add(key);
-                    break;
                 }
             }
             for ( String key : unknown )
