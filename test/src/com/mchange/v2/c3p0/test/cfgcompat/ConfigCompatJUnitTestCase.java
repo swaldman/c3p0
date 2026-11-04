@@ -63,6 +63,26 @@ import java.util.TreeSet;
  *    written with disjoint names: the keys that may differ are nameable in advance rather than
  *    inferred from the diff.</li>
  *
+ *    <li><b>A user-override user name containing a dot now resolves</b>, for properties-style
+ *    configuration. 0.14.2 split such a key at the FIRST dot, so
+ *    {@code c3p0.user-overrides.first.last.maxPoolSize} was user {@code first} carrying a
+ *    property {@code last.maxPoolSize} -- which is no property, so the override silently did
+ *    nothing. 0.15.0 splits at the LAST dot, giving user {@code first.last} and property
+ *    {@code maxPoolSize}. Exempted <i>narrowly</i>, by
+ *    {@link #removeDottedUserOverrideResplits}: a missing answer and an extra answer are
+ *    cancelled only when they name the same scope and the same value and re-split the same
+ *    underlying key, and only when the current build's user name actually contains a dot.
+ *    {@link #testADottedUserOverrideNowResolves} pins the improvement itself.
+ *
+ *    <p>Note what the {@code dotted-uo-xml} scenarios establish, which is the opposite: 0.14.2
+ *    read XML user overrides into a bean keyed directly by the {@code user} attribute, never
+ *    through a flat properties key, so <b>0.14.2 handled a dotted user correctly in XML</b>.
+ *    Unifying 0.15.0 around one properties-shaped representation had therefore <i>regressed</i>
+ *    that route, unnoticed, until these scenarios were added. Those two scenarios are not
+ *    exempted from anything -- they match 0.14.2 exactly, and
+ *    {@link #testTheXmlRouteIsCompatibleAgainForDottedUsers} says so, so a future regression
+ *    fails rather than needing an exemption.</p></li>
+ *
  *    <li><b>User overrides for one user now merge across scopes property by property</b>, where
  *    0.14.2 replaced a user's whole override set from the named scope. Agreed to be a fix. It is
  *    exempted <i>narrowly</i>: an extra override is tolerated only where its value is exactly
@@ -118,6 +138,7 @@ public final class ConfigCompatJUnitTestCase extends TestCase
     {
         List<String> failures = new ArrayList<String>();
         int compared = 0, answers = 0, xmlScenarios = 0, mergeExemptions = 0, shadowExemptions = 0;
+        int resplitExemptions = 0;
 
         for ( ConfigScenario scenario : ConfigScenario.all() )
         {
@@ -135,6 +156,7 @@ public final class ConfigCompatJUnitTestCase extends TestCase
             removeExtensionsPseudoProperty( missing );
             mergeExemptions  += removeInheritedUserOverrides( extra, expected );
             shadowExemptions += removeClasspathXmlShadowedKeys( missing, extra, scenario );
+            resplitExemptions += removeDottedUserOverrideResplits( missing, extra );
 
             if (! missing.isEmpty() || ! extra.isEmpty() )
                 failures.add( describe( scenario, missing, extra ) );
@@ -151,6 +173,9 @@ public final class ConfigCompatJUnitTestCase extends TestCase
                     "it does not, either an external XML file has gone back to replacing the resource " +
                     "or no scenario sets com.mchange.v2.c3p0.cfg.xml any more.",
                     shadowExemptions > 0 );
+        assertTrue( "Expected the dotted-user re-split to show up somewhere; if it does not, either " +
+                    "dotted user names have stopped resolving or no scenario exercises one any more.",
+                    resplitExemptions > 0 );
 
         if (! failures.isEmpty() )
             fail( failures.size() + " of " + compared + " scenarios diverged from c3p0-0.14.2:\n\n" +
@@ -187,6 +212,78 @@ public final class ConfigCompatJUnitTestCase extends TestCase
                          has( expected, "uo|" + scope + "|steve|minPoolSize|5" ) );
         }
         assertEquals( "every uo-both-xml scenario should be checked", 20, checked );
+    }
+
+    /**
+     *  The improvement itself: a dotted user name resolves for properties-style configuration.
+     *
+     *  <p>Asserted rather than merely tolerated, and asserted on both sides -- that the current
+     *  build reads the override under the whole user name, and that 0.14.2 did not. If 0.14.2
+     *  turns out to have agreed all along, this is no divergence and exemption 5 should go.</p>
+     */
+    public void testADottedUserOverrideNowResolves() throws Exception
+    {
+        ConfigScenario scenario = named( "dotted-uo-props" );
+
+        Set<String> got      = new LinkedHashSet<String>( runner.outcomes( scenario ) );
+        Set<String> expected = expected( scenario );
+
+        assertTrue( "the whole dotted name should be the user: " + grep( got, "|uo|-|" ),
+                    has( got, "uo|-|" + ConfigScenario.DOTTED_USER + "|maxPoolSize|42" ) );
+        assertFalse( "0.14.2 is expected NOT to have read it that way -- if it did, this is no " +
+                     "divergence and the exemption should go: " + grep( expected, "|uo|-|" ),
+                     has( expected, "uo|-|" + ConfigScenario.DOTTED_USER + "|maxPoolSize|42" ) );
+        assertTrue( "and 0.14.2's own reading, user 'first' with property 'last.maxPoolSize', is " +
+                    "what the exemption cancels: " + grep( expected, "|uo|-|" ),
+                    has( expected, "uo|-|first|last.maxPoolSize|42" ) );
+
+        // the undotted control must be identical in both, or the divergence is not about dots
+        assertTrue( has( got,      "uo|-|" + ConfigScenario.PLAIN_USER + "|maxPoolSize|7" ) );
+        assertTrue( has( expected, "uo|-|" + ConfigScenario.PLAIN_USER + "|maxPoolSize|7" ) );
+    }
+
+    /**
+     *  The surprise these scenarios turned up, pinned so it cannot come back.
+     *
+     *  <p>0.14.2 read XML user overrides into a bean keyed by the {@code user} attribute itself,
+     *  so it never split a flat key and <b>handled a dotted user correctly</b>. 0.15.0's single
+     *  properties-shaped representation routed XML through the same key grammar as everything
+     *  else and so inherited the mis-parse -- a regression against 0.14.2, in the one route that
+     *  had worked, which no scenario exercised and nothing caught.</p>
+     *
+     *  <p>These two scenarios need no dotted-user exemption: beyond the extensions
+     *  pseudo-property that exemption 1 removes from every scenario alike, they match 0.14.2
+     *  exactly. This case says so by
+     *  name, so that a future change which re-breaks the XML route fails here rather than being
+     *  absorbed as a new divergence.</p>
+     */
+    public void testTheXmlRouteIsCompatibleAgainForDottedUsers() throws Exception
+    {
+        int checked = 0;
+        for ( String name : new String[] { "dotted-uo-xml", "dotted-uo-xml-named" } )
+        {
+            ConfigScenario scenario = named( name );
+            ++checked;
+
+            Set<String> got      = new LinkedHashSet<String>( runner.outcomes( scenario ) );
+            Set<String> expected = expected( scenario );
+
+            assertTrue( "0.14.2 should have read the dotted user correctly from XML; if it did not, " +
+                        "the premise of this case is wrong: " + grep( expected, "|uo|-|" ),
+                        has( expected, "uo|-|" + ConfigScenario.DOTTED_USER + "|maxPoolSize|42" ) );
+            assertTrue( "and so must we: " + grep( got, "|uo|-|" ),
+                        has( got, "uo|-|" + ConfigScenario.DOTTED_USER + "|maxPoolSize|42" ) );
+
+            Set<String> missing = minus( expected, got );
+            Set<String> extra   = minus( got, expected );
+            removeExtensionsPseudoProperty( missing ); // exemption 1, which applies to every scenario
+
+            assertTrue( "beyond the universal extensions pseudo-property, the XML route must agree with " +
+                        "0.14.2 exactly for " + name + " -- no dotted-user exemption may be needed here: " +
+                        describe( scenario, missing, extra ),
+                        missing.isEmpty() && extra.isEmpty() );
+        }
+        assertEquals( "both XML scenarios should be checked", 2, checked );
     }
 
     /**
@@ -305,6 +402,46 @@ public final class ConfigCompatJUnitTestCase extends TestCase
      *  in that scope. A changed value, an invented property, or a user who should not be in the
      *  scope at all does not qualify and so fails the comparison.</p>
      */
+    /**
+     *  Exemption 5: see the class comment. Cancels a missing/extra pair that is the same
+     *  configuration key split in two different places.
+     *
+     *  <p>0.14.2 took the first dot after {@code user-overrides.} as the end of the user name;
+     *  0.15.0 takes the last dot before the property as its end. So one key yields
+     *  {@code first} + {@code last.maxPoolSize} there and {@code first.last} +
+     *  {@code maxPoolSize} here. A pair is cancelled only when both sides name the same scope
+     *  and the same value and their user and property concatenate to the same thing, and only
+     *  when the current build's user name really does contain a dot -- so a changed value, a
+     *  moved scope, a lost override or an undotted user all still fail.</p>
+     */
+    private static int removeDottedUserOverrideResplits( Set<String> missing, Set<String> extra )
+    {
+        int removed = 0;
+        for ( java.util.Iterator<String> ii = extra.iterator(); ii.hasNext(); )
+        {
+            String[] p = ii.next().split( "\\|" );
+            if ( p.length != 6 || ! "uo".equals( p[1] ) ) continue;
+            if ( p[3].indexOf( '.' ) < 0 ) continue; // only a dotted user name may be exempted here
+
+            String joined = p[3] + "." + p[4]; // user + '.' + property, as the key spells it
+            String twin   = null;
+            for ( String candidate : missing )
+            {
+                String[] q = candidate.split( "\\|" );
+                if ( q.length != 6 || ! "uo".equals( q[1] ) ) continue;
+                if ( ! p[2].equals( q[2] ) || ! p[5].equals( q[5] ) ) continue; // same scope, same value
+                if ( joined.equals( q[3] + "." + q[4] ) ) { twin = candidate; break; }
+            }
+            if ( twin != null )
+            {
+                missing.remove( twin );
+                ii.remove();
+                ++removed;
+            }
+        }
+        return removed;
+    }
+
     private static int removeInheritedUserOverrides( Set<String> extra, Set<String> expected )
     {
         Map<String,String> baselineOverrides = new LinkedHashMap<String,String>();
@@ -371,6 +508,14 @@ public final class ConfigCompatJUnitTestCase extends TestCase
         Set<String> out = new LinkedHashSet<String>( a );
         out.removeAll( b );
         return out;
+    }
+
+    private static ConfigScenario named( String name )
+    {
+        for ( ConfigScenario scenario : ConfigScenario.all() )
+            if ( name.equals( scenario.name ) ) return scenario;
+        fail( "no scenario named '" + name + "'" );
+        return null;
     }
 
     private static boolean has( Set<String> lines, String suffix )

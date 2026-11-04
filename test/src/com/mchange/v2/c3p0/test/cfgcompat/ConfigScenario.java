@@ -299,6 +299,7 @@ public final class ConfigScenario
         // appended last, so that adding them leaves every earlier scenario's name -- and so its
         // captured answers -- exactly as they were
         out.addAll( externalXmlScenarios() );
+        out.addAll( dottedUserOverrideScenarios() );
 
         return Collections.unmodifiableList( out );
     }
@@ -428,6 +429,65 @@ public final class ConfigScenario
 
         return out;
     }
+
+    /**
+     *  A user-override user name containing a dot, by both routes.
+     *
+     *  <p>This axis exists to pin an <b>intentional divergence</b> from 0.14.2 rather than a
+     *  compatibility. A database user name of the form {@code first.last} is ordinary, and
+     *  neither 0.14.2 nor 0.15.0 before this change could express an override for one: the key
+     *  {@code c3p0.user-overrides.first.last.maxPoolSize} was read as user {@code first} with a
+     *  property {@code last.maxPoolSize}, which is no property, so the override silently did
+     *  nothing. 0.15.0 reads the last element as the property and everything before it as the
+     *  user, so it works.</p>
+     *
+     *  <p>Each scenario pairs the dotted user with an undotted one, so that the comparison can
+     *  tell "dotted users now resolve" apart from "user overrides broke".</p>
+     *
+     *  <p>Appended last, like the external-XML scenarios and for the same reason: every earlier
+     *  scenario's name, and so its captured answers, stay exactly as they were.</p>
+     */
+    private static List<ConfigScenario> dottedUserOverrideScenarios()
+    {
+        List<ConfigScenario> out = new ArrayList<ConfigScenario>();
+
+        Map<String,String> props = new LinkedHashMap<String,String>();
+        props.put( "c3p0.user-overrides." + DOTTED_USER + ".maxPoolSize", "42" );
+        props.put( "c3p0.user-overrides." + PLAIN_USER  + ".maxPoolSize", "7" );
+        out.add( new ConfigScenario( "dotted-uo-props", props, null,
+                                     Collections.<String,String>emptyMap(),
+                                     Arrays.asList( NAMED, OTHER_NAMED ) ) );
+
+        String xmlDefault =
+            "  <default-config>\n" +
+            "    <user-overrides user=\"" + DOTTED_USER + "\">\n" +
+            "      <property name=\"maxPoolSize\">42</property>\n" +
+            "    </user-overrides>\n" +
+            "    <user-overrides user=\"" + PLAIN_USER + "\">\n" +
+            "      <property name=\"maxPoolSize\">7</property>\n" +
+            "    </user-overrides>\n" +
+            "  </default-config>\n";
+        out.add( new ConfigScenario( "dotted-uo-xml", Collections.<String,String>emptyMap(), xmlDefault,
+                                     Collections.<String,String>emptyMap(),
+                                     Arrays.asList( NAMED, OTHER_NAMED ) ) );
+
+        String xmlNamed = xmlDefault +
+            "  <named-config name=\"" + NAMED + "\">\n" +
+            "    <property name=\"minPoolSize\">3</property>\n" +
+            "    <user-overrides user=\"" + DOTTED_USER + "\">\n" +
+            "      <property name=\"maxPoolSize\">99</property>\n" +
+            "    </user-overrides>\n" +
+            "  </named-config>\n";
+        out.add( new ConfigScenario( "dotted-uo-xml-named", Collections.<String,String>emptyMap(), xmlNamed,
+                                     Collections.<String,String>emptyMap(),
+                                     Arrays.asList( NAMED, OTHER_NAMED ) ) );
+
+        return out;
+    }
+
+    /** A user name of the shape deployments actually have, and an undotted control beside it. */
+    public final static String DOTTED_USER = "first.last";
+    public final static String PLAIN_USER  = "plainuser";
 
     private final static List<String> NONE = Collections.<String>emptyList();
 
