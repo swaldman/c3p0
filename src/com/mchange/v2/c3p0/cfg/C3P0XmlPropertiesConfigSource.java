@@ -27,6 +27,12 @@ import com.mchange.v2.cfg.*;
 
 import static com.mchange.v2.cfg.DelayedLogItem.Level;
 
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_NAMED_CFG_PART;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_USER_OVERRIDES_PART;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_EXTENSIONS_PART;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.nameContainsMarkers;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.POTENTIALLY_EMPTY_NAMED_SCOPE_MARKER_VALUE;
+
 /**
  *  Reads c3p0's XML configuration format into properties-style configuration.
  *
@@ -141,6 +147,14 @@ import static com.mchange.v2.cfg.DelayedLogItem.Level;
  *  honored here. If it is set, a warning points at {@code usePermissiveParser} instead, so that a
  *  deployment migrating from c3p0's own config finder is told why its entity references stopped
  *  resolving rather than left to discover it.</p>
+ *
+ *  <p>Note that {@code PropertiesConfigSource} implementations must not touch anything that directly logs,
+ *  as they are delegates of the {@code com.mchange.v2.cfg} library which must initialize
+ *  prior to to mlog library, as mlog itself is configured by that library.</p>
+ *
+ *  <p>{@code C3P0ConfigUtilsNoLogging} contains utilities that may need to be hit by c3p0 PropertiesConfigSource
+ *  implementations (like this class) and also used by other classes, with requiring or causing initialization of
+ *  the mlog logging library.</p>
  */
 public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSource, VetoableConfig
 {
@@ -156,7 +170,8 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
     private final static String EXTENSIONS_TAG     = "extensions";
     private final static String PROPERTY_TAG       = "property";
 
-    private final static String C3P0_PFX = "c3p0.";
+    private final static String C3P0_PART = "c3p0";
+    private final static String C3P0_PFX  = C3P0_PART + ".";
 
     // prop subscheme, to accept URLs of the form c3p0-xml:prop:${var}
     // where var's associated Sealed system property is interpreted as a file path, unless
@@ -374,28 +389,23 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
                 delayedLogItems.add( new DelayedLogItem( Level.WARNING,
                     "In '" + origin + "', a '" + NAMED_CONFIG_TAG + "' element has no 'name' attribute. " +
                     "A named config without a name cannot be referred to, so it is ignored." ) );
-                continue;
             }
-            if ( name.indexOf( '.' ) >= 0 )
+            else if (nameContainsMarkers(name))
             {
-                // a dotted scope name is ambiguous in the flat properties namespace this source
-                // writes into: scope 'a.b' declared empty and scope 'a' carrying a pool property
-                // 'b' both arrive as the key c3p0.named-configs.a.b, and where that property's
-                // value is itself empty the two are indistinguishable. Rather than let the
-                // ambiguity decide at read time, refuse the name.
                 delayedLogItems.add( new DelayedLogItem( Level.WARNING,
-                    "In '" + origin + "', a '" + NAMED_CONFIG_TAG + "' element is named '" + name +
-                    "'. A named config's name may not contain '.', because the key this scope " +
-                    "would occupy could equally belong to another scope's property, and the two " +
-                    "could not be told apart. The scope is ignored. Rename it without a '.'." ) );
-                continue;
+                    "In '" + origin + "', a '" + NAMED_CONFIG_TAG + "' element whose 'name' attribute contains '" +
+                     PROP_STYLE_NAMED_CFG_PART + "', '" + PROP_STYLE_USER_OVERRIDES_PART + "', or '" + PROP_STYLE_EXTENSIONS_PART + "' as dot-separated elements. " +
+                    "Names including these tokens are unsupported and will be ignored." ) );
             }
-            if (! seenNames.add( name ) )
-                delayedLogItems.add( new DelayedLogItem( Level.WARNING,
-                    "In '" + origin + "', '" + NAMED_CONFIG_TAG + "' name '" + name + "' appears more than once. " +
-                    "They are merged in document order, later winning." ) );
+            else
+            {
+                if (! seenNames.add( name ) )
+                    delayedLogItems.add( new DelayedLogItem( Level.WARNING,
+                        "In '" + origin + "', '" + NAMED_CONFIG_TAG + "' name '" + name + "' appears more than once. " +
+                        "They are merged in document order, later winning." ) );
 
-            readScope( scopeElem, name, out, identifier, origin, delayedLogItems );
+                readScope( scopeElem, name, out, identifier, origin, delayedLogItems );
+            }
         }
 
         return out;
@@ -406,23 +416,29 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
                             List<DelayedLogItem> delayedLogItems )
     {
         String scopePfx;
+        String bareScopeKey;
         if (scopeName == null)
+        {
+            bareScopeKey = C3P0_PART;
             scopePfx = C3P0_PFX;
+        }
         else
         {
-            String bareScopeKey = C3P0_PFX + "named-configs." + scopeName;
-
-            // we add the following bare key for the named scope, which will sit in the properties
-            // prefix set but which cannot be interpreted as a sub-keyed property itself, in order
-            // to mark mere definition of a potentially empty named scope
-            out.setProperty(bareScopeKey, "");
-
+            bareScopeKey = C3P0_PFX + "named-configs." + scopeName;
             scopePfx = bareScopeKey + ".";
         }
 
-        // ---- the scope's own properties
+        // ---- the scope's own properties, user-overrides, and extensions
         NodeList props = DomParseUtils.immediateChildElementsByTagName( scopeElem, PROPERTY_TAG );
-        for ( int i = 0, len = props.getLength(); i < len; ++i )
+        NodeList overrides = DomParseUtils.immediateChildElementsByTagName( scopeElem, USER_OVERRIDES_TAG );
+        NodeList extensions = DomParseUtils.immediateChildElementsByTagName( scopeElem, EXTENSIONS_TAG );
+
+        int numProps = props.getLength();
+        int numOverrides = overrides.getLength();
+        int numExtensions = extensions.getLength();
+
+        boolean empty = true;
+        for ( int i = 0; i < numProps; ++i )
         {
             Element propElem = (Element) props.item( i );
             String  name     = attr( propElem, "name" );
@@ -445,11 +461,11 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
             }
 
             out.setProperty( key, DomParseUtils.allText( propElem, true ) );
+            empty = false;
         }
 
         // ---- user overrides
-        NodeList overrides = DomParseUtils.immediateChildElementsByTagName( scopeElem, USER_OVERRIDES_TAG );
-        for ( int i = 0, len = overrides.getLength(); i < len; ++i )
+        for ( int i = 0; i < numOverrides; ++i )
         {
             Element uoElem = (Element) overrides.item( i );
             String  user   = attr( uoElem, "user" );
@@ -495,12 +511,12 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
                     continue;
                 }
                 out.setProperty( uoPfx + poolProp, DomParseUtils.allText( propElem, true ) );
+                empty = false;
             }
         }
 
         // ---- extensions, whose names are a deployment's own and are never corrected
-        NodeList extensions = DomParseUtils.immediateChildElementsByTagName( scopeElem, EXTENSIONS_TAG );
-        for ( int i = 0, len = extensions.getLength(); i < len; ++i )
+        for ( int i = 0; i < numExtensions; ++i )
         {
             NodeList extProps = DomParseUtils.immediateChildElementsByTagName( (Element) extensions.item( i ), PROPERTY_TAG );
             for ( int j = 0, jlen = extProps.getLength(); j < jlen; ++j )
@@ -510,8 +526,17 @@ public final class C3P0XmlPropertiesConfigSource implements PropertiesConfigSour
                 if ( name == null ) { warnNamelessProperty( origin, delayedLogItems ); continue; }
 
                 out.setProperty( scopePfx + "extensions." + name, DomParseUtils.allText( propElem, true ) );
+                empty = false;
             }
         }
+
+        // we add the following bare key for the named scope, which will sit in the properties
+        // prefix set but which cannot be interpreted as a sub-keyed property itself, in order
+        // to mark mere definition of a potentially empty named scope
+        //
+        // we don't add a marker to the default scope, which is always inherently defined
+        if (scopeName != null && empty)
+            out.setProperty(bareScopeKey, POTENTIALLY_EMPTY_NAMED_SCOPE_MARKER_VALUE);
     }
 
     /**

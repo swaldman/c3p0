@@ -23,9 +23,14 @@ import com.mchange.v2.reflect.InstantiationNotPermittedException;
 import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROPS_FILE_BASE_PFX;
 import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROPS_FILE_PROP_PFX;
 import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX;
-import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROP_STYLE_NAMED_CFG_PART;
-import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROP_STYLE_EXTENSIONS_PART;
-import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROP_STYLE_USER_OVERRIDES_PART;
+
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_NAMED_CFG_PART;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_EXTENSIONS_PART;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_USER_OVERRIDES_PART;
+
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.POTENTIALLY_EMPTY_NAMED_SCOPE_MARKER_VALUE;
+
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.nameContainsMarkers;
 
 //all internal maps should be HashMaps (the implementation presumes HashMaps)
 
@@ -85,22 +90,71 @@ import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtils.PROP_STYLE_USER_OVERRIDES_
  *  deployment invented for its own use, and are not read beneath a user override at all, since
  *  extensions are per-config rather than per-user.</p>
  *
- *  <p>A named config's name and a user-override user name must not contain a {@code '.'}: these
- *  become path segments in one flat key namespace, where a dot is the only separator there is.
- *  A dotted {@code <named-config>} name is refused with a warning.</p>
+ *  <h3>Dots in a named-config name or a user-override user name</h3>
+ *
+ *  <p>Both <b>may</b> contain dots. A database user name of the form {@code first.last} is
+ *  ordinary, and c3p0-0.14.2 accepted a dotted {@code <named-config>} name in XML, where it kept
+ *  scopes in a bean keyed by the attribute and so never split a flat key. These names become
+ *  segments of one flat key namespace here, in which a dot is the only separator there is, so
+ *  reading them back takes care; refusing them outright, which 0.15.0 briefly did, withdrew
+ *  configuration that had worked for years.</p>
+ *
+ *  <p>What <b>is</b> refused, with a warning, is a name carrying {@code named-configs},
+ *  {@code user-overrides} or {@code extensions} as one of its dot-separated elements. Such a name
+ *  is not merely awkward but genuinely ambiguous: {@code c3p0.named-configs.a.extensions.b} is
+ *  equally an extension {@code b} of scope {@code a} and a property of a scope called
+ *  {@code a.extensions.b}, and nothing in the key says which. A named config so named is refused
+ *  by the parser and refused again on lookup, so the two ends agree. The same tokens in a
+ *  <i>user</i> name are merely discouraged, with a warning: those resolve unambiguously, since a
+ *  user name is always bounded by the {@code user-overrides} element on one side and its property
+ *  on the other.</p>
+ *
+ *  <p>A user name is read as <b>everything between {@code user-overrides.} and the final
+ *  element</b>, the final element being the property. That is unambiguous because a pool property
+ *  name never contains a dot. It cuts the other way for a compound property name written under a
+ *  user override, which is absorbed into the user name instead &mdash; accepted deliberately,
+ *  since such a key means nothing in that position either way and still draws an
+ *  unexpected-property warning.</p>
  *
  *  <h3>A declared-but-empty named config</h3>
  *
- *  <p>Every named config additionally contributes the <b>bare scope key</b> with an empty value,
- *  so {@code <named-config name="X"/>} yields {@code c3p0.named-configs.X=} even with nothing in
- *  it. c3p0 distinguishes a scope declared empty &mdash; which falls through to lower-precedence
- *  configuration &mdash; from one never declared, which reverts to the default scope; and a scope
- *  with no properties would otherwise leave no trace at all. Since a key is a prefix of itself,
- *  the mark reads as {@code containsKey(pfx)} on a by-prefix lookup. Note that <i>declared</i>
- *  remains {@code size() > 0}: a scope declared in properties-style configuration carries no such
- *  mark and is declared nonetheless. The mark is for named configs alone &mdash; for
+ *  <p>c3p0 distinguishes a scope <i>declared empty</i> &mdash; which falls through to
+ *  lower-precedence configuration &mdash; from one <i>never declared</i>, which reverts to the
+ *  default scope. A scope with no properties would otherwise leave no trace at all, so this
+ *  source writes the <b>bare scope key</b> for it, carrying
+ *  {@link C3P0ConfigUtilsNoLogging#POTENTIALLY_EMPTY_NAMED_SCOPE_MARKER_VALUE} as its value: a
+ *  value that names itself in a config dump rather than sitting there as an unexplained empty
+ *  string.</p>
+ *
+ *  <p>The mark is written <b>only where it is needed</b> &mdash; where the scope contributed no
+ *  keys of its own, as judged by what actually landed rather than by which child elements were
+ *  present, so that a scope whose every property was refused still reads as declared. A populated
+ *  scope carries no mark, which also matches what a deployment writes by hand: nobody sets the
+ *  base key of a scope they are giving properties to. Since a key is a prefix of itself, the mark
+ *  reads as {@code containsKey(pfx)} on a by-prefix lookup, and <i>declared</i> remains the
+ *  broader question &mdash; a scope declared in properties-style configuration carries no mark
+ *  and is declared nonetheless. The mark is for named configs alone: for
  *  {@code <user-overrides>} and {@code <extensions>}, declared-and-empty and undeclared mean the
- *  same thing to c3p0.</p>
+ *  same thing to c3p0, and an empty one of either is not content.</p>
+ *
+ *  <h3>Scopes whose names share a dotted prefix</h3>
+ *
+ *  <p>Because by-prefix lookup matches whole dot-separated tokens, scope {@code a.b}'s keys sit
+ *  underneath scope {@code a}'s prefix. Neither scope may read the other's configuration, and two
+ *  rules keep them apart. <b>Definedness</b> asks whether some key really belongs to this scope
+ *  &mdash; its mark, a dotless property of its own, or its own {@code user-overrides.} or
+ *  {@code extensions.} subtree &mdash; rather than merely sitting under its prefix, so a name
+ *  nothing declared stays undefined however many deeper scopes exist. And a scope's keys are
+ *  converted to base-prefixed properties only where <b>the remainder after its prefix carries no
+ *  further dot</b>, which excludes user overrides, extensions, and every deeper scope's keys
+ *  alike.</p>
+ *
+ *  <p>Both are load-bearing, and for different cases: definedness handles a shadowed name nothing
+ *  declared, while the conversion rule handles a shadowed name that <i>is</i> declared, where no
+ *  definedness test could help. Read naively, a scope inherited every deeper scope's settings and
+ *  {@code getUnspecifiedUserProperties} disagreed with {@code getUnspecifiedUserProperty} about
+ *  the same scope &mdash; two views of one configuration, which is the failure this package was
+ *  rewritten to eliminate.</p>
  *
  *  <h3>XML parsing is hardened, and stays hardened</h3>
  *
@@ -138,6 +192,10 @@ public final class C3P0Config
     private static HashMap<Object,Object>            cacheExtensions                = new HashMap<>(); // key is configName or NULL_TOKEN, val is Map<String,String> or NULL_TOKEN
     private static HashMap<Object,Object>            cacheUnspecifiedUserProperties = new HashMap<>(); // key is configName or NULL_TOKEN, val is Map<String,String> or NULL_TOKEN
     private static HashMap<Object,Object>            cacheUserOverrides             = new HashMap<>(); // key is configName or NULL_TOKEN, val is Map<String,Map<String,String>> or NULL_TOKEN
+
+    final static Pattern EXTENSIONS_KEY_PATTERN = Pattern.compile("^c3p0(?:\\.named-configs\\.(.*))?\\.extensions\\..+$");
+    final static Pattern NON_EXTENSIONS_KEY_PATTERN = Pattern.compile("^c3p0(?:\\.named-configs\\.(.*?))?(?:\\.user-overrides\\.(.*))?\\.([^\\.]+)$");
+    final static Pattern NAMED_CONFIGS_PATTERN = Pattern.compile("^c3p0\\.named-configs\\..*\\.([^\\.]*)$");
 
     static
     {
@@ -394,37 +452,67 @@ public final class C3P0Config
     public static String getPropsFileConfigProperty( String prop )
     { return MPCONFIG().getProperty( prop ); }
 
-    private static String defaultScopePrefix(String user)
+    private static String defaultScopePrefixNoDot(String user)
     { return (user == null ? PROPS_FILE_BASE_PFX : PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX + "." + user); }
 
     private static String defaultScopeKey(String user, String unprefixedKey)
-    { return defaultScopePrefix(user) + "." + unprefixedKey; }
+    { return defaultScopePrefixNoDot(user) + "." + unprefixedKey; }
 
     private static String defaultScopeExtensionsKey()
     { return defaultScopeKey(null, PROP_STYLE_EXTENSIONS_PART); }
 
-    private static String namedScopePrefix(String configName, String user)
+    private static String namedScopePrefixNoDot(String configName, String user)
     {
         String base = C3P0ConfigUtils.PROP_STYLE_NAMED_CFG_PFX + "." + configName;
         return (user == null ? base : base + "." + PROP_STYLE_USER_OVERRIDES_PART + "." + user);
     }
 
     private static String namedScopeKey(String configName, String user, String unprefixedKey)
-    { return namedScopePrefix(configName, user) + "." + unprefixedKey; }
+    { return namedScopePrefixNoDot(configName, user) + "." + unprefixedKey; }
 
     private static String namedScopeExtensionsKey(String configName)
     { return namedScopeKey(configName, null, PROP_STYLE_EXTENSIONS_PART); }
 
+    // we rely here upon the fact that 'extensions' and 'user-overrides' are not permitted to
+    // be dot-separated elements of names. if they could be, we'd not be able to distinguish
+    // an extension or user-overrides defined in the named config whose definition we are
+    // examining and an alternative named config called <name>.extension or <name>.user-overrides
+    //
+    // C3P0XmlPropertiesConfigSource refuses names including 'extensions' and 'user-overrides', and
+    // C3P0Config refuses to look them up. Relax either refusal and we would no longer be able to
+    // definitively distinguish defined from shadowed scopes.
     private static boolean _namedConfigIsDefined(String configName)
     {
-        String prefix = namedScopePrefix(configName, null);
+        String prefix = namedScopePrefixNoDot(configName, null);
 
         // never null, whether empty or undefined
         // but if defined, it will be non-empty (even if in fact
         // it contains no subkeys, a dummy base key will exist if
         // the named scope has been defined but no keys were set
         Properties defined = MPCONFIG().getPropertiesByPrefix(prefix);
-        return (defined.size() > 0);
+
+        // there could be shadowed deeper scopes, so we check the keys
+        // to make sure they are really in this specific scope
+        for(String key : defined.stringPropertyNames())
+        {
+            if (prefix.equals(key)) // the scope-defining key
+                return true;
+            else
+            {
+                String afterPrefix = key.substring(prefix.length()+1); // +1 to get past the dot
+                int next_dot_index = afterPrefix.indexOf('.'); 
+                if (next_dot_index < 0)
+                    return true; // final property name, no scopes beneath
+                else
+                {
+                    String nextElement = afterPrefix.substring(0,next_dot_index);
+                    if (PROP_STYLE_EXTENSIONS_PART.equals(nextElement) || PROP_STYLE_USER_OVERRIDES_PART.equals(nextElement)) // no extra elements in scope name, extensions or user-overrides can't be in scope name
+                        return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static synchronized boolean namedConfigIsDefined(String configName)
@@ -446,7 +534,10 @@ public final class C3P0Config
         if (!namedConfigIsDefined(configName))
             return null;
         else
-            return MPCONFIG().getPropertiesByPrefix(namedScopePrefix(configName,null)); // never null, whether empty or undefined
+        {
+            String prefix = namedScopePrefixNoDot(configName,null);
+            return MPCONFIG().getPropertiesByPrefix(prefix); // never null, whether empty or undefined
+        }
     }
 
     private static final class PropKeyConfigName
@@ -575,44 +666,95 @@ public final class C3P0Config
         return out;
     }
 
-    final static Pattern NAMED_CONFIGS_PATTERN = Pattern.compile("^c3p0\\.named-configs\\.[^\\.]*\\.(.*)$");
+    private static boolean isExtensionsKey(String key)
+    {
+        Matcher m = EXTENSIONS_KEY_PATTERN.matcher(key);
+        return m.matches();
+    }
+
+    private static boolean isUserOverridesKey(String key)
+    {
+        Matcher m = NON_EXTENSIONS_KEY_PATTERN.matcher(key);
+        if (m.matches())
+            return m.group(2) != null;
+        else
+            return false;
+    }
+
 
     private static Properties convertNamedScopePropsToBasePrefixProps(Properties props)
     {
         Properties out = new Properties();
         for (String key : props.stringPropertyNames())
         {
-            Matcher m = NAMED_CONFIGS_PATTERN.matcher(key);
-            if (m.matches())
+            if (! isUserOverridesKey(key) && ! isExtensionsKey(key) )
             {
-                String val = props.getProperty(key);
-                out.setProperty( PROPS_FILE_PROP_PFX + m.group(1), val );
+                Matcher m = NAMED_CONFIGS_PATTERN.matcher(key);
+                if (m.matches())
+                {
+                    String val = props.getProperty(key);
+                    if (!POTENTIALLY_EMPTY_NAMED_SCOPE_MARKER_VALUE.equals(val))
+                        out.setProperty( PROPS_FILE_PROP_PFX + m.group(1), val );
+                }
             }
         }
         return out;
     }
 
+
+    // extracts properties directly defined in a namedScope, not as a compound (or the termination of a compound) property
+    // containing dots, only atoms that contain no dots
+    private static Properties convertScopeOwnPropsToBasePrefixProps(String namedPrefixNoDot, Properties prefixedProps)
+    {
+        String scopePfxDot = namedPrefixNoDot + ".";
+        Properties out = new Properties();
+        for (String key : prefixedProps.stringPropertyNames())
+        {
+            if (key.startsWith(scopePfxDot)) // ignore the key that may exist to simply define a potentially empty scope, just the bare prefix with no dot
+            {
+                String remainder = key.substring(scopePfxDot.length());
+                if (remainder.indexOf('.') < 0) // this scope's OWN pool property, and so excludes user-overrides.*, extensions.*, and the keys of any deeper dotted scope that shares this prefix
+                    out.setProperty( PROPS_FILE_PROP_PFX + remainder, prefixedProps.getProperty(key) );
+            }
+        }
+        return out;
+    }
+
+
     private static synchronized Map<String,String> _getUnspecifiedUserProperties(String configName)
     {
-        String defaultPrefix = defaultScopePrefix(null);
+        String defaultPrefix = defaultScopePrefixNoDot(null);
 
-	Properties raw = MPCONFIG().getPropertiesByPrefix(defaultPrefix);
-	if (configName != null)
+        Properties raw = MPCONFIG().getPropertiesByPrefix(defaultPrefix);
+        if (configName != null)
         {
-            String namedPrefix = namedScopePrefix(configName,null);
-            Properties named = MPCONFIG().getPropertiesByPrefix(namedPrefix);
-            if (named.isEmpty())
+            if (nameContainsMarkers(configName))
             {
-                if (!namedConfigIsDefined(configName))
-                {
-                    if (logger.isLoggable(MLevel.WARNING))
-                        logger.log(MLevel.WARNING, "Properties (for an unspecified user) cannot be found for undefined named config '" + configName + "'. Only default config values obtain.");
-                    //no need, we already contain only default properties
-                    //raw = MPCONFIG().getPropertiesByPrefix(defaultKey);
-                }
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING,
+                               "Looking up properties for an illegal configuration name '" + configName +
+                               "'. Regardless of what you may think you have configured, no named-scope specific properties will be found for this name, only default-scope values will obtain.");
+                return null;
             }
             else
-                raw.putAll(convertNamedScopePropsToBasePrefixProps(named)); // we override with values from the named scope, converted into normal c3p0.xxx-style props
+            {
+                String namedPrefix = namedScopePrefixNoDot(configName,null);
+                Properties named = MPCONFIG().getPropertiesByPrefix(namedPrefix);
+
+                // even if named is non-empty, the scope could be undefined
+                // because we could have a shadowing name that includes dots.
+                // so there's not much information in named.isEmpty(), we use
+                // namedConfigIsDefined(...)
+                if (!namedConfigIsDefined(configName))
+                    {
+                        if (logger.isLoggable(MLevel.WARNING))
+                            logger.log(MLevel.WARNING, "Properties (for an unspecified user) cannot be found for undefined " +
+                                       "named config '" + configName + "'. Only default config values obtain.");
+                        // nothing to overlay, raw already holds the default scope
+                    }
+                else
+                    raw.putAll(convertScopeOwnPropsToBasePrefixProps(namedPrefix, named));
+            }
         }
 
         int prefix_len = defaultPrefix.length();
@@ -674,14 +816,14 @@ public final class C3P0Config
         }
     }
 
-    private static Set<UserOverrideTriplet> convertNamedScopePropsToBasePrefixProps(String bareScopeUserOverridesPrefix, Properties props)
+    private static Set<UserOverrideTriplet> convertUserOverridesPropsToBasePrefixProps(String bareScopeUserOverridesPrefixNoDot, Properties props)
     {
         Set<UserOverrideTriplet> out = new HashSet<>();
         for (String key : props.stringPropertyNames())
         {
-            if (!bareScopeUserOverridesPrefix.equals(key))
+            if (!bareScopeUserOverridesPrefixNoDot.equals(key))
             {
-                int strip_me_len = bareScopeUserOverridesPrefix.length() + 1; // don't forget the period
+                int strip_me_len = bareScopeUserOverridesPrefixNoDot.length() + 1; // don't forget the period
                 String stripped = key.substring(strip_me_len);
                 Matcher m = USER_OVERRIDES_KEY_TAIL_PATTERN.matcher(stripped);
                 if (m.matches())
@@ -694,10 +836,10 @@ public final class C3P0Config
         return out;
     }
 
-    private static Map<String,Map<String,String>> _getUserOverridesFromScope(String bareScopeUserOverridesPrefix)
+    private static Map<String,Map<String,String>> _getUserOverridesFromScope(String bareScopeUserOverridesPrefixNoDot)
     {
-	Properties               props    = MPCONFIG().getPropertiesByPrefix( bareScopeUserOverridesPrefix );
-        Set<UserOverrideTriplet> triplets = convertNamedScopePropsToBasePrefixProps( bareScopeUserOverridesPrefix, props );
+	Properties               props    = MPCONFIG().getPropertiesByPrefix( bareScopeUserOverridesPrefixNoDot );
+        Set<UserOverrideTriplet> triplets = convertUserOverridesPropsToBasePrefixProps( bareScopeUserOverridesPrefixNoDot, props );
 
         Map<String,Map<String,String>> out = new HashMap<>();
         for (UserOverrideTriplet triplet : triplets)
@@ -730,27 +872,38 @@ public final class C3P0Config
 
     private static Map<String,Map<String,String>> _getUserOverrides( String configName )
     {
-        String defaultPrefix = defaultScopePrefix(null)  + "." + PROP_STYLE_USER_OVERRIDES_PART;
-        Map<String,Map<String,String>> tmp = _getUserOverridesFromScope(defaultPrefix);
-
-	if (configName != null)
+        if (configName != null && nameContainsMarkers(configName))
         {
-            String namedPrefix = namedScopePrefix(configName,null) + "." + PROP_STYLE_USER_OVERRIDES_PART;
-            Map<String,Map<String,String>> namedUserOverrides = _getUserOverridesFromScope(namedPrefix);
-            userOverridesMergeOver(namedUserOverrides, tmp);
-        }
-
-        if (tmp.isEmpty())
+            if (logger.isLoggable(MLevel.WARNING))
+                logger.log(MLevel.WARNING,
+                           "Looking up user-overrides for an illegal configuration name '" + configName +
+                           "'. Regardless of what you may think you have configured, no user-overrides will be found for this name.");
             return null;
+        }
         else
         {
-            HashMap<String,Map<String,String>> out = new HashMap<>();
-            for (String user : tmp.keySet())
+            String defaultPrefix = defaultScopePrefixNoDot(null)  + "." + PROP_STYLE_USER_OVERRIDES_PART;
+            Map<String,Map<String,String>> tmp = _getUserOverridesFromScope(defaultPrefix);
+
+            if (configName != null)
             {
-                Map<String,String> userMap = tmp.get(user);
-                out.put( user, Collections.unmodifiableMap(userMap) );
+                String namedPrefix = namedScopePrefixNoDot(configName,null) + "." + PROP_STYLE_USER_OVERRIDES_PART;
+                Map<String,Map<String,String>> namedUserOverrides = _getUserOverridesFromScope(namedPrefix);
+                userOverridesMergeOver(namedUserOverrides, tmp);
             }
-            return Collections.unmodifiableMap(out);
+
+            if (tmp.isEmpty())
+                return null;
+            else
+            {
+                HashMap<String,Map<String,String>> out = new HashMap<>();
+                for (String user : tmp.keySet())
+                {
+                    Map<String,String> userMap = tmp.get(user);
+                    out.put( user, Collections.unmodifiableMap(userMap) );
+                }
+                return Collections.unmodifiableMap(out);
+            }
         }
     }
 
@@ -956,89 +1109,58 @@ public final class C3P0Config
                        "remove the resource.");
     }
 
+    private static void warnIfNameContainsMarkers(String configName, Set<String> warned)
+    {
+        if (configName != null && !warned.contains(configName) && nameContainsMarkers(configName))
+        {
+            logger.log(MLevel.WARNING, "A named-config has config-name '" + configName + "'. Names containing '" + PROP_STYLE_NAMED_CFG_PART + "', '" + PROP_STYLE_EXTENSIONS_PART + "' or '" + PROP_STYLE_USER_OVERRIDES_PART + "' are not supported. This configuration will be unreadable.");
+            warned.add(configName);
+        }
+    }
+
+    private static void warnIfUserContainsMarkers(String user, Set<String> warned)
+    {
+        if (user != null && !warned.contains(user) && nameContainsMarkers(user))
+        {
+            logger.log(MLevel.WARNING, "A user-overrides is defined for user '" + user + "'. User names containing '" + PROP_STYLE_NAMED_CFG_PART + "', '" + PROP_STYLE_EXTENSIONS_PART + "' or '" + PROP_STYLE_USER_OVERRIDES_PART + "' are not recommended.");
+            warned.add(user);
+        }
+    }
+
     private static void warnOnUnexpectedProperties(MultiPropertiesConfig mpcfg)
     {
         if (logger.isLoggable(MLevel.WARNING))
         {
+            Set<String> warnedNames = new HashSet<>();
+            Set<String> warnedUsers = new HashSet<>();
+            
             Properties c3p0Prefixed = mpcfg.getPropertiesByPrefix(PROPS_FILE_BASE_PFX);
             Set<String> unknown = new TreeSet<>();
             for( String key : c3p0Prefixed.stringPropertyNames() )
             {
-                String[] elements = key.split("\\.");
-
-                // usernames are usually a single element, but we now suppport multipart names
-                // c3p0.user-overrides.firstname.middlename.lastname.jr.<prop-name> or c3p0.named-configs.intergalacto.useroverrides.firstname.middlename.lastname.jr.<prop-name>
-                if ((elements.length >= 4 && PROP_STYLE_USER_OVERRIDES_PART.equals(elements[1])) || (elements.length >= 6 && PROP_STYLE_NAMED_CFG_PART.equals(elements[1]) && PROP_STYLE_USER_OVERRIDES_PART.equals(elements[3])))
+                if (!POTENTIALLY_EMPTY_NAMED_SCOPE_MARKER_VALUE.equals(mpcfg.getProperty(key))) // never warn on items set to be markers of potentially empty named scopes
                 {
-                    if (!C3P0Defaults.isKnownProperty(elements[elements.length-1]))
-                        unknown.add(key);
-                }
-                else
-                {
-                    String second;
-                    String fourth;
-                    String last;
-
-                    switch (elements.length)
+                    Matcher mek = EXTENSIONS_KEY_PATTERN.matcher(key);
+                    if (!mek.matches()) // we don't warn on extensions
                     {
-                    case 0:
-                        logger.severe("Huh?!? We should only see items with at least a 'c3p0' element here! key=" + key);
-                        unknown.add(key);
-                        break;
-                    case 1:
-                        unknown.add(key); // just c3p0 is not an expected config key
-                        break;
-                    case 2: // c3p0.xxx
-                        if (!C3P0Defaults.isKnownProperty(elements[1]))
-                            unknown.add(key);
-                        break;
-                    case 3: // c3p0.named-configs.intergalacto (define scope without subkey) or c3p0.extensions.xxx (any xxx permitted)
-                        second = elements[1];
-                        if (!(PROP_STYLE_NAMED_CFG_PART.equals(second) || PROP_STYLE_EXTENSIONS_PART.equals(second)))
-                            unknown.add(key);
-                        break;
-                    case 4: // c3p0.named-configs.intergalacto.xxx or c3p0.extensions.xxx.yyy (any xxx.yyy permitted) or c3p0.user-overrides.steve.xxx (now we've shortcircuit this last one above, in order to accommodate dotty usernames)
-                        second = elements[1];
-                        last   = elements[3];
-                        if (!PROP_STYLE_EXTENSIONS_PART.equals(second))
+                        Matcher mnek = NON_EXTENSIONS_KEY_PATTERN.matcher(key);
+                        if (mnek.matches())
                         {
-                            if (PROP_STYLE_NAMED_CFG_PART.equals(second))
-                            { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
-                            else if (PROP_STYLE_USER_OVERRIDES_PART.equals(second))
-                            { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
-                            else
+                            String configName = mnek.group(1);
+                            String user = mnek.group(2);
+                            String prop = mnek.group(3);
+
+                            warnIfNameContainsMarkers( configName, warnedNames );
+                            warnIfUserContainsMarkers( user, warnedUsers );
+
+                            if (!C3P0Defaults.isKnownProperty(prop))
                                 unknown.add(key);
                         }
-                        break;
-                    case 5:
-                        second = elements[1];
-                        fourth = elements[3];
-                        last   = elements[4];
-                        if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
-                        {
+                        else
                             unknown.add(key);
-                        }
-                        break;
-                    case 6: // c3p0.named-configs.intergalacto.user-overrides.steve.xxx, though now we've shortcircuited this above, in order to accommodate dotty usernames
-                        second = elements[1];
-                        fourth = elements[3];
-                        last   = elements[5];
-                        if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
-                        {
-                            if (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_USER_OVERRIDES_PART.equals(fourth))
-                            { if (!C3P0Defaults.isKnownProperty(last)) unknown.add(key); }
-                            else
-                                unknown.add(key);
-                        }
-                        break;
-                    default: // c3p0.extensions.xxx.yyy.zzz or c3p0.named-configs.intergalacto.extensions.xxx.yyy.zzz
-                        second = elements[1];
-                        fourth = elements[3];
-                        last   = elements[elements.length-1];
-                        if (!(PROP_STYLE_EXTENSIONS_PART.equals(second) || (PROP_STYLE_NAMED_CFG_PART.equals(second) && PROP_STYLE_EXTENSIONS_PART.equals(fourth)))) // skip valid extensions keys
-                            unknown.add(key);
-                        break;
                     }
+                    else
+                        warnIfNameContainsMarkers( mek.group(1), warnedNames );
                 }
             }
             for ( String key : unknown )

@@ -9,6 +9,10 @@ import com.mchange.v2.c3p0.impl.*;
 
 import com.mchange.v2.lang.Coerce;
 
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_NAMED_CFG_PART;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_USER_OVERRIDES_PART;
+import static com.mchange.v2.c3p0.cfg.C3P0ConfigUtilsNoLogging.PROP_STYLE_EXTENSIONS_PART;
+
 public final class C3P0ConfigUtils
 {
     public final static String PROPS_FILE_BASE_PFX      = "c3p0";
@@ -18,12 +22,9 @@ public final class C3P0ConfigUtils
 
     private final static String[] MISSPELL_PFXS = {"/c3pO", "/c3po", "/C3P0", "/C3PO"};
 
-    final static String PROP_STYLE_NAMED_CFG_PART                 = "named-configs";
     final static String PROP_STYLE_NAMED_CFG_PFX                  = "c3p0." + PROP_STYLE_NAMED_CFG_PART;
-    final static String PROP_STYLE_USER_OVERRIDES_PART            = "user-overrides";
     final static String PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX     = "c3p0." + PROP_STYLE_USER_OVERRIDES_PART;
     final static int    PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX_LEN = PROP_STYLE_DEFAULT_USER_OVERRIDES_PFX.length();
-    final static String PROP_STYLE_EXTENSIONS_PART                = "extensions";
     final static String PROP_STYLE_EXTENSIONS_PFX                 = "c3p0." + PROP_STYLE_EXTENSIONS_PART;
     final static int    PROP_STYLE_EXTENSIONS_PFX_LEN             = PROP_STYLE_EXTENSIONS_PFX.length();
 
