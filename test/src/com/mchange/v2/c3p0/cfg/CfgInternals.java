@@ -25,6 +25,15 @@ public final class CfgInternals
     public static String potentiallyEmptyNamedScopeMarkerValue()
     { return C3P0ConfigUtilsNoLogging.POTENTIALLY_EMPTY_NAMED_SCOPE_MARKER_VALUE; }
 
+    /**
+     *  The resource-path list c3p0's build generates, as the library itself reads it.
+     *
+     *  <p>{@code MLogC3P0SharedResources} is package-private and generated, so a test can only
+     *  reach it from inside the package.</p>
+     */
+    public static String[] declaredSharedResources()
+    { return MLogC3P0SharedResources.get(); }
+
     private CfgInternals()
     {}
 }
