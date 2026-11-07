@@ -389,3 +389,13 @@ Here are the incompatible changes:
      longer supported. If such names are specified, they'll elicit a warning and then
      be ignored.
 
+(16) c3p0 used to configure the configuration of the mchange-commons-java and logging
+     libraries via a resource called /mchange-config-resource-paths.txt. The log
+     library now prefers /mlog-config-resource-paths.txt, which we adopt, and the build
+     ensures that this resource contains the same information as c3p0 will use for
+     its own configuration, so users generally don't need to worry about whether they
+     are providing c3p0 config or mlog config, it's just config. However, in the
+     unlikely event you rolled-your-own /mchange-config-resource-paths.txt to augment
+     or change the source of configuration used by the mlog and c3p0 libraries,
+     those changes will no longer take effect. (You'll see a warning about misconfiguration,
+     noting the conflict that the newer resource takes effect.)
