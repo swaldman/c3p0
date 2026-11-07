@@ -7,6 +7,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Properties;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -59,9 +61,12 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     //MT: protected by this' lock
     Driver driver;
-    
+
     //MT: protected by this' lock
     boolean driver_class_loaded = false;
+
+    //MT: protected by this' lock
+    Set<ByNameInstantiationUtils.Warned> warnedDriverClasses = new HashSet<>();
 
     public DriverManagerDataSource()
     { this( true ); }
@@ -93,7 +98,8 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		{
 		    synchronized (DriverManagerDataSource.this) 
 		    {
-			setDriverClassLoaded( false );
+                        clearDriver();
+			setDriverClassLoaded( false ); // we haven't tried to load this new driver yet
 
 			// guard against setting to empty String or whitespace values. 
 			// JMX clients sometimes (unfortunately) represent null properties as blank fields, then update them to empty or whitespace Strings.
@@ -111,30 +117,54 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     private synchronized void setDriverClassLoaded(boolean dcl)
     {
-	this.driver_class_loaded = dcl; 
-	if (! driver_class_loaded) clearDriver(); // if we are changing to a yet-unloaded Driver class, the existing driver must be stale
+        // if we are changing status, and now we're not loaded, any existing driver must be stale
+        // however, it does not follow that we don't need to clearDriver() when we are not
+        // changing state. In particular, we must be careful both to clearDriver() and
+        // set driver_class_loaded to false whenever driverClass changes, even if
+        // driver_class_loaded was already false.
+        //
+        // we do that via this class' PropertyChangeListener
+        if (dcl != driver_class_loaded)
+        {
+            this.driver_class_loaded = dcl;
+            if (!driver_class_loaded) clearDriver();
+        }
     }
 
     private synchronized void ensureIfPossibleDriverClassLoaded() throws SQLException
     {
-        try
+        if (!isDriverClassLoaded())
         {
-            if (! isDriverClassLoaded())
+            try
             {
                 if (driverClass != null)
                     loadDriverClass( driverClass );
                 setDriverClassLoaded( true );
             }
-        }
-        catch (ClassNotFoundException e)
-        {
-            if (logger.isLoggable(MLevel.WARNING))
-                logger.log(MLevel.WARNING, "Could not load driverClass " + driverClass, e);
+            catch (InstantiationNotPermittedException e)
+            {
+                // if we're explicitly gating on driver class, and we've forbidden this name, we always want to fail
+                // and we don't want any driver that may be set to survive, if we're enforcing the driver class name
+                // whitelist and our driver class fails the whitelist check
+                clearDriver();
+                throw sqlExceptionForInstantiationNotPermittedException(e, null);
+            }
+            catch (ClassNotFoundException e)
+            {
+                // a ClassNotFoundException is not a violation of explicit security policy. whether we ultimately succeed or fail
+                // will depend upon whether forceUseNamedDriverClass is true -- in which case we'll try
+                // loadDriverClass(...) again, and likely fail again -- or, if not, whether the DriverManager-based
+                // mechanism can succeed despite the driver-class load-by-name failing
+                if (logger.isLoggable(MLevel.WARNING))
+                    logger.log(MLevel.WARNING, "Could not load driverClass " + driverClass, e);
+            }
         }
     }
 
-    private Class loadDriverClass(String driverClass) throws ClassNotFoundException
+    // called only from synchronized methods
+    private Class loadDriverClass(String driverClass) throws ClassNotFoundException, InstantiationNotPermittedException
     {
+        ByNameInstantiationUtils.checkWarnThrowForInstantiateByNameGated(driverClass,C3P0Config.getMultiPropertiesConfig(),warnedDriverClasses); // this is the gate
         try
         {
             return Class.forName(driverClass);
@@ -157,7 +187,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // blocks access to the entire DataSource
     @Override
     public Connection getConnection() throws SQLException
-    { 
+    {
         ensureIfPossibleDriverClassLoaded();
 
         Connection out = driver().connect( jdbcUrl, properties ); 
@@ -194,7 +224,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
     // blocks access to the entire DataSource
     @Override
     public Connection getConnection(String username, String password) throws SQLException
-    { 
+    {
         ensureIfPossibleDriverClassLoaded();
 
         Connection out = driver().connect( jdbcUrl, overrideProps(username, password) );
@@ -318,6 +348,8 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 		    {
                         try
                         {
+                            // we don't WANT to succeed, even by the DriverManager mechanism if we have a driverClass explicitly configured that is forbidden
+                            ByNameInstantiationUtils.checkWarnThrowForInstantiateByNameGated(driverClass,C3P0Config.getMultiPropertiesConfig(),warnedDriverClasses); // this is the gate
                             driver = DriverManager.getDriver( jdbcUrl ); // if not forceUseNamedDriverClass, prefer jdbcUrl-based lookup if that succeeds, otherwise load driver by classname
                         }
                         catch (SQLException e)
@@ -380,12 +412,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
                 }
                 catch (InstantiationNotPermittedException e)
 		{
-                    String message =
-                        "Instantiation by name of the specified JDBC driver class was forbidden, because it is not in the enforced whitelist. Driver class: '" + driverClass +
-                        "'; Enforced -- " + ByNameInstantiationUtils.currentWhitelistInfo(C3P0Config.getMultiPropertiesConfig());
-                    SQLException sqle = SqlUtils.toSQLException(message, e);
-                    if (jdbcUrlBasedLookupException != null) sqle.addSuppressed(jdbcUrlBasedLookupException);
-                    throw sqle;
+                    throw sqlExceptionForInstantiationNotPermittedException(e, jdbcUrlBasedLookupException);
                 }
 	    }
 	    else // if no driverClass is specified, we only have one way to try
@@ -394,12 +421,23 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         return driver;
     }
 
+    private SQLException sqlExceptionForInstantiationNotPermittedException(InstantiationNotPermittedException e, Throwable suppressed)
+    {
+        String message =
+            "Loading or instantiation by name of the specified JDBC driver class was forbidden, because it is not " +
+            "in the enforced whitelist. c3p0 will not fall back to the DriverManager mechanism while a forbidden " +
+            "driverClass is configured. Driver class: '" + driverClass +
+            "'; Enforced -- " + ByNameInstantiationUtils.currentWhitelistInfo(C3P0Config.getMultiPropertiesConfig());
+        SQLException sqle = SqlUtils.toSQLException(message, e);
+        if (suppressed != null) sqle.addSuppressed(suppressed);
+        return sqle;
+    }
+
     // driver class name is determined by a potentially dereferenced or deserialized DataSource, so we do gate instantiation
     private Driver instantiateDriverByName()
         throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationNotPermittedException
     {
-        Class<?> dc = loadDriverClass( driverClass );
-        ByNameInstantiationUtils.checkWarnThrowForInstantiateByNameGated(driverClass,C3P0Config.getMultiPropertiesConfig()); // this is the gate
+        Class<?> dc = loadDriverClass( driverClass ); // note that we gate within this method to make sure a driverClass is whitelisted (if we are enforcing the gate! as of 0.15.0 we are only warning)
         return (Driver) ByNameInstantiationUtils.instantiateByNameUngated(driverClass,dc); // ungated here because we've gated above
     }
 
@@ -424,6 +462,7 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
         switch (version)
         {
         case VERSION:
+            this.warnedDriverClasses = new HashSet<>();
             setUpPropertyListeners();
             break;
         default:
