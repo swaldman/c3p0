@@ -2,6 +2,9 @@
 
   <default-config>
     <property name="maxPoolSize">30</property>
+    <user-overrides user="steve">
+      <property name="maxPoolSize">99</property>
+    </user-overrides>
     <extensions>
       <property name="initSql">SET SCHEMA 'default'</property>
     </extensions>
