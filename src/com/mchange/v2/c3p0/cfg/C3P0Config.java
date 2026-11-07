@@ -397,7 +397,7 @@ public final class C3P0Config
 
     // only for backwards compatability if, very unusually, legacy config files are found
     private static String[] backstopHardcodedMLogC3P0Preempts()
-    { return new String[] {"hocon:/reference,/application,/c3p0,/","/c3p0.properties","c3p0-xml:/c3p0-config.xml","c3p0-xml:file:${com.mchange.v2.c3p0.cfg.xml}","/",SealedSystemProperties.NOTIONAL_RESOURCE_PATH}; }
+    { return new String[] {"hocon:/reference,/application,/c3p0,/","/c3p0.properties","c3p0-xml:/c3p0-config.xml","c3p0-xml:prop:${com.mchange.v2.c3p0.cfg.xml}","/",SealedSystemProperties.NOTIONAL_RESOURCE_PATH}; }
 
     private static MultiPropertiesConfig findInitialMultiPropertiesConfig()
     {
@@ -407,7 +407,7 @@ public final class C3P0Config
 
         // this case is for compatability, to not break old behavior if deployments had customized the
         // old-school config-libray configuring resorces that we now drop completely ftom the canonical distribution
-        if (MConfig.WithTraditionalDefaultSources.traditionalPathFileSourcedPathsFound())
+        if (MLog.getConfigResourcePathsTxtPaths() == null && MConfig.WithTraditionalDefaultSources.traditionalPathFileSourcedPathsFound())
         {
             // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
             String[] defaults = backstopHardcodedMLogC3P0Defaults();
@@ -418,14 +418,27 @@ public final class C3P0Config
             {
                 logger.log(MLevel.WARNING,
                            "At least one of the following resources " + MConfig.WithTraditionalDefaultSources.traditionalPathFileResourcesSearched() +
-                           " has been found, so c3p0 will configure itself using the traditional mechanism that honored these files. " +
+                           " has been found, and no resource paths have been found in a newer " + MLogConfig.MLOG_CONFIG_RESOURCE_PATHS_RESOURCE +
+                           ", so c3p0 will configure itself using the traditional mechanism that used the legacy files. " +
                            "However, c3p0 is transitioning from this mechanism, which is fragile and obscure. The supported way to customize configuration " +
-                           "sources for c3p0 is to augment a now hardcoded list when calling an overload of refreshMainConfig(...).");
+                           "sources for c3p0 is to augment built-in list by calling an overload of C3P0Config.refreshMainConfigWithBackstopsAndOverrides(...) and similar methods.");
             }
         }
         else
         {
-            String[] resources = MLogC3p0SharedResources.get();
+            if (MConfig.WithTraditionalDefaultSources.traditionalPathFileSourcedPathsFound())
+            {
+                if ( logger.isLoggable( MLevel.WARNING ) )
+                {
+                    logger.log(MLevel.WARNING,
+                               "At least one of the following legacy resources " + MConfig.WithTraditionalDefaultSources.traditionalPathFileResourcesSearched() +
+                               " has been found. Resource paths have also been found in a newer " + MLogConfig.MLOG_CONFIG_RESOURCE_PATHS_RESOURCE +
+                               ", so c3p0 will configure itself using the newer mechanism. Packaging both is a misconfiguration (and probably results from multiple versions of c3p0 on your CLASSPATH). " +
+                               "Please remove any of " + MConfig.WithTraditionalDefaultSources.traditionalPathFileResourcesSearched() + " from your CLASSPATH.");
+                }
+            }
+
+            String[] resources = MLogC3P0SharedResources.get();
             withoutDefaults = MConfig.AsProvidedIgnoreVetoed.readCachedResourceConfig(SealedSystemProperties.capCurrentThenSealed(resources));
         }
 

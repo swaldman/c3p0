@@ -347,18 +347,18 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
    val src =
       s"""|package com.mchange.v2.c3p0.cfg;
           |
-          |final class MLogC3p0SharedResources
+          |final class MLogC3P0SharedResources
           |{
           |    private final static String[] RESOURCES = new String[]{${mlogC3P0SharedResourcePathsConfig.map(r=>"\"" + r + "\"").mkString(",")}};
           |
           |    public static String[] get() { return (String[]) RESOURCES.clone(); }
           |
-          |    private MLogC3p0SharedResources() {}
+          |    private MLogC3P0SharedResources() {}
           |}
           |""".stripMargin
    val destDir = Task.dest / "com" / "mchange" / "v2" / "c3p0" / "cfg"
    os.makeDir.all(destDir)
-   os.write(destDir / "MLogC3p0SharedResources.java", src)
+   os.write(destDir / "MLogC3P0SharedResources.java", src)
    PathRef(Task.dest)
 
   // C3P0BeanInfoGen reflects over the compiled beans, which it reaches via beanInfo's moduleDep on
