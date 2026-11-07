@@ -529,6 +529,12 @@ public final class C3P0Config
         return out;
     }
 
+    /*
+
+    // nothing actually uses this, and we're incompatibly reorganizing
+    // com.mchange.v2.c3p0.cfg, so let's leave this gone unless there's
+    // some real reason to restore it
+
     public static Properties getNamedConfig(String configName)
     {
         if (!namedConfigIsDefined(configName))
@@ -539,6 +545,7 @@ public final class C3P0Config
             return MPCONFIG().getPropertiesByPrefix(prefix); // never null, whether empty or undefined
         }
     }
+    */
 
     private static final class PropKeyConfigName
     {
