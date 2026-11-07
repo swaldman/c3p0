@@ -122,14 +122,6 @@ Security-related updates
 Other updates
 -------------
 
-* The build is reorganized in the fashion of a proper mill build.
-  c3p0-0.10.0 transitioned the library from ant to mill, but the structure
-  of the build was awkwardly hand-ported from ant-style, which used only
-  timestamp comparisons to decide whether artifacts needed to be rebuilt.
-  mill, more modernly, prefers to cache and hash artifacts, and decides
-  what needs to be rebuilt on the basis of those hashes.
-  c3p0-0.15.0's build is organized in modern mill style.
-
 * c3p0's statement cache is dramatically improved. Over the years,
   Statements accumulated methods that could potentially affect
   Statement state that c3p0's Statement cache had not been updated
@@ -149,7 +141,18 @@ Other updates
   it might see instances it has encountered before and is already tracking.
   (Thanks @Devil2-O on github.)
 
+* We offer new, richer API for augmenting c3p0's internal sources of
+  configuration.
+
 * Miscellaneous rare bugs and leaks are addressed in the Statement cache.
+
+* The build is reorganized in the fashion of a proper mill build.
+  c3p0-0.10.0 transitioned the library from ant to mill, but the structure
+  of the build was awkwardly hand-ported from ant-style, which used only
+  timestamp comparisons to decide whether artifacts needed to be rebuilt.
+  mill, more modernly, prefers to cache and hash artifacts, and decides
+  what needs to be rebuilt on the basis of those hashes.
+  c3p0-0.15.0's build is organized in modern mill style.
 
 * The codebase is somewhat modernized from its original Java 1.3 style. We
   now utilize, and in the build insist upon, @Override annotations, in both
@@ -336,9 +339,53 @@ Here are the incompatible changes:
      In the dynamic mbean implementation (which is not typically used to configure new
      beans), setters are removed as well.
 
-(10) The undocumented and now deprecated feature of a user-specified C3P0ConfigFinder
-     used to support refreshing config to a totally different C3P0ConfigFinder. It's
-     clear how this could be a source of mischief, and not clear how it would be used
-     for good. The choice of a C3P0ConfigFinder (in real life nearkly always c3p0's
-     build-in DefaultC3P0ConfigFinder) is now latched. A C3P0ConfigFinder is selected
-     once, and can no longer be changed via C3P0Config.refreshMainConfig(...)
+(10) The API in com.mchange.v2.c3p0.cfg was never documented and always intended to
+     be internal, but much of it was public at a language level, so that c3p0 code
+     outside of the cfg package could access it. We suspect it's rare, but it's not
+     inconceivable that third parties found clever reasons to hit this API. Any
+     applications that do access com.mchange.v2.c3p0.cfg API directly should expect
+     incompatibilities, as this release dramatically revises and simplifies that API.
+     c3p0-0.15.x com.mchange.v2.c3p0.cfg's API is neither binary nor source compatible
+     with prior releases.
+
+(11) The undocumented feature of a user-specified C3P0ConfigFinder used to support
+     refreshing config from potentially arbitrary files and formats. It's
+     clear how this could be a source of mischief, and it is not clear how it would be used
+     for good. Use of custom C3P0ConfigFinders would break c3p0's documented
+     config sources and precedences. This feature is no longer supported. The API that
+     supported this feature has been removed from com.mchange.v2.c3p0.cfg
+
+(12) The class com.mchange.v2.log.MLogConfig was also intended only as internal API,
+     but in fact offered public methods. All of its methods have been withdrawn from
+     the public API. You can access all functionality ever intended for end-users via
+     the com.mchange.v2.log.MLog facade. (Withdrawing the delegated API from direct
+     public access, and insisting on access via MLog, allows us to insist on a
+     consistent lock ordering, MLog -> MLogConfig, and so prevent potential deadlocks.)
+
+(13) The default value of the connectionIsValidTimeout property, as returned by
+     com.mchange.v2.c3p0.impl.C3P0Defaults.connectionIsValidTimeout(), is now
+     hardcoded and not configurable via config parameter
+     com.mchange.v2.c3p0.impl.DefaultConnectionTester.isValidTimeout. That config
+     parameter is not removed, although it is disrecommended: Just set
+     c3p0.connectionIsValidTimeout directly and keep connectionTesterClassName
+     at its default of null. This avoids the complexity of the legacy
+     com.mchange.v2.c3p0.impl.DefaultConnectionTester.
+
+(14) Arguably this is just a bug fix, but the resolution of user overrides
+     has changed when user overrides for the same user are configured in both
+     a named config and the default config. Previously, the user overrides as
+     a body in a matching named config would shadow all user overrides in the
+     default config. Now only *conflicting* user overrides in the default config
+     are shadowed by user overrides in the named config, nonconflicting user override
+     values from the default config are merged into the user-override set that
+     becomes effective.
+
+(15) Configuration names specified in XML used to support names that might have
+     included the dot-delimited strings "user-overrides", "extensions", or "named-configs".
+     Since there is no separate storage of props-based and XML-specified config now,
+     and names including these tokens could not be unambiguously parsed from props-style
+     specification of config including named-configs, extensions, and user-overrides,
+     configuration names containing those tokens as a dot-delimited element are no
+     longer supported. If such names are specified, they'll elicit a warning and then
+     be ignored.
+

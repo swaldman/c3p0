@@ -1,28 +1,44 @@
+        -- Use the prior two extensibility augmentations to mchange-commons-java
+           to support c3p0-xml directly within com.mchange.v2.cfg, but without
+           layer inversions that would have required the config and log libraries
+           to know anything about their client c3p0.
+        -- Make com.mchange.v2.log config extensible by allowing specification
+           of extra resource paths for log config in mlog-config-resource-paths.txt,
+           which becomes a #-commented, one-per-line list of resource paths
+           the current configuration of com.mchange.v2.cfg supports. (mchange-commons-java)
+        -- Make com.mchange.v2.cfg extensible, by allowing users to specify
+	   ExtraPropertiesConfigSources (by fqcn) in a resoure called
+           mcfg-extra-properties-config-sources.txt, which becomes a #-commented,
+           one-per-line list if by-name-instantiable sublasses of
+           com.mchange.v2.cfg.ExtraPropertiesConfigSources. (mchange-commons-java)
+        -- Clarify, fix, and test support for config and user names containing dots,
+           as long as they don't contain dot delineated "named-configs", "extensions",
+           or "user-overrides" elements.
+        -- Port XML config parsing (including the security hardenings) to the new,
+           unified config. Support compound properties in <default-config>, not
+           just unprefixed c3p0.xxx properties.
+        -- Improve, and add much better documentation for, the API permitting
+           refreshes, augmentations, and therefore customization of c3p0 config at
+           runtime. Make it configurable whether MLog config should also be
+           updated on such a refresh. Allow augmenting with "backstops" as well
+           as with "overrides" when refreshing config. Backstops only take effect
+           if nothing else in config sets the value. Overrides override values
+           set within standard c3p0 configuration.
+        -- The never-really-documented feature of permitting user-specified
+           "C3P0ConfigFinder" implementations is no longer supported and has
+           been removed. It opened more doors to mischief than it solved
+           likely problems. (In the unlikely case you used and actually
+           miss this feature, please do let us know.)
+        -- Major reworking of c3p0's internal config library,
+           com.mchange.v2.c3p0.cfg. Structurally it used to have two views
+           of config data that could under some circumstances slip out of
+           sync. Now the code is much simpler, and there is only one, canonical
+           representation of the data.
         -- Take greater care that items that might contain passwords or
            credentials are masked before appearing in logs. LOOSEN restriction
            on usernames appearing in logs. They can be helpful for debugging
            (particularly in deployments where the user-overrides feature is used)
            and are not properly secrets.
-        -- The never-really-documented feature of permitting user-specified
-           "C3P0ConfigFinder" implementations now permits installation only
-           once, when c3p0's configuration is first initialized. Previously,
-           one could refresh config and load a new C3P0ConfigFinder, which
-           opens more doors to mischief than it solves likely problems. (In
-           the unlikely case you actually had a reason to update to a new
-           C3P0ConfigFinder after startup with a different C3P0ConfigFinder,
-           please let us know about it.)
-        -- The never-really-documented feature of permitting user-specified
-           "C3P0ConfigFinder" implementations is deprecated and warns on use.
-           There's now a lot of flexibility to augment c3p0's config (albeit
-           not what C3P0ConfigFinder offers, accepting config in whole new
-           formats). Fundamentally there's an issue that c3p0 consults its
-           config in two views, as a com.mchange.v2.cfg.PropertiesConfig,
-           and via c3p0's own C3P0Config. We can ensure that these views
-           are consistent when we use c3p0's DefaultC3P0ConfigFinder, but
-           they risk becoming inconsistent with user-defined config finders.
-           If users express support for the feature, we'll try to address
-           without removing the feature entirely, but for now it doesn't
-           seem worth the work.
         -- Documentation of c3p0's properties-based configuration
            precedence ordering has been updated, and we now test to
            verify that the documented preference ordering holds.
@@ -32,21 +48,21 @@
            That's intended for mchange-commons-java internal-use only,
            but we've documented the addition.
         -- Migrate both c3p0 and mchange-commons-java away from
-           mchange-commons-java's traditional resource-based source of
-           configuration resources to examine. That mechanism served us fine
-           for many years, but it's complicated, more difficult to reason
-           about than simply hardcoding config sources into code. We offer
-           (and now document) API by which users who wish to alter config
-           sources that c3p0 and mchange-commons-java's logging library
-           consult may do so. This approach seems preferable to adding or
-           modifying classloader resources to perform this kind of alteration.
-           We now warn if we find old-school resources naming config sources
-           (and we continue to support those if we do find them), but users
-           should consider that mechanism deprecated. We also log at info
-           level the sources both c3p0 and the mlog libraries are consulting
-           for properties-based config. The classloader resource
-           mchange-config-resource-paths.txt no longer ships with c3p0,
-           and it should not be replaced.
+           mchange-commons-java's traditional
+           resource-based-source-of-configuration-resources to examine.
+           That mechanism served us fine for many years, but it's
+           complicated, more difficult to reason about than simply hardcoding
+           config sources into code. We offer (and now document) API by which
+           users who wish to alter config sources that c3p0 and
+           mchange-commons-java's logging library consult may do so. This
+           approach seems preferable to adding or modifying classloader
+           resources to perform this kind of alteration. We now warn if we
+           find old-school resources naming config sources (and we continue to
+           support those if we do find them), but users should consider that
+           mechanism deprecated. We also log at info level the sources both
+           c3p0 and the mlog libraries are consulting for properties-based
+           config. The classloader resource mchange-config-resource-paths.txt
+           no longer ships with c3p0, and it should not be replaced.
         -- Add to MConfig an AsProvidedIgnoreVetoed facade, which continues
            rather than fails if a vetoable config resource does veto. The
            vetoing resource is ignored with a warning. (Users of this facade
@@ -56,13 +72,6 @@
            applications are designed to be extremely secure by default, with
            relaxations requiring overt config, which mitigates this concern.)
            (mchange-commons-java)
-        -- Improve, and add much better documentation for, the API permitting
-           refreshes, augmentations, and therefore customization of c3p0 config at
-           runtime. Make it configurable whether MLog config should also be
-           updated on such a refresh. Allow augmenting with "backstops" as well
-           as with "overrides" when refreshing config. Backstops only take effect
-           if nothing else in config sets the value. Overrides override values
-           set within standard c3p0 configuration.
         -- Make security configuration a bit more visible in the logs.
            At library initialization, warn on certain weaker security settings.
            If logger com.mchange.v2.c3p0.C3P0Registry is loggable at FINE/DEBUG,
