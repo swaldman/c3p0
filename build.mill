@@ -66,13 +66,20 @@ object ProjectFiles {
     */
   val DocExtensions = Set("md")
 
-  private def knownExcludable(p : os.Path) = p.last.startsWith("#") || p.last.startsWith(".#")
+  /**
+    * Editor leavings, by name: emacs writes autosaves as '#file#' and lock files as '.#file'.
+    * A lock file is a DANGLING SYMLINK -- it points at 'user@host.pid', nothing that exists --
+    * so a task that merely walks a directory and reads what it finds fails outright while a
+    * buffer is open, with a NoSuchFileException naming a file the project does not contain.
+    * Every task that walks a source or resource directory therefore filters on this.
+    */
+  def isEditorJunk(p : os.Path) : Boolean = p.last.startsWith("#") || p.last.startsWith(".#")
 
-  def isDoc( path : os.Path ) : Boolean = os.isFile(path) && !knownExcludable(path) && DocExtensions( path.ext )
+  def isDoc( path : os.Path ) : Boolean = os.isFile(path) && !isEditorJunk(path) && DocExtensions( path.ext )
 
-  def isSource( path : os.Path )       : Boolean = os.isFile(path) && !knownExcludable(path) && SourceExtensions( path.ext )
-  def isResource( path : os.Path )     : Boolean = os.isFile(path) && !knownExcludable(path) && ResourceExtensions( path.ext )
-  def isBeangenInput( path : os.Path ) : Boolean = os.isFile(path) && !knownExcludable(path) && path.ext == BeangenExtension
+  def isSource( path : os.Path )       : Boolean = os.isFile(path) && !isEditorJunk(path) && SourceExtensions( path.ext )
+  def isResource( path : os.Path )     : Boolean = os.isFile(path) && !isEditorJunk(path) && ResourceExtensions( path.ext )
+  def isBeangenInput( path : os.Path ) : Boolean = os.isFile(path) && !isEditorJunk(path) && path.ext == BeangenExtension
 }
 
 object Dependency {
@@ -541,7 +548,9 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
       val javadocRoot = build.javadocGenerated().path // build.docJar().path / os.up / "javadoc"
       val replaceMap = replacements()
       val docsrcDir = docsrc().path
-      val sourcePaths = os.walk(docsrcDir)
+      // not an extension allowlist: docsrc holds html, images and xml today and may hold more,
+      // and a new asset type should appear on the site rather than silently vanish from it
+      val sourcePaths = os.walk(docsrcDir).filter( p => !ProjectFiles.isEditorJunk(p) )
       def destPath( sourcePath : os.Path ) = Task.dest / sourcePath.relativeTo(docsrcDir)
       sourcePaths.foreach { sp =>
         if (sp.toString.endsWith(".html")) {
