@@ -9,7 +9,7 @@
        its own stated precondition under C3P0_TEST_CONFIG=rough.
 
        It sets nothing on purpose. XML outranks c3p0.properties, so anything declared here would
-       silently displace the rough fixture's deliberately pathological property values -- which
+       silently displace the rough fixture's deliberately pathological property values, which
        are the whole point of this configuration.
   -->
 
