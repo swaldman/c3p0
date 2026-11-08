@@ -412,7 +412,7 @@ public final class C3P0Config
             // very inelegantly, keep these load paths in sync with those com.mchange.v2.log.MLogConfig.refresh()
             String[] defaults = backstopHardcodedMLogC3P0Defaults();
             String[] preempts = backstopHardcodedMLogC3P0Preempts();
-            withoutDefaults = MConfig.WithTraditionalDefaultSources.readCachedResourceConfig( defaults, preempts );
+            withoutDefaults = MConfig.WithTraditionalDefaultSources.readUncachedResourceConfig( defaults, preempts );
 
             if ( logger.isLoggable( MLevel.WARNING ) )
             {
@@ -439,7 +439,7 @@ public final class C3P0Config
             }
 
             String[] resources = MLogC3P0SharedResources.get();
-            withoutDefaults = MConfig.AsProvidedIgnoreVetoed.readCachedResourceConfig(SealedSystemProperties.capCurrentThenSealed(resources));
+            withoutDefaults = MConfig.AsProvidedIgnoreVetoed.readUncachedResourceConfig(SealedSystemProperties.capCurrentThenSealed(resources));
         }
 
         Properties unprefixedDefaults = C3P0ConfigUtils.extractHardcodedC3P0DefaultsStringCoercedOnly();
