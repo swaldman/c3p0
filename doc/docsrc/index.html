@@ -354,7 +354,7 @@
         JNDI InitiaContext might be consulted, via a maliciously crafted reference to or serialized instance of
         <tt>JndiRefForwardingDataSource</tt>. It also hardens security-related configuration (locking down security-sensitive
         system properties as soon as c3p0's config is first consulted, preventing attackers that might seek to
-        ovewrite those properties at runtime), defines a whitelist to limit construction via the SecurelyStringifiable
+        overwrite those properties at runtime), defines a whitelist to limit construction via the <tt>SecurelyStringifiable</tt>
         mechanism to known, trusted classes, and adds whitelist to restrict by-name-instantiation of untrusted names
         (e.g. implementations of <tt>ConnectionCustomizer</tt>, <tt>ConnectionTester</tt>, <tt>TaskRunnerFactory</tt>) to known classes.
         (The by-name-instantiatiation whitelist is not enforced by default in 0.15.0, but simply warns. It will be
@@ -377,13 +377,14 @@
       </p>
       <p>
         Many thanks to David Pollak of <a href="https://www.spicelabs.io/">Spice Labs</a> for a very detailed report about the
-        JNDI-injection and deserialization-gadget issues that recent releases of c3p0 have strived to eliminate.
+        JNDI-injection and deserialization-gadget issues that recent releases of c3p0 have strived to eliminate. Thanks to other
+        security-issue reporters, including <tt>@abhishekkushwaha4u</tt>, <tt>@chennbnbnb</tt>, <tt>@kyrux29</tt>, <tt>@manus-pi</tt>,
+        <tt>@manus-use</tt> on github.
       </p>
       <hr>
       <p>
         <i>See also <a href="#configuration_security_box">Warning: c3p0 trusts its CLASSPATH and configuration</a></i>.
       </p>
-      
     </div>
     <h2><a name="contents">Contents</a></h2>
     <ol class="contents">
@@ -2267,9 +2268,12 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         and sealed System properties should always agree, so this discussion is hypothetical).
       </p>
       <p>
-        The union of subkey behavior is convenient because it permits each library to add its own whitelist entries with
+        The union of subkey behavior is convenient because it permits each library to add its own whitelist entries without
         clobbering one another. But if an attacker is able both to add new System properties and then force a call to
-        <tt>C3P0Config.refreshMainConfig()</tt>, they could expand the whitelist. If they can do all of that, they can
+        <tt>C3P0Config.refreshMainConfig()</tt>, if <tt>com.mchange.v2.c3p0.freezeConfig</tt> has not been set, they could expand the whitelist.
+      </p>
+      <p>
+        If they can do all of that, they can
         probably do anything else they wish. It seems like an unlikely attack. But deployments concerned about the
         "flexibility" inherent in the union of subkeys can set the <i>override whitelist</i>, which is just the same
         as the whitelist key, but ending in <tt>.overrideWhitelist</tt> rather than <tt>.whitelist</tt>. If the override
@@ -2278,7 +2282,8 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         current configuration, so a very cautious installation can set <div class="example"><tt>-Dcom.mchange.v2.somepackage.someKey.overrideWhitelist=com.foo.a,com.foo.b</tt></div>
         and that two-entry list will be the widest whitelist the installation ever will tolerate. However, if you wish to do
         this, you must include all elements all libraries of your application might require in the <tt>.overrideWhitelist</tt>,
-        since subkeys of <tt>.whitelist</tt> various libraries might set will be ignored.
+        since subkeys of <tt>.whitelist</tt> various libraries might set will be ignored. (Prior to switching to an <tt>.overrideWhitelist</tt>,
+        consider <a href="#inspecting_security_configuration">inspecting</a> the union-of-subkeys computed whitelist and using that as your starting point.)
       </p>
       <p>
         Nothing in configuration can widen an <tt>.overrideWhitelist</tt>. That is deliberate.
@@ -2296,7 +2301,15 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
         dropped by an intersection.
       </p>
       <p>
-        As a special case, if <tt>*</tt> is the sole entry in a whitelist only because of System properties / other config intersection behavior,
+        Generally, if you really want to turn off enforcement of a whitelist, you'll want to set the <tt>.overrideWhitelist</tt>
+        to <tt>*</tt>. Setting a regular whitelist key or subkey to <tt>*</tt> will fail if other whitelist subkeys contain
+        entries. c3p0 whitelists internal classes and some external classes it trusts under c3p0-internal subkeys
+        (e.g. <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist.c3p0-internal</tt>). Setting
+        <tt>com.mchange.v2.reflect.byNameInstantiation.whitelist=*</tt> would do nothing but provoke a warning about it doing nothing.
+        <tt>com.mchange.v2.reflect.byNameInstantiation.overrideWhitelist=*</tt> would disable enforcement of the whitelist.
+      </p>
+      <p>
+        An edge case to be aware of: If <tt>*</tt> is the sole entry in a whitelist only because of System properties / other config intersection behavior,
         the <tt>*</tt> will be dropped and the whitelist will deny everything. That is, if the sealed System property
         <tt>com.mchange.v2.somepackage.someKey.whitelist=*,foo</tt> in the other config we have <tt>com.mchange.v2.somepackage.someKey.whitelist=bar,*</tt>
         the usual intersection-within-key logic would leave a whitelist of <tt>*</tt>, but we don't allow such an intersection to disable enforcement,
@@ -2451,7 +2464,7 @@ com.mchange.v2.c3p0.management.ManagementCoordinator=com.mchange.v2.c3p0.managem
           To see a dump of security configuration in the logs, just set the logger <tt>com.mchange.v2.c3p0.C3P0Registry</tt>
           to <tt>DEBUG</tt> or <tt>FINE</tt>. The result will be something like this:
         </p>
-        <div class="example">
+        <div class="example scroll">
 2026-10-22@22:08:10 [FINE] [com.mchange.v2.c3p0.C3P0Registry] Selected DataSource-independent config dump.
 Security status: 
     Accept deserialized InitialContext environment? false

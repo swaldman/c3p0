@@ -1,11 +1,11 @@
 RELEASE NOTES, c3p0-0.15.0
 ==========================
 
-This is a major new release of c3p0.
+This is a major release of c3p0.
 
-Most deployments will find it a drop-in replacement for prior versions
-(the "Incompatible changes", see below, will not affect most users),
-but there are a lot of changes and improvements under the cover.
+Most deployments will find it a drop-in replacement for prior versions.
+(There are "Incompatible changes", see below, but they will not affect most users.)
+A lot of changes and improvements have been made under the covers.
 
 Security-related updates
 ------------------------
@@ -119,6 +119,7 @@ Security-related updates
   are addressed (often by deprecating the disused functionality).
   (Thanks @chennbnbnb on github!)
 
+
 Other updates
 -------------
 
@@ -141,10 +142,10 @@ Other updates
   it might see instances it has encountered before and is already tracking.
   (Thanks @Devil2-O on github.)
 
+* Miscellaneous rare bugs and leaks are addressed in the Statement cache.
+
 * We offer new, richer API for augmenting c3p0's internal sources of
   configuration.
-
-* Miscellaneous rare bugs and leaks are addressed in the Statement cache.
 
 * The build is reorganized in the fashion of a proper mill build.
   c3p0-0.10.0 transitioned the library from ant to mill, but the structure
@@ -168,13 +169,13 @@ Other updates
   is accepted and other values are ignored (with a warning).
 
 
-
 New Configuration Parameters
 ----------------------------
 
-com.mchange.v2.reflect.byNameInstantiation.whitelist (and subkeys)
-com.mchange.v2.reflect.byNameInstantiation.overrideWhitelist
-com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist
+com.mchange.v2.c3p0.freezeConfig
+com.mchange.v2.c3p0.cfg.syncRefreshLogConfig
+
+com.mchange.v2.log.freezeConfig
 
 com.mchange.v2.naming.securelyStringifiable.whitelist (and subkeys)
 com.mchange.v2.naming.securelyStringifiable.overrideWhitelist
@@ -187,15 +188,18 @@ com.mchange.v2.naming.objectFactory.whitelist (and subkeys)
 com.mchange.v2.naming.objectFactory.overrideWhitelist
 (Replaces deprecated com.mchange.v2.naming.objectFactoryWhitelist)
 
+com.mchange.v2.reflect.byNameInstantiation.whitelist (and subkeys)
+com.mchange.v2.reflect.byNameInstantiation.overrideWhitelist
+com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist
+
 com.mchange.v2.naming.unsafeInitialContextEnvFilterClassName
 
-com.mchange.v2.c3p0.cfg.overrideRefreshLogConfig
 
 Incompatible changes
 --------------------
 
 This is a major release, that does include some incompatible changes.
-However, the VAST majority of installations are unlikely to directly
+However, the vast majority of installations are unlikely to directly
 use any of the incompatibly modified API.
 
 FOR NEARLY ALL DEPLOYMENTS, c3p0-0.15.0 WILL BE A DROP-IN REPLACEMENT
@@ -399,3 +403,11 @@ Here are the incompatible changes:
      or change the source of configuration used by the mlog and c3p0 libraries,
      those changes will no longer take effect. (You'll see a warning about misconfiguration,
      noting the conflict that the newer resource takes effect.)
+
+
+Acknowledgments
+---------------
+
+Many thanks to Fredrik Jeppsson, as well as @abhishekkushwaha4u, @chennbnbnb, @Devil2-O,
+@kyrux29, @manus-pi, @manus-use on github, for calling out and helping work through issues
+addressed in this release.
