@@ -736,7 +736,7 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
     // in-process fake JDBC driver -- and exit nonzero on failure, so they work as regression
     // checks. Best run with assertions on, so the cache's own internal assertions participate:
     //
-    //   C3P0_TEST_JVM_ARGS='-ea' mill test.c3p0StmtCacheStress
+    //   mill test.c3p0StmtCacheStress
     //
     // See test/src/com/mchange/v2/c3p0/test/stmt/StatementCacheStressHarness.java for the knobs.
     def c3p0StmtCacheStress() = Task.Command {
