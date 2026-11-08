@@ -234,7 +234,7 @@ public final class C3P0Config
     /**
      *  This will include System properties, and
      *  sensitive values like c3p0.password (even if they
-     *  are supplied by XML config or a C3P0ConfigFinder).
+     *  are supplied by XML config).
      *
      *  The return value should not be promiscuously printed
      *  or dumped. If you do want to print it, consider
