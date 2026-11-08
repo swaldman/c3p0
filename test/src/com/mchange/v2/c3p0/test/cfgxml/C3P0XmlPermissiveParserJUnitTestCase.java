@@ -19,13 +19,13 @@ import java.util.Properties;
  *  <code>com.mchange.v2.c3p0.cfg.xml.usePermissiveParser</code>: the one escape from hardened XML
  *  parsing, and the deprecated spelling that is no longer an escape at all.
  *
- *  <h3>Why these are internal tests</h3>
+ *  <h3>Why these cases discard the snapshot</h3>
  *
  *  <p>The flag is read only from the sealed snapshot of System properties, which MLog's own
  *  initialization has already taken by the time any test method runs. So each case has to discard
- *  the snapshot first, which needs {@link SealedSystemPropertiesTestSupport} and therefore this
- *  package &mdash; the same reason, and the same remedy, as
- *  {@link FileUrlPropertyReferenceInternalJUnitTestCase}.</p>
+ *  the snapshot first, which needs {@link SealedSystemPropertiesTestSupport} &mdash; the same
+ *  reason, and the same remedy, as mchange-commons-java's
+ *  FileUrlPropertyReferenceInternalJUnitTestCase.</p>
  *
  *  <p>That is also the deployment story: the flag resolves to what a <code>-D</code> said.
  *  Reading it from the snapshot rather than from configuration is the point &mdash; a flag that

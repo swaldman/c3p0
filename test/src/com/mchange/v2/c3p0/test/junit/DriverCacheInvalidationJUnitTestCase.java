@@ -308,7 +308,7 @@ public class DriverCacheInvalidationJUnitTestCase extends TestCase
     }
 
     /**
-     *  The same from the other starting state, where the flag does change true -> false. This
+     *  The same from the other starting state, where the flag does change true -&gt; false. This
      *  is the case the setter's own backstop covers; both routes must end with no cached Driver.
      */
     public void testChangingDriverClassClearsTheCachedDriverWhenTheFlagWasTrue() throws Exception

@@ -44,8 +44,9 @@ import java.util.Map;
  *
  *  <p>Each case says in its own comment whether it is a bug being demonstrated, a regression
  *  guard over something already fixed, or a constraint that held all along and must keep holding.
- *  Two still fail: {@link #testAnExtensionsKeyIsNotPrefixCorrected}, and the user-override half of
- *  {@link #testReconciliationIsQuietAboutSupportedKeysAndNotAboutTypos}.</p>
+ *  The two that once failed -- {@link #testAnExtensionsKeyIsNotPrefixCorrected}, and the
+ *  user-override half of {@link #testUnknownKeysAreReportedAndSupportedOnesAreNot} -- now pass,
+ *  and stand here as regression guards.</p>
  *
  *  <p>No failing assertion here asks for behaviour that does not already exist somewhere else in
  *  c3p0 -- each was checked against the same key arriving by a route that works.</p>
@@ -302,7 +303,8 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
     }
 
     /**
-     *  FAILS TODAY. The prefix correction reaches one place it should not.
+     *  FIXED, and now a regression guard. The prefix correction used to reach one place it
+     *  should not.
      *
      *  <p>An extensions key is a name the deployment invented for its own code to read back
      *  through <code>getExtensions(..)</code>. c3p0 assigns it no meaning and keeps no vocabulary
@@ -326,17 +328,6 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
         assertEquals( "precondition: ordinary extensions keys work", "plainValue", a.get( "plainKey" ) );
     }
 
-    /**
-     *  REGRESSION GUARD over a guarantee this work established without being asked to, and which
-     *  nothing else here covers: the two views agree across a REFRESH, not just across a first
-     *  load.
-     *
-     *  <p>A programmatic refresh override loses to c3p0-config.xml. That is deliberate and
-     *  long-standing -- the finder layers the XML over everything else and announces it, "overrides
-     *  all other c3p0 config" -- and it is not what this asserts. The point is that the override
-     *  does enter the properties view on its way in, so without reconciliation on the way out that
-     *  view would be left reporting 37 while the pool ran with 30. It used to. Now both say 30.</p>
-     */
     /**
      *  A programmatic refresh override now <b>beats</b> c3p0-config.xml. CHANGED in 0.15.0.
      *
@@ -443,7 +434,7 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
 
     /**
      *  A misspelled pool property must be reported, and a supported fully-qualified key must not
-     *  be. RED pending the C3P0Config change.
+     *  be. Was RED pending the C3P0Config change; it now passes.
      *
      *  <p>The reconciler that used to say this is gone with the second representation, and the
      *  c3p0-xml: source cannot replace it: living in mchange-commons-java, it has no list of

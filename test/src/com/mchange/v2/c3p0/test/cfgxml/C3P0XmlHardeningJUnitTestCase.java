@@ -17,9 +17,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
  *  factory, not inferred from an attack being refused.
  *
  *  <p>Ported from c3p0's <code>XmlConfigParserHardeningJUnitTestCase</code> when the XML parser
- *  moved into this library. Its other half, that the attacks are refused and that
+ *  moved into mchange-commons-java. Its other half, that the attacks are refused and that
  *  <code>usePermissiveParser</code> means what it says, lives in
- *  {@link C3P0XmlPermissiveParserInternalJUnitTestCase}. This is the half that half cannot
+ *  {@link C3P0XmlPermissiveParserJUnitTestCase}. This is the half that half cannot
  *  cover.</p>
  *
  *  <p>It is not redundant with it. {@code harden(..)} sets nine restrictions and <b>tolerates the

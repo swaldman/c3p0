@@ -871,8 +871,8 @@ public final class ConfigDumpMaskingJUnitTestCase extends TestCase
     }
 
     /**
-     *  null rather than an empty Properties, deliberately: "jndiEnv -> null" says nothing was
-     *  configured, where "jndiEnv -> {}" would claim an empty environment was.
+     *  null rather than an empty Properties, deliberately: "jndiEnv -&gt; null" says nothing was
+     *  configured, where "jndiEnv -&gt; {}" would claim an empty environment was.
      */
     public void testAnEmptyMapIsNotTheSameAnswerAsNoMap()
     {

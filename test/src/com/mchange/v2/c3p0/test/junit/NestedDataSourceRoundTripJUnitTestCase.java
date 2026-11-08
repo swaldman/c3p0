@@ -32,7 +32,7 @@ import com.mchange.v2.c3p0.cfg.C3P0Config;
  *  too. Only reading the restored value at depth catches it.
  *
  *  <p>Hence these tests assert values rather than the absence of exceptions: a two-level chain
- *  (PoolBackedDataSource -> WrapperConnectionPoolDataSource -> DriverManagerDataSource) goes out,
+ *  (PoolBackedDataSource -&gt; WrapperConnectionPoolDataSource -&gt; DriverManagerDataSource) goes out,
  *  and the scalars on the innermost DataSource must come back equal.
  */
 public final class NestedDataSourceRoundTripJUnitTestCase extends TestCase
