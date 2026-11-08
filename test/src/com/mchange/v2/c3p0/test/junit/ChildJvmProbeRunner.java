@@ -38,10 +38,30 @@ public final class ChildJvmProbeRunner
     /** What MLog prints when its own initialization failed and it gave up on a real backend. */
     private final static String FALLBACK_NOTICE = "fallback to standard error logging";
 
-    /** For probes: print one answer. */
+    /**
+     *  For probes: print one answer.
+     *
+     *  <p>The leading newline is load-bearing. A probe's stderr is folded into its stdout, and
+     *  what writes to stderr here is logging -- including MLog's own startup, which happens
+     *  during the very first configuration load a probe performs. The two streams are flushed
+     *  independently, so a log record that has been written without its terminating newline yet
+     *  can land immediately before this one, and the parent then reads a single line whose value
+     *  has a timestamp glued onto the end of it. That was observed, as
+     *  <code>sealed=trueNov 08, 2026 5:34:13 AM com.mchange.v2.log.MLog</code>, and it is a
+     *  particularly unpleasant failure because it afflicts whichever answer happens to be printed
+     *  first and so comes and goes with timing. Starting our own line terminates anything
+     *  unterminated ahead of it; the parent ignores the blank line that results otherwise.</p>
+     *
+     *  <p>And it is one <code>print</code> of the whole thing, terminator included, rather than a
+     *  <code>println</code>. System.out is autoflush, so println performs two writes -- the text,
+     *  then the line separator -- and a string containing a newline flushes at the end of the
+     *  first. Printing "\n...=value" with println therefore pushed everything except the
+     *  terminator out and left our line open across a flush boundary, which is the gap this is
+     *  meant to close rather than widen.</p>
+     */
     public static void answer( String key, String value )
     {
-        System.out.println( ANSWER_PFX + key + "=" + value );
+        System.out.print( "\n" + ANSWER_PFX + key + "=" + value + "\n" );
         System.out.flush();
     }
 
