@@ -327,16 +327,44 @@ public class ConfigPrecedenceHarness
     // ----------------------------------------------------------------- path-file dispatch
 
     /**
-     *  c3p0 no longer ships a /mchange-config-resource-paths.txt. It decides between the
-     *  traditional path-file mechanism and its hardcoded source list by asking whether the
-     *  path files YIELD PATHS -- deliberately not whether one exists, because a path file that
-     *  is empty or wholly commented out exists and yields nothing, and the traditional pathway
-     *  then falls back to a hardcoded backstop whose ordering is NOT c3p0's.
+     *  A legacy path file cannot alter c3p0's configuration sources, whatever it contains.
      *
-     *  <p>That combination was reachable for a while: it put /mchange-commons.properties above
-     *  /c3p0-default.properties, so an end-user file could silently replace c3p0's own shipped
-     *  securelyStringifiable whitelist. These scenarios are the regression guard. The three
-     *  "yields nothing" shapes must be indistinguishable from having no path file at all.</p>
+     *  <p>This section once asserted very nearly the opposite, and was right to. c3p0 chose
+     *  between the traditional path-file mechanism and its own source list by asking whether the
+     *  path files YIELDED PATHS, so a path file that yielded one took over -- and the regression
+     *  guarded here was real: the traditional fallback ordering put /mchange-commons.properties
+     *  above /c3p0-default.properties, letting an end-user file silently replace c3p0's own
+     *  shipped securelyStringifiable whitelist.</p>
+     *
+     *  <p>The decision rule has since changed. It is now whether a declared
+     *  mlog-config-resource-paths.txt is found, and c3p0 always ships one, so the traditional
+     *  branch is unreachable for c3p0 and c3p0's sources come from a compiled-in list. That
+     *  closes the old hazard structurally rather than by ordering. It also means a deployment can
+     *  no longer add a configuration source by shipping a path file, which is the one
+     *  incompatibility of the configuration rework most likely to be met in practice -- so c3p0
+     *  warns when it finds such a file.</p>
+     *
+     *  <p>The assertion therefore inverts, and is worth keeping in that form: three shapes of
+     *  path file -- one naming a resource that really exists, one empty, one wholly commented out
+     *  -- must all leave the resolved list exactly as no path file does. A child JVM with a
+     *  synthetic CLASSPATH is the only place that can be measured end to end, which is why it
+     *  stays here rather than moving to the JUnit suite with the rest.</p>
+     *
+     *  <p>Two things this section deliberately no longer covers, each no longer reachable from
+     *  c3p0's configuration and each covered where the code actually lives:</p>
+     *
+     *  <ul>
+     *    <li><i>Where an added path lands in the ordering.</i> Nothing can add one. What is worth
+     *    pinning instead is the declared list itself, and
+     *    LegacyResourcePathsJUnitTestCase does that -- including that the generated resource and
+     *    the generated array name the same sources in the same order.</li>
+     *
+     *    <li><i>Interresolvability of overlapping <code>hocon:</code> specifications.</i> c3p0's
+     *    compiled-in list carries exactly one, and nothing can introduce a second, so the
+     *    rewriting was only ever reached from here by way of the legacy mechanism.
+     *    mchange-commons-java's HoconConfigJUnitTestCase drives two overlapping paths in
+     *    directly, which is a stronger test than this was.</li>
+     *  </ul>
      */
     private void pathFileDispatch() throws Exception
     {
@@ -357,56 +385,27 @@ public class ConfigPrecedenceHarness
         check( "a wholly commented-out path file resolves exactly as no path file does",
                noPathFile, resourcePaths() );
 
-        // A path file that really does supply a path takes the traditional branch, and the
-        // path it supplies has to land where the traditional mechanism puts it: above
-        // c3p0-default.properties, below the hocon group.
+        // The case that carries the weight. A path file that really does name a path, naming a
+        // resource that really is present -- so inertness cannot be mistaken for the named path
+        // having been dropped as missing, which would make the two checks above vacuous too.
         write( "my-extra.properties", PROBE_KEY + "=4" );
         writePathFile( "/my-extra.properties\n" );
         List<String> withExtra = resourcePaths();
 
-        if ( !withExtra.contains( "/my-extra.properties" ) )
-            fail( "a path file supplying /my-extra.properties should put it in the resolved list, got: " + withExtra );
-        else if ( noPathFile.contains( "/my-extra.properties" ) )
-            fail( "/my-extra.properties should not appear without a path file naming it" );
-        else
-        {
-            pass( "a path file that supplies a path takes the traditional branch" );
+        check( "a path file naming a resource that exists is inert too",
+               noPathFile, withExtra );
+        check( "...and specifically does not introduce the path it names",
+               false, withExtra.contains( "/my-extra.properties" ) );
 
-            int extra  = withExtra.indexOf( "/my-extra.properties" );
-            int dflt   = withExtra.indexOf( "/c3p0-default.properties" );
-            int hocon  = indexOfHocon( withExtra );
-            check( "the supplied path outranks c3p0-default.properties", true, extra > dflt );
-            check( "...and is outranked by the hocon group", true, hocon > extra );
-        }
-
-        // A path file naming its own hocon: specification overlaps c3p0's, which is the
-        // legitimate route into ensureHoconInterresolvability. Two hocon paths result, each
-        // rewritten to fall back to the other. Each must still END in "/", or system
-        // properties would stop being last-wins inside that blob.
+        // And a path file naming its own hocon: specification, which under the traditional
+        // mechanism was the legitimate route into ensureHoconInterresolvability.
         writePathFile( "hocon:/myref,/application,/\n" );
-        List<String> twoHocons = resourcePaths();
-        int hoconCount = 0;
-        boolean allEndInSystemProperties = true;
-        for ( String path : twoHocons )
-            if ( path.startsWith( "hocon:" ) )
-            {
-                ++hoconCount;
-                if ( !path.endsWith( ",/" ) ) allEndInSystemProperties = false;
-            }
-        check( "two overlapping hocon specifications yield two hocon paths", 2, hoconCount );
-        check( "every rewritten hocon path must still end in system properties: " + twoHocons,
-               true, allEndInSystemProperties );
+        check( "nor can a path file add a second hocon: specification",
+               noPathFile, resourcePaths() );
     }
 
     private void writePathFile( String contents ) throws IOException
     { write( "mchange-config-resource-paths.txt", contents ); }
-
-    private static int indexOfHocon( List<String> paths )
-    {
-        for ( int i = 0, len = paths.size(); i < len; ++i )
-            if ( paths.get(i).startsWith( "hocon:" ) ) return i;
-        return -1;
-    }
 
     /** The resolved resource paths, lowest preference first. */
     private List<String> resourcePaths() throws Exception

@@ -767,7 +767,24 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
     //
     def c3p0ConfigPrecedence() = Task.Command {
       val sep = java.io.File.pathSeparator
-      val all = runClasspath().map( _.path.toString )
+      // Every configuration source a scenario sees must be one the harness wrote, so the test
+      // fixture's own resource directory is kept off these CLASSPATHs entirely.
+      //
+      // The harness puts its synthetic directory FIRST and relies on classpath order to shadow
+      // the fixture, which works only for resources the synthetic directory also writes. The
+      // fixture supplies a c3p0-config.xml as well as a c3p0.properties, so any scenario that
+      // writes no XML inherited the fixture's -- and XML outranks properties, so the fixture's
+      // maxPoolSize then beat every source the scenario did write. That is not a shadowing bug
+      // to patch by writing an empty XML too: the next source form added would reintroduce it.
+      val fixtureResources = selectedLocalResources().path
+      val all = runClasspath().map( _.path ).filterNot( _ == fixtureResources ).map( _.toString )
+      if ( all.size == runClasspath().size )
+        sys.error(
+          s"The precedence harness CLASSPATH was expected to contain the test fixture resource " +
+          s"directory '${fixtureResources}' so that it could be removed, but it was not there. " +
+          s"The harness controls its own configuration sources; if the fixture is reaching its " +
+          s"scenarios by some other route, that must be found rather than ignored."
+        )
       // mchange-commons-java declares com.typesafe:config as an *optional* dependency, so it
       // is already on this classpath. The no-HOCON regime is therefore produced by removing
       // it, not by adding it -- and the harness fails if the removal matched nothing, so the
