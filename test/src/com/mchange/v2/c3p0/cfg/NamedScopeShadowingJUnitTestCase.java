@@ -30,12 +30,28 @@ import com.mchange.v2.log.MLog;
  *  {@code getUnspecifiedUserProperty("maxPoolSize","a")}, which builds an exact key, reported
  *  the default. One of those is wrong whichever you believe.</p>
  *
- *  <p>Two rules fix it, and both are load-bearing here. {@code _namedConfigIsDefined} asks
- *  whether any key really belongs to this scope rather than merely sitting under its prefix, so
- *  a name nothing declared stays undefined even when a deeper scope exists. And the conversion
- *  of a scope's keys to base-prefixed properties keeps only those whose remainder after the
- *  scope prefix carries no further dot, which excludes {@code user-overrides.*},
- *  {@code extensions.*} and any deeper scope's keys alike.</p>
+ *  <p>Two rules fix it. {@code _namedConfigIsDefined} asks whether any key really belongs to this
+ *  scope rather than merely sitting under its prefix, so a name nothing declared stays undefined
+ *  even when a deeper scope exists. And the conversion of a scope's keys to base-prefixed
+ *  properties keeps only those whose remainder after the scope prefix carries no further dot,
+ *  which excludes {@code user-overrides.*}, {@code extensions.*} and any deeper scope's keys
+ *  alike.</p>
+ *
+ *  <h3>Which of those two rules these cases actually hold down</h3>
+ *
+ *  <p>Only the first. Replacing the definedness walk with the naive emptiness test it was written
+ *  to displace &mdash; {@code if (!defined.isEmpty()) return true} &mdash; fails four cases here,
+ *  which is the regression this file exists for.</p>
+ *
+ *  <p>Removing the remainder test from the conversion fails NOTHING, in this file or anywhere in
+ *  the suite, and that is a fact about the code rather than a hole here.
+ *  {@code convertScopeOwnPropsToBasePrefixProps} has exactly one caller, and its output is then
+ *  filtered again by {@code _getUnspecifiedUserProperties}'s own "no compound keys" test, which
+ *  discards precisely the dotted keys the remainder test would have kept out. The two guards are
+ *  not reachable independently, so no test written against c3p0's public accessors can tell them
+ *  apart. The remainder test is still the right thing to write &mdash; it makes the conversion
+ *  correct where it stands, rather than correct-by-coincidence at a distance &mdash; but it is
+ *  defence in depth, and should not be described as covered.</p>
  *
  *  <h3>What is covered</h3>
  *
@@ -81,9 +97,6 @@ public class NamedScopeShadowingJUnitTestCase extends TestCase
         "    <user-overrides user=\"steve\"><property name=\"maxPoolSize\">71</property></user-overrides>\n" +
         "  </named-config>\n" +
         "</c3p0-config>\n";
-
-    /** c3p0's own hardcoded defaults, for the properties no scope in XML sets. */
-    private final static String HARDCODED_MIN_POOL_SIZE = "3";
 
     private Path dir;
 
@@ -142,6 +155,29 @@ public class NamedScopeShadowingJUnitTestCase extends TestCase
         return all.get( user );
     }
 
+    /**
+     *  What the default scope resolves this key to &mdash; which is what every scope that does not
+     *  set the key itself must resolve it to as well. The XML above deliberately leaves minPoolSize
+     *  unset in its default-config, so that is the value these cases compare against.
+     *
+     *  <p>Read, rather than written down. This was once the literal "3", c3p0's compiled-in
+     *  minPoolSize default, which is what the default test fixture leaves it at &mdash; but
+     *  test/resources-local-rough/c3p0.properties sets minPoolSize, so under
+     *  <code>C3P0_TEST_CONFIG=rough</code> the literal was simply wrong, and two cases here failed
+     *  with a bare <code>expected:&lt;3&gt; but was:&lt;10&gt;</code> that pointed at nothing.</p>
+     *
+     *  <p>Any fixture is entitled to set any pool property. What these cases are about is which
+     *  SCOPE a value is read from, never which number it is, so the expectation should come from
+     *  the configuration in force rather than from a guess about it.</p>
+     */
+    private static String defaultScopeValue( String key )
+    {
+        String out = prop( null, key );
+        assertNotNull( "precondition: the default scope must resolve '" + key + "' to something, "
+                           + "or comparing a scope against it proves nothing", out );
+        return out;
+    }
+
     // =========================================================== the default scope
 
     public void testTheDefaultScopeCarriesItsOwnThreeKinds()
@@ -179,7 +215,9 @@ public class NamedScopeShadowingJUnitTestCase extends TestCase
     public void testAShadowedUndeclaredScopeIsWhollyInert()
     {
         assertEquals( "must not inherit a.b's maxPoolSize", "30", prop( "a", "maxPoolSize" ) );
-        assertEquals( HARDCODED_MIN_POOL_SIZE, prop( "a", "minPoolSize" ) );
+        assertEquals( "and must resolve a key nothing in this document sets exactly as the "
+                          + "default scope does, like any undefined scope",
+                      defaultScopeValue( "minPoolSize" ), prop( "a", "minPoolSize" ) );
 
         assertNull( "must not inherit a.b's extensions", extensions( "a" ).get( "abExt" ) );
         assertEquals( "it sees the default scope's, like any undefined scope", "D", extensions( "a" ).get( "dflt" ) );
@@ -240,8 +278,15 @@ public class NamedScopeShadowingJUnitTestCase extends TestCase
         assertEquals( "CD", extensions( "c.d" ).get( "cdExt" ) );
         assertEquals( "71", overridesFor( "c.d", "steve" ).get( "maxPoolSize" ) );
 
+        // 'c' sets minPoolSize=60 and 'c.d' sets none, so c.d must fall through to the default
+        // scope rather than up into the prefix-sharing name above it.
+        String dfltMinPoolSize = defaultScopeValue( "minPoolSize" );
+        assertFalse( "precondition: the test fixture must not itself resolve minPoolSize to c's "
+                         + "own value, or this assertion could not tell inheritance from a correct "
+                         + "fallback. Fixture value: " + dfltMinPoolSize,
+                     "60".equals( dfltMinPoolSize ) );
         assertEquals( "a deeper scope does not inherit its prefix-sharing sibling's property either",
-                      HARDCODED_MIN_POOL_SIZE, prop( "c.d", "minPoolSize" ) );
+                      dfltMinPoolSize, prop( "c.d", "minPoolSize" ) );
     }
 
     // =========================================================== definedness, both sides

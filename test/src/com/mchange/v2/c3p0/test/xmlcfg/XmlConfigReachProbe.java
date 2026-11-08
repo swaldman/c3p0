@@ -14,9 +14,12 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -71,6 +74,14 @@ public class XmlConfigReachProbe
 
     /** c3p0's internal prefix for the layer reconciliation adds. Not public API; named here to impersonate it. */
     public final static String FINDER_ADDITIONS_PFX = "C3P0_CONFIG_FINDER_ADDITIONS-";
+
+    /**
+     *  How c3p0's hardcoded-defaults layer names itself in the resource-path list. Not public
+     *  API either -- the literal lives in C3P0Config -- so assertKeySpellingsStillMatch() checks
+     *  that a layer by this name is actually present rather than letting a rename turn every
+     *  assertion that rests on it vacuously green.
+     */
+    public final static String HARDCODED_DEFAULTS_PATH = "C3P0_HARDCODED_DEFAULTS";
 
     /** Log-namespace probe keys. Nothing ships or tests these, so any value is one we put there. */
     public final static String LOG_XML_ONLY_KEY      = "com.mchange.v2.log.c3p0XmlReachProbe.xmlOnly";
@@ -505,7 +516,12 @@ public class XmlConfigReachProbe
         // anything is forwarded. A hardcoded c3p0 default is not in that list and so does not
         // travel: it is c3p0's, and MLog has no business with it.
         ChildJvmProbeRunner.answer( "mlogXmlSetPoolProp", String.valueOf( MLog.getConfigProperty( "c3p0." + POOL_PROP ) ) );
-        ChildJvmProbeRunner.answer( "mlogHardcodedDefault", String.valueOf( MLog.getConfigProperty( "c3p0.acquireIncrement" ) ) );
+        String hardcodedOnlyKey = keyOnlyHardcodedDefaultsSets();
+        ChildJvmProbeRunner.answer( "hardcodedOnlyKey", String.valueOf( hardcodedOnlyKey ) );
+        ChildJvmProbeRunner.answer( "mlogHardcodedDefault",
+                                    hardcodedOnlyKey == null
+                                        ? "(no hardcoded-only key to check)"
+                                        : String.valueOf( MLog.getConfigProperty( hardcodedOnlyKey ) ) );
     }
 
     /**
@@ -610,6 +626,8 @@ public class XmlConfigReachProbe
             String.valueOf( ENFORCE_KEY.equals( ByNameInstantiationUtils.ENFORCE_WHITELIST_KEY ) ) );
         ChildJvmProbeRunner.answer( "acceptDeserKeySpellingMatches",
             String.valueOf( ACCEPT_DESER_KEY.equals( SecurityConfigKey.ACCEPT_DESERIALIZED_INITIAL_CONTEXT_ENVIRONMENT ) ) );
+        ChildJvmProbeRunner.answer( "hardcodedDefaultsPathPresent",
+            String.valueOf( mpconfig().getPropertiesByResourcePath( HARDCODED_DEFAULTS_PATH ) != null ) );
     }
 
     private static String prop( String name, String value )
@@ -617,6 +635,46 @@ public class XmlConfigReachProbe
 
     private static MultiPropertiesConfig mpconfig()
     { return C3P0Config.getMultiPropertiesConfig(); }
+
+    /**
+     *  A c3p0 property that ONLY the hardcoded-defaults layer sets, chosen by asking rather than
+     *  by assuming.
+     *
+     *  <p>This was once the literal <code>c3p0.acquireIncrement</code>, which is true of the
+     *  default test fixture -- where test/resources-local/c3p0.properties has it commented out --
+     *  and quietly false of the rough one, which sets it. So under C3P0_TEST_CONFIG=rough MLog saw
+     *  it, entirely correctly, since MLog reads /c3p0.properties too, and the case failed with a
+     *  bare expected:&lt;null&gt; but was:&lt;10&gt; that said nothing about why.</p>
+     *
+     *  <p>Which properties only the hardcoded layer sets is a fact about the test fixtures, not
+     *  about c3p0, and any fixture is entitled to set any pool property. So the key is picked
+     *  here, from the configuration actually in force, and reported alongside the answer. Called
+     *  after any refresh, so that a key an override layer supplies is excluded too.</p>
+     */
+    private static String keyOnlyHardcodedDefaultsSets()
+    {
+        MultiPropertiesConfig mpc = mpconfig();
+
+        Properties hardcoded = mpc.getPropertiesByResourcePath( HARDCODED_DEFAULTS_PATH );
+        if ( hardcoded == null ) return null;
+
+        Set<String> setElsewhere = new HashSet<String>();
+        String[] paths = mpc.getPropertiesResourcePaths();
+        for ( int i = 0; i < paths.length; ++i )
+        {
+            if ( HARDCODED_DEFAULTS_PATH.equals( paths[i] ) ) continue;
+            Properties p = mpc.getPropertiesByResourcePath( paths[i] );
+            if ( p != null ) setElsewhere.addAll( p.stringPropertyNames() );
+        }
+
+        List<String> candidates = new ArrayList<String>();
+        for ( String k : hardcoded.stringPropertyNames() )
+            if ( k.startsWith( "c3p0." ) && ! setElsewhere.contains( k ) ) candidates.add( k );
+
+        // sorted so the choice is stable from run to run, and a failure names the same key twice
+        Collections.sort( candidates );
+        return candidates.isEmpty() ? null : candidates.get( 0 );
+    }
 
     private static String poolProp( String configName )
     { return String.valueOf( C3P0Config.getUnspecifiedUserProperty( POOL_PROP, configName ) ); }

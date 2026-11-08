@@ -401,7 +401,15 @@ public final class XmlConfigReachJUnitTestCase extends TestCase
         assertEquals( "and MLog must resolve it the same way c3p0 did",
                       "override-wins", a.get( "mlogContested" ) );
 
-        assertEquals( "a hardcoded c3p0 default must not travel into MLog's configuration",
+        // The key is chosen by the probe, from the configuration actually in force, rather than
+        // written down here: which c3p0 properties only the hardcoded layer sets is a fact about
+        // the test fixtures, and the rough fixture legitimately sets the one this used to name.
+        String hardcodedOnlyKey = a.get( "hardcodedOnlyKey" );
+        assertFalse( "precondition: some c3p0 property must be set by the hardcoded defaults and "
+                         + "nowhere else, or this case has nothing to check",
+                     "null".equals( hardcodedOnlyKey ) );
+        assertEquals( "a hardcoded c3p0 default must not travel into MLog's configuration"
+                          + " (the key checked was '" + hardcodedOnlyKey + "')",
                       "null", a.get( "mlogHardcodedDefault" ) );
         assertEquals( "though a pool property the XML sets does, since MLog reads the same resources",
                       "47", a.get( "mlogXmlSetPoolProp" ) );

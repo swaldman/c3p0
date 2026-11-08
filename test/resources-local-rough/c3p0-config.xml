@@ -1,0 +1,16 @@
+<c3p0-config>
+
+  <!--
+       Deliberately empty, and deliberately present.
+
+       XmlConfigReachJUnitTestCase.testMoreThanOneXmlSourceIsAnnounced needs TWO c3p0-xml:
+       sources to exist: one on the classpath, which is this file, and one the probe writes and
+       names via com.mchange.v2.c3p0.cfg.xml. Without a c3p0-config.xml here, that case fails
+       its own stated precondition under C3P0_TEST_CONFIG=rough.
+
+       It sets nothing on purpose. XML outranks c3p0.properties, so anything declared here would
+       silently displace the rough fixture's deliberately pathological property values -- which
+       are the whole point of this configuration.
+  -->
+
+</c3p0-config>
