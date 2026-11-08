@@ -22,6 +22,8 @@ import com.mchange.v2.naming.ReferenceableUtils;
 import com.mchange.v2.naming.SecurityConfigKey;
 import com.mchange.v2.naming.SecurelyStringifiable;
 import com.mchange.v2.reflect.ByNameInstantiationUtils;
+import com.mchange.v2.reflect.InstantiationNotPermittedException;
+
 
 /*
  *  The primary purpose of C3P0Registry is to maintain a mapping of "identityTokens"
@@ -206,11 +208,22 @@ public final class C3P0Registry
 		Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
 
 		if (logger.isLoggable( MLevel.WARNING ))
-		    logger.log( MLevel.WARNING,
-				"Could not create for find ConnectionTester with class name '"   +
-				className + "'. Skipping custom ConnectionTester, reverting to " +
-				"null ConnectionTester for IsValidSimplifiedConnectionTestPath." ,
-				t );
+                {
+                    String msg;
+                    String consequence = "Skipping custom ConnectionTester, reverting to null ConnectionTester for IsValidSimplifiedConnectionTestPath.";
+                    if (t instanceof InstantiationNotPermittedException)
+                        msg =
+                            "Instantiation of ConnectionTester '" + className +
+                            "' was refused, denied by whitelist '" + ByNameInstantiationUtils.getWhitelistBaseKey() + "'. " +
+                            "If you trust '" + className +
+                            "', please add it to '" + ByNameInstantiationUtils.getWhitelistBaseKey() + "' or a subkey of that list in your configuration. " +
+                            consequence;
+                    else
+                        msg =
+                            "Could not create or find ConnectionTester with class name '"   +
+                            className + "'. " + consequence;
+		    logger.log( MLevel.WARNING, msg, t );
+                }
 		return null;
 	    }
 	}
@@ -269,10 +282,22 @@ public final class C3P0Registry
             Throwable t = ( e instanceof InvocationTargetException ? e.getCause() : e );
 
             if (logger.isLoggable( MLevel.WARNING ))
-                logger.log( MLevel.WARNING,
-                                "Could not create for find TaskRunnerFactory with class name '" +
-                                className + "'. Using default.",
-                                t );
+            {
+                String msg;
+                String consequence = "Using default TaskRunnerFactory '" + DEFAULT_TASK_RUNNER_FACTORY.getClass().getName() + "'.";
+                if (t instanceof InstantiationNotPermittedException)
+                    msg =
+                        "Instantiation of TaskRunnerFactory '" + className +
+                        "' was refused, denied by whitelist '" + ByNameInstantiationUtils.getWhitelistBaseKey() + "'. " +
+                        "If you trust '" + className +
+                        "', please add it to '" + ByNameInstantiationUtils.getWhitelistBaseKey() + "' or a subkey of that list in your configuration. " +
+                        consequence;
+                else
+                    msg =
+                        "Could not create or find TaskRunnerFactory with class name '" +
+                        className + "'. " + consequence;
+                logger.log( MLevel.WARNING, msg, t );
+            }
             return DEFAULT_TASK_RUNNER_FACTORY;
         }
     }
@@ -304,7 +329,7 @@ public final class C3P0Registry
 
                 if (logger.isLoggable( MLevel.WARNING ))
                     logger.log( MLevel.WARNING,
-                                    "Could not create for find ConnectionCustomizer with class name '" +
+                                    "Could not create or find ConnectionCustomizer with class name '" +
                                     className + "'.",
                                     t );
                 throw SqlUtils.toSQLException( t );

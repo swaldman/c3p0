@@ -16,6 +16,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import javax.sql.DataSource;
 import com.mchange.v2.cfg.PropertiesConfig;
+import com.mchange.v2.cfg.WhitelistInfo;
 import com.mchange.v2.sql.SqlUtils;
 import com.mchange.v2.lang.ObjectUtils;
 import com.mchange.v2.log.MLevel;
@@ -423,11 +424,12 @@ public final class DriverManagerDataSource extends DriverManagerDataSourceBase i
 
     private SQLException sqlExceptionForInstantiationNotPermittedException(InstantiationNotPermittedException e, Throwable suppressed)
     {
+        WhitelistInfo info = e.getWhitelistInfo();
         String message =
             "Loading or instantiation by name of the specified JDBC driver class was forbidden, because it is not " +
             "in the enforced whitelist. c3p0 will not fall back to the DriverManager mechanism while a forbidden " +
             "driverClass is configured. Driver class: '" + driverClass +
-            "'; Enforced -- " + ByNameInstantiationUtils.currentWhitelistInfo(C3P0Config.getMultiPropertiesConfig());
+            "'; Enforced " + info.getSource().getIdentifier() + " (" + info.getWhitelist().size() + " entries, computed from keys: " + info.getFromKeys() + ")";
         SQLException sqle = SqlUtils.toSQLException(message, e);
         if (suppressed != null) sqle.addSuppressed(suppressed);
         return sqle;
