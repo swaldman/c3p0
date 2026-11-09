@@ -663,7 +663,8 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
       super.mvnDeps() ++ Seq(
         Dependency.JUnit,
         Dependency.PgJdbc,
-        //Dependency.Hsqldb
+        //Dependency.Hsqldb,
+        mvn"com.typesafe:config:1.3.4", // we want to test config and config precedence with typesafe config present
       )
     }
     val DefaultTestJdbcUrl = "jdbc:postgresql://localhost:5432/c3p0"
