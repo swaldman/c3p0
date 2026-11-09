@@ -1,3 +1,9 @@
+c3p0-0.15.1
+        -- Fix some embarrasing documentation errors.
+        -- Eliminate loud warnings with stack traces accidentally introduced
+           into the logging path when HOCON / typesafe-config libraries can't
+           be found, a supported configuration! (mchange-commons-java)
+c3p0-0.15.0
         -- Use the prior two extensibility augmentations to mchange-commons-java
            to support c3p0-xml directly within com.mchange.v2.cfg, but without
            layer inversions that would have required the config and log libraries

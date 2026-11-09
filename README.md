@@ -24,15 +24,26 @@
 > rely on JavaBeans-related libraries triggering `getConnection()` or `getPooledConnection()`
 > on maliciously constructed `DataSource` instances.
 >
+> c3p0-0.15.0 adds more whitelists for objects instantiated based on information from potentially
+> untrustworthy sources (e.g. fully-qualified-class-names instantiated by name from DataSource
+> properties). It adds facilities to ensure security params set by early System properties can
+> not be modified at runtime, or to freeze configuration from any alteration at runtime. It
+> eliminates a location where consultation of potentially untrustworthy InitialContext environment
+> was not gated. 
+>
+> _As of c3p0-0.15.x, the by-name-instantiation whitelist warns but is not enforced, in order to
+> give deployments time to update their configuration. [Add](https://www.mchange.com/projects/c3p0/#com.mchange.v2.reflect.byNameInstantiation.whitelist) any custom `ConnectionCustomizer`,
+> `TaskRunnerFactory`, or `ConnectionTester` classes to `com.mchange.v2.reflect.byNameInstantiation.whitelist` and set `com.mchange.v2.reflect.byNameInstantiation.enforceWhitelist` to `true`!_
+>
 > Please update your applications!
 
 c3p0 is a mature, highly concurrent JDBC Connection pooling library, with
 support for caching and reuse of `PreparedStatement` objects.
 
 c3p0 is available as managed dependency on Maven Central,
-<code>[groupId: com.mchange, artifactId: c3p0]</code> For available versions, look [here](https://oss.sonatype.org/content/repositories/releases/com/mchange/c3p0/).
+<code>[groupId: com.mchange, artifactId: c3p0]</code> For available versions, look [here](https://central.sonatype.com/artifact/com.mchange/c3p0/versions) or [here](https://repo1.maven.org/maven2/com/mchange/c3p0/).
 
-Please see the [documentation](http://www.mchange.com/projects/c3p0/) for more.
+Please see the [documentation](https://www.mchange.com/projects/c3p0/) for more.
 
 From the current *development snapshot*, here is the latest [CHANGELOG](CHANGELOG).
 
@@ -46,7 +57,7 @@ Thank you for your interest in c3p0. I do hope that you find it useful!
 
 ### Building c3p0
 
-For now (v0.15.0), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
+For now (v0.15.x), c3p0 is built under a Java 11 VM, targetting JDK 7 classfiles for continued compatibility with legacy apps.
 
 c3p0 relies on the excellent build tool [`mill`](https://mill-build.com/).
 
@@ -58,7 +69,7 @@ repository directory, run
 $ ./mill jar
 ```
 
-You'll find the raw as library `out/jar.dest/out.jar`.
+You'll find the raw library as `out/jar.dest/out.jar`.
 
 If you maintain a local ivy repository, You can customize `publishVersion` in [`build.mill`](build.mill), then run
 
@@ -117,14 +128,14 @@ By default the tests expect to find a database at `jdbc:postgresql://localhost:5
 As you can see, I usually test against a local postgres database. You can change this by
 setting `C3P0_TEST_JDBC_URL` in the environment — see [Test configuration](#test-configuration) below.
 
-c3p0's testing is, um, embarrassingly informal. There is a junit test suite, but it covers a
-very small fraction of c3p0 functionality. To run that, it's just
+c3p0's testing used to be embarrassingly informal. However, thanks to robotic assistance, the junit test suite has grown
+into something fairly extensive. To run that, it's just
 
 ```plaintext
 $ ./mill test
 ```
 
-Mostly c3p0 is tested by running a few test applications, and varying config _ad hoc_ to see how things work.
+c3p0 is still largely tested by running a few test applications, and varying config _ad hoc_ to see how things work.
 
 _If you think c3p0 could/should be tested more professionally and automatically, me too! I'd love a pull request._
 
@@ -141,14 +152,14 @@ It runs through and times a bunch of different c3p0 operations, and puts the lib
 $ ./mill test.c3p0Load
 ```
 
-This one puts c3p0 under load of a 100 thread performing 1000 database operations each,
+This one puts c3p0 under load of a 100 threads performing 1000 database operations each,
 then terminates.
 
 ```plaintext
 $ ./mill test.c3p0PSLoad
 ```
 
-This one puts c3p0 under load of a 100 thread performing database operations indefinitely.
+This one puts c3p0 under load of a 100 threads performing database operations indefinitely.
 It uses `PreparedStatement` for its database operations, so is a good way of exercising the
 statement cache.
 
@@ -186,7 +197,7 @@ Test environment changes that, in versions of c3p0 prior to 0.15.0, you would ha
 For example:
 
 ```bash
-$ C3P0_TEST_JVM_ARGS='-ea -Dc3p0.maxStatements=100' ./mill test.c3p0PSLoad
+$ C3P0_TEST_JVM_ARGS='-Dc3p0.maxStatements=100' ./mill test.c3p0PSLoad
 ```
 
 Running against hsqldb rather than postgres additionally requires uncommenting `Dependency.Hsqldb`
@@ -197,7 +208,7 @@ environment it happened to be published from.
 #### Test logging
 
 Often you will want to focus logging on a class or feature you are testing. By default, c3p0 tests
-are configured to use `java.util.logging.`, and be configured by the file [`test/conf-logging/logging.properties`](test/conf-logging/logging.properties).
+are configured to use `java.util.logging`, and be configured by the file [`test/conf-logging/logging.properties`](test/conf-logging/logging.properties).
 
 Of course you can change the config (in `c3p0.properties`) to use another logging library if you'd like,
 but you may need to modify the build to bring third-party logging libraries in, and configure those libraries
@@ -233,6 +244,10 @@ test applications, usually one of...
 * `com.mchange.v2.c3p0.test.JavaBeanRefTest`
 * `com.mchange.v2.c3p0.test.DynamicPreparedStatementTest`
 * `com.mchange.v2.c3p0.test.StatementStateTest`
+* `com.mchange.v2.c3p0.test.stmt.StatementCacheStressHarness`
+* `com.mchange.v2.c3p0.test.stmt.StatementCacheFullStackHarness`
+* `com.mchange.v2.c3p0.test.stmt.Issue196Demo`
+* `com.mchange.v2.c3p0.ConfigRefreshLockOrderingHarness`
 
 ### Developer documentation
 

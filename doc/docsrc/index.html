@@ -3101,7 +3101,7 @@ import com.mchange.v2.c3p0.cfg.C3P0Config;
 /* We'll refresh and override log config too, unless the user explicitly diasables it */
 
 Properties refreshLogConfigProps = new Properties();
-props.setProperty("com.mchange.v2.c3p0.cfg.syncRefreshLogConfig","true");
+refreshLogConfigProps.setProperty("com.mchange.v2.c3p0.cfg.syncRefreshLogConfig","true");
 MultiPropertiesConfig refreshLogConfig = MConfig.fromProperties(refreshLogConfigProps);
 
 /*
@@ -3121,8 +3121,8 @@ MultiPropertiesConfig appConfig = MConfig.AsProvidedVetoable.readUncachedResourc
  */
 
 Properties freezeConfigProps = new Properties();
-props.setProperty("com.mchange.v2.log.freezeConfig","true");
-props.setProperty("com.mchange.v2.c3p0.freezeConfig","true");
+freezeConfigProps.setProperty("com.mchange.v2.log.freezeConfig","true");
+freezeConfigProps.setProperty("com.mchange.v2.c3p0.freezeConfig","true");
 MultiPropertiesConfig freezeConfig = MConfig.fromProperties(freezeConfigProps);
 
 /*
