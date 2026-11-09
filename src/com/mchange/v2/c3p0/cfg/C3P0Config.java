@@ -386,6 +386,10 @@ public final class C3P0Config
 
             if (syncRefreshLogConfig.getValue(MPCONFIG(), logger))
                 MLog.refreshConfigWithBackstopsAndOverrides( backstops, backstopsDescription, overrides, overridesDescription );
+
+            boolean configEndsFrozen = freezeConfigProperty.getValue(MPCONFIG(), logger);
+            if ( configEndsFrozen && logger.isLoggable( MLevel.INFO ) )
+                logger.log( MLevel.INFO, "c3p0 configuration is now frozen, and cannot be updated or refreshed. [" + FREEZE_CONFIG_KEY + "=true]" );
         }
         // let's not unnecessarily nest locks
 	C3P0Registry.markConfigRefreshed();
