@@ -83,7 +83,7 @@ object ProjectFiles {
 }
 
 object Dependency {
-  val MchangeCommonsJavaVersion = "0.7.1-SNAPSHOT"
+  val MchangeCommonsJavaVersion = "0.7.1"
   val MchangeCommonsJava        = mvn"com.mchange:mchange-commons-java:${MchangeCommonsJavaVersion}"
 
   val JUnit  = mvn"org.junit.vintage:junit-vintage-engine:5.10.2"
@@ -98,7 +98,7 @@ object `package` extends StringentJavaModule with SonatypeCentralPublishModule {
   val organization = "com.mchange"
   override def artifactName = Task {"c3p0"}
 
-  override def publishVersion = Task {"0.15.1-SNAPSHOT"}
+  override def publishVersion = Task {"0.15.1"}
 
   override def sonatypeCentralShouldRelease: T[Boolean] = Task { false }
 
